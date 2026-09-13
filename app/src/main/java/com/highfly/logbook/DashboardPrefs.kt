@@ -21,7 +21,7 @@ object DashboardPrefs {
         Tile("routes", R.string.tile_routes, R.drawable.ic_world_map),
         Tile("airports", R.string.tile_airports, R.drawable.ic_airports),
         Tile("airlines", R.string.tile_airlines, R.drawable.ic_airlines),
-        Tile("layover", R.string.tile_layover, R.drawable.ic_flight_takeoff),
+        Tile("layover", R.string.tile_layover, R.drawable.ic_umbrella),
         Tile("class", R.string.tile_class, R.drawable.ic_class),
         Tile("traveltype", R.string.tile_travel_type, R.drawable.ic_work),
         Tile("aircraft", R.string.tile_aircraft_type, R.drawable.ic_flight),
