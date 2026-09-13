@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/nav_dashboard">
+
+    <fragment
+        android:id="@+id/nav_dashboard"
+        android:name="com.highfly.logbook.FirstFragment"
+        tools:layout="@layout/fragment_first">
+
+        <action
+            android:id="@+id/action_dashboard_to_add_entry"
+            app:destination="@id/nav_add_entry" />
+        <action
+            android:id="@+id/action_dashboard_to_tile_detail"
+            app:destination="@id/nav_tile_detail" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_entries"
+        android:name="com.highfly.logbook.EntriesFragment"
+        tools:layout="@layout/fragment_entries">
+
+        <action
+            android:id="@+id/action_entries_to_add_entry"
+            app:destination="@id/nav_add_entry" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_profile"
+        android:name="com.highfly.logbook.ProfileFragment"
+        tools:layout="@layout/fragment_profile" />
+
+    <fragment
+        android:id="@+id/nav_add_entry"
+        android:name="com.highfly.logbook.AddEntryFragment"
+        tools:layout="@layout/fragment_add_entry">
+
+        <argument
+            android:name="entryId"
+            app:argType="long"
+            android:defaultValue="-1L" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_tile_detail"
+        android:name="com.highfly.logbook.TileDetailFragment"
+        tools:layout="@layout/fragment_tile_detail">
+
+        <argument
+            android:name="tileId"
+            app:argType="string"
+            android:defaultValue="flights" />
+    </fragment>
+</navigation>

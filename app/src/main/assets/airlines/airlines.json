@@ -1,0 +1,6628 @@
+{
+"airlines": [
+{
+"iata": "00",
+"icao": "000",
+"name": "AirOne Continental",
+"file": null
+},
+{
+"iata": "01",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "04",
+"icao": "ABV",
+"name": "Antrak Air",
+"file": null
+},
+{
+"iata": "07",
+"icao": "770",
+"name": "Samurai Airlines",
+"file": null
+},
+{
+"iata": "0A",
+"icao": "GNT",
+"name": "Amber Air",
+"file": null
+},
+{
+"iata": "0B",
+"icao": "JOR",
+"name": "Blue Air",
+"file": null
+},
+{
+"iata": "0D",
+"icao": "DWT",
+"name": "Darwin Airline",
+"file": null
+},
+{
+"iata": "0E",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "0G",
+"icao": "GA0",
+"name": "Global Airlines",
+"file": null
+},
+{
+"iata": "0J",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "0M",
+"icao": "0MM",
+"name": "All America MX",
+"file": null
+},
+{
+"iata": "0P",
+"icao": "PYB",
+"name": "All America BOPY",
+"file": null
+},
+{
+"iata": "0X",
+"icao": "CX0",
+"name": "Copenhagen Express",
+"file": null
+},
+{
+"iata": "0Y",
+"icao": "7ZC",
+"name": "All America CO",
+"file": null
+},
+{
+"iata": "10",
+"icao": "CNN",
+"name": "Canadian World",
+"file": null
+},
+{
+"iata": "11",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "12",
+"icao": "N12",
+"name": "12 North",
+"file": null
+},
+{
+"iata": "13",
+"icao": "EAV",
+"name": "Eastern Atlantic Virtual Airlines",
+"file": null
+},
+{
+"iata": "1A",
+"icao": "AGT",
+"name": "Amadeus Global Travel Distribution",
+"file": null
+},
+{
+"iata": "1B",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "1C",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "1D",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "1E",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "1F",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "1G",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "1H",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "1I",
+"icao": "AMB",
+"name": "Deutsche Rettungsflugwacht",
+"file": "liveries/AMB.webp"
+},
+{
+"iata": "1K",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "1L",
+"icao": "OSY",
+"name": "Open Skies Consultative Commission",
+"file": null
+},
+{
+"iata": "1M",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "1N",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "1P",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "1Q",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "1R",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "1S",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "1T",
+"icao": "RNX",
+"name": "1Time Airline",
+"file": null
+},
+{
+"iata": "1U",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "1X",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "1Y",
+"icao": "A9B",
+"name": "All America BR",
+"file": null
+},
+{
+"iata": "1Z",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "20",
+"icao": "RNE",
+"name": "Air Salone",
+"file": null
+},
+{
+"iata": "24",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "2A",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "2B",
+"icao": "ARD",
+"name": "Aerocondor",
+"file": null
+},
+{
+"iata": "2C",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "2D",
+"icao": "AOG",
+"name": "Aero VIP",
+"file": null
+},
+{
+"iata": "2F",
+"icao": "FTA",
+"name": "Frontier Flying Service",
+"file": null
+},
+{
+"iata": "2G",
+"icao": "CRG",
+"name": "Cargoitalia",
+"file": "liveries/CRG.webp"
+},
+{
+"iata": "2H",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "2I",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "2J",
+"icao": "VBW",
+"name": "Air Burkina",
+"file": "liveries/VBW.webp"
+},
+{
+"iata": "2K",
+"icao": "GLG",
+"name": "Aerolineas Galapagos (Aerogal)",
+"file": "liveries/GLG.webp"
+},
+{
+"iata": "2L",
+"icao": "OAW",
+"name": "Helvetic Airways",
+"file": "liveries/OAW.webp"
+},
+{
+"iata": "2M",
+"icao": "MDV",
+"name": "Moldavian Airlines",
+"file": null
+},
+{
+"iata": "2N",
+"icao": "NTJ",
+"name": "NextJet",
+"file": "liveries/NTJ.webp"
+},
+{
+"iata": "2O",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "2P",
+"icao": "GAP",
+"name": "Air Philippines",
+"file": null
+},
+{
+"iata": "2Q",
+"icao": "SNC",
+"name": "Air Cargo Carriers",
+"file": "liveries/SNC.webp"
+},
+{
+"iata": "2R",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "2S",
+"icao": "SDY",
+"name": "Island Express",
+"file": null
+},
+{
+"iata": "2T",
+"icao": "HAM",
+"name": "Haiti Ambassador Airlines",
+"file": null
+},
+{
+"iata": "2U",
+"icao": "GIP",
+"name": "Air Guinee Express",
+"file": null
+},
+{
+"iata": "2W",
+"icao": "WLC",
+"name": "Welcome Air",
+"file": null
+},
+{
+"iata": "2X",
+"icao": "2K2",
+"name": "Regionalia Uruguay",
+"file": null
+},
+{
+"iata": "2Y",
+"icao": "AOW",
+"name": "Air Andaman (2Y)",
+"file": null
+},
+{
+"iata": "2Z",
+"icao": "CGN",
+"name": "Changan Airlines",
+"file": "liveries/CGN.webp"
+},
+{
+"iata": "3B",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "3C",
+"icao": "CEA",
+"name": "RegionsAir",
+"file": null
+},
+{
+"iata": "3D",
+"icao": "PMK",
+"name": "Palair Macedonia",
+"file": null
+},
+{
+"iata": "3E",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "3F",
+"icao": "3FF",
+"name": "Fly Colombia ( Interliging Flights )",
+"file": null
+},
+{
+"iata": "3G",
+"icao": "AYZ",
+"name": "Atlant-Soyuz Airlines",
+"file": null
+},
+{
+"iata": "3I",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "3J",
+"icao": "WZP",
+"name": "Zip",
+"file": null
+},
+{
+"iata": "3K",
+"icao": "JSA",
+"name": "Jetstar Asia Airways",
+"file": "liveries/JSA.webp"
+},
+{
+"iata": "3L",
+"icao": "ISK",
+"name": "Intersky",
+"file": null
+},
+{
+"iata": "3M",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "3N",
+"icao": "URG",
+"name": "Air Urga",
+"file": "liveries/URG.webp"
+},
+{
+"iata": "3O",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "3P",
+"icao": "TNM",
+"name": "Tiara Air",
+"file": null
+},
+{
+"iata": "3Q",
+"icao": "CYH",
+"name": "Yunnan Airlines",
+"file": null
+},
+{
+"iata": "3R",
+"icao": "GAI",
+"name": "Moskovia Airlines",
+"file": null
+},
+{
+"iata": "3S",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "3T",
+"icao": "URN",
+"name": "Turan Air",
+"file": null
+},
+{
+"iata": "3U",
+"icao": "CSC",
+"name": "Sichuan Airlines",
+"file": "liveries/CSC.webp"
+},
+{
+"iata": "3V",
+"icao": "TAY",
+"name": "TNT Airways",
+"file": "liveries/TAY.webp"
+},
+{
+"iata": "3W",
+"icao": "EMX",
+"name": "Euromanx Airways",
+"file": null
+},
+{
+"iata": "3X",
+"icao": "GUI",
+"name": "Aguilar Connect",
+"file": null
+},
+{
+"iata": "47",
+"icao": "VVN",
+"name": "88",
+"file": null
+},
+{
+"iata": "4A",
+"icao": "AKL",
+"name": "Air Kiribati",
+"file": "liveries/AKL.webp"
+},
+{
+"iata": "4B",
+"icao": "BTQ",
+"name": "Boutique Air (Priv)",
+"file": "liveries/BTQ.webp"
+},
+{
+"iata": "4C",
+"icao": "ARE",
+"name": "Aires",
+"file": "liveries/ARE.webp"
+},
+{
+"iata": "4D",
+"icao": "ASD",
+"name": "Air Sinai",
+"file": null
+},
+{
+"iata": "4F",
+"icao": "ECE",
+"name": "Air City",
+"file": null
+},
+{
+"iata": "4G",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "4H",
+"icao": "UBD",
+"name": "United Airways",
+"file": "liveries/UBD.webp"
+},
+{
+"iata": "4K",
+"icao": "AAS",
+"name": "Askari Aviation",
+"file": null
+},
+{
+"iata": "4L",
+"icao": "MJX",
+"name": "Euroline",
+"file": null
+},
+{
+"iata": "4M",
+"icao": "DSM",
+"name": "LAN Argentina",
+"file": "liveries/DSM.webp"
+},
+{
+"iata": "4N",
+"icao": "ANT",
+"name": "Air North Charter - Canada",
+"file": "liveries/ANT.webp"
+},
+{
+"iata": "4O",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "4P",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "4Q",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "4R",
+"icao": "HHI",
+"name": "Hamburg International",
+"file": null
+},
+{
+"iata": "4S",
+"icao": "FNC",
+"name": "Finalair Congo",
+"file": null
+},
+{
+"iata": "4T",
+"icao": "BHP",
+"name": "Belair Airlines",
+"file": null
+},
+{
+"iata": "4U",
+"icao": "GWI",
+"name": "Germanwings",
+"file": "liveries/GWI.webp"
+},
+{
+"iata": "4X",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "4Y",
+"icao": "RBU",
+"name": "Airbus France",
+"file": null
+},
+{
+"iata": "4Z",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "5A",
+"icao": "AIP",
+"name": "Alpine Air Express",
+"file": "liveries/AIP.webp"
+},
+{
+"iata": "5B",
+"icao": "BSX",
+"name": "Bassaka airlines",
+"file": "liveries/BSX.webp"
+},
+{
+"iata": "5C",
+"icao": "ICL",
+"name": "CAL Cargo Air Lines",
+"file": "liveries/ICL.webp"
+},
+{
+"iata": "5D",
+"icao": "SLI",
+"name": "Aerolitoral",
+"file": "liveries/SLI.webp"
+},
+{
+"iata": "5E",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "5F",
+"icao": "CIR",
+"name": "Arctic Circle Air Service",
+"file": null
+},
+{
+"iata": "5G",
+"icao": "SSV",
+"name": "Skyservice Airlines",
+"file": null
+},
+{
+"iata": "5H",
+"icao": "FFV",
+"name": "Fly540",
+"file": null
+},
+{
+"iata": "5J",
+"icao": "CEB",
+"name": "Cebu Pacific",
+"file": "liveries/CEB.webp"
+},
+{
+"iata": "5K",
+"icao": "HFY",
+"name": "Hi Fly",
+"file": "liveries/HFY.webp"
+},
+{
+"iata": "5L",
+"icao": "RSU",
+"name": "Aerosur",
+"file": null
+},
+{
+"iata": "5M",
+"icao": "SIB",
+"name": "Sibaviatrans",
+"file": null
+},
+{
+"iata": "5N",
+"icao": "AUL",
+"name": "Aeroflot-Nord",
+"file": "liveries/AUL.webp"
+},
+{
+"iata": "5P",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "5Q",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "5T",
+"icao": "MPE",
+"name": "Canadian North",
+"file": null
+},
+{
+"iata": "5V",
+"icao": "UKW",
+"name": "Lviv Airlines",
+"file": null
+},
+{
+"iata": "5W",
+"icao": "AEU",
+"name": "Astraeus",
+"file": null
+},
+{
+"iata": "5X",
+"icao": "UPS",
+"name": "United Parcel Service",
+"file": "liveries/UPS.webp"
+},
+{
+"iata": "5Y",
+"icao": "GTI",
+"name": "Atlas Air",
+"file": "liveries/GTI.webp"
+},
+{
+"iata": "5Z",
+"icao": "BML",
+"name": "Bismillah Airlines",
+"file": null
+},
+{
+"iata": "69",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "6A",
+"icao": "CHP",
+"name": "Consorcio Aviaxsa",
+"file": null
+},
+{
+"iata": "6B",
+"icao": "BLX",
+"name": "TUIfly Nordic",
+"file": "liveries/BLX.webp"
+},
+{
+"iata": "6C",
+"icao": "6CC",
+"name": "Vuela Cuba",
+"file": null
+},
+{
+"iata": "6D",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "6E",
+"icao": "IGO",
+"name": "IndiGo Airlines",
+"file": "liveries/IGO.webp"
+},
+{
+"iata": "6F",
+"icao": "MKD",
+"name": "MAT Airways",
+"file": null
+},
+{
+"iata": "6G",
+"icao": "AWW",
+"name": "Air Wales",
+"file": null
+},
+{
+"iata": "6H",
+"icao": "ISR",
+"name": "Israir",
+"file": "liveries/ISR.webp"
+},
+{
+"iata": "6I",
+"icao": "IBZ",
+"name": "International Business Air",
+"file": null
+},
+{
+"iata": "6J",
+"icao": "SNJ",
+"name": "Skynet Asia Airways",
+"file": "liveries/SNJ.webp"
+},
+{
+"iata": "6K",
+"icao": "RIT",
+"name": "Asian Spirit",
+"file": null
+},
+{
+"iata": "6N",
+"icao": "NRD",
+"name": "Nordic Regional",
+"file": null
+},
+{
+"iata": "6P",
+"icao": "ISG",
+"name": "Club Air",
+"file": null
+},
+{
+"iata": "6Q",
+"icao": "SLL",
+"name": "Slovak Airlines",
+"file": null
+},
+{
+"iata": "6R",
+"icao": "DRU",
+"name": "Alrosa Mirny Air Enterprise",
+"file": "liveries/DRU.webp"
+},
+{
+"iata": "6T",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "6U",
+"icao": "UKR",
+"name": "Air Ukraine",
+"file": null
+},
+{
+"iata": "6V",
+"icao": "VGA",
+"name": "Air Vegas",
+"file": null
+},
+{
+"iata": "6W",
+"icao": "SOV",
+"name": "Saratov Aviation Division",
+"file": "liveries/SOV.webp"
+},
+{
+"iata": "6Y",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "6Z",
+"icao": "UKS",
+"name": "Ukrainian Cargo Airways",
+"file": null
+},
+{
+"iata": "76",
+"icao": "SJS",
+"name": "Southjet",
+"file": null
+},
+{
+"iata": "77",
+"icao": "ZCS",
+"name": "Southjet connect",
+"file": null
+},
+{
+"iata": "78",
+"icao": "XAN",
+"name": "Southjet cargo",
+"file": null
+},
+{
+"iata": "7A",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "7B",
+"icao": "KJC",
+"name": "Krasnojarsky Airlines",
+"file": null
+},
+{
+"iata": "7C",
+"icao": "JJA",
+"name": "Jeju Air",
+"file": "liveries/JJA.webp"
+},
+{
+"iata": "7E",
+"icao": "AWU",
+"name": "Aeroline GmbH",
+"file": "liveries/AWU.webp"
+},
+{
+"iata": "7F",
+"icao": "FAB",
+"name": "First Air",
+"file": "liveries/FAB.webp"
+},
+{
+"iata": "7G",
+"icao": "SFJ",
+"name": "Star Flyer",
+"file": "liveries/SFJ.webp"
+},
+{
+"iata": "7H",
+"icao": "ERR",
+"name": "Era Alaska",
+"file": null
+},
+{
+"iata": "7I",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "7J",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "7K",
+"icao": "KGL",
+"name": "Kogalymavia Air Company",
+"file": null
+},
+{
+"iata": "7L",
+"icao": "ERO",
+"name": "Sun D'Or",
+"file": null
+},
+{
+"iata": "7M",
+"icao": "ZTF",
+"name": "Mongolian International Air Lines ",
+"file": null
+},
+{
+"iata": "7N",
+"icao": "CNA",
+"name": "Centavia",
+"file": null
+},
+{
+"iata": "7O",
+"icao": "GAL",
+"name": "Galaxy Air",
+"file": null
+},
+{
+"iata": "7P",
+"icao": "BTV",
+"name": "Metro Batavia",
+"file": null
+},
+{
+"iata": "7Q",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "7R",
+"icao": "BRB",
+"name": "BRA-Transportes Aereos",
+"file": null
+},
+{
+"iata": "7T",
+"icao": "AGV",
+"name": "Air Glaciers",
+"file": "liveries/AGV.webp"
+},
+{
+"iata": "7V",
+"icao": "ROB",
+"name": "ROYAL BRITAIN",
+"file": null
+},
+{
+"iata": "7W",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "7Y",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "7Z",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "88",
+"icao": "8K8",
+"name": "All Australia",
+"file": null
+},
+{
+"iata": "8A",
+"icao": "BMM",
+"name": "Atlas Blue",
+"file": null
+},
+{
+"iata": "8B",
+"icao": "GFI",
+"name": "Caribbean Star Airlines",
+"file": null
+},
+{
+"iata": "8C",
+"icao": "ATN",
+"name": "Air Transport International",
+"file": "liveries/ATN.webp"
+},
+{
+"iata": "8D",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "8E",
+"icao": "BRG",
+"name": "Bering Air",
+"file": "liveries/BRG.webp"
+},
+{
+"iata": "8F",
+"icao": "FFR",
+"name": "Fischer Air",
+"file": null
+},
+{
+"iata": "8H",
+"icao": "HFR",
+"name": "Heli France",
+"file": null
+},
+{
+"iata": "8I",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "8J",
+"icao": "JFU",
+"name": "Jet4You",
+"file": null
+},
+{
+"iata": "8K",
+"icao": "K88",
+"name": "Voestar",
+"file": null
+},
+{
+"iata": "8L",
+"icao": "CGP",
+"name": "Cargo Plus Aviation",
+"file": null
+},
+{
+"iata": "8M",
+"icao": "MXL",
+"name": "Maxair",
+"file": null
+},
+{
+"iata": "8N",
+"icao": "NKF",
+"name": "Barents AirLink",
+"file": null
+},
+{
+"iata": "8O",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "8P",
+"icao": "PCO",
+"name": "Pacific Coastal Airline",
+"file": "liveries/PCO.webp"
+},
+{
+"iata": "8Q",
+"icao": "BAJ",
+"name": "Baker Aviation",
+"file": null
+},
+{
+"iata": "8R",
+"icao": "TIB",
+"name": "TRIP Linhas A",
+"file": null
+},
+{
+"iata": "8S",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "8T",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "8U",
+"icao": "AAW",
+"name": "Afriqiyah Airways",
+"file": "liveries/AAW.webp"
+},
+{
+"iata": "8V",
+"icao": "ACP",
+"name": "Astral Aviation",
+"file": "liveries/ACP.webp"
+},
+{
+"iata": "8W",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "8Y",
+"icao": "PBU",
+"name": "Air Burundi",
+"file": null
+},
+{
+"iata": "99",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "9A",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "9C",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "9E",
+"icao": "FLG",
+"name": "Pinnacle Airlines",
+"file": "liveries/FLG.webp"
+},
+{
+"iata": "9F",
+"icao": "TLM",
+"name": "Tramm Airlines",
+"file": "liveries/TLM.webp"
+},
+{
+"iata": "9H",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "9I",
+"icao": "TKY",
+"name": "Thai Sky Airlines",
+"file": null
+},
+{
+"iata": "9J",
+"icao": "CR1",
+"name": "Regionalia Chile",
+"file": null
+},
+{
+"iata": "9K",
+"icao": "KAP",
+"name": "Cape Air",
+"file": "liveries/KAP.webp"
+},
+{
+"iata": "9L",
+"icao": "CJC",
+"name": "Colgan Air",
+"file": null
+},
+{
+"iata": "9N",
+"icao": "N78",
+"name": "Regional Air Iceland",
+"file": null
+},
+{
+"iata": "9O",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "9P",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "9Q",
+"icao": "PBA",
+"name": "PB Air",
+"file": null
+},
+{
+"iata": "9R",
+"icao": "VAP",
+"name": "Phuket Air",
+"file": null
+},
+{
+"iata": "9S",
+"icao": "CQH",
+"name": "Spring Airlines",
+"file": "liveries/CQH.webp"
+},
+{
+"iata": "9T",
+"icao": "ABS",
+"name": "Transwest Air",
+"file": "liveries/ABS.webp"
+},
+{
+"iata": "9U",
+"icao": "MLD",
+"name": "Air Moldova",
+"file": null
+},
+{
+"iata": "9V",
+"icao": "VC9",
+"name": "Volotea Costa Rica",
+"file": null
+},
+{
+"iata": "9W",
+"icao": "JAI",
+"name": "Jet Airways",
+"file": "liveries/JAI.webp"
+},
+{
+"iata": "9X",
+"icao": "ACL",
+"name": "Itali Airlines",
+"file": "liveries/ACL.webp"
+},
+{
+"iata": "9Y",
+"icao": "KZK",
+"name": "Air Kazakhstan",
+"file": null
+},
+{
+"iata": "A1",
+"icao": "A1F",
+"name": "Atifly",
+"file": null
+},
+{
+"iata": "A2",
+"icao": "CIU",
+"name": "Cielos Airlines",
+"file": null
+},
+{
+"iata": "A3",
+"icao": "AEE",
+"name": "Aegean Airlines",
+"file": "liveries/AEE.webp"
+},
+{
+"iata": "A4",
+"icao": "SWD",
+"name": "Southern Winds Airlines",
+"file": null
+},
+{
+"iata": "A5",
+"icao": "RLA",
+"name": "Airlinair",
+"file": null
+},
+{
+"iata": "A6",
+"icao": "LPV",
+"name": "Air Alps Aviation",
+"file": null
+},
+{
+"iata": "A7",
+"icao": "MPD",
+"name": "Air Plus Comet",
+"file": null
+},
+{
+"iata": "A8",
+"icao": "BGL",
+"name": "Benin Golf Air",
+"file": null
+},
+{
+"iata": "A9",
+"icao": "TGZ",
+"name": "Georgian Airways",
+"file": "liveries/TGZ.webp"
+},
+{
+"iata": "AA",
+"icao": "AAL",
+"name": "American Airlines",
+"file": "liveries/AAL.webp"
+},
+{
+"iata": "AB",
+"icao": "BER",
+"name": "Air Berlin",
+"file": "liveries/BER.webp"
+},
+{
+"iata": "AC",
+"icao": "ACA",
+"name": "Air Canada",
+"file": "liveries/ACA.webp"
+},
+{
+"iata": "AD",
+"icao": "PRZ",
+"name": "Air Paradise International",
+"file": null
+},
+{
+"iata": "AE",
+"icao": "MDA",
+"name": "Mandarin Airlines",
+"file": "liveries/MDA.webp"
+},
+{
+"iata": "AF",
+"icao": "AFR",
+"name": "Air France",
+"file": "liveries/AFR.webp"
+},
+{
+"iata": "AG",
+"icao": "ABR",
+"name": "Air Contractors",
+"file": "liveries/ABR.webp"
+},
+{
+"iata": "AH",
+"icao": "DAH",
+"name": "Air Algerie",
+"file": "liveries/DAH.webp"
+},
+{
+"iata": "AI",
+"icao": "AIC",
+"name": "Air India Limited",
+"file": "liveries/AIC.webp"
+},
+{
+"iata": "AJ",
+"icao": "NIG",
+"name": "Aero Contractors",
+"file": "liveries/NIG.webp"
+},
+{
+"iata": "AK",
+"icao": "AXM",
+"name": "AirAsia",
+"file": "liveries/AXM.webp"
+},
+{
+"iata": "AL",
+"icao": "SYX",
+"name": "Skywalk Airlines",
+"file": null
+},
+{
+"iata": "AM",
+"icao": "AMX",
+"name": "AeroMéxico",
+"file": "liveries/AMX.webp"
+},
+{
+"iata": "AN",
+"icao": "AAA",
+"name": "Ansett Australia",
+"file": null
+},
+{
+"iata": "AO",
+"icao": "AUZ",
+"name": "Australian Airlines",
+"file": null
+},
+{
+"iata": "AP",
+"icao": "AIB",
+"name": "Airbus Industrie",
+"file": "liveries/AIB.webp"
+},
+{
+"iata": "AQ",
+"icao": "AAH",
+"name": "Aloha Airlines",
+"file": "liveries/AAH.webp"
+},
+{
+"iata": "AR",
+"icao": "ARG",
+"name": "Aerolineas Argentinas",
+"file": "liveries/ARG.webp"
+},
+{
+"iata": "AS",
+"icao": "ASA",
+"name": "Alaska Airlines",
+"file": "liveries/ASA.webp"
+},
+{
+"iata": "AT",
+"icao": "RAM",
+"name": "Royal Air Maroc",
+"file": "liveries/RAM.webp"
+},
+{
+"iata": "AU",
+"icao": "AUT",
+"name": "Austral Lineas Aereas",
+"file": null
+},
+{
+"iata": "AV",
+"icao": "AVA",
+"name": "Avianca - Aerovias Nacionales de Colombia",
+"file": "liveries/AVA.webp"
+},
+{
+"iata": "AW",
+"icao": "SCH",
+"name": "CHC Airways",
+"file": null
+},
+{
+"iata": "AX",
+"icao": "LOF",
+"name": "Trans States Airlines",
+"file": null
+},
+{
+"iata": "AY",
+"icao": "FIN",
+"name": "Finnair",
+"file": "liveries/FIN.webp"
+},
+{
+"iata": "AZ",
+"icao": "AZA",
+"name": "Alitalia",
+"file": "liveries/AZA.webp"
+},
+{
+"iata": "B0",
+"icao": "666",
+"name": "Aws express",
+"file": null
+},
+{
+"iata": "B1",
+"icao": "BA1",
+"name": "Baltic Air lines",
+"file": null
+},
+{
+"iata": "B2",
+"icao": "BRU",
+"name": "Belavia Belarusian Airlines",
+"file": "liveries/BRU.webp"
+},
+{
+"iata": "B3",
+"icao": "BLV",
+"name": "Bellview Airlines",
+"file": null
+},
+{
+"iata": "B4",
+"icao": "BCF",
+"name": "BACH Flugbetriebsges",
+"file": null
+},
+{
+"iata": "B5",
+"icao": "FLT",
+"name": "Flightline",
+"file": null
+},
+{
+"iata": "B6",
+"icao": "JBU",
+"name": "JetBlue Airways",
+"file": "liveries/JBU.webp"
+},
+{
+"iata": "B7",
+"icao": "UIA",
+"name": "Uni Air",
+"file": "liveries/UIA.webp"
+},
+{
+"iata": "B8",
+"icao": "ERT",
+"name": "Eritrean Airlines",
+"file": null
+},
+{
+"iata": "B9",
+"icao": "BGD",
+"name": "Air Bangladesh",
+"file": null
+},
+{
+"iata": "BA",
+"icao": "BAW",
+"name": "British Airways",
+"file": "liveries/BAW.webp"
+},
+{
+"iata": "BB",
+"icao": "SBS",
+"name": "Seaborne Airlines",
+"file": "liveries/SBS.webp"
+},
+{
+"iata": "BC",
+"icao": "SKY",
+"name": "Skymark Airlines",
+"file": "liveries/SKY.webp"
+},
+{
+"iata": "BD",
+"icao": "BMA",
+"name": "bmi",
+"file": "liveries/BMA.webp"
+},
+{
+"iata": "BE",
+"icao": "BEE",
+"name": "Flybe",
+"file": "liveries/BEE.webp"
+},
+{
+"iata": "BF",
+"icao": "RSR",
+"name": "Aero-Service",
+"file": null
+},
+{
+"iata": "BG",
+"icao": "BBC",
+"name": "Biman Bangladesh Airlines",
+"file": "liveries/BBC.webp"
+},
+{
+"iata": "BH",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "BI",
+"icao": "RBA",
+"name": "Royal Brunei Airlines",
+"file": "liveries/RBA.webp"
+},
+{
+"iata": "BJ",
+"icao": "LBT",
+"name": "Nouvel Air Tunisie",
+"file": "liveries/LBT.webp"
+},
+{
+"iata": "BK",
+"icao": "PDC",
+"name": "Potomac Air",
+"file": null
+},
+{
+"iata": "BL",
+"icao": "PIC",
+"name": "Jetstar Pacific",
+"file": "liveries/PIC.webp"
+},
+{
+"iata": "BM",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "BN",
+"icao": "BNF",
+"name": "Braniff International Airways",
+"file": null
+},
+{
+"iata": "BO",
+"icao": "BOU",
+"name": "Bouraq Indonesia Airlines",
+"file": null
+},
+{
+"iata": "BP",
+"icao": "BOT",
+"name": "Air Botswana",
+"file": "liveries/BOT.webp"
+},
+{
+"iata": "BQ",
+"icao": "ROM",
+"name": "Aeromar",
+"file": null
+},
+{
+"iata": "BR",
+"icao": "EVA",
+"name": "EVA Air",
+"file": "liveries/EVA.webp"
+},
+{
+"iata": "BS",
+"icao": "BIH",
+"name": "British International Helicopters",
+"file": null
+},
+{
+"iata": "BT",
+"icao": "BTI",
+"name": "Air Baltic",
+"file": "liveries/BTI.webp"
+},
+{
+"iata": "BU",
+"icao": "BRA",
+"name": "Braathens",
+"file": null
+},
+{
+"iata": "BV",
+"icao": "BPA",
+"name": "Blue Panorama Airlines",
+"file": "liveries/BPA.webp"
+},
+{
+"iata": "BW",
+"icao": "BWA",
+"name": "Caribbean Airlines",
+"file": "liveries/BWA.webp"
+},
+{
+"iata": "BX",
+"icao": "CST",
+"name": "Coast Air",
+"file": null
+},
+{
+"iata": "BY",
+"icao": "TOM",
+"name": "Thomsonfly",
+"file": "liveries/TOM.webp"
+},
+{
+"iata": "BZ",
+"icao": "BDA",
+"name": "Blue Dart Aviation",
+"file": "liveries/BDA.webp"
+},
+{
+"iata": "C0",
+"icao": "CLW",
+"name": "Centralwings",
+"file": null
+},
+{
+"iata": "C1",
+"icao": "CA1",
+"name": "CanXpress",
+"file": null
+},
+{
+"iata": "C2",
+"icao": "CAP",
+"name": "CanXplorer",
+"file": "liveries/CAP.webp"
+},
+{
+"iata": "C3",
+"icao": "KIS",
+"name": "Contact Air",
+"file": "liveries/KIS.webp"
+},
+{
+"iata": "C4",
+"icao": "IMX",
+"name": "Zimex Aviation",
+"file": "liveries/IMX.webp"
+},
+{
+"iata": "C5",
+"icao": "UCA",
+"name": "CommutAir",
+"file": "liveries/UCA.webp"
+},
+{
+"iata": "C6",
+"icao": "CJA",
+"name": "CanJet",
+"file": null
+},
+{
+"iata": "C7",
+"icao": "RLE",
+"name": "Rico Linhas A",
+"file": null
+},
+{
+"iata": "C8",
+"icao": "WDY",
+"name": "Chicago Express",
+"file": null
+},
+{
+"iata": "C9",
+"icao": "RUS",
+"name": "Cirrus Airlines",
+"file": null
+},
+{
+"iata": "CA",
+"icao": "CCA",
+"name": "Air China",
+"file": "liveries/CCA.webp"
+},
+{
+"iata": "CB",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "CC",
+"icao": "ABD",
+"name": "Air Atlanta Icelandic",
+"file": "liveries/ABD.webp"
+},
+{
+"iata": "CD",
+"icao": "LLR",
+"name": "Alliance Air",
+"file": "liveries/LLR.webp"
+},
+{
+"iata": "CE",
+"icao": "NTW",
+"name": "Nationwide Airlines",
+"file": null
+},
+{
+"iata": "CF",
+"icao": "SDR",
+"name": "City Airline",
+"file": "liveries/SDR.webp"
+},
+{
+"iata": "CG",
+"icao": "TOK",
+"name": "Airlines PNG",
+"file": "liveries/TOK.webp"
+},
+{
+"iata": "CH",
+"icao": "BMJ",
+"name": "Bemidji Airlines",
+"file": "liveries/BMJ.webp"
+},
+{
+"iata": "CI",
+"icao": "CAL",
+"name": "China Airlines",
+"file": "liveries/CAL.webp"
+},
+{
+"iata": "CJ",
+"icao": "CBF",
+"name": "China Northern Airlines",
+"file": null
+},
+{
+"iata": "CK",
+"icao": "CKK",
+"name": "China Cargo Airlines",
+"file": "liveries/CKK.webp"
+},
+{
+"iata": "CL",
+"icao": "CLH",
+"name": "Lufthansa CityLine",
+"file": null
+},
+{
+"iata": "CM",
+"icao": "CMP",
+"name": "Copa Airlines",
+"file": "liveries/CMP.webp"
+},
+{
+"iata": "CN",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "CO",
+"icao": "COA",
+"name": "Continental Airlines",
+"file": null
+},
+{
+"iata": "CP",
+"icao": "CDN",
+"name": "Canadian Airlines",
+"file": null
+},
+{
+"iata": "CQ",
+"icao": "EXL",
+"name": "Sunshine Express Airlines",
+"file": null
+},
+{
+"iata": "CR",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "CS",
+"icao": "CMI",
+"name": "Continental Micronesia",
+"file": null
+},
+{
+"iata": "CT",
+"icao": "CAT",
+"name": "Civil Air Transport",
+"file": "liveries/CAT.webp"
+},
+{
+"iata": "CU",
+"icao": "CUB",
+"name": "Cubana de Aviación",
+"file": "liveries/CUB.webp"
+},
+{
+"iata": "CV",
+"icao": "CVA",
+"name": "Air Chathams",
+"file": "liveries/CVA.webp"
+},
+{
+"iata": "CW",
+"icao": "CWM",
+"name": "Air Marshall Islands",
+"file": null
+},
+{
+"iata": "CX",
+"icao": "CPA",
+"name": "Cathay Pacific",
+"file": "liveries/CPA.webp"
+},
+{
+"iata": "CY",
+"icao": "CYP",
+"name": "Cyprus Airways",
+"file": "liveries/CYP.webp"
+},
+{
+"iata": "CZ",
+"icao": "CSN",
+"name": "China Southern Airlines",
+"file": "liveries/CSN.webp"
+},
+{
+"iata": "D1",
+"icao": "MDO",
+"name": "Domenican Airlines",
+"file": null
+},
+{
+"iata": "D2",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "D3",
+"icao": "DAO",
+"name": "Daallo Airlines",
+"file": "liveries/DAO.webp"
+},
+{
+"iata": "D4",
+"icao": "LID",
+"name": "Alidaunia",
+"file": null
+},
+{
+"iata": "D5",
+"icao": "DAU",
+"name": "Dauair",
+"file": null
+},
+{
+"iata": "D6",
+"icao": "ILN",
+"name": "Interair South Africa",
+"file": null
+},
+{
+"iata": "D7",
+"icao": "RDN",
+"name": "Dinar",
+"file": null
+},
+{
+"iata": "D8",
+"icao": "DJB",
+"name": "Djibouti Airlines",
+"file": null
+},
+{
+"iata": "D9",
+"icao": "DNV",
+"name": "Aeroflot-Don",
+"file": null
+},
+{
+"iata": "DA",
+"icao": "GRG",
+"name": "Air Georgia",
+"file": null
+},
+{
+"iata": "DB",
+"icao": "BZH",
+"name": "Brit Air",
+"file": null
+},
+{
+"iata": "DC",
+"icao": "GAO",
+"name": "Golden Air",
+"file": "liveries/GAO.webp"
+},
+{
+"iata": "DD",
+"icao": "NOK",
+"name": "Nok Air",
+"file": "liveries/NOK.webp"
+},
+{
+"iata": "DE",
+"icao": "CFG",
+"name": "Condor Flugdienst",
+"file": "liveries/CFG.webp"
+},
+{
+"iata": "DF",
+"icao": "MJG",
+"name": "Michael Airlines",
+"file": null
+},
+{
+"iata": "DG",
+"icao": "SRQ",
+"name": "South East Asian Airlines",
+"file": null
+},
+{
+"iata": "DH",
+"icao": "DVA",
+"name": "Discovery Airways",
+"file": null
+},
+{
+"iata": "DI",
+"icao": "BAG",
+"name": "dba",
+"file": "liveries/BAG.webp"
+},
+{
+"iata": "DJ",
+"icao": "PBN",
+"name": "Pacific Blue",
+"file": null
+},
+{
+"iata": "DK",
+"icao": "ELA",
+"name": "Eastland Air",
+"file": null
+},
+{
+"iata": "DL",
+"icao": "DAL",
+"name": "Delta Air Lines",
+"file": "liveries/DAL.webp"
+},
+{
+"iata": "DM",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "DN",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "DO",
+"icao": "DOA",
+"name": "Dominicana de Aviaci",
+"file": null
+},
+{
+"iata": "DP",
+"icao": "FCA",
+"name": "First Choice Airways",
+"file": "liveries/FCA.webp"
+},
+{
+"iata": "DQ",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "DR",
+"icao": "BIE",
+"name": "Air Mediterranee",
+"file": null
+},
+{
+"iata": "DS",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "DT",
+"icao": "DTA",
+"name": "TAAG Angola Airlines",
+"file": "liveries/DTA.webp"
+},
+{
+"iata": "DU",
+"icao": "HMS",
+"name": "Hemus Air",
+"file": null
+},
+{
+"iata": "DV",
+"icao": "LTF",
+"name": "Lufttaxi Fluggesellschaft",
+"file": null
+},
+{
+"iata": "DW",
+"icao": "UCR",
+"name": "Aero-Charter Ukraine",
+"file": null
+},
+{
+"iata": "DX",
+"icao": "DTR",
+"name": "DAT Danish Air Transport",
+"file": "liveries/DTR.webp"
+},
+{
+"iata": "DY",
+"icao": "NAX",
+"name": "Norwegian Air Shuttle",
+"file": null
+},
+{
+"iata": "DZ",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "E0",
+"icao": "ESS",
+"name": "Eos Airlines",
+"file": null
+},
+{
+"iata": "E1",
+"icao": "ES2",
+"name": "Usa Sky Cargo",
+"file": null
+},
+{
+"iata": "E2",
+"icao": "KMP",
+"name": "Kampuchea Airlines",
+"file": null
+},
+{
+"iata": "E3",
+"icao": "DMO",
+"name": "Domodedovo Airlines",
+"file": null
+},
+{
+"iata": "E4",
+"icao": "RSO",
+"name": "Aero Asia International",
+"file": null
+},
+{
+"iata": "E5",
+"icao": "BRZ",
+"name": "Samara Airlines",
+"file": null
+},
+{
+"iata": "E6",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "E7",
+"icao": "ESF",
+"name": "Estafeta Carga Aerea",
+"file": "liveries/ESF.webp"
+},
+{
+"iata": "E8",
+"icao": "ELG",
+"name": "Alpi Eagles",
+"file": null
+},
+{
+"iata": "E9",
+"icao": "CXS",
+"name": "Boston-Maine Airways",
+"file": null
+},
+{
+"iata": "EA",
+"icao": "EAL",
+"name": "European Air Express",
+"file": "liveries/EAL.webp"
+},
+{
+"iata": "EC",
+"icao": "TWN",
+"name": "Avialeasing Aviation Company",
+"file": null
+},
+{
+"iata": "ED",
+"icao": "ABQ",
+"name": "Airblue",
+"file": "liveries/ABQ.webp"
+},
+{
+"iata": "EE",
+"icao": "EAY",
+"name": "Aero Airlines",
+"file": null
+},
+{
+"iata": "EF",
+"icao": "EFA",
+"name": "Far Eastern Air Transport",
+"file": null
+},
+{
+"iata": "EG",
+"icao": "JAA",
+"name": "Japan Asia Airways",
+"file": null
+},
+{
+"iata": "EH",
+"icao": "AKX",
+"name": "Air Nippon Network Co. Ltd.",
+"file": "liveries/AKX.webp"
+},
+{
+"iata": "EI",
+"icao": "EIN",
+"name": "Aer Lingus",
+"file": "liveries/EIN.webp"
+},
+{
+"iata": "EJ",
+"icao": "NEA",
+"name": "New England Airlines",
+"file": "liveries/NEA.webp"
+},
+{
+"iata": "EK",
+"icao": "UAE",
+"name": "Emirates",
+"file": "liveries/UAE.webp"
+},
+{
+"iata": "EL",
+"icao": "ANK",
+"name": "Air Nippon",
+"file": "liveries/ANK.webp"
+},
+{
+"iata": "EM",
+"icao": "AEB",
+"name": "Aero Benin",
+"file": null
+},
+{
+"iata": "EN",
+"icao": "DLA",
+"name": "Air Dolomiti",
+"file": "liveries/DLA.webp"
+},
+{
+"iata": "EO",
+"icao": "LHN",
+"name": "Express One International",
+"file": null
+},
+{
+"iata": "EP",
+"icao": "IRC",
+"name": "Iran Aseman Airlines",
+"file": "liveries/IRC.webp"
+},
+{
+"iata": "EQ",
+"icao": "TAE",
+"name": "TAME",
+"file": null
+},
+{
+"iata": "ER",
+"icao": "DHL",
+"name": "Astar Air Cargo",
+"file": null
+},
+{
+"iata": "ES",
+"icao": "DHX",
+"name": "DHL International",
+"file": "liveries/DHX.webp"
+},
+{
+"iata": "ET",
+"icao": "ETH",
+"name": "Ethiopian Airlines",
+"file": "liveries/ETH.webp"
+},
+{
+"iata": "EU",
+"icao": "EEA",
+"name": "Empresa Ecuatoriana De Aviacion",
+"file": null
+},
+{
+"iata": "EV",
+"icao": "ASQ",
+"name": "Atlantic Southeast Airlines",
+"file": null
+},
+{
+"iata": "EW",
+"icao": "EWG",
+"name": "Eurowings",
+"file": "liveries/EWG.webp"
+},
+{
+"iata": "EX",
+"icao": "SDO",
+"name": "Air Santo Domingo",
+"file": null
+},
+{
+"iata": "EY",
+"icao": "ETD",
+"name": "Etihad Airways",
+"file": "liveries/ETD.webp"
+},
+{
+"iata": "EZ",
+"icao": "EIA",
+"name": "Evergreen International Airlines",
+"file": null
+},
+{
+"iata": "F1",
+"icao": "FBL",
+"name": "Fly Brasil",
+"file": null
+},
+{
+"iata": "F2",
+"icao": "FLM",
+"name": "Fly Air",
+"file": null
+},
+{
+"iata": "F3",
+"icao": "FSW",
+"name": "Faso Airways",
+"file": null
+},
+{
+"iata": "F4",
+"icao": "NBK",
+"name": "Albarka Air",
+"file": null
+},
+{
+"iata": "F5",
+"icao": "COZ",
+"name": "Cosmic Air",
+"file": null
+},
+{
+"iata": "F6",
+"icao": "RCK",
+"name": "Faroejet",
+"file": null
+},
+{
+"iata": "F7",
+"icao": "BBO",
+"name": "Flybaboo",
+"file": null
+},
+{
+"iata": "F8",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "F9",
+"icao": "FFT",
+"name": "Frontier Airlines",
+"file": "liveries/FFT.webp"
+},
+{
+"iata": "FA",
+"icao": "SFR",
+"name": "Safair",
+"file": "liveries/SFR.webp"
+},
+{
+"iata": "FB",
+"icao": "LZB",
+"name": "Bulgaria Air",
+"file": "liveries/LZB.webp"
+},
+{
+"iata": "FC",
+"icao": "WBA",
+"name": "Finncomm Airlines",
+"file": null
+},
+{
+"iata": "FD",
+"icao": "AIQ",
+"name": "Thai AirAsia",
+"file": "liveries/AIQ.webp"
+},
+{
+"iata": "FE",
+"icao": "WCP",
+"name": "Primaris Airlines",
+"file": null
+},
+{
+"iata": "FF",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "FG",
+"icao": "AFG",
+"name": "Ariana Afghan Airlines",
+"file": "liveries/AFG.webp"
+},
+{
+"iata": "FH",
+"icao": "FUA",
+"name": "Futura International Airways",
+"file": null
+},
+{
+"iata": "FI",
+"icao": "ICE",
+"name": "Icelandair",
+"file": "liveries/ICE.webp"
+},
+{
+"iata": "FJ",
+"icao": "FJI",
+"name": "Air Pacific",
+"file": "liveries/FJI.webp"
+},
+{
+"iata": "FK",
+"icao": "WTA",
+"name": "Africa West",
+"file": null
+},
+{
+"iata": "FL",
+"icao": "TRS",
+"name": "AirTran Airways",
+"file": null
+},
+{
+"iata": "FM",
+"icao": "CSH",
+"name": "Shanghai Airlines",
+"file": "liveries/CSH.webp"
+},
+{
+"iata": "FN",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "FO",
+"icao": "ATM",
+"name": "Airlines Of Tasmania",
+"file": null
+},
+{
+"iata": "FP",
+"icao": "FRE",
+"name": "Freedom Air",
+"file": "liveries/FRE.webp"
+},
+{
+"iata": "FQ",
+"icao": "TCW",
+"name": "Thomas Cook Airlines",
+"file": "liveries/TCW.webp"
+},
+{
+"iata": "FR",
+"icao": "RYR",
+"name": "Ryanair",
+"file": "liveries/RYR.webp"
+},
+{
+"iata": "FS",
+"icao": "STU",
+"name": "Servicios de Transportes A",
+"file": null
+},
+{
+"iata": "FT",
+"icao": "SRH",
+"name": "Siem Reap Airways",
+"file": null
+},
+{
+"iata": "FU",
+"icao": "FXX",
+"name": "Felix Airways",
+"file": null
+},
+{
+"iata": "FV",
+"icao": "SDM",
+"name": "Rossiya-Russian Airlines",
+"file": "liveries/SDM.webp"
+},
+{
+"iata": "FW",
+"icao": "IBX",
+"name": "Ibex Airlines",
+"file": "liveries/IBX.webp"
+},
+{
+"iata": "FX",
+"icao": "FDX",
+"name": "Federal Express",
+"file": "liveries/FDX.webp"
+},
+{
+"iata": "FY",
+"icao": "FFM",
+"name": "Firefly",
+"file": "liveries/FFM.webp"
+},
+{
+"iata": "FZ",
+"icao": "FDB",
+"name": "Fly Dubai",
+"file": "liveries/FDB.webp"
+},
+{
+"iata": "G0",
+"icao": "GHB",
+"name": "Ghana International Airlines",
+"file": null
+},
+{
+"iata": "G1",
+"icao": "IKA",
+"name": "Gorkha Airlines",
+"file": null
+},
+{
+"iata": "G2",
+"icao": "VXG",
+"name": "Avirex",
+"file": null
+},
+{
+"iata": "G3",
+"icao": "CIX",
+"name": "City Connexion Airlines",
+"file": null
+},
+{
+"iata": "G4",
+"icao": "AAY",
+"name": "Allegiant Air",
+"file": "liveries/AAY.webp"
+},
+{
+"iata": "G5",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "G6",
+"icao": "BSR",
+"name": "Guine Bissaur Airlines",
+"file": null
+},
+{
+"iata": "G7",
+"icao": "GNF",
+"name": "Gandalf Airlines",
+"file": null
+},
+{
+"iata": "G8",
+"icao": "AGB",
+"name": "Air Service Gabon",
+"file": null
+},
+{
+"iata": "G9",
+"icao": "ABY",
+"name": "Air Arabia",
+"file": "liveries/ABY.webp"
+},
+{
+"iata": "GA",
+"icao": "GIA",
+"name": "Garuda Indonesia",
+"file": "liveries/GIA.webp"
+},
+{
+"iata": "GB",
+"icao": "ABX",
+"name": "Airborne Express",
+"file": "liveries/ABX.webp"
+},
+{
+"iata": "GC",
+"icao": "GNR",
+"name": "Gambia International Airlines",
+"file": null
+},
+{
+"iata": "GD",
+"icao": "AHA",
+"name": "Air Alpha Greenland",
+"file": null
+},
+{
+"iata": "GE",
+"icao": "TNA",
+"name": "TransAsia Airways",
+"file": null
+},
+{
+"iata": "GF",
+"icao": "GBA",
+"name": "Gulf Air Bahrain",
+"file": null
+},
+{
+"iata": "GG",
+"icao": "GUY",
+"name": "Air Guyane",
+"file": "liveries/GUY.webp"
+},
+{
+"iata": "GH",
+"icao": "GLP",
+"name": "Globus",
+"file": "liveries/GLP.webp"
+},
+{
+"iata": "GI",
+"icao": "IKA",
+"name": "Gorkha Airlines",
+"file": null
+},
+{
+"iata": "GJ",
+"icao": "MXC",
+"name": "Compania Mexicargo",
+"file": null
+},
+{
+"iata": "GK",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "GL",
+"icao": "GRL",
+"name": "Air Greenland",
+"file": "liveries/GRL.webp"
+},
+{
+"iata": "GM",
+"icao": "SVK",
+"name": "Air Slovakia",
+"file": null
+},
+{
+"iata": "GN",
+"icao": "AGN",
+"name": "Air Gabon",
+"file": null
+},
+{
+"iata": "GO",
+"icao": "KZU",
+"name": "Kuzu Airlines Cargo",
+"file": "liveries/KZU.webp"
+},
+{
+"iata": "GP",
+"icao": "GES",
+"name": "Gestair",
+"file": "liveries/GES.webp"
+},
+{
+"iata": "GQ",
+"icao": "BSY",
+"name": "Big Sky Airlines",
+"file": null
+},
+{
+"iata": "GR",
+"icao": "AUR",
+"name": "Aurigny Air Services",
+"file": "liveries/AUR.webp"
+},
+{
+"iata": "GS",
+"icao": "UPA",
+"name": "Air Foyle",
+"file": null
+},
+{
+"iata": "GT",
+"icao": "GBL",
+"name": "GB Airways",
+"file": null
+},
+{
+"iata": "GU",
+"icao": "GU1",
+"name": "Gulisano airways",
+"file": null
+},
+{
+"iata": "GV",
+"icao": "ARF",
+"name": "Aero Flight",
+"file": null
+},
+{
+"iata": "GW",
+"icao": "KIL",
+"name": "Kuban Airlines",
+"file": null
+},
+{
+"iata": "GX",
+"icao": "JXX",
+"name": "Jetx Airlines",
+"file": null
+},
+{
+"iata": "GY",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "GZ",
+"icao": "RAR",
+"name": "Air Rarotonga",
+"file": null
+},
+{
+"iata": "H1",
+"icao": "HA1",
+"name": "Hankook Air US",
+"file": null
+},
+{
+"iata": "H2",
+"icao": "SKU",
+"name": "Sky Airline",
+"file": "liveries/SKU.webp"
+},
+{
+"iata": "H3",
+"icao": "T33",
+"name": "THREE",
+"file": null
+},
+{
+"iata": "H4",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "H5",
+"icao": "HOA",
+"name": "Hola Airlines",
+"file": null
+},
+{
+"iata": "H6",
+"icao": "HAG",
+"name": "Hageland Aviation Services",
+"file": "liveries/HAG.webp"
+},
+{
+"iata": "H7",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "H8",
+"icao": "KHB",
+"name": "Dalavia",
+"file": null
+},
+{
+"iata": "H9",
+"icao": "HAD",
+"name": "Air D'Ayiti",
+"file": null
+},
+{
+"iata": "HA",
+"icao": "HAL",
+"name": "Hawaiian Airlines",
+"file": "liveries/HAL.webp"
+},
+{
+"iata": "HB",
+"icao": "HAR",
+"name": "Harbor Airlines",
+"file": null
+},
+{
+"iata": "HC",
+"icao": "ATI",
+"name": "Aero-Tropics Air Services",
+"file": null
+},
+{
+"iata": "HD",
+"icao": "ADO",
+"name": "Hokkaido International Airlines",
+"file": "liveries/ADO.webp"
+},
+{
+"iata": "HE",
+"icao": "LGW",
+"name": "Luftfahrtgesellschaft Walter",
+"file": null
+},
+{
+"iata": "HF",
+"icao": "HLF",
+"name": "Hapagfly",
+"file": "liveries/HLF.webp"
+},
+{
+"iata": "HG",
+"icao": "NLY",
+"name": "Niki",
+"file": "liveries/NLY.webp"
+},
+{
+"iata": "HH",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "HI",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "HJ",
+"icao": "AXF",
+"name": "Asian Express Airlines",
+"file": null
+},
+{
+"iata": "HK",
+"icao": "FSC",
+"name": "Four Star Aviation / Four Star Cargo",
+"file": null
+},
+{
+"iata": "HM",
+"icao": "SEY",
+"name": "Air Seychelles",
+"file": "liveries/SEY.webp"
+},
+{
+"iata": "HN",
+"icao": "HVY",
+"name": "Heavylift Cargo Airlines",
+"file": null
+},
+{
+"iata": "HO",
+"icao": "DJA",
+"name": "Antinea Airlines",
+"file": null
+},
+{
+"iata": "HP",
+"icao": "AWE",
+"name": "America West Airlines",
+"file": null
+},
+{
+"iata": "HQ",
+"icao": "HMY",
+"name": "Harmony Airways",
+"file": null
+},
+{
+"iata": "HR",
+"icao": "CUA",
+"name": "China United Airlines",
+"file": "liveries/CUA.webp"
+},
+{
+"iata": "HT",
+"icao": "AHW",
+"name": "Aeromist-Kharkiv",
+"file": null
+},
+{
+"iata": "HU",
+"icao": "CHH",
+"name": "Hainan Airlines",
+"file": "liveries/CHH.webp"
+},
+{
+"iata": "HV",
+"icao": "TRA",
+"name": "Transavia Holland",
+"file": "liveries/TRA.webp"
+},
+{
+"iata": "HW",
+"icao": "FHE",
+"name": "Hello",
+"file": null
+},
+{
+"iata": "HX",
+"icao": "CRK",
+"name": "Hong Kong Airlines",
+"file": "liveries/CRK.webp"
+},
+{
+"iata": "HY",
+"icao": "UZB",
+"name": "Uzbekistan Airways",
+"file": "liveries/UZB.webp"
+},
+{
+"iata": "HZ",
+"icao": "SOZ",
+"name": "Sat Airlines",
+"file": null
+},
+{
+"iata": "I2",
+"icao": "IBS",
+"name": "Iberia Express",
+"file": "liveries/IBS.webp"
+},
+{
+"iata": "I3",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "I4",
+"icao": "FWA",
+"name": "Interstate Airline",
+"file": null
+},
+{
+"iata": "I5",
+"icao": "IDS",
+"name": "Indonesia Sky",
+"file": null
+},
+{
+"iata": "I6",
+"icao": "SEQ",
+"name": "Sky Eyes",
+"file": null
+},
+{
+"iata": "I7",
+"icao": "PMW",
+"name": "Paramount Airways",
+"file": null
+},
+{
+"iata": "I8",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "I9",
+"icao": "AEY",
+"name": "Air Italy",
+"file": null
+},
+{
+"iata": "IA",
+"icao": "IAW",
+"name": "Iraqi Airways",
+"file": "liveries/IAW.webp"
+},
+{
+"iata": "IB",
+"icao": "IBE",
+"name": "Iberia Airlines",
+"file": "liveries/IBE.webp"
+},
+{
+"iata": "IC",
+"icao": "IAC",
+"name": "Indian Airlines",
+"file": null
+},
+{
+"iata": "ID",
+"icao": "ITK",
+"name": "Interlink Airlines",
+"file": null
+},
+{
+"iata": "IE",
+"icao": "SOL",
+"name": "Solomon Airlines",
+"file": null
+},
+{
+"iata": "IF",
+"icao": "ISW",
+"name": "Islas Airways",
+"file": null
+},
+{
+"iata": "IG",
+"icao": "ISS",
+"name": "Meridiana",
+"file": "liveries/ISS.webp"
+},
+{
+"iata": "IH",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "II",
+"icao": "CSQ",
+"name": "IBC Airways",
+"file": "liveries/CSQ.webp"
+},
+{
+"iata": "IJ",
+"icao": "GWL",
+"name": "Great Wall Airlines",
+"file": null
+},
+{
+"iata": "IK",
+"icao": "ITX",
+"name": "Imair Airlines",
+"file": null
+},
+{
+"iata": "IL",
+"icao": "ILW",
+"name": "Illinois Airways",
+"file": null
+},
+{
+"iata": "IM",
+"icao": "MNJ",
+"name": "Menajet",
+"file": null
+},
+{
+"iata": "IN",
+"icao": "MAK",
+"name": "MAT Macedonian Airlines",
+"file": null
+},
+{
+"iata": "IO",
+"icao": "IAA",
+"name": "Indonesian Airlines",
+"file": null
+},
+{
+"iata": "IP",
+"icao": "JOL",
+"name": "Atyrau Air Ways",
+"file": null
+},
+{
+"iata": "IQ",
+"icao": "AUB",
+"name": "Augsburg Airways",
+"file": null
+},
+{
+"iata": "IR",
+"icao": "IRA",
+"name": "Iran Air",
+"file": "liveries/IRA.webp"
+},
+{
+"iata": "IS",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "IT",
+"icao": "KFR",
+"name": "Kingfisher Airlines",
+"file": null
+},
+{
+"iata": "IV",
+"icao": "JET",
+"name": "Wind Jet",
+"file": "liveries/JET.webp"
+},
+{
+"iata": "IW",
+"icao": "AOM",
+"name": "AOM French Airlines",
+"file": null
+},
+{
+"iata": "IX",
+"icao": "AXB",
+"name": "Air India Express",
+"file": "liveries/AXB.webp"
+},
+{
+"iata": "IY",
+"icao": "IYE",
+"name": "Yemenia",
+"file": "liveries/IYE.webp"
+},
+{
+"iata": "IZ",
+"icao": "AIZ",
+"name": "Arkia Israel Airlines",
+"file": "liveries/AIZ.webp"
+},
+{
+"iata": "J1",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "J2",
+"icao": "AHY",
+"name": "Azerbaijan Airlines",
+"file": "liveries/AHY.webp"
+},
+{
+"iata": "J3",
+"icao": "PLR",
+"name": "Northwestern Air",
+"file": "liveries/PLR.webp"
+},
+{
+"iata": "J4",
+"icao": "BFL",
+"name": "Buffalo Airways",
+"file": "liveries/BFL.webp"
+},
+{
+"iata": "J5",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "J6",
+"icao": "AOC",
+"name": "AVCOM",
+"file": null
+},
+{
+"iata": "J7",
+"icao": "CVC",
+"name": "Centre-Avia",
+"file": null
+},
+{
+"iata": "J8",
+"icao": "BVT",
+"name": "Berjaya Air",
+"file": null
+},
+{
+"iata": "J9",
+"icao": "GIF",
+"name": "Guinee Airlines",
+"file": null
+},
+{
+"iata": "JA",
+"icao": "BON",
+"name": "Air Bosna",
+"file": null
+},
+{
+"iata": "JB",
+"icao": "JBA",
+"name": "Helijet",
+"file": null
+},
+{
+"iata": "JC",
+"icao": "JEX",
+"name": "JAL Express",
+"file": null
+},
+{
+"iata": "JD",
+"icao": "JAS",
+"name": "Japan Air System",
+"file": "liveries/JAS.webp"
+},
+{
+"iata": "JE",
+"icao": "MNO",
+"name": "Mango",
+"file": "liveries/MNO.webp"
+},
+{
+"iata": "JF",
+"icao": "JAF",
+"name": "Jetairfly",
+"file": null
+},
+{
+"iata": "JG",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "JH",
+"icao": "NES",
+"name": "Nordeste Linhas Aereas Regionais",
+"file": null
+},
+{
+"iata": "JI",
+"icao": "MDW",
+"name": "Midway Airlines",
+"file": null
+},
+{
+"iata": "JJ",
+"icao": "TAM",
+"name": "TAM Brazilian Airlines",
+"file": "liveries/TAM.webp"
+},
+{
+"iata": "JK",
+"icao": "JKK",
+"name": "Spanair",
+"file": null
+},
+{
+"iata": "JL",
+"icao": "JAL",
+"name": "Japan Airlines",
+"file": "liveries/JAL.webp"
+},
+{
+"iata": "JM",
+"icao": "AJM",
+"name": "Air Jamaica",
+"file": null
+},
+{
+"iata": "JN",
+"icao": "XLA",
+"name": "Excel Airways",
+"file": null
+},
+{
+"iata": "JO",
+"icao": "JAZ",
+"name": "JALways",
+"file": null
+},
+{
+"iata": "JP",
+"icao": "ADR",
+"name": "Adria Airways",
+"file": null
+},
+{
+"iata": "JQ",
+"icao": "JST",
+"name": "Jetstar Airways",
+"file": "liveries/JST.webp"
+},
+{
+"iata": "JR",
+"icao": "SER",
+"name": "Aero California",
+"file": null
+},
+{
+"iata": "JS",
+"icao": "KOR",
+"name": "Air Koryo",
+"file": "liveries/KOR.webp"
+},
+{
+"iata": "JT",
+"icao": "LNI",
+"name": "Lion Mentari Airlines",
+"file": "liveries/LNI.webp"
+},
+{
+"iata": "JU",
+"icao": "JAT",
+"name": "Jat Airways",
+"file": "liveries/JAT.webp"
+},
+{
+"iata": "JV",
+"icao": "BLS",
+"name": "Bearskin Lake Air Service",
+"file": "liveries/BLS.webp"
+},
+{
+"iata": "JW",
+"icao": "APW",
+"name": "Arrow Air",
+"file": null
+},
+{
+"iata": "JX",
+"icao": "JEC",
+"name": "Jett8 Airlines Cargo",
+"file": null
+},
+{
+"iata": "JY",
+"icao": "TCI",
+"name": "Air Turks and Caicos",
+"file": null
+},
+{
+"iata": "JZ",
+"icao": "SKX",
+"name": "Skyways Express",
+"file": null
+},
+{
+"iata": "K1",
+"icao": "KOQ",
+"name": "Kostromskie avialinii",
+"file": null
+},
+{
+"iata": "K2",
+"icao": "ELO",
+"name": "Eurolot",
+"file": null
+},
+{
+"iata": "K3",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "K4",
+"icao": "CKS",
+"name": "Kalitta Air",
+"file": "liveries/CKS.webp"
+},
+{
+"iata": "K5",
+"icao": "ABE",
+"name": "Aban Air",
+"file": null
+},
+{
+"iata": "K6",
+"icao": "BRV",
+"name": "Bravo Air Congo",
+"file": null
+},
+{
+"iata": "K7",
+"icao": "KBR",
+"name": "KoralBlue Airlines",
+"file": null
+},
+{
+"iata": "K8",
+"icao": "ZAK",
+"name": "Airlink Zambia",
+"file": null
+},
+{
+"iata": "K9",
+"icao": "KRI",
+"name": "Krylo Airlines",
+"file": null
+},
+{
+"iata": "KA",
+"icao": "HDA",
+"name": "Dragonair",
+"file": "liveries/HDA.webp"
+},
+{
+"iata": "KB",
+"icao": "DRK",
+"name": "Druk Air",
+"file": "liveries/DRK.webp"
+},
+{
+"iata": "KC",
+"icao": "KZR",
+"name": "Air Astana",
+"file": "liveries/KZR.webp"
+},
+{
+"iata": "KD",
+"icao": "KNI",
+"name": "KD Avia",
+"file": null
+},
+{
+"iata": "KE",
+"icao": "KAL",
+"name": "Korean Air",
+"file": "liveries/KAL.webp"
+},
+{
+"iata": "KF",
+"icao": "BLF",
+"name": "Blue1",
+"file": null
+},
+{
+"iata": "KG",
+"icao": "BNX",
+"name": "LAI - Linea Aerea IAACA",
+"file": null
+},
+{
+"iata": "KH",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "KI",
+"icao": "AAG",
+"name": "Air Atlantique",
+"file": null
+},
+{
+"iata": "KJ",
+"icao": "LAJ",
+"name": "British Mediterranean Airways",
+"file": null
+},
+{
+"iata": "KK",
+"icao": "KKK",
+"name": "Atlasjet",
+"file": "liveries/KKK.webp"
+},
+{
+"iata": "KL",
+"icao": "KLM",
+"name": "KLM Royal Dutch Airlines",
+"file": "liveries/KLM.webp"
+},
+{
+"iata": "KM",
+"icao": "AMC",
+"name": "Air Malta",
+"file": "liveries/AMC.webp"
+},
+{
+"iata": "KN",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "KO",
+"icao": "AER",
+"name": "Alaska Central Express",
+"file": "liveries/AER.webp"
+},
+{
+"iata": "KP",
+"icao": "KIA",
+"name": "Kiwi International Air Lines",
+"file": null
+},
+{
+"iata": "KQ",
+"icao": "KQA",
+"name": "Kenya Airways",
+"file": "liveries/KQA.webp"
+},
+{
+"iata": "KR",
+"icao": "CWK",
+"name": "Comores Airlines",
+"file": null
+},
+{
+"iata": "KS",
+"icao": "PEN",
+"name": "Peninsula Airways",
+"file": null
+},
+{
+"iata": "KT",
+"icao": "CWS",
+"name": "California Western",
+"file": null
+},
+{
+"iata": "KU",
+"icao": "KAC",
+"name": "Kuwait Airways",
+"file": "liveries/KAC.webp"
+},
+{
+"iata": "KV",
+"icao": "MVD",
+"name": "Kavminvodyavia",
+"file": null
+},
+{
+"iata": "KW",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "KX",
+"icao": "CAY",
+"name": "Cayman Airways",
+"file": "liveries/CAY.webp"
+},
+{
+"iata": "KY",
+"icao": "EQL",
+"name": "Air S",
+"file": null
+},
+{
+"iata": "KZ",
+"icao": "NCA",
+"name": "Nippon Cargo Airlines",
+"file": "liveries/NCA.webp"
+},
+{
+"iata": "L1",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "L2",
+"icao": "LYC",
+"name": "Lynden Air Cargo",
+"file": null
+},
+{
+"iata": "L3",
+"icao": "JOS",
+"name": "DHL de Guatemala",
+"file": null
+},
+{
+"iata": "L4",
+"icao": "LJJ",
+"name": "Luchsh Airlines ",
+"file": null
+},
+{
+"iata": "L5",
+"icao": "LTR",
+"name": "Lufttransport",
+"file": "liveries/LTR.webp"
+},
+{
+"iata": "L6",
+"icao": "MAI",
+"name": "Mauritania Airlines International",
+"file": "liveries/MAI.webp"
+},
+{
+"iata": "L7",
+"icao": "LPN",
+"name": "Laoag International Airlines",
+"file": null
+},
+{
+"iata": "L8",
+"icao": "LXG",
+"name": "Air Luxor GB",
+"file": null
+},
+{
+"iata": "L9",
+"icao": "TLW",
+"name": "Teamline Air",
+"file": null
+},
+{
+"iata": "LA",
+"icao": "LAN",
+"name": "LAN Airlines",
+"file": "liveries/LAN.webp"
+},
+{
+"iata": "LB",
+"icao": "LLB",
+"name": "Lloyd Aereo Boliviano",
+"file": null
+},
+{
+"iata": "LC",
+"icao": "VLO",
+"name": "Varig Log",
+"file": null
+},
+{
+"iata": "LD",
+"icao": "AHK",
+"name": "Air Hong Kong",
+"file": "liveries/AHK.webp"
+},
+{
+"iata": "LE",
+"icao": "LTY",
+"name": "Liberty Airways",
+"file": null
+},
+{
+"iata": "LF",
+"icao": "NDC",
+"name": "FlyNordic",
+"file": null
+},
+{
+"iata": "LG",
+"icao": "LGL",
+"name": "Luxair",
+"file": "liveries/LGL.webp"
+},
+{
+"iata": "LH",
+"icao": "DLH",
+"name": "Lufthansa",
+"file": "liveries/DLH.webp"
+},
+{
+"iata": "LI",
+"icao": "LIA",
+"name": "Leeward Islands Air Transport",
+"file": "liveries/LIA.webp"
+},
+{
+"iata": "LJ",
+"icao": "SLA",
+"name": "Sierra National Airlines",
+"file": null
+},
+{
+"iata": "LK",
+"icao": "LXR",
+"name": "Air Luxor",
+"file": null
+},
+{
+"iata": "LL",
+"icao": "GRO",
+"name": "Allegro",
+"file": null
+},
+{
+"iata": "LM",
+"icao": "LAM",
+"name": "Linhas A",
+"file": "liveries/LAM.webp"
+},
+{
+"iata": "LN",
+"icao": "LAA",
+"name": "Libyan Arab Airlines",
+"file": "liveries/LAA.webp"
+},
+{
+"iata": "LO",
+"icao": "LOT",
+"name": "LOT Polish Airlines",
+"file": "liveries/LOT.webp"
+},
+{
+"iata": "LP",
+"icao": "LPE",
+"name": "LAN Peru",
+"file": "liveries/LPE.webp"
+},
+{
+"iata": "LQ",
+"icao": "LAQ",
+"name": "Lebanese Air Transport",
+"file": null
+},
+{
+"iata": "LR",
+"icao": "LRC",
+"name": "LACSA",
+"file": "liveries/LRC.webp"
+},
+{
+"iata": "LS",
+"icao": "EXS",
+"name": "Jet2.com",
+"file": "liveries/EXS.webp"
+},
+{
+"iata": "LT",
+"icao": "LTU",
+"name": "LTU International",
+"file": null
+},
+{
+"iata": "LU",
+"icao": "LXP",
+"name": "LAN Express",
+"file": "liveries/LXP.webp"
+},
+{
+"iata": "LV",
+"icao": "LBC",
+"name": "Albanian Airlines",
+"file": null
+},
+{
+"iata": "LW",
+"icao": "NMI",
+"name": "Pacific Wings",
+"file": null
+},
+{
+"iata": "LX",
+"icao": "SWR",
+"name": "Swiss International Air Lines",
+"file": "liveries/SWR.webp"
+},
+{
+"iata": "LY",
+"icao": "ELY",
+"name": "El Al Israel Airlines",
+"file": "liveries/ELY.webp"
+},
+{
+"iata": "LZ",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "M0",
+"icao": "MNG",
+"name": "Aero Mongolia",
+"file": null
+},
+{
+"iata": "M1",
+"icao": "M1F",
+"name": "Maryland Air",
+"file": null
+},
+{
+"iata": "M2",
+"icao": "MZS",
+"name": "Mahfooz Aviation",
+"file": null
+},
+{
+"iata": "M3",
+"icao": "TUS",
+"name": "ABSA - Aerolinhas Brasileiras",
+"file": "liveries/TUS.webp"
+},
+{
+"iata": "M4",
+"icao": "NOV",
+"name": "Nova Airline",
+"file": null
+},
+{
+"iata": "M5",
+"icao": "KEN",
+"name": "Kenmore Air",
+"file": "liveries/KEN.webp"
+},
+{
+"iata": "M6",
+"icao": "AJT",
+"name": "Amerijet International",
+"file": "liveries/AJT.webp"
+},
+{
+"iata": "M7",
+"icao": "MAA",
+"name": "MasAir",
+"file": "liveries/MAA.webp"
+},
+{
+"iata": "M8",
+"icao": "TMW",
+"name": "Trans Maldivian Airways",
+"file": "liveries/TMW.webp"
+},
+{
+"iata": "M9",
+"icao": "MSI",
+"name": "Motor Sich",
+"file": "liveries/MSI.webp"
+},
+{
+"iata": "MA",
+"icao": "MAH",
+"name": "Malév",
+"file": null
+},
+{
+"iata": "MB",
+"icao": "EXA",
+"name": "Execair Aviation",
+"file": null
+},
+{
+"iata": "MC",
+"icao": "RCH",
+"name": "Air Mobility Command",
+"file": "liveries/RCH.webp"
+},
+{
+"iata": "MD",
+"icao": "MDG",
+"name": "Air Madagascar",
+"file": "liveries/MDG.webp"
+},
+{
+"iata": "ME",
+"icao": "MEA",
+"name": "Middle East Airlines",
+"file": "liveries/MEA.webp"
+},
+{
+"iata": "MF",
+"icao": "CXA",
+"name": "Xiamen Airlines",
+"file": "liveries/CXA.webp"
+},
+{
+"iata": "MG",
+"icao": "CCP",
+"name": "Champion Air",
+"file": null
+},
+{
+"iata": "MH",
+"icao": "MAS",
+"name": "Malaysia Airlines",
+"file": "liveries/MAS.webp"
+},
+{
+"iata": "MI",
+"icao": "SLK",
+"name": "SilkAir",
+"file": "liveries/SLK.webp"
+},
+{
+"iata": "MJ",
+"icao": "LPR",
+"name": "L",
+"file": "liveries/LPR.webp"
+},
+{
+"iata": "MK",
+"icao": "MAU",
+"name": "Air Mauritius",
+"file": "liveries/MAU.webp"
+},
+{
+"iata": "ML",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "MM",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "MN",
+"icao": "CAW",
+"name": "Comair",
+"file": null
+},
+{
+"iata": "MO",
+"icao": "AUH",
+"name": "Abu Dhabi Amiri Flight",
+"file": null
+},
+{
+"iata": "MP",
+"icao": "MPH",
+"name": "Martinair",
+"file": "liveries/MPH.webp"
+},
+{
+"iata": "MQ",
+"icao": "EGF",
+"name": "American Eagle Airlines",
+"file": null
+},
+{
+"iata": "MR",
+"icao": "MRT",
+"name": "Air Mauritanie",
+"file": null
+},
+{
+"iata": "MS",
+"icao": "MSR",
+"name": "Egyptair",
+"file": "liveries/MSR.webp"
+},
+{
+"iata": "MT",
+"icao": "TCX",
+"name": "Thomas Cook Airlines",
+"file": "liveries/TCX.webp"
+},
+{
+"iata": "MU",
+"icao": "CES",
+"name": "China Eastern Airlines",
+"file": "liveries/CES.webp"
+},
+{
+"iata": "MV",
+"icao": "RML",
+"name": "Armenian International Airways",
+"file": null
+},
+{
+"iata": "MW",
+"icao": "MYD",
+"name": "Maya Island Air",
+"file": null
+},
+{
+"iata": "MX",
+"icao": "MXA",
+"name": "Mexicana de Aviaci",
+"file": null
+},
+{
+"iata": "MY",
+"icao": "MXJ",
+"name": "Maxjet Airways",
+"file": null
+},
+{
+"iata": "MZ",
+"icao": "MNA",
+"name": "Merpati Nusantara Airlines",
+"file": null
+},
+{
+"iata": "N0",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "N1",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "N2",
+"icao": "DAG",
+"name": "Dagestan Airlines",
+"file": null
+},
+{
+"iata": "N3",
+"icao": "OMS",
+"name": "Omskavia Airline",
+"file": "liveries/OMS.webp"
+},
+{
+"iata": "N4",
+"icao": "MTC",
+"name": "Mountain Air Company",
+"file": null
+},
+{
+"iata": "N5",
+"icao": "KGZ",
+"name": "Kyrgyz Airlines",
+"file": null
+},
+{
+"iata": "N6",
+"icao": "JEV",
+"name": "Lagun Air",
+"file": null
+},
+{
+"iata": "N7",
+"icao": "ROK",
+"name": "National Airlines",
+"file": null
+},
+{
+"iata": "N8",
+"icao": "HGK",
+"name": "Fika Salaama Airlines",
+"file": null
+},
+{
+"iata": "N9",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "NA",
+"icao": "NAL",
+"name": "National Airlines",
+"file": null
+},
+{
+"iata": "NB",
+"icao": "SNB",
+"name": "Sterling Airlines",
+"file": null
+},
+{
+"iata": "NC",
+"icao": "NJS",
+"name": "National Jet Systems",
+"file": null
+},
+{
+"iata": "NE",
+"icao": "ESK",
+"name": "SkyEurope",
+"file": null
+},
+{
+"iata": "NF",
+"icao": "AVN",
+"name": "Air Vanuatu",
+"file": "liveries/AVN.webp"
+},
+{
+"iata": "NG",
+"icao": "LDA",
+"name": "Lauda Air",
+"file": "liveries/LDA.webp"
+},
+{
+"iata": "NH",
+"icao": "ANA",
+"name": "All Nippon Airways",
+"file": "liveries/ANA.webp"
+},
+{
+"iata": "NI",
+"icao": "PGA",
+"name": "Portugalia",
+"file": "liveries/PGA.webp"
+},
+{
+"iata": "NJ",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "NK",
+"icao": "NKS",
+"name": "Spirit Airlines",
+"file": "liveries/NKS.webp"
+},
+{
+"iata": "NL",
+"icao": "SAI",
+"name": "Shaheen Air International",
+"file": null
+},
+{
+"iata": "NM",
+"icao": "DRD",
+"name": "Air Madrid",
+"file": null
+},
+{
+"iata": "NN",
+"icao": "MOV",
+"name": "VIM Airlines",
+"file": null
+},
+{
+"iata": "NO",
+"icao": "AUS",
+"name": "Aus-Air",
+"file": null
+},
+{
+"iata": "NP",
+"icao": "NIA",
+"name": "Nile Air",
+"file": "liveries/NIA.webp"
+},
+{
+"iata": "NQ",
+"icao": "AJX",
+"name": "Air Japan",
+"file": "liveries/AJX.webp"
+},
+{
+"iata": "NR",
+"icao": "PIR",
+"name": "Pamir Airways",
+"file": null
+},
+{
+"iata": "NS",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "NT",
+"icao": "IBB",
+"name": "Binter Canarias",
+"file": "liveries/IBB.webp"
+},
+{
+"iata": "NU",
+"icao": "JTA",
+"name": "Japan Transocean Air",
+"file": "liveries/JTA.webp"
+},
+{
+"iata": "NV",
+"icao": "CRF",
+"name": "Air Central",
+"file": null
+},
+{
+"iata": "NW",
+"icao": "NWA",
+"name": "Northwest Airlines",
+"file": null
+},
+{
+"iata": "NX",
+"icao": "AMU",
+"name": "Air Macau",
+"file": "liveries/AMU.webp"
+},
+{
+"iata": "NY",
+"icao": "FXI",
+"name": "Air Iceland",
+"file": "liveries/FXI.webp"
+},
+{
+"iata": "NZ",
+"icao": "ANZ",
+"name": "Air New Zealand",
+"file": "liveries/ANZ.webp"
+},
+{
+"iata": "O1",
+"icao": "OAB",
+"name": "Orbit Airlines Azerbaijan",
+"file": null
+},
+{
+"iata": "O2",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "O6",
+"icao": "ONE",
+"name": "Oceanair",
+"file": "liveries/ONE.webp"
+},
+{
+"iata": "O7",
+"icao": "OZJ",
+"name": "Ozjet Airlines",
+"file": null
+},
+{
+"iata": "O8",
+"icao": "OHK",
+"name": "Oasis Hong Kong Airlines",
+"file": null
+},
+{
+"iata": "OA",
+"icao": "OAL",
+"name": "Olympic Airlines",
+"file": "liveries/OAL.webp"
+},
+{
+"iata": "OB",
+"icao": "ASZ",
+"name": "Astrakhan Airlines",
+"file": null
+},
+{
+"iata": "OC",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "OD",
+"icao": "ULA",
+"name": "Zuliana de Aviacion",
+"file": null
+},
+{
+"iata": "OE",
+"icao": "AOT",
+"name": "Asia Overnight Express",
+"file": null
+},
+{
+"iata": "OF",
+"icao": "FIF",
+"name": "Air Finland",
+"file": null
+},
+{
+"iata": "OG",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "OH",
+"icao": "COM",
+"name": "Comair",
+"file": null
+},
+{
+"iata": "OI",
+"icao": "ORC",
+"name": "Orchid Airlines",
+"file": null
+},
+{
+"iata": "OJ",
+"icao": "OLA",
+"name": "Overland Airways",
+"file": null
+},
+{
+"iata": "OK",
+"icao": "CSA",
+"name": "Czech Airlines",
+"file": "liveries/CSA.webp"
+},
+{
+"iata": "OL",
+"icao": "OLT",
+"name": "Ostfriesische Lufttransport",
+"file": null
+},
+{
+"iata": "OM",
+"icao": "MGL",
+"name": "MIAT Mongolian Airlines",
+"file": "liveries/MGL.webp"
+},
+{
+"iata": "ON",
+"icao": "RON",
+"name": "Nauru Air Corporation",
+"file": "liveries/RON.webp"
+},
+{
+"iata": "OO",
+"icao": "SKW",
+"name": "SkyWest",
+"file": "liveries/SKW.webp"
+},
+{
+"iata": "OP",
+"icao": "CHK",
+"name": "Chalk's Ocean Airways",
+"file": null
+},
+{
+"iata": "OQ",
+"icao": "CQN",
+"name": "Chongqing Airlines",
+"file": "liveries/CQN.webp"
+},
+{
+"iata": "OR",
+"icao": "TFL",
+"name": "Arkefly",
+"file": "liveries/TFL.webp"
+},
+{
+"iata": "OS",
+"icao": "AUA",
+"name": "Austrian Airlines",
+"file": "liveries/AUA.webp"
+},
+{
+"iata": "OT",
+"icao": "PEL",
+"name": "Aeropelican Air Services",
+"file": null
+},
+{
+"iata": "OU",
+"icao": "CTN",
+"name": "Croatia Airlines",
+"file": "liveries/CTN.webp"
+},
+{
+"iata": "OV",
+"icao": "ELL",
+"name": "Estonian Air",
+"file": null
+},
+{
+"iata": "OW",
+"icao": "EXK",
+"name": "Executive Airlines",
+"file": null
+},
+{
+"iata": "OX",
+"icao": "OEA",
+"name": "Orient Thai Airlines",
+"file": null
+},
+{
+"iata": "OY",
+"icao": "OAE",
+"name": "Omni Air International",
+"file": null
+},
+{
+"iata": "OZ",
+"icao": "AAR",
+"name": "Asiana Airlines",
+"file": "liveries/AAR.webp"
+},
+{
+"iata": "P0",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "P4",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "P5",
+"icao": "RPB",
+"name": "AeroRep",
+"file": "liveries/RPB.webp"
+},
+{
+"iata": "P7",
+"icao": "ESL",
+"name": "Russian Sky Airlines",
+"file": null
+},
+{
+"iata": "P8",
+"icao": "PTN",
+"name": "Pantanal Linhas Aéreas",
+"file": "liveries/PTN.webp"
+},
+{
+"iata": "P9",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "PA",
+"icao": "FCL",
+"name": "Florida Coastal Airlines",
+"file": null
+},
+{
+"iata": "PC",
+"icao": "FAJ",
+"name": "Air Fiji",
+"file": null
+},
+{
+"iata": "PD",
+"icao": "POE",
+"name": "Porter Airlines",
+"file": "liveries/POE.webp"
+},
+{
+"iata": "PE",
+"icao": "AEL",
+"name": "Air Europe",
+"file": null
+},
+{
+"iata": "PF",
+"icao": "PNW",
+"name": "Palestinian Airlines",
+"file": null
+},
+{
+"iata": "PG",
+"icao": "BKP",
+"name": "Bangkok Airways",
+"file": "liveries/BKP.webp"
+},
+{
+"iata": "PH",
+"icao": "PAO",
+"name": "Polynesian Airlines",
+"file": "liveries/PAO.webp"
+},
+{
+"iata": "PI",
+"icao": "PDT",
+"name": "Piedmont Airlines (1948-1989)",
+"file": null
+},
+{
+"iata": "PJ",
+"icao": "SPM",
+"name": "Air Saint Pierre",
+"file": "liveries/SPM.webp"
+},
+{
+"iata": "PK",
+"icao": "PIA",
+"name": "Pakistan International Airlines",
+"file": "liveries/PIA.webp"
+},
+{
+"iata": "PL",
+"icao": "PLI",
+"name": "Aeroper",
+"file": null
+},
+{
+"iata": "PM",
+"icao": "TOS",
+"name": "Tropic Air",
+"file": "liveries/TOS.webp"
+},
+{
+"iata": "PN",
+"icao": "CHB",
+"name": "West Air China",
+"file": "liveries/CHB.webp"
+},
+{
+"iata": "PO",
+"icao": "PAC",
+"name": "Polar Air Cargo",
+"file": null
+},
+{
+"iata": "PP",
+"icao": "AI0",
+"name": "Air Indus",
+"file": null
+},
+{
+"iata": "PQ",
+"icao": "PNF",
+"name": "Panafrican Airways",
+"file": null
+},
+{
+"iata": "PR",
+"icao": "PAL",
+"name": "Philippine Airlines",
+"file": "liveries/PAL.webp"
+},
+{
+"iata": "PS",
+"icao": "PSX",
+"name": "Pacific Southwest Airlines",
+"file": null
+},
+{
+"iata": "PT",
+"icao": "CCI",
+"name": "Capital Cargo International Airlines",
+"file": null
+},
+{
+"iata": "PU",
+"icao": "PUA",
+"name": "PLUNA",
+"file": null
+},
+{
+"iata": "PV",
+"icao": "PNR",
+"name": "PAN Air",
+"file": "liveries/PNR.webp"
+},
+{
+"iata": "PW",
+"icao": "PRF",
+"name": "Precision Air",
+"file": "liveries/PRF.webp"
+},
+{
+"iata": "PX",
+"icao": "ANG",
+"name": "Air Niugini",
+"file": "liveries/ANG.webp"
+},
+{
+"iata": "PY",
+"icao": "SLM",
+"name": "Surinam Airways",
+"file": "liveries/SLM.webp"
+},
+{
+"iata": "PZ",
+"icao": "LAP",
+"name": "TAM Mercosur",
+"file": "liveries/LAP.webp"
+},
+{
+"iata": "Q2",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "Q3",
+"icao": "MBN",
+"name": "Zambian Airways",
+"file": null
+},
+{
+"iata": "Q4",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "Q5",
+"icao": "MLA",
+"name": "40-Mile Air",
+"file": null
+},
+{
+"iata": "Q6",
+"icao": "CDP",
+"name": "Aero Condor Peru",
+"file": null
+},
+{
+"iata": "Q7",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "Q8",
+"icao": "PEC",
+"name": "Pacific East Asia Cargo Airlines",
+"file": null
+},
+{
+"iata": "Q9",
+"icao": "AFU",
+"name": "Afrinat International Airlines",
+"file": null
+},
+{
+"iata": "QA",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "QB",
+"icao": "GFG",
+"name": "Georgian National Airlines",
+"file": null
+},
+{
+"iata": "QC",
+"icao": "CRD",
+"name": "Air Corridor",
+"file": null
+},
+{
+"iata": "QD",
+"icao": "QCL",
+"name": "Air Class Lineas Aereas",
+"file": null
+},
+{
+"iata": "QE",
+"icao": "ECC",
+"name": "Crossair Europe",
+"file": null
+},
+{
+"iata": "QF",
+"icao": "QFA",
+"name": "Qantas",
+"file": "liveries/QFA.webp"
+},
+{
+"iata": "QG",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "QH",
+"icao": "FLZ",
+"name": "Air Florida",
+"file": "liveries/FLZ.webp"
+},
+{
+"iata": "QI",
+"icao": "CIM",
+"name": "Cimber Air",
+"file": null
+},
+{
+"iata": "QJ",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "QK",
+"icao": "JZA",
+"name": "Air Canada Jazz",
+"file": "liveries/JZA.webp"
+},
+{
+"iata": "QL",
+"icao": "RLN",
+"name": "Aero Lanka",
+"file": null
+},
+{
+"iata": "QM",
+"icao": "AML",
+"name": "Air Malawi",
+"file": null
+},
+{
+"iata": "QN",
+"icao": "ARR",
+"name": "Air Armenia",
+"file": "liveries/ARR.webp"
+},
+{
+"iata": "QO",
+"icao": "MPX",
+"name": "Aeromexpress",
+"file": null
+},
+{
+"iata": "QP",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "QQ",
+"icao": "UTY",
+"name": "Alliance Airlines",
+"file": "liveries/UTY.webp"
+},
+{
+"iata": "QR",
+"icao": "QTR",
+"name": "Qatar Airways",
+"file": "liveries/QTR.webp"
+},
+{
+"iata": "QS",
+"icao": "QSC",
+"name": "African Safari Airways",
+"file": null
+},
+{
+"iata": "QT",
+"icao": "TPA",
+"name": "TAMPA",
+"file": "liveries/TPA.webp"
+},
+{
+"iata": "QU",
+"icao": "UGX",
+"name": "East African",
+"file": null
+},
+{
+"iata": "QV",
+"icao": "LAO",
+"name": "Lao Airlines",
+"file": "liveries/LAO.webp"
+},
+{
+"iata": "QW",
+"icao": "BWG",
+"name": "Blue Wings",
+"file": null
+},
+{
+"iata": "QX",
+"icao": "QXE",
+"name": "Horizon Air",
+"file": "liveries/QXE.webp"
+},
+{
+"iata": "QY",
+"icao": "BCS",
+"name": "European Air Transport",
+"file": "liveries/BCS.webp"
+},
+{
+"iata": "QZ",
+"icao": "AWQ",
+"name": "Indonesia AirAsia",
+"file": "liveries/AWQ.webp"
+},
+{
+"iata": "R0",
+"icao": "RPK",
+"name": "Royal Airlines",
+"file": null
+},
+{
+"iata": "R1",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "R2",
+"icao": "ORB",
+"name": "Orenburg Airlines",
+"file": null
+},
+{
+"iata": "R3",
+"icao": "SYL",
+"name": "Aircompany Yakutia",
+"file": "liveries/SYL.webp"
+},
+{
+"iata": "R4",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "R5",
+"icao": "JAV",
+"name": "Jordan Aviation",
+"file": "liveries/JAV.webp"
+},
+{
+"iata": "R6",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "R7",
+"icao": "OCA",
+"name": "Aserca Airlines",
+"file": "liveries/OCA.webp"
+},
+{
+"iata": "R8",
+"icao": "KGA",
+"name": "Kyrgyzstan Airlines",
+"file": null
+},
+{
+"iata": "R9",
+"icao": "CAM",
+"name": "Camai Air",
+"file": null
+},
+{
+"iata": "RA",
+"icao": "RNA",
+"name": "Nepal Airlines",
+"file": "liveries/RNA.webp"
+},
+{
+"iata": "RB",
+"icao": "SBK",
+"name": "Air Srpska",
+"file": null
+},
+{
+"iata": "RC",
+"icao": "FLI",
+"name": "Atlantic Airways",
+"file": "liveries/FLI.webp"
+},
+{
+"iata": "RD",
+"icao": "RYN",
+"name": "Ryan International Airlines",
+"file": null
+},
+{
+"iata": "RE",
+"icao": "REA",
+"name": "Aer Arann",
+"file": "liveries/REA.webp"
+},
+{
+"iata": "RF",
+"icao": "FWL",
+"name": "Florida West International Airways",
+"file": null
+},
+{
+"iata": "RG",
+"icao": "VRN",
+"name": "VRG Linhas Aereas",
+"file": null
+},
+{
+"iata": "RH",
+"icao": "RPH",
+"name": "Republic Express Airlines",
+"file": null
+},
+{
+"iata": "RI",
+"icao": "MDL",
+"name": "Mandala Airlines",
+"file": null
+},
+{
+"iata": "RJ",
+"icao": "RJA",
+"name": "Royal Jordanian",
+"file": "liveries/RJA.webp"
+},
+{
+"iata": "RK",
+"icao": "RKA",
+"name": "Air Afrique",
+"file": null
+},
+{
+"iata": "RL",
+"icao": "RFJ",
+"name": "Royal Falcon",
+"file": null
+},
+{
+"iata": "RM",
+"icao": "RNY",
+"name": "Rainbow Air US",
+"file": null
+},
+{
+"iata": "RN",
+"icao": "RAB",
+"name": "Rainbow Air (RAI)",
+"file": null
+},
+{
+"iata": "RO",
+"icao": "ROT",
+"name": "Tarom",
+"file": "liveries/ROT.webp"
+},
+{
+"iata": "RP",
+"icao": "CHQ",
+"name": "Chautauqua Airlines",
+"file": null
+},
+{
+"iata": "RQ",
+"icao": "KMF",
+"name": "Kam Air",
+"file": "liveries/KMF.webp"
+},
+{
+"iata": "RR",
+"icao": "RFR",
+"name": "Royal Air Force",
+"file": "liveries/RFR.webp"
+},
+{
+"iata": "RS",
+"icao": "ICT",
+"name": "Intercontinental de Aviaci",
+"file": null
+},
+{
+"iata": "RT",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "RU",
+"icao": "ABW",
+"name": "AirBridge Cargo",
+"file": "liveries/ABW.webp"
+},
+{
+"iata": "RV",
+"icao": "CPN",
+"name": "Caspian Airlines",
+"file": "liveries/CPN.webp"
+},
+{
+"iata": "RW",
+"icao": "RPA",
+"name": "Republic Airlines",
+"file": "liveries/RPA.webp"
+},
+{
+"iata": "RX",
+"icao": "AEH",
+"name": "Aviaexpress",
+"file": null
+},
+{
+"iata": "RY",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "RZ",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "S0",
+"icao": "OKS",
+"name": "Slok Air Gambia",
+"file": null
+},
+{
+"iata": "S1",
+"icao": "SA1",
+"name": "Serbian Airlines",
+"file": null
+},
+{
+"iata": "S2",
+"icao": "RSH",
+"name": "Air Sahara",
+"file": null
+},
+{
+"iata": "S3",
+"icao": "BBR",
+"name": "Santa Barbara Airlines",
+"file": null
+},
+{
+"iata": "S4",
+"icao": "RZO",
+"name": "SATA International",
+"file": "liveries/RZO.webp"
+},
+{
+"iata": "S5",
+"icao": "TCF",
+"name": "Shuttle America",
+"file": "liveries/TCF.webp"
+},
+{
+"iata": "S6",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "S7",
+"icao": "SBI",
+"name": "S7 Airlines",
+"file": "liveries/SBI.webp"
+},
+{
+"iata": "S8",
+"icao": "CSU",
+"name": "Chari Aviation Services",
+"file": null
+},
+{
+"iata": "S9",
+"icao": "HSA",
+"name": "East African Safari Air",
+"file": null
+},
+{
+"iata": "SA",
+"icao": "SAA",
+"name": "South African Airways",
+"file": "liveries/SAA.webp"
+},
+{
+"iata": "SB",
+"icao": "ACI",
+"name": "Air Caledonie International",
+"file": "liveries/ACI.webp"
+},
+{
+"iata": "SC",
+"icao": "CDG",
+"name": "Shandong Airlines",
+"file": "liveries/CDG.webp"
+},
+{
+"iata": "SD",
+"icao": "SUD",
+"name": "Sudan Airways",
+"file": "liveries/SUD.webp"
+},
+{
+"iata": "SE",
+"icao": "SEU",
+"name": "XL Airways France",
+"file": null
+},
+{
+"iata": "SF",
+"icao": "DTH",
+"name": "Tassili Airlines",
+"file": "liveries/DTH.webp"
+},
+{
+"iata": "SG",
+"icao": "JGO",
+"name": "JetsGo",
+"file": null
+},
+{
+"iata": "SH",
+"icao": "FLY",
+"name": "Fly Me Sweden",
+"file": null
+},
+{
+"iata": "SI",
+"icao": "SIH",
+"name": "Skynet Airlines",
+"file": null
+},
+{
+"iata": "SJ",
+"icao": "SJY",
+"name": "Sriwijaya Air",
+"file": "liveries/SJY.webp"
+},
+{
+"iata": "SK",
+"icao": "SAS",
+"name": "Scandinavian Airlines System",
+"file": "liveries/SAS.webp"
+},
+{
+"iata": "SL",
+"icao": "RSL",
+"name": "Rio Sul Servi",
+"file": null
+},
+{
+"iata": "SM",
+"icao": "SRL",
+"name": "Swedline Express",
+"file": null
+},
+{
+"iata": "SN",
+"icao": "DAT",
+"name": "Brussels Airlines",
+"file": "liveries/DAT.webp"
+},
+{
+"iata": "SO",
+"icao": "HKA",
+"name": "Superior Aviation",
+"file": null
+},
+{
+"iata": "SP",
+"icao": "SAT",
+"name": "SATA Air Acores",
+"file": "liveries/SAT.webp"
+},
+{
+"iata": "SQ",
+"icao": "SIA",
+"name": "Singapore Airlines",
+"file": "liveries/SIA.webp"
+},
+{
+"iata": "SR",
+"icao": "SWR",
+"name": "Swiss International Air Lines",
+"file": "liveries/SWR.webp"
+},
+{
+"iata": "SS",
+"icao": "CRL",
+"name": "Corsairfly",
+"file": "liveries/CRL.webp"
+},
+{
+"iata": "ST",
+"icao": "GMI",
+"name": "Germania",
+"file": null
+},
+{
+"iata": "SU",
+"icao": "AFL",
+"name": "Aeroflot Russian Airlines",
+"file": "liveries/AFL.webp"
+},
+{
+"iata": "SV",
+"icao": "SVA",
+"name": "Saudi Arabian Airlines",
+"file": "liveries/SVA.webp"
+},
+{
+"iata": "SW",
+"icao": "NMB",
+"name": "Air Namibia",
+"file": null
+},
+{
+"iata": "SX",
+"icao": "SRK",
+"name": "Sky Work Airlines",
+"file": null
+},
+{
+"iata": "SY",
+"icao": "SCX",
+"name": "Sun Country Airlines",
+"file": "liveries/SCX.webp"
+},
+{
+"iata": "SZ",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "T0",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "T1",
+"icao": "TP3",
+"name": "TROPICAL LINHAS AEREAS",
+"file": null
+},
+{
+"iata": "T2",
+"icao": "TCG",
+"name": "Thai Air Cargo",
+"file": null
+},
+{
+"iata": "T3",
+"icao": "EZE",
+"name": "Eastern Airways",
+"file": "liveries/EZE.webp"
+},
+{
+"iata": "T4",
+"icao": "HEJ",
+"name": "Hellas Jet",
+"file": null
+},
+{
+"iata": "T5",
+"icao": "TUA",
+"name": "Turkmenistan Airlines",
+"file": "liveries/TUA.webp"
+},
+{
+"iata": "T6",
+"icao": "TVR",
+"name": "Tavrey Airlines",
+"file": "liveries/TVR.webp"
+},
+{
+"iata": "T7",
+"icao": "TJT",
+"name": "Twin Jet",
+"file": "liveries/TJT.webp"
+},
+{
+"iata": "T8",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "T9",
+"icao": "TRZ",
+"name": "TransMeridian Airlines",
+"file": null
+},
+{
+"iata": "TA",
+"icao": "TAT",
+"name": "Grupo TACA",
+"file": null
+},
+{
+"iata": "TB",
+"icao": "TUB",
+"name": "TUI Airlines Belgium",
+"file": null
+},
+{
+"iata": "TC",
+"icao": "ATC",
+"name": "Air Tanzania",
+"file": "liveries/ATC.webp"
+},
+{
+"iata": "TD",
+"icao": "LUR",
+"name": "Atlantis European Airways",
+"file": null
+},
+{
+"iata": "TE",
+"icao": "LIL",
+"name": "FlyLal",
+"file": "liveries/LIL.webp"
+},
+{
+"iata": "TF",
+"icao": "SCW",
+"name": "Malmö Aviation",
+"file": "liveries/SCW.webp"
+},
+{
+"iata": "TG",
+"icao": "THA",
+"name": "Thai Airways International",
+"file": "liveries/THA.webp"
+},
+{
+"iata": "TH",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "TI",
+"icao": "TOL",
+"name": "Tol-Air Services",
+"file": null
+},
+{
+"iata": "TJ",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "TK",
+"icao": "THY",
+"name": "Turkish Airlines",
+"file": "liveries/THY.webp"
+},
+{
+"iata": "TL",
+"icao": "ANO",
+"name": "Airnorth",
+"file": "liveries/ANO.webp"
+},
+{
+"iata": "TM",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "TN",
+"icao": "THT",
+"name": "Air Tahiti Nui",
+"file": "liveries/THT.webp"
+},
+{
+"iata": "TO",
+"icao": "PSD",
+"name": "President Airlines",
+"file": null
+},
+{
+"iata": "TP",
+"icao": "TAP",
+"name": "TAP Portugal",
+"file": "liveries/TAP.webp"
+},
+{
+"iata": "TQ",
+"icao": "TDM",
+"name": "Tandem Aero",
+"file": null
+},
+{
+"iata": "TR",
+"icao": "TGW",
+"name": "Tiger Airways",
+"file": "liveries/TGW.webp"
+},
+{
+"iata": "TS",
+"icao": "TSC",
+"name": "Air Transat",
+"file": "liveries/TSC.webp"
+},
+{
+"iata": "TT",
+"icao": "KLA",
+"name": "Air Lithuania",
+"file": null
+},
+{
+"iata": "TU",
+"icao": "TAR",
+"name": "Tunisair",
+"file": "liveries/TAR.webp"
+},
+{
+"iata": "TV",
+"icao": "VEX",
+"name": "Virgin Express",
+"file": null
+},
+{
+"iata": "TW",
+"icao": "TWA",
+"name": "Trans World Airlines",
+"file": null
+},
+{
+"iata": "TX",
+"icao": "FWI",
+"name": "Air Caraïbes",
+"file": "liveries/FWI.webp"
+},
+{
+"iata": "TY",
+"icao": "TPC",
+"name": "Air Cal",
+"file": "liveries/TPC.webp"
+},
+{
+"iata": "TZ",
+"icao": "SCO",
+"name": "Scoot",
+"file": null
+},
+{
+"iata": "U1",
+"icao": "001",
+"name": "AirOne Polska",
+"file": null
+},
+{
+"iata": "U2",
+"icao": "EZY",
+"name": "easyJet",
+"file": "liveries/EZY.webp"
+},
+{
+"iata": "U3",
+"icao": "AIA",
+"name": "Avies",
+"file": "liveries/AIA.webp"
+},
+{
+"iata": "U4",
+"icao": "PMT",
+"name": "PMTair",
+"file": null
+},
+{
+"iata": "U5",
+"icao": "GWY",
+"name": "USA3000 Airlines",
+"file": null
+},
+{
+"iata": "U6",
+"icao": "SVR",
+"name": "Ural Airlines",
+"file": "liveries/SVR.webp"
+},
+{
+"iata": "U7",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "U8",
+"icao": "RNV",
+"name": "Armavia",
+"file": null
+},
+{
+"iata": "U9",
+"icao": "TAK",
+"name": "Tatarstan Airlines",
+"file": null
+},
+{
+"iata": "UA",
+"icao": "UAL",
+"name": "United Airlines",
+"file": "liveries/UAL.webp"
+},
+{
+"iata": "UB",
+"icao": "UBA",
+"name": "Myanma Airways",
+"file": "liveries/UBA.webp"
+},
+{
+"iata": "UD",
+"icao": "HER",
+"name": "Hex'Air",
+"file": "liveries/HER.webp"
+},
+{
+"iata": "UE",
+"icao": "NAS",
+"name": "Nasair",
+"file": null
+},
+{
+"iata": "UF",
+"icao": "UKM",
+"name": "UM Airlines",
+"file": null
+},
+{
+"iata": "UG",
+"icao": "TUI",
+"name": "Tuninter",
+"file": "liveries/TUI.webp"
+},
+{
+"iata": "UH",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "UI",
+"icao": "ECA",
+"name": "Eurocypria Airlines",
+"file": "liveries/ECA.webp"
+},
+{
+"iata": "UJ",
+"icao": "LMU",
+"name": "AlMasria Universal Airlines",
+"file": "liveries/LMU.webp"
+},
+{
+"iata": "UK",
+"icao": "BUZ",
+"name": "buzz",
+"file": null
+},
+{
+"iata": "UL",
+"icao": "ALK",
+"name": "SriLankan Airlines",
+"file": "liveries/ALK.webp"
+},
+{
+"iata": "UM",
+"icao": "AZW",
+"name": "Air Zimbabwe",
+"file": "liveries/AZW.webp"
+},
+{
+"iata": "UN",
+"icao": "TSO",
+"name": "Transaero Airlines",
+"file": null
+},
+{
+"iata": "UO",
+"icao": "HKE",
+"name": "Hong Kong Express Airways",
+"file": "liveries/HKE.webp"
+},
+{
+"iata": "UP",
+"icao": "BHS",
+"name": "Bahamasair",
+"file": "liveries/BHS.webp"
+},
+{
+"iata": "UQ",
+"icao": "OCM",
+"name": "O'Connor Airlines",
+"file": null
+},
+{
+"iata": "UR",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "US",
+"icao": "USA",
+"name": "US Airways",
+"file": "liveries/USA.webp"
+},
+{
+"iata": "UT",
+"icao": "UTA",
+"name": "UTair Aviation",
+"file": "liveries/UTA.webp"
+},
+{
+"iata": "UU",
+"icao": "REU",
+"name": "Air Austral",
+"file": "liveries/REU.webp"
+},
+{
+"iata": "UW",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "UX",
+"icao": "AEA",
+"name": "Air Europa",
+"file": "liveries/AEA.webp"
+},
+{
+"iata": "UY",
+"icao": "UYC",
+"name": "Cameroon Airlines",
+"file": null
+},
+{
+"iata": "UZ",
+"icao": "BRQ",
+"name": "El-Buraq Air Transport",
+"file": "liveries/BRQ.webp"
+},
+{
+"iata": "V0",
+"icao": "VCV",
+"name": "Conviasa",
+"file": "liveries/VCV.webp"
+},
+{
+"iata": "V1",
+"icao": "VIA",
+"name": "VIA Líneas Aéreas",
+"file": null
+},
+{
+"iata": "V2",
+"icao": "AKT",
+"name": "Karat",
+"file": "liveries/AKT.webp"
+},
+{
+"iata": "V3",
+"icao": "KRP",
+"name": "Carpatair",
+"file": "liveries/KRP.webp"
+},
+{
+"iata": "V4",
+"icao": "REK",
+"name": "Reem Air",
+"file": null
+},
+{
+"iata": "V5",
+"icao": "VLI",
+"name": "Avolar Aerolineas",
+"file": null
+},
+{
+"iata": "V6",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "V7",
+"icao": "SNG",
+"name": "Air Senegal International",
+"file": "liveries/SNG.webp"
+},
+{
+"iata": "V8",
+"icao": "VAS",
+"name": "ATRAN Cargo Airlines",
+"file": "liveries/VAS.webp"
+},
+{
+"iata": "V9",
+"icao": "BTC",
+"name": "BAL Bashkirian Airlines",
+"file": null
+},
+{
+"iata": "VA",
+"icao": "VAU",
+"name": "V Australia Airlines",
+"file": null
+},
+{
+"iata": "VB",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "VC",
+"icao": "VCX",
+"name": "Ocean Airlines",
+"file": null
+},
+{
+"iata": "VD",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "VE",
+"icao": "AVE",
+"name": "Avensa",
+"file": null
+},
+{
+"iata": "VF",
+"icao": "VLU",
+"name": "Valuair",
+"file": null
+},
+{
+"iata": "VG",
+"icao": "VLM",
+"name": "VLM Airlines",
+"file": "liveries/VLM.webp"
+},
+{
+"iata": "VH",
+"icao": "VNP",
+"name": "Virgin Pacific",
+"file": null
+},
+{
+"iata": "VI",
+"icao": "VDA",
+"name": "Volga-Dnepr Airlines",
+"file": "liveries/VDA.webp"
+},
+{
+"iata": "VJ",
+"icao": "JTY",
+"name": "Jatayu Airlines",
+"file": null
+},
+{
+"iata": "VK",
+"icao": "VGN",
+"name": "Virgin Nigeria Airways",
+"file": null
+},
+{
+"iata": "VL",
+"icao": "VIM",
+"name": "Air VIA",
+"file": null
+},
+{
+"iata": "VM",
+"icao": "VOA",
+"name": "Viaggio Air",
+"file": null
+},
+{
+"iata": "VN",
+"icao": "HVN",
+"name": "Vietnam Airlines",
+"file": "liveries/HVN.webp"
+},
+{
+"iata": "VO",
+"icao": "TYR",
+"name": "Tyrolean Airways",
+"file": null
+},
+{
+"iata": "VP",
+"icao": "VSP",
+"name": "VASP",
+"file": null
+},
+{
+"iata": "VQ",
+"icao": "VKH",
+"name": "Viking Hellas",
+"file": null
+},
+{
+"iata": "VR",
+"icao": "TCV",
+"name": "TACV",
+"file": "liveries/TCV.webp"
+},
+{
+"iata": "VS",
+"icao": "VIR",
+"name": "Virgin Atlantic Airways",
+"file": "liveries/VIR.webp"
+},
+{
+"iata": "VT",
+"icao": "VTA",
+"name": "Air Tahiti",
+"file": "liveries/VTA.webp"
+},
+{
+"iata": "VU",
+"icao": "VUN",
+"name": "Air Ivoire",
+"file": null
+},
+{
+"iata": "VV",
+"icao": "AEW",
+"name": "Aerosvit Airlines",
+"file": "liveries/AEW.webp"
+},
+{
+"iata": "VW",
+"icao": "TAO",
+"name": "Aeromar",
+"file": null
+},
+{
+"iata": "VX",
+"icao": "VRD",
+"name": "Virgin America",
+"file": null
+},
+{
+"iata": "VY",
+"icao": "FOS",
+"name": "Formosa Airlines",
+"file": null
+},
+{
+"iata": "VZ",
+"icao": "MYT",
+"name": "MyTravel Airways",
+"file": null
+},
+{
+"iata": "W1",
+"icao": "WE1",
+"name": "World Experience Airline",
+"file": null
+},
+{
+"iata": "W2",
+"icao": "CWA",
+"name": "Canadian Western Airlines",
+"file": "liveries/CWA.webp"
+},
+{
+"iata": "W3",
+"icao": "ARA",
+"name": "Arik Air",
+"file": "liveries/ARA.webp"
+},
+{
+"iata": "W4",
+"icao": "BES",
+"name": "Aero Services Executive",
+"file": null
+},
+{
+"iata": "W5",
+"icao": "IRM",
+"name": "Mahan Air",
+"file": "liveries/IRM.webp"
+},
+{
+"iata": "W6",
+"icao": "WZZ",
+"name": "Wizz Air",
+"file": "liveries/WZZ.webp"
+},
+{
+"iata": "W7",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "W8",
+"icao": "CJT",
+"name": "Cargojet Airways",
+"file": "liveries/CJT.webp"
+},
+{
+"iata": "W9",
+"icao": "AAB",
+"name": "Abelag Aviation",
+"file": null
+},
+{
+"iata": "WA",
+"icao": "KLC",
+"name": "KLM Cityhopper",
+"file": "liveries/KLC.webp"
+},
+{
+"iata": "WB",
+"icao": "RWD",
+"name": "Rwandair Express",
+"file": "liveries/RWD.webp"
+},
+{
+"iata": "WC",
+"icao": "ISV",
+"name": "Islena De Inversiones",
+"file": "liveries/ISV.webp"
+},
+{
+"iata": "WD",
+"icao": "DSR",
+"name": "DAS Air Cargo",
+"file": null
+},
+{
+"iata": "WE",
+"icao": "CWC",
+"name": "Centurion Air Cargo",
+"file": null
+},
+{
+"iata": "WF",
+"icao": "WIF",
+"name": "Widerøe",
+"file": "liveries/WIF.webp"
+},
+{
+"iata": "WG",
+"icao": "SWG",
+"name": "Sunwing Airlines",
+"file": "liveries/SWG.webp"
+},
+{
+"iata": "WH",
+"icao": "CNW",
+"name": "China Northwest Airlines",
+"file": null
+},
+{
+"iata": "WJ",
+"icao": "WEB",
+"name": "WebJet Linhas A",
+"file": null
+},
+{
+"iata": "WK",
+"icao": "AFB",
+"name": "American Falcon",
+"file": "liveries/AFB.webp"
+},
+{
+"iata": "WL",
+"icao": "FQR",
+"name": "CheapFlyingInternational",
+"file": null
+},
+{
+"iata": "WM",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "WN",
+"icao": "SWA",
+"name": "Southwest Airlines",
+"file": "liveries/SWA.webp"
+},
+{
+"iata": "WO",
+"icao": "WOA",
+"name": "World Airways",
+"file": null
+},
+{
+"iata": "WP",
+"icao": "MKU",
+"name": "Island Air (WP)",
+"file": null
+},
+{
+"iata": "WQ",
+"icao": "PQW",
+"name": "PanAm World Airways",
+"file": null
+},
+{
+"iata": "WR",
+"icao": "HRH",
+"name": "Royal Tongan Airlines",
+"file": null
+},
+{
+"iata": "WS",
+"icao": "WJA",
+"name": "WestJet",
+"file": "liveries/WJA.webp"
+},
+{
+"iata": "WU",
+"icao": "WAU",
+"name": "Wizz Air Ukraine",
+"file": null
+},
+{
+"iata": "WV",
+"icao": "SWV",
+"name": "Swe Fly",
+"file": null
+},
+{
+"iata": "WW",
+"icao": "BMI",
+"name": "bmibaby",
+"file": null
+},
+{
+"iata": "WX",
+"icao": "BCY",
+"name": "CityJet",
+"file": "liveries/BCY.webp"
+},
+{
+"iata": "WY",
+"icao": "OMA",
+"name": "Oman Air",
+"file": "liveries/OMA.webp"
+},
+{
+"iata": "WZ",
+"icao": "RWZ",
+"name": "Red Wings",
+"file": "liveries/RWZ.webp"
+},
+{
+"iata": "X1",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "X3",
+"icao": "HLX",
+"name": "TUIfly",
+"file": null
+},
+{
+"iata": "X5",
+"icao": "OTJ",
+"name": "Fly Romania",
+"file": null
+},
+{
+"iata": "X7",
+"icao": "CHF",
+"name": "Chitaavia",
+"file": null
+},
+{
+"iata": "X9",
+"icao": "X9F",
+"name": "FRA Air",
+"file": null
+},
+{
+"iata": "XA",
+"icao": "XAU",
+"name": "XAIR USA",
+"file": null
+},
+{
+"iata": "XB",
+"icao": "NXB",
+"name": "NEXT Brasil",
+"file": null
+},
+{
+"iata": "XE",
+"icao": "BTA",
+"name": "ExpressJet",
+"file": null
+},
+{
+"iata": "XF",
+"icao": "VLK",
+"name": "Vladivostok Air",
+"file": null
+},
+{
+"iata": "XG",
+"icao": "CLI",
+"name": "Calima Aviacion",
+"file": null
+},
+{
+"iata": "XJ",
+"icao": "MES",
+"name": "Mesaba Airlines",
+"file": null
+},
+{
+"iata": "XK",
+"icao": "CCM",
+"name": "Corse-Mediterranee",
+"file": "liveries/CCM.webp"
+},
+{
+"iata": "XL",
+"icao": "LNE",
+"name": "Aerolane",
+"file": "liveries/LNE.webp"
+},
+{
+"iata": "XM",
+"icao": "SMX",
+"name": "Alitalia Express",
+"file": null
+},
+{
+"iata": "XN",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "XO",
+"icao": "CXH",
+"name": "China Xinhua Airlines",
+"file": null
+},
+{
+"iata": "XP",
+"icao": "CXP",
+"name": "Xtra Airways",
+"file": null
+},
+{
+"iata": "XQ",
+"icao": "SXS",
+"name": "SunExpress",
+"file": "liveries/SXS.webp"
+},
+{
+"iata": "XR",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "XS",
+"icao": "SIT",
+"name": "SITA",
+"file": null
+},
+{
+"iata": "XT",
+"icao": "AXL",
+"name": "Air Exel",
+"file": "liveries/AXL.webp"
+},
+{
+"iata": "XV",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "XW",
+"icao": "SXR",
+"name": "Sky Express",
+"file": null
+},
+{
+"iata": "XX",
+"icao": "GFY",
+"name": "Greenfly",
+"file": null
+},
+{
+"iata": "XY",
+"icao": "KNE",
+"name": "Nas Air",
+"file": "liveries/KNE.webp"
+},
+{
+"iata": "XZ",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "Y0",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "Y1",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "Y4",
+"icao": "VOI",
+"name": "Volaris",
+"file": "liveries/VOI.webp"
+},
+{
+"iata": "Y5",
+"icao": "PCE",
+"name": "Pace Airlines",
+"file": null
+},
+{
+"iata": "Y7",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "Y8",
+"icao": "YZR",
+"name": "Yangtze River Express",
+"file": "liveries/YZR.webp"
+},
+{
+"iata": "Y9",
+"icao": "IRK",
+"name": "Kish Air",
+"file": null
+},
+{
+"iata": "YC",
+"icao": "YCC",
+"name": "Ciel Canadien",
+"file": null
+},
+{
+"iata": "YD",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "YE",
+"icao": "YEL",
+"name": "Yellowtail",
+"file": "liveries/YEL.webp"
+},
+{
+"iata": "YH",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "YI",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "YK",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "YL",
+"icao": "LLM",
+"name": "Yamal Airlines",
+"file": "liveries/LLM.webp"
+},
+{
+"iata": "YM",
+"icao": "MGX",
+"name": "Montenegro Airlines",
+"file": null
+},
+{
+"iata": "YO",
+"icao": "TYS",
+"name": "TransHolding System",
+"file": null
+},
+{
+"iata": "YP",
+"icao": "AEF",
+"name": "Aero Lloyd (YP)",
+"file": null
+},
+{
+"iata": "YQ",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "YR",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "YS",
+"icao": "RAE",
+"name": "Régional",
+"file": null
+},
+{
+"iata": "YT",
+"icao": "TGA",
+"name": "Air Togo",
+"file": null
+},
+{
+"iata": "YV",
+"icao": "ASH",
+"name": "Mesa Airlines",
+"file": "liveries/ASH.webp"
+},
+{
+"iata": "YW",
+"icao": "ANE",
+"name": "Air Nostrum",
+"file": null
+},
+{
+"iata": "YX",
+"icao": "MEP",
+"name": "Midwest Airlines",
+"file": "liveries/MEP.webp"
+},
+{
+"iata": "YY",
+"icao": "VWA",
+"name": "Virginwings",
+"file": null
+},
+{
+"iata": "YZ",
+"icao": "YZZ",
+"name": "LSM AIRLINES ",
+"file": null
+},
+{
+"iata": "Z0",
+"icao": "Z9H",
+"name": "All Argentina Express",
+"file": null
+},
+{
+"iata": "Z2",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "Z3",
+"icao": "SMJ",
+"name": "Avient Aviation",
+"file": null
+},
+{
+"iata": "Z4",
+"icao": "OOM",
+"name": "Zoom Airlines",
+"file": null
+},
+{
+"iata": "Z5",
+"icao": "IIR",
+"name": "INAVIA Internacional",
+"file": null
+},
+{
+"iata": "Z6",
+"icao": "ZTT",
+"name": "ZABAIKAL AIRLINES",
+"file": null
+},
+{
+"iata": "Z7",
+"icao": "ADK",
+"name": "ADC Airlines",
+"file": null
+},
+{
+"iata": "Z8",
+"icao": "AZN",
+"name": "Amaszonas",
+"file": "liveries/AZN.webp"
+},
+{
+"iata": "Z9",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "ZA",
+"icao": "CYD",
+"name": "Access Air",
+"file": null
+},
+{
+"iata": "ZB",
+"icao": "BUB",
+"name": "Air Bourbon",
+"file": null
+},
+{
+"iata": "ZC",
+"icao": "KGO",
+"name": "Korongo Airlines",
+"file": null
+},
+{
+"iata": "ZE",
+"icao": "AZE",
+"name": "Arcus-Air Logistic",
+"file": "liveries/AZE.webp"
+},
+{
+"iata": "ZF",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "ZG",
+"icao": "VVM",
+"name": "Viva Macau",
+"file": null
+},
+{
+"iata": "ZH",
+"icao": "CSZ",
+"name": "Shenzhen Airlines",
+"file": "liveries/CSZ.webp"
+},
+{
+"iata": "ZI",
+"icao": "AAF",
+"name": "Aigle Azur",
+"file": null
+},
+{
+"iata": "ZJ",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "ZK",
+"icao": "GLA",
+"name": "Great Lakes Airlines",
+"file": "liveries/GLA.webp"
+},
+{
+"iata": "ZL",
+"icao": "RXA",
+"name": "Regional Express",
+"file": "liveries/RXA.webp"
+},
+{
+"iata": "ZM",
+"icao": "IWA",
+"name": "Apache Air",
+"file": null
+},
+{
+"iata": "ZN",
+"icao": "ZNA",
+"name": "Zenith International Airline",
+"file": null
+},
+{
+"iata": "ZP",
+"icao": "AZQ",
+"name": "Silk Way Airlines",
+"file": "liveries/AZQ.webp"
+},
+{
+"iata": "ZQ",
+"icao": null,
+"name": "",
+"file": null
+},
+{
+"iata": "ZS",
+"icao": "SMY",
+"name": "Sama Airlines",
+"file": null
+},
+{
+"iata": "ZT",
+"icao": "AWC",
+"name": "Titan Airways",
+"file": "liveries/AWC.webp"
+},
+{
+"iata": "ZU",
+"icao": "HCY",
+"name": "Helios Airways",
+"file": null
+},
+{
+"iata": "ZV",
+"icao": "AMW",
+"name": "Air Midwest",
+"file": "liveries/AMW.webp"
+},
+{
+"iata": "ZW",
+"icao": "AWI",
+"name": "Air Wisconsin",
+"file": "liveries/AWI.webp"
+},
+{
+"iata": "ZX",
+"icao": "GGN",
+"name": "Air Georgian",
+"file": "liveries/GGN.webp"
+},
+{
+"iata": "ZY",
+"icao": "ADE",
+"name": "Ada Air",
+"file": null
+},
+{
+"iata": "ZZ",
+"icao": null,
+"name": "",
+"file": null
+}
+]
+}

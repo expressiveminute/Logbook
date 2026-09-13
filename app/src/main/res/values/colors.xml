@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <color name="class_economy_bg">#FF4C6E48</color>
+    <color name="class_premium_economy_bg">#FF2C5744</color>
+    <color name="class_business_bg">#FF47616C</color>
+    <color name="class_first_bg">#FFA54A4A</color>
+    <color name="class_tile_text">#FFFFFFFF</color>
+
+    <!-- Travel type colors -->
+    <color name="type_private_bg">#FF2E7D32</color>
+    <color name="type_on_duty_bg">#FF1565C0</color>
+    <color name="type_deadhead_bg">#FF6A1B9A</color>
+    <color name="type_duty_travel_bg">#FFEF6C00</color>
+
+    <!-- Class color scheme: Lufthansa -->
+    <color name="scheme_lufthansa_bg">#FF05164D</color>
+
+    <color name="button_save_bg">#FF4CAF50</color>
+    <color name="text_discard">#FFD32F2F</color>
+
+    <!-- Accent: Light Blue -->
+    <color name="accent_lightblue_primary">#FF006A9B</color>
+    <color name="accent_lightblue_on_primary">#FFFFFFFF</color>
+    <color name="accent_lightblue_primary_container">#FFC9E6FF</color>
+    <color name="accent_lightblue_on_primary_container">#FF001E30</color>
+    <color name="accent_lightblue_secondary">#FF52606F</color>
+    <color name="accent_lightblue_on_secondary">#FFFFFFFF</color>
+    <color name="accent_lightblue_secondary_container">#FFD6E3F2</color>
+    <color name="accent_lightblue_on_secondary_container">#FF0F1D29</color>
+    <color name="accent_lightblue_tertiary">#FF6A5677</color>
+    <color name="accent_lightblue_on_tertiary">#FFFFFFFF</color>
+    <color name="accent_lightblue_tertiary_container">#FFF1DAFD</color>
+    <color name="accent_lightblue_on_tertiary_container">#FF241430</color>
+
+    <!-- Accent: Light Green -->
+    <color name="accent_lightgreen_primary">#FF256A3A</color>
+    <color name="accent_lightgreen_on_primary">#FFFFFFFF</color>
+    <color name="accent_lightgreen_primary_container">#FFA5F6B4</color>
+    <color name="accent_lightgreen_on_primary_container">#FF002107</color>
+    <color name="accent_lightgreen_secondary">#FF53634E</color>
+    <color name="accent_lightgreen_on_secondary">#FFFFFFFF</color>
+    <color name="accent_lightgreen_secondary_container">#FFD6E8CD</color>
+    <color name="accent_lightgreen_on_secondary_container">#FF112010</color>
+    <color name="accent_lightgreen_tertiary">#FF3B6470</color>
+    <color name="accent_lightgreen_on_tertiary">#FFFFFFFF</color>
+    <color name="accent_lightgreen_tertiary_container">#FFBDE9F6</color>
+    <color name="accent_lightgreen_on_tertiary_container">#FF001F27</color>
+
+    <!-- Accent: Brown -->
+    <color name="accent_brown_primary">#FF6E5B4C</color>
+    <color name="accent_brown_on_primary">#FFFFFFFF</color>
+    <color name="accent_brown_primary_container">#FFF4E0D3</color>
+    <color name="accent_brown_on_primary_container">#FF221B10</color>
+    <color name="accent_brown_secondary">#FF635E58</color>
+    <color name="accent_brown_on_secondary">#FFFFFFFF</color>
+    <color name="accent_brown_secondary_container">#FFE9E2DA</color>
+    <color name="accent_brown_on_secondary_container">#FF1F1A16</color>
+    <color name="accent_brown_tertiary">#FF6D5B2F</color>
+    <color name="accent_brown_on_tertiary">#FFFFFFFF</color>
+    <color name="accent_brown_tertiary_container">#FFF6E0A8</color>
+    <color name="accent_brown_on_tertiary_container">#FF221A00</color>
+</resources>

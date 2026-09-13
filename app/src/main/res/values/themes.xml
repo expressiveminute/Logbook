@@ -1,0 +1,86 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Base.Theme.Logbook" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Customize your light theme here. -->
+        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+    </style>
+
+    <style name="Theme.Logbook" parent="Base.Theme.Logbook" />
+
+    <style name="Theme.Logbook.LightBlue" parent="Theme.Logbook">
+        <item name="colorPrimary">@color/accent_lightblue_primary</item>
+        <item name="colorOnPrimary">@color/accent_lightblue_on_primary</item>
+        <item name="colorPrimaryContainer">@color/accent_lightblue_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/accent_lightblue_on_primary_container</item>
+        <item name="colorSecondary">@color/accent_lightblue_secondary</item>
+        <item name="colorOnSecondary">@color/accent_lightblue_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/accent_lightblue_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/accent_lightblue_on_secondary_container</item>
+        <item name="colorTertiary">@color/accent_lightblue_tertiary</item>
+        <item name="colorOnTertiary">@color/accent_lightblue_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/accent_lightblue_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/accent_lightblue_on_tertiary_container</item>
+    </style>
+
+    <style name="Theme.Logbook.LightGreen" parent="Theme.Logbook">
+        <item name="colorPrimary">@color/accent_lightgreen_primary</item>
+        <item name="colorOnPrimary">@color/accent_lightgreen_on_primary</item>
+        <item name="colorPrimaryContainer">@color/accent_lightgreen_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/accent_lightgreen_on_primary_container</item>
+        <item name="colorSecondary">@color/accent_lightgreen_secondary</item>
+        <item name="colorOnSecondary">@color/accent_lightgreen_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/accent_lightgreen_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/accent_lightgreen_on_secondary_container</item>
+        <item name="colorTertiary">@color/accent_lightgreen_tertiary</item>
+        <item name="colorOnTertiary">@color/accent_lightgreen_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/accent_lightgreen_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/accent_lightgreen_on_tertiary_container</item>
+    </style>
+
+    <style name="Theme.Logbook.Brown" parent="Theme.Logbook">
+        <item name="colorPrimary">@color/accent_brown_primary</item>
+        <item name="colorOnPrimary">@color/accent_brown_on_primary</item>
+        <item name="colorPrimaryContainer">@color/accent_brown_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/accent_brown_on_primary_container</item>
+        <item name="colorSecondary">@color/accent_brown_secondary</item>
+        <item name="colorOnSecondary">@color/accent_brown_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/accent_brown_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/accent_brown_on_secondary_container</item>
+        <item name="colorTertiary">@color/accent_brown_tertiary</item>
+        <item name="colorOnTertiary">@color/accent_brown_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/accent_brown_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/accent_brown_on_tertiary_container</item>
+    </style>
+
+    <style name="ShapeAppearance.Logbook.Tile.LeftEnd" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">16dp</item>
+        <item name="cornerSizeTopRight">0dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
+        <item name="cornerSizeBottomLeft">16dp</item>
+    </style>
+
+    <style name="ShapeAppearance.Logbook.Tile.Middle" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">0dp</item>
+        <item name="cornerSizeTopRight">0dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+    </style>
+
+    <style name="ShapeAppearance.Logbook.Tile.RightEnd" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">0dp</item>
+        <item name="cornerSizeTopRight">16dp</item>
+        <item name="cornerSizeBottomRight">16dp</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+    </style>
+
+    <style name="ShapeAppearance.Logbook.Tile.Full" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">16dp</item>
+        <item name="cornerSizeTopRight">16dp</item>
+        <item name="cornerSizeBottomRight">16dp</item>
+        <item name="cornerSizeBottomLeft">16dp</item>
+    </style>
+</resources>
