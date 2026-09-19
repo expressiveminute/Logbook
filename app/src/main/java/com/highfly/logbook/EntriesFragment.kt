@@ -165,7 +165,16 @@ class EntriesFragment : Fragment() {
             val target = visible.indexOfFirst { it.id == pendingScroll }
             if (target >= 0) {
                 binding.entriesList.post {
-                    binding.entriesList.scrollToPosition(target)
+                    val layoutManager =
+                        binding.entriesList.layoutManager as? LinearLayoutManager
+                            ?: return@post
+                    layoutManager.scrollToPosition(target)
+                    binding.entriesList.post {
+                        val item = layoutManager.findViewByPosition(target) ?: return@post
+                        val listCenter = binding.entriesList.height / 2f
+                        val itemCenter = item.top + item.height / 2f
+                        binding.entriesList.scrollBy(0, (itemCenter - listCenter).toInt())
+                    }
                 }
             }
         }
