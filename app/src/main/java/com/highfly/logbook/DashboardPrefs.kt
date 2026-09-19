@@ -5,34 +5,44 @@ import android.content.SharedPreferences
 
 object DashboardPrefs {
 
+    const val SPAN_FULL = 3
+
     data class Tile(
         val id: String,
         val nameRes: Int,
-        val iconRes: Int
+        val iconRes: Int,
+        val span: Int = 1,
+        val heightDp: Int = 72
     )
-
-    const val ABOVE = "above"
-    const val BELOW = "below"
 
     val CATALOG = listOf(
         Tile("flights", R.string.tile_flights, R.drawable.ic_flight),
-        Tile("distance", R.string.tile_distance, R.drawable.ic_distance),
-        Tile("time", R.string.tile_time, R.drawable.ic_time),
-        Tile("routes", R.string.tile_routes, R.drawable.ic_world_map),
-        Tile("airports", R.string.tile_airports, R.drawable.ic_airports),
-        Tile("airlines", R.string.tile_airlines, R.drawable.ic_airlines),
         Tile("layover", R.string.tile_layover, R.drawable.ic_umbrella),
+        Tile("airlines", R.string.tile_airlines, R.drawable.ic_airlines),
+        Tile("aircraft", R.string.tile_aircraft_type, R.drawable.ic_aircraft),
         Tile("class", R.string.tile_class, R.drawable.ic_class),
         Tile("traveltype", R.string.tile_travel_type, R.drawable.ic_work),
-        Tile("aircraft", R.string.tile_aircraft_type, R.drawable.ic_flight),
+        Tile("worldmap", R.string.tile_world_map, R.drawable.ic_world_map, span = SPAN_FULL, heightDp = 184),
+        Tile("distance", R.string.tile_distance, R.drawable.ic_distance, span = SPAN_FULL, heightDp = 200),
+        Tile("time", R.string.tile_time, R.drawable.ic_time),
+        Tile("routes", R.string.tile_routes, R.drawable.ic_routes),
+        Tile("airports", R.string.tile_airports, R.drawable.ic_airports),
         Tile("registration", R.string.tile_registration, R.drawable.ic_tag),
+        Tile("earthorbits", R.string.tile_earth_orbits, R.drawable.ic_earth),
+        Tile("moon", R.string.tile_moon, R.drawable.ic_moon),
+    )
+
+    val DEFAULT_ROWS = listOf(
+        listOf("flights", "layover", "time"),
+        listOf("airlines", "aircraft", "routes"),
+        listOf("worldmap"),
+        listOf("traveltype", "class"),
+        listOf("distance")
     )
 
     private const val PREF_NAME = "dashboard_layout"
-    private const val KEY_COLS_ABOVE = "cols_above"
-    private const val KEY_COLS_BELOW = "cols_below"
-    private const val KEY_TILES_ABOVE = "tiles_above"
-    private const val KEY_TILES_BELOW = "tiles_below"
+    private const val KEY_TILES = "tiles_standard_v6"
+    private const val ROW_SEPARATOR = ";"
 
     private fun prefs(context: Context): SharedPreferences =
         context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
@@ -40,34 +50,21 @@ object DashboardPrefs {
     fun tileById(id: String): Tile =
         CATALOG.firstOrNull { it.id == id } ?: CATALOG.first()
 
-    fun cols(context: Context, section: String): Int =
-        prefs(context).getInt(
-            if (section == ABOVE) KEY_COLS_ABOVE else KEY_COLS_BELOW,
-            2
-        )
-
-    fun setCols(context: Context, section: String, cols: Int) {
-        prefs(context).edit()
-            .putInt(if (section == ABOVE) KEY_COLS_ABOVE else KEY_COLS_BELOW, cols)
-            .apply()
+    fun readRows(context: Context): List<List<String>> {
+        val stored = prefs(context).getString(KEY_TILES, null)
+            ?: return DEFAULT_ROWS
+        val rows = stored.split(ROW_SEPARATOR)
+            .map { row -> row.split(",").filter { it.isNotBlank() } }
+            .filter { it.isNotEmpty() }
+        return if (rows.isEmpty()) DEFAULT_ROWS else rows
     }
 
-    fun tiles(context: Context, section: String): List<String> {
-        val key = if (section == ABOVE) KEY_TILES_ABOVE else KEY_TILES_BELOW
-        val stored = prefs(context).getString(key, null) ?: return defaultTiles(section)
-        return stored.split(",").filter { it.isNotBlank() }
-    }
-
-    fun setTiles(context: Context, section: String, ids: List<String>) {
+    fun writeRows(context: Context, rows: List<List<String>>) {
         prefs(context).edit()
             .putString(
-                if (section == ABOVE) KEY_TILES_ABOVE else KEY_TILES_BELOW,
-                ids.joinToString(",")
+                KEY_TILES,
+                rows.joinToString(ROW_SEPARATOR) { it.joinToString(",") }
             )
             .apply()
     }
-
-    private fun defaultTiles(section: String): List<String> =
-        if (section == ABOVE) listOf("flights", "layover", "routes", "airlines")
-        else emptyList()
 }

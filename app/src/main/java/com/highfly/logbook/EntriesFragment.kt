@@ -1,29 +1,24 @@
 package com.highfly.logbook
 
-import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.content.DialogInterface
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
-import android.view.MotionEvent
 import android.view.View
-import android.view.ViewConfiguration
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
-import android.widget.TextView
-import androidx.core.content.ContextCompat
-import androidx.core.view.doOnLayout
-import androidx.core.view.updateLayoutParams
+import android.graphics.Color
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.snackbar.Snackbar
 import com.highfly.logbook.databinding.FragmentEntriesBinding
-import com.highfly.logbook.databinding.ItemEntryBinding
 import java.time.format.DateTimeFormatter
 
 class EntriesFragment : Fragment() {
@@ -33,56 +28,104 @@ class EntriesFragment : Fragment() {
     private val binding get() = _binding!!
 
     private data class EntryFilter(
+        val travelType: String = "",
         val airline: String = "",
+        val airport: String = "",
         val aircraftType: String = "",
-        val departure: String = "",
-        val arrival: String = "",
-        val classType: String = "",
         val registration: String = "",
-        val year: String = "",
+        val classType: String = "",
     ) {
         fun isActive(): Boolean = listOf(
-            airline, aircraftType, departure, arrival, classType, registration, year
+            travelType, airline, airport, aircraftType, registration, classType
         ).any { it.isNotBlank() }
     }
 
+    private lateinit var adapter: EntryListAdapter
+
     private val allEntries = mutableListOf<LogbookEntry>()
-    private val rows = mutableListOf<Row>()
-    private var selectedIndex: Int? = null
     private var activeFilters = EntryFilter()
+    private var dataLoaded = false
+    private var loadGeneration = 0
 
-    private val touchSlop by lazy { ViewConfiguration.get(requireContext()).scaledTouchSlop }
-    private val longPressDelay = 2000L
-    private val handler = Handler(Looper.getMainLooper())
-    private var pendingLongPress: Runnable? = null
-
-    private var downX = 0f
-    private var downY = 0f
-    private var moved = false
-    private var longPressFired = false
-    private var dragStartTranslation = 0f
-
-    private inner class Row(val binding: ItemEntryBinding, val entry: LogbookEntry)
+    private val searchHandler = Handler(Looper.getMainLooper())
+    private var searchRunnable: Runnable? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-
         _binding = FragmentEntriesBinding.inflate(inflater, container, false)
         return binding.root
-
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        binding.entriesList.layoutManager = LinearLayoutManager(requireContext())
+        adapter = EntryListAdapter(requireContext(), ::openEdit, ::confirmDelete)
+        binding.entriesList.adapter = adapter
+        binding.entriesList.itemAnimator?.changeDuration = 0
         setupSearch()
+        consumePresetAirport()
         updateFilterIcon()
         binding.tileEntryFilter.setOnClickListener { showFilterDialog() }
+        setupBackArrow()
+    }
+
+    /**
+     * Shows a back arrow when this fragment was opened from the world map,
+     * letting the user return directly to the map.
+     */
+    private fun setupBackArrow() {
+        val previousId = findNavController().previousBackStackEntry?.destination?.id
+        if (previousId == R.id.nav_world_map) {
+            binding.btnBackEntries.visibility = View.VISIBLE
+            binding.btnBackEntries.setOnClickListener { findNavController().navigateUp() }
+        } else {
+            binding.btnBackEntries.visibility = View.GONE
+        }
     }
 
     override fun onResume() {
         super.onResume()
+        consumePresetAirport()
+        loadEntries()
+    }
+
+    /**
+     * Loads the entry list in the background so the fragment stays responsive
+     * during the (first) database read. A generation counter discards stale
+     * results when this fragment is left and re-entered quickly.
+     */
+    private fun loadEntries() {
+        val generation = ++loadGeneration
+        binding.entriesProgress.visibility = View.VISIBLE
+
+        val appContext = requireContext().applicationContext
+        Thread {
+            val entries = LogbookRepository.getEntries()
+            view?.post {
+                if (generation != loadGeneration || _binding == null) return@post
+                binding.entriesProgress.visibility = View.GONE
+                allEntries.clear()
+                allEntries += entries
+                dataLoaded = true
+                renderEntries()
+            }
+        }.start()
+    }
+
+    /**
+     * Applies an optional airport preset passed by the world map (tap on an
+     * airport -> "show all entries for this airport"). The airport is entered
+     * into the search field, which already matches departures and arrivals.
+     */
+    private fun consumePresetAirport() {
+        val airport = arguments?.getString("airportFilter").orEmpty().trim().uppercase()
+        if (airport.isBlank()) return
+        if (binding.etEntrySearch.text?.toString()?.trim()?.uppercase() != airport) {
+            binding.etEntrySearch.setText(airport)
+        }
+        arguments?.remove("airportFilter")
         renderEntries()
     }
 
@@ -91,54 +134,30 @@ class EntriesFragment : Fragment() {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable) {
-                renderEntries()
+                searchRunnable?.let(searchHandler::removeCallbacks)
+                val runnable = Runnable { renderEntries() }
+                searchRunnable = runnable
+                searchHandler.postDelayed(runnable, 250)
             }
         })
     }
 
     private fun renderEntries() {
-        allEntries.clear()
-        rows.clear()
-        selectedIndex = null
-        binding.entriesContainer.removeAllViews()
-
-        allEntries += LogbookRepository.getEntries()
-        if (allEntries.isEmpty()) {
-            binding.entriesContainer.addView(emptyText(R.string.entries_empty))
-            return
-        }
-
         val query = binding.etEntrySearch.text?.toString()?.trim().orEmpty().lowercase()
         val visible = allEntries.filter { entry ->
             val matchesQuery = query.isEmpty() || searchableText(entry).contains(query)
             val matchesFilters = filtersMatch(entry)
             matchesQuery && matchesFilters
         }
-        if (visible.isEmpty()) {
-            binding.entriesContainer.addView(emptyText(R.string.entries_no_results))
-            return
-        }
-
-        val schemeColors = ClassColorSchemes.colorsFor(Settings.getClassScheme(requireContext()))
-
-        visible.forEach { entry ->
-            val item = ItemEntryBinding.inflate(
-                layoutInflater, binding.entriesContainer, false
-            )
-            val row = Row(item, entry)
-            rows += row
-            populate(row, schemeColors)
-            binding.entriesContainer.addView(item.root)
-            bindInteractions(row)
-        }
+        adapter.schemeColors =
+            ClassColorSchemes.colorsFor(Settings.getClassScheme(requireContext()))
+        adapter.submit(visible)
+        binding.entriesEmpty.setText(
+            if (allEntries.isEmpty()) R.string.entries_empty else R.string.entries_no_results
+        )
+        binding.entriesEmpty.visibility =
+            if (dataLoaded && visible.isEmpty()) View.VISIBLE else View.GONE
     }
-
-    private fun emptyText(stringRes: Int): TextView =
-        TextView(requireContext()).apply {
-            text = getString(stringRes)
-            textSize = 16f
-            setPadding(16, 24, 16, 24)
-        }
 
     private fun searchableText(entry: LogbookEntry): String =
         listOf(
@@ -154,101 +173,180 @@ class EntriesFragment : Fragment() {
             entry.date.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")),
         ).filterNotNull().joinToString(" ").lowercase()
 
-    private fun filtersMatch(entry: LogbookEntry): Boolean =
-        matches(activeFilters.airline, entry.airline) &&
-            matches(activeFilters.aircraftType, entry.aircraftType) &&
-            matches(activeFilters.departure, entry.fromAirport) &&
-            matches(activeFilters.arrival, entry.toAirport) &&
-            matches(activeFilters.classType, entry.classType) &&
-            matches(activeFilters.registration, entry.registration) &&
-            matches(activeFilters.year, entry.date.year.toString())
-
-    private fun matches(filter: String, value: String?): Boolean {
-        if (filter.isBlank()) return true
-        return value?.lowercase()?.contains(filter.lowercase()) == true
+    private fun filtersMatch(entry: LogbookEntry): Boolean {
+        val travelFilter = activeFilters.travelType
+        if (travelFilter.isNotBlank()) {
+            val target = ChartData.normalizeFlightType(travelFilter)
+            if (target != null && ChartData.normalizeFlightType(entry.flightType) != target) {
+                return false
+            }
+        }
+        val airlineFilter = activeFilters.airline
+        if (airlineFilter.isNotBlank() && entry.airline?.uppercase() != airlineFilter.uppercase()) {
+            return false
+        }
+        val airportFilter = activeFilters.airport
+        if (airportFilter.isNotBlank()) {
+            val target = airportFilter.uppercase()
+            if (entry.fromAirport.uppercase() != target && entry.toAirport.uppercase() != target) {
+                return false
+            }
+        }
+        val aircraftFilter = activeFilters.aircraftType
+        if (aircraftFilter.isNotBlank() &&
+            entry.aircraftType?.uppercase() != aircraftFilter.uppercase()
+        ) {
+            return false
+        }
+        val registrationFilter = activeFilters.registration
+        if (registrationFilter.isNotBlank() &&
+            entry.registration?.uppercase() != registrationFilter.uppercase()
+        ) {
+            return false
+        }
+        val classFilter = activeFilters.classType
+        if (classFilter.isNotBlank()) {
+            val target = ChartData.normalizeClassType(classFilter)
+            if (target != null && ChartData.normalizeClassType(entry.classType) != target) {
+                return false
+            }
+        }
+        return true
     }
 
     private fun showFilterDialog() {
-        val dialogView = layoutInflater.inflate(R.layout.dialog_filter, null)
-        val filterAirline = dialogView.findViewById<AutoCompleteTextView>(R.id.filter_airline)
-        val filterAircraftType = dialogView.findViewById<AutoCompleteTextView>(R.id.filter_aircraft_type)
-        val filterDeparture = dialogView.findViewById<AutoCompleteTextView>(R.id.filter_departure)
-        val filterArrival = dialogView.findViewById<AutoCompleteTextView>(R.id.filter_arrival)
-        val filterClass = dialogView.findViewById<AutoCompleteTextView>(R.id.filter_class)
-        val filterRegistration = dialogView.findViewById<AutoCompleteTextView>(R.id.filter_registration)
-        val filterYear = dialogView.findViewById<AutoCompleteTextView>(R.id.filter_year)
+        val sheetView = layoutInflater.inflate(R.layout.sheet_entry_filter, null)
+        val filterTravelType =
+            sheetView.findViewById<AutoCompleteTextView>(R.id.filter_travel_type)
+        val filterAirline =
+            sheetView.findViewById<AutoCompleteTextView>(R.id.filter_airline)
+        val filterAirport =
+            sheetView.findViewById<AutoCompleteTextView>(R.id.filter_airport)
+        val filterAircraftType =
+            sheetView.findViewById<AutoCompleteTextView>(R.id.filter_aircraft_type)
+        val filterRegistration =
+            sheetView.findViewById<AutoCompleteTextView>(R.id.filter_registration)
+        val filterClassType =
+            sheetView.findViewById<AutoCompleteTextView>(R.id.filter_class_type)
 
-        filterAirline.setAdapter(suggestionsAdapter { it.airline })
-        filterAircraftType.setAdapter(suggestionsAdapter { it.aircraftType })
-        filterDeparture.setAdapter(suggestionsAdapter { it.fromAirport })
-        filterArrival.setAdapter(suggestionsAdapter { it.toAirport })
-        filterClass.setAdapter(suggestionsAdapter { it.classType })
-        filterRegistration.setAdapter(suggestionsAdapter { it.registration })
-        filterYear.setAdapter(yearSuggestionsAdapter())
+        filterTravelType.setAdapter(labelAdapter())
+        filterAirline.setAdapter(distinctValuesAdapter { it.airline?.uppercase() })
+        filterAirport.setAdapter(airportAdapter())
+        filterAircraftType.setAdapter(distinctValuesAdapter { it.aircraftType })
+        filterRegistration.setAdapter(distinctValuesAdapter { it.registration })
+        filterClassType.setAdapter(classAdapter())
 
-        filterAirline.setText(activeFilters.airline)
-        filterAircraftType.setText(activeFilters.aircraftType)
-        filterDeparture.setText(activeFilters.departure)
-        filterArrival.setText(activeFilters.arrival)
-        filterClass.setText(activeFilters.classType)
-        filterRegistration.setText(activeFilters.registration)
-        filterYear.setText(activeFilters.year)
+        listOf(
+            filterTravelType, filterAirline, filterAirport,
+            filterAircraftType, filterRegistration, filterClassType
+        ).forEach { highlightFilterValue(it) }
 
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.filter_title)
-            .setView(dialogView)
-            .setPositiveButton(R.string.filter_apply) { _, _ ->
-                activeFilters = EntryFilter(
-                    airline = filterAirline.text?.toString()?.trim().orEmpty(),
-                    aircraftType = filterAircraftType.text?.toString()?.trim().orEmpty(),
-                    departure = filterDeparture.text?.toString()?.trim().orEmpty(),
-                    arrival = filterArrival.text?.toString()?.trim().orEmpty(),
-                    classType = filterClass.text?.toString()?.trim().orEmpty(),
-                    registration = filterRegistration.text?.toString()?.trim().orEmpty(),
-                    year = filterYear.text?.toString()?.trim().orEmpty(),
-                )
-                updateFilterIcon()
-                renderEntries()
-            }
-            .setNegativeButton(R.string.discard_cancel, null)
-            .setNeutralButton(R.string.filter_clear) { dialog, _ ->
+        filterTravelType.setText(activeFilters.travelType, false)
+        filterAirline.setText(activeFilters.airline, false)
+        filterAirport.setText(activeFilters.airport, false)
+        filterAircraftType.setText(activeFilters.aircraftType, false)
+        filterRegistration.setText(activeFilters.registration, false)
+        filterClassType.setText(activeFilters.classType, false)
+
+        val dialog = BottomSheetDialog(requireContext())
+        dialog.setContentView(sheetView)
+
+        sheetView.findViewById<View>(R.id.btn_filter_clear).apply {
+            visibility = if (activeFilters.isActive()) View.VISIBLE else View.GONE
+            setOnClickListener {
                 activeFilters = EntryFilter()
                 updateFilterIcon()
                 renderEntries()
                 dialog.dismiss()
             }
-            .create()
-            .apply {
-                setOnShowListener {
-                    getButton(DialogInterface.BUTTON_POSITIVE)
-                        .setTextColor(Color.parseColor("#4CAF50"))
-                    val neutral = getButton(DialogInterface.BUTTON_NEUTRAL)
-                    if (activeFilters.isActive()) {
-                        neutral.setTextColor(Color.parseColor("#D32F2F"))
-                    } else {
-                        neutral.visibility = View.GONE
-                    }
-                }
-                show()
-            }
+        }
+        sheetView.findViewById<View>(R.id.btn_filter_apply).setOnClickListener {
+            activeFilters = EntryFilter(
+                travelType = filterTravelType.text?.toString()?.trim().orEmpty(),
+                airline = filterAirline.text?.toString()?.trim().orEmpty(),
+                airport = filterAirport.text?.toString()?.trim().orEmpty(),
+                aircraftType = filterAircraftType.text?.toString()?.trim().orEmpty(),
+                registration = filterRegistration.text?.toString()?.trim().orEmpty(),
+                classType = filterClassType.text?.toString()?.trim().orEmpty(),
+            )
+            updateFilterIcon()
+            renderEntries()
+            dialog.dismiss()
+        }
+
+        dialog.show()
     }
 
-    private fun suggestionsAdapter(value: (LogbookEntry) -> String?): ArrayAdapter<String> {
-        val values = LogbookRepository.getEntries()
-            .mapNotNull(value)
+    private fun labelAdapter(): ArrayAdapter<String> =
+        ArrayAdapter(
+            requireContext(),
+            android.R.layout.simple_dropdown_item_1line,
+            listOf(
+                getString(R.string.flight_type_private),
+                getString(R.string.flight_type_on_duty),
+                getString(R.string.flight_type_deadhead),
+                getString(R.string.flight_type_ferry),
+                getString(R.string.flight_type_ground_transfer),
+                getString(R.string.flight_type_duty_travel),
+            )
+        )
+
+    private fun classAdapter(): ArrayAdapter<String> =
+        ArrayAdapter(
+            requireContext(),
+            android.R.layout.simple_dropdown_item_1line,
+            listOf(
+                getString(R.string.class_economy),
+                getString(R.string.class_premium_economy),
+                getString(R.string.class_business),
+                getString(R.string.class_first),
+            )
+        )
+
+    private fun distinctValuesAdapter(
+        selector: (LogbookEntry) -> String?
+    ): ArrayAdapter<String> {
+        val values = allEntries
+            .mapNotNull(selector)
             .filter { it.isNotBlank() }
             .distinct()
-            .sortedWith(String.CASE_INSENSITIVE_ORDER)
-        return ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, values)
+            .sorted()
+        return ArrayAdapter(
+            requireContext(), android.R.layout.simple_dropdown_item_1line, values
+        )
     }
 
-    private fun yearSuggestionsAdapter(): ArrayAdapter<String> {
-        val years = LogbookRepository.getEntries()
-            .map { it.date.year }
+    private fun airportAdapter(): ArrayAdapter<String> {
+        val values = allEntries
+            .flatMap { listOf(it.fromAirport, it.toAirport) }
+            .filter { it.isNotBlank() }
+            .map { it.uppercase() }
             .distinct()
-            .sortedDescending()
-            .map { it.toString() }
-        return ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, years)
+            .sorted()
+        return ArrayAdapter(
+            requireContext(), android.R.layout.simple_dropdown_item_1line, values
+        )
+    }
+
+    /**
+     * Paints the text of a filter field in the accent colour while it holds a
+     * value the user entered, so active criteria stand out from empty fields.
+     */
+    private fun highlightFilterValue(field: AutoCompleteTextView) {
+        val accent = MaterialColors.getColor(
+            field, com.google.android.material.R.attr.colorPrimary
+        )
+        val normal = field.currentTextColor
+        fun refresh() {
+            val active = field.text?.toString()?.trim().orEmpty().isNotBlank()
+            field.setTextColor(if (active) accent else normal)
+        }
+        field.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+            override fun afterTextChanged(s: Editable?) = refresh()
+        })
+        refresh()
     }
 
     private fun updateFilterIcon() {
@@ -271,191 +369,45 @@ class EntriesFragment : Fragment() {
         binding.ivFilterIcon.setColorFilter(if (active) Color.WHITE else onSurfaceVariant)
     }
 
-    private fun populate(row: Row, schemeColors: List<Int>) {
-        val item = row.binding
-        val entry = row.entry
-
-        val flightNo = listOfNotNull(
-            entry.airline?.takeIf { it.isNotBlank() },
-            entry.flightNumber?.takeIf { it.isNotBlank() },
-        ).joinToString(" ")
-        item.itemFlightNo.text = flightNo
-
-        val airlineCode = entry.airline?.takeIf { it.isNotBlank() }
-        val livery = airlineCode?.let { AirlineCatalog.loadLogo(requireContext(), it) }
-        if (livery != null) {
-            item.ivAirlineLivery.setImageBitmap(livery)
-            item.ivAirlineLivery.visibility = View.VISIBLE
-        }
-
-        item.itemDate.text = entry.date.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
-
-        item.itemRoute.text = "${entry.fromAirport} → ${entry.toAirport}"
-
-        val meta = listOfNotNull(
-            entry.aircraftType?.takeIf { it.isNotBlank() },
-            entry.registration?.takeIf { it.isNotBlank() },
-        )
-        item.itemTypeMeta.text = meta.joinToString(" · ")
-
-        item.itemFlightType.text = entry.flightType.orEmpty()
-
-        item.itemClass.text = entry.classType.orEmpty()
-        val classIndex = classColorIndex(entry.classType)
-        if (classIndex != null && classIndex < schemeColors.size) {
-            item.itemClass.setTextColor(
-                ContextCompat.getColor(requireContext(), schemeColors[classIndex])
-            )
-        }
-
-        val comment = entry.comment?.takeIf { it.isNotBlank() }
-        if (comment == null) {
-            item.itemComment.visibility = View.GONE
-        } else {
-            item.itemComment.visibility = View.VISIBLE
-            item.itemComment.text = comment
-        }
-    }
-
-    private fun bindInteractions(row: Row) {
-        val root = row.binding.itemEntryRoot
-        val card = row.binding.itemCard
-
-        root.doOnLayout {
-            row.binding.itemEntryActions.updateLayoutParams<ViewGroup.LayoutParams> {
-                height = it.height
-            }
-        }
-
-        row.binding.btnEditEntry.setOnClickListener { openEdit(row) }
-        row.binding.btnDeleteEntry.setOnClickListener { confirmDelete(row) }
-
-        root.setOnTouchListener { view, event ->
-            when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    downX = event.x
-                    downY = event.y
-                    moved = false
-                    val index = rows.indexOf(row)
-                    if (selectedIndex == index) {
-                        dragStartTranslation = card.translationX
-                        longPressFired = true
-                    } else {
-                        longPressFired = false
-                        scheduleLongPress(row)
-                    }
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    val dx = event.x - downX
-                    val dy = event.y - downY
-                    if (!moved && (kotlin.math.abs(dx) > touchSlop || kotlin.math.abs(dy) > touchSlop)) {
-                        moved = true
-                        cancelLongPress()
-                    }
-                    val index = rows.indexOf(row)
-                    if (selectedIndex == index && longPressFired &&
-                        kotlin.math.abs(dx) > kotlin.math.abs(dy)
-                    ) {
-                        val actionsWidth = row.binding.itemEntryActions.width.toFloat()
-                        card.translationX =
-                            (dragStartTranslation + dx).coerceIn(-actionsWidth, 0f)
-                    }
-                }
-                MotionEvent.ACTION_UP -> {
-                    cancelLongPress()
-                    val index = rows.indexOf(row)
-                    if (longPressFired && selectedIndex == index) {
-                        val actionsWidth = row.binding.itemEntryActions.width.toFloat()
-                        val open = card.translationX < -actionsWidth / 2
-                        card.animate()
-                            .translationX(if (open) -actionsWidth else 0f)
-                            .setDuration(200)
-                            .start()
-                    } else if (!moved) {
-                        val current = selectedIndex
-                        when {
-                            current == null -> Unit
-                            current == index -> {
-                                if (card.translationX != 0f) {
-                                    card.animate().translationX(0f).setDuration(200).start()
-                                }
-                            }
-                            else -> deselect()
-                        }
-                    }
-                }
-                MotionEvent.ACTION_CANCEL -> cancelLongPress()
-            }
-            true
-        }
-    }
-
-    private fun scheduleLongPress(row: Row) {
-        val runnable = Runnable {
-            pendingLongPress = null
-            longPressFired = true
-            select(rows.indexOf(row))
-        }
-        pendingLongPress = runnable
-        handler.postDelayed(runnable, longPressDelay)
-    }
-
-    private fun cancelLongPress() {
-        pendingLongPress?.let { handler.removeCallbacks(it) }
-        pendingLongPress = null
-    }
-
-    private fun select(index: Int) {
-        if (index < 0 || index >= rows.size) return
-        selectedIndex = index
-        rows.forEachIndexed { i, row ->
-            val selected = i == selectedIndex
-            row.binding.itemCard.alpha = if (selected) 1f else 0.4f
-            row.binding.itemCard.elevation = if (selected) 8f else 0f
-        }
-    }
-
-    private fun deselect() {
-        selectedIndex = null
-        rows.forEach { row ->
-            row.binding.itemCard.animate().translationX(0f).setDuration(200).start()
-            row.binding.itemCard.alpha = 1f
-            row.binding.itemCard.elevation = 0f
-        }
-    }
-
-    private fun openEdit(row: Row) {
-        val args = Bundle().apply { putLong("entryId", row.entry.id ?: -1L) }
+    private fun openEdit(entry: LogbookEntry) {
+        adapter.dismissOpenRow()
+        val args = Bundle().apply { putLong("entryId", entry.id ?: -1L) }
         findNavController().navigate(R.id.action_entries_to_add_entry, args)
     }
 
-    private fun confirmDelete(row: Row) {
+    private fun confirmDelete(entry: LogbookEntry) {
+        adapter.dismissOpenRow()
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.delete_entry_title)
             .setMessage(R.string.delete_entry_message)
             .setPositiveButton(R.string.delete_entry_confirm) { _, _ ->
-                row.entry.id?.let { LogbookRepository.deleteEntry(it) }
-                renderEntries()
+                deleteWithUndo(entry)
             }
             .setNegativeButton(R.string.discard_cancel, null)
             .show()
     }
 
-    private fun classColorIndex(classType: String?): Int? {
-        val resIds = listOf(
-            R.string.class_economy,
-            R.string.class_premium_economy,
-            R.string.class_business,
-            R.string.class_first,
-        )
-        val text = classType ?: return null
-        val index = resIds.indexOfFirst { getString(it) == text }
-        return if (index == -1) null else index
+    private fun deleteWithUndo(entry: LogbookEntry) {
+        val id = entry.id ?: return
+        LogbookRepository.deleteEntry(id)
+        allEntries.removeAll { it.id == id }
+        renderEntries()
+        Snackbar.make(binding.root, R.string.entry_deleted, Snackbar.LENGTH_LONG)
+            .setAction(R.string.undo) {
+                val restored = entry.copy(id = null)
+                LogbookRepository.addEntry(restored)
+                allEntries += restored
+                allEntries.sortByDescending { it.date }
+                renderEntries()
+            }
+            .show()
     }
 
     override fun onDestroyView() {
-        cancelLongPress()
         super.onDestroyView()
+        searchHandler.removeCallbacksAndMessages(null)
+        searchRunnable = null
+        loadGeneration++
         _binding = null
     }
 }

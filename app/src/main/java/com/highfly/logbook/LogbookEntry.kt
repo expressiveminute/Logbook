@@ -16,5 +16,8 @@ data class LogbookEntry(
     val distanceKm: Int? = null,
     val flightMinutes: Int? = null,
     val layover: Boolean = false,
+    val fromCountry: String? = null,
+    val toCountry: String? = null,
+    val function: String? = null,
     val comment: String? = null
 )

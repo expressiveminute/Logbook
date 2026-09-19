@@ -9,10 +9,12 @@ import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.OvershootInterpolator
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.DatePicker
 import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
@@ -24,6 +26,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.highfly.logbook.databinding.FragmentAddEntryBinding
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 import kotlin.math.roundToInt
 
 class AddEntryFragment : Fragment() {
@@ -34,9 +37,11 @@ class AddEntryFragment : Fragment() {
 
     private var selectedFlightTypeIndex: Int? = null
     private var selectedClassIndex: Int? = null
+    private var selectedDeadheadIndex: Int? = null
     private var prefilling = false
 
     private var editingEntryId: Long = -1L
+    private var returnActive = false
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -58,10 +63,13 @@ class AddEntryFragment : Fragment() {
         }
 
         setupFlightTypeTiles()
+        setupDeadheadTiles()
         setupClassTiles()
         setupAirlineAutoAdvance()
         setupAirportAutoAdvance()
+        setupFlightTimeConversion()
         setupDateField()
+        setupReturnToggle()
         setupProgressiveReveal()
         setupOptionalSection()
         setupSaveAndDiscard()
@@ -98,6 +106,76 @@ class AddEntryFragment : Fragment() {
         updateFlightLabels(labels, null)
     }
 
+    private fun setupDeadheadTiles() {
+        val tiles = deadheadTiles()
+        val labels = deadheadLabels()
+
+        configureHighlight(binding.deadheadGroupFrame, binding.deadheadHighlight, tiles.size)
+
+        tiles.forEachIndexed { index, tile ->
+            tile.setOnClickListener { selectDeadheadType(index) }
+        }
+        updateFlightLabels(labels, null)
+    }
+
+    private fun deadheadTiles() = listOf(
+        binding.tileDeadheadDeadhead,
+        binding.tileDeadheadFerry,
+        binding.tileDeadheadGroundTransfer,
+    )
+
+    private fun deadheadLabels() = listOf(
+        binding.labelDeadheadDeadhead,
+        binding.labelDeadheadFerry,
+        binding.labelDeadheadGroundTransfer,
+    )
+
+    private fun selectDeadheadType(index: Int) {
+        selectedDeadheadIndex = index
+        moveHighlight(
+            binding.deadheadGroupFrame,
+            binding.deadheadHighlight,
+            deadheadTiles().size,
+            index,
+            ContextCompat.getColor(requireContext(), R.color.type_deadhead_bg)
+        )
+        updateFlightLabels(deadheadLabels(), index)
+    }
+
+    private fun flightTypeColorRes(index: Int): Int = when (index) {
+        0 -> R.color.type_private_bg
+        1 -> R.color.type_on_duty_bg
+        2 -> R.color.type_deadhead_bg
+        else -> R.color.type_duty_travel_bg
+    }
+
+    /**
+     * Wenn in der ersten Zeile "Deadhead" gewählt ist, erscheint darunter eine
+     * zweite Zeile, die die Reiseart genauer festlegt (Deadhead/Ferry/Ground
+     * Transfer). Standardmäßig ist dort "Deadhead" ausgewählt.
+     */
+    private fun updateDeadheadRowVisibility() {
+        val isDeadhead = selectedFlightTypeIndex == DEADHEAD_INDEX
+        binding.deadheadSection.visibility = if (isDeadhead) View.VISIBLE else View.GONE
+        if (isDeadhead && selectedDeadheadIndex == null) {
+            selectDeadheadType(0)
+        }
+    }
+
+    /**
+     * Das Feld "Funktion" erscheint nur bei den Reisearten On Duty und Deadhead
+     * und wird automatisch mit der in den Einstellungen gewählten Crew-Funktion
+     * befüllt (sofern es noch leer ist).
+     */
+    private fun updateFunctionVisibility() {
+        val show = selectedFlightTypeIndex == ON_DUTY_INDEX ||
+            selectedFlightTypeIndex == DEADHEAD_INDEX
+        binding.functionSection.visibility = if (show) View.VISIBLE else View.GONE
+        if (show && !prefilling && binding.etFunction.text.isNullOrBlank()) {
+            binding.etFunction.setText(Settings.selectedCrewFunctionLabel(requireContext()))
+        }
+    }
+
     private fun selectFlightType(index: Int) {
         selectedFlightTypeIndex = index
         val tiles = listOf(
@@ -117,11 +195,11 @@ class AddEntryFragment : Fragment() {
             binding.flightHighlight,
             tiles.size,
             index,
-            MaterialColors.getColor(
-                binding.root, com.google.android.material.R.attr.colorPrimaryContainer
-            )
+            ContextCompat.getColor(requireContext(), flightTypeColorRes(index))
         )
         updateFlightLabels(labels, index)
+        updateDeadheadRowVisibility()
+        updateFunctionVisibility()
         updateLayoverVisibility()
         refreshVisibility()
     }
@@ -196,13 +274,36 @@ class AddEntryFragment : Fragment() {
             R.string.class_first,
         )
 
-        val flightTypeIndex = entry.flightType?.let { text ->
-            flightTypeLabels.indexOfFirst { getString(it) == text }.takeIf { it != -1 }
+        val normalizedFlightType = ChartData.normalizeFlightType(entry.flightType)
+        val flightTypeIndex = normalizedFlightType?.let { text ->
+            flightTypeLabels.indexOfFirst {
+                ChartData.normalizeFlightType(getString(it)) == text
+            }.takeIf { it != -1 }
         }
-        if (flightTypeIndex != null) selectFlightType(flightTypeIndex)
+        if (flightTypeIndex != null) {
+            selectFlightType(flightTypeIndex)
+        } else {
+            val detailLabels = listOf(
+                R.string.flight_type_deadhead,
+                R.string.flight_type_ferry,
+                R.string.flight_type_ground_transfer,
+            )
+            val detailIndex = normalizedFlightType?.let { text ->
+                detailLabels.indexOfFirst {
+                    ChartData.normalizeFlightType(getString(it)) == text
+                }.takeIf { it != -1 }
+            }
+            if (detailIndex != null) {
+                selectFlightType(DEADHEAD_INDEX)
+                selectDeadheadType(detailIndex)
+            }
+        }
 
-        val classIndex = entry.classType?.let { text ->
-            classLabels.indexOfFirst { getString(it) == text }.takeIf { it != -1 }
+        val normalizedClassType = ChartData.normalizeClassType(entry.classType)
+        val classIndex = normalizedClassType?.let { text ->
+            classLabels.indexOfFirst {
+                ChartData.normalizeClassType(getString(it)) == text
+            }.takeIf { it != -1 }
         }
         if (classIndex != null) selectClass(classIndex)
 
@@ -221,26 +322,29 @@ class AddEntryFragment : Fragment() {
         binding.etAircraftType.setText(entry.aircraftType)
         binding.etRegistration.setText(entry.registration)
 
+        binding.etFunction.setText(entry.function)
         binding.etComment.setText(entry.comment)
 
         val hasOptional = listOf(
             entry.aircraftType,
             entry.registration,
-            entry.comment
+            entry.comment,
+            entry.function
         ).any { !it.isNullOrBlank() }
         if (hasOptional) toggleOptionalBody(expanded = true)
+        validateAirport(entry.fromAirport, binding.etAirportFrom, binding.ivAirportCheckFrom)
+        validateAirport(entry.toAirport, binding.etAirportTo, binding.ivAirportCheckTo)
+        updateCountryFlag(entry.fromAirport, binding.tvCountryFlagFrom)
+        updateCountryFlag(entry.toAirport, binding.tvCountryFlagTo)
         prefilling = false
     }
 
     private fun updateFlightLabels(labels: List<TextView>, selectedIndex: Int?) {
-        val onPrimaryContainer = MaterialColors.getColor(
-            binding.root, com.google.android.material.R.attr.colorOnPrimaryContainer
-        )
         val onSurface = MaterialColors.getColor(
             binding.root, com.google.android.material.R.attr.colorOnSurface
         )
         labels.forEachIndexed { index, label ->
-            label.setTextColor(if (index == selectedIndex) onPrimaryContainer else onSurface)
+            label.setTextColor(if (index == selectedIndex) Color.WHITE else onSurface)
         }
     }
 
@@ -319,6 +423,8 @@ class AddEntryFragment : Fragment() {
                     s.replace(0, s.length, upper)
                     return
                 }
+                validateAirport(s.toString(), binding.etAirportFrom, binding.ivAirportCheckFrom)
+                updateCountryFlag(s.toString(), binding.tvCountryFlagFrom)
                 if (s.length == 3) {
                     focusAndShowKeyboard(binding.etAirportTo)
                 }
@@ -333,10 +439,105 @@ class AddEntryFragment : Fragment() {
                 val upper = s.toString().uppercase()
                 if (upper != s.toString()) {
                     s.replace(0, s.length, upper)
+                    return
                 }
+                validateAirport(s.toString(), binding.etAirportTo, binding.ivAirportCheckTo)
+                updateCountryFlag(s.toString(), binding.tvCountryFlagTo)
                 autoFillRouteData()
             }
         })
+    }
+
+    private fun validateAirport(code: String, editText: EditText, check: ImageView) {
+        val exists = code.length == 3 &&
+            AirportData.location(requireContext(), code) != null
+        if (exists) {
+            val wasVisible = check.visibility == View.VISIBLE
+            if (!wasVisible) {
+                check.visibility = View.INVISIBLE
+                check.alpha = 0f
+                check.scaleX = 0.3f
+                check.scaleY = 0.3f
+            }
+            editText.post {
+                positionCheckBehindCode(editText, check, code)
+                if (!wasVisible) {
+                    check.visibility = View.VISIBLE
+                    check.animate()
+                        .alpha(1f)
+                        .scaleX(1f)
+                        .scaleY(1f)
+                        .setDuration(280)
+                        .setInterpolator(OvershootInterpolator())
+                        .start()
+                }
+            }
+        } else if (check.visibility != View.GONE) {
+            check.animate().cancel()
+            check.visibility = View.GONE
+        }
+    }
+
+    private fun positionCheckBehindCode(editText: EditText, check: ImageView, code: String) {
+        val parentLayout = editText.parent as? ViewGroup
+        val textStartX = (parentLayout?.paddingLeft ?: 0) + editText.paddingLeft
+        val textWidth = editText.paint.measureText(code)
+        val gap = 5f * resources.displayMetrics.density
+        check.translationX = textStartX + textWidth + gap
+
+        val frame = check.parent as? ViewGroup
+        val frameHeight = frame?.height ?: editText.height
+        val editCenterInFrame = editText.top + editText.height / 2f
+        check.translationY = editCenterInFrame - frameHeight / 2f
+    }
+
+    private fun updateCountryFlag(code: String, flag: TextView) {
+        val iso = if (code.length == 3) AirportData.country(requireContext(), code) else null
+        if (iso != null) {
+            flag.text = AirportData.flagEmoji(iso)
+            if (flag.visibility != View.VISIBLE) {
+                flag.visibility = View.VISIBLE
+                flag.alpha = 0f
+                flag.scaleX = 0.6f
+                flag.scaleY = 0.6f
+                flag.animate()
+                    .alpha(1f)
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .setDuration(240)
+                    .setInterpolator(OvershootInterpolator())
+                    .start()
+            }
+        } else if (flag.visibility != View.GONE) {
+            flag.animate().cancel()
+            flag.visibility = View.GONE
+        }
+    }
+
+    private fun setupFlightTimeConversion() {
+        binding.etFlightTime.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable) {
+                updateFlightTimeDisplay()
+            }
+        })
+        updateFlightTimeDisplay()
+    }
+
+    private fun updateFlightTimeDisplay() {
+        val minutes = binding.etFlightTime.text?.toString()?.trim()?.toIntOrNull()
+        if (minutes != null && minutes > 0) {
+            val hours = minutes / 60
+            val restMinutes = minutes % 60
+            binding.tvFlightTimeHours.text =
+                String.format(Locale.GERMANY, "%d:%02d h", hours, restMinutes)
+            binding.tvFlightTimeEqual.visibility = View.VISIBLE
+            binding.tvFlightTimeHours.visibility = View.VISIBLE
+        } else {
+            binding.tvFlightTimeEqual.visibility = View.GONE
+            binding.tvFlightTimeHours.visibility = View.GONE
+        }
     }
 
     private fun autoFillRouteData() {
@@ -362,6 +563,7 @@ class AddEntryFragment : Fragment() {
         binding.etAirline.addTextChangedListener(watcher)
         binding.etFlightNumber.addTextChangedListener(watcher)
         binding.etDate.addTextChangedListener(watcher)
+        binding.etDateReturn.addTextChangedListener(watcher)
         binding.etAirportFrom.addTextChangedListener(watcher)
         binding.etAirportTo.addTextChangedListener(watcher)
         binding.etDistance.addTextChangedListener(watcher)
@@ -392,6 +594,46 @@ class AddEntryFragment : Fragment() {
         imm.hideSoftInputFromWindow(binding.root.windowToken, 0)
     }
 
+    private fun setupReturnToggle() {
+        binding.tvAddReturn.setOnClickListener { activateReturn() }
+        binding.btnRemoveReturn.setOnClickListener { deactivateReturn() }
+    }
+
+    private fun activateReturn() {
+        if (returnActive) return
+        returnActive = true
+        val aircraft = binding.etAircraftType.text?.toString()?.trim().orEmpty()
+        val registration = binding.etRegistration.text?.toString()?.trim().orEmpty()
+        val comment = binding.etComment.text?.toString()?.trim().orEmpty()
+        binding.etHinflugAircraft.setText(aircraft)
+        binding.etHinflugRegistration.setText(registration)
+        binding.etHinflugComment.setText(comment)
+        binding.etRueckflugAircraft.setText(aircraft)
+        binding.etRueckflugRegistration.setText(registration)
+        binding.etRueckflugComment.setText(comment)
+        updateReturnUi()
+    }
+
+    private fun deactivateReturn() {
+        if (!returnActive) return
+        returnActive = false
+        binding.etAircraftType.setText(binding.etHinflugAircraft.text?.toString()?.trim().orEmpty())
+        binding.etRegistration.setText(binding.etHinflugRegistration.text?.toString()?.trim().orEmpty())
+        binding.etComment.setText(binding.etHinflugComment.text?.toString()?.trim().orEmpty())
+        updateReturnUi()
+    }
+
+    private fun updateReturnUi() {
+        binding.tvAddReturn.visibility = if (returnActive) View.GONE else View.VISIBLE
+        binding.tileDateReturn.visibility = if (returnActive) View.VISIBLE else View.GONE
+        binding.tvDateLabel.setText(if (returnActive) R.string.hinflight_label else R.string.date_label)
+        binding.optionalSingleBlock.visibility = if (returnActive) View.GONE else View.VISIBLE
+        binding.optionalSplitBlock.visibility = if (returnActive) View.VISIBLE else View.GONE
+        binding.btnSaveFlight.setText(if (returnActive) R.string.btn_save_flights else R.string.btn_save_flight)
+        binding.btnDiscardFlight.setText(if (returnActive) R.string.btn_discard_flights else R.string.btn_discard_flight)
+        refreshVisibility()
+    }
+
     private fun refreshVisibility() {
         val hasType = selectedFlightTypeIndex != null
         val hasClass = selectedClassIndex != null
@@ -407,6 +649,18 @@ class AddEntryFragment : Fragment() {
             false
         }
 
+        val returnDate = if (returnActive) {
+            try {
+                LocalDate.parse(
+                    binding.etDateReturn.text?.toString()?.trim().orEmpty(),
+                    DATE_FORMAT
+                )
+                true
+            } catch (e: Exception) {
+                false
+            }
+        } else true
+
         binding.classSection.visibility = if (hasType) View.VISIBLE else View.GONE
         binding.detailsSection.visibility = if (hasType && hasClass) View.VISIBLE else View.GONE
 
@@ -421,7 +675,7 @@ class AddEntryFragment : Fragment() {
         val flightTime = binding.etFlightTime.text?.toString()?.trim().orEmpty()
 
         val allRequired = hasType && hasClass && airline.isNotEmpty() && flightNumber.isNotEmpty() &&
-            date && from.isNotEmpty() && to.isNotEmpty() &&
+            date && returnDate && from.isNotEmpty() && to.isNotEmpty() &&
             distance.isNotEmpty() && flightTime.isNotEmpty()
 
         val saveWasVisible = binding.btnSaveFlight.visibility == View.VISIBLE
@@ -434,6 +688,8 @@ class AddEntryFragment : Fragment() {
 
     companion object {
         private val DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy")
+        private const val DEADHEAD_INDEX = 2
+        private const val ON_DUTY_INDEX = 1
     }
 
     private fun setupSaveAndDiscard() {
@@ -441,15 +697,19 @@ class AddEntryFragment : Fragment() {
         binding.btnDiscardFlight.setOnClickListener { confirmDiscard() }
     }
 
-    private fun selectedFlightType(): String? =
-        selectedFlightTypeIndex?.let { index ->
-            listOf(
-                binding.labelFlightPrivate,
-                binding.labelFlightOnDuty,
-                binding.labelFlightDeadhead,
-                binding.labelFlightDutyTravel,
-            )[index].text.toString()
+    private fun selectedFlightType(): String? {
+        val topLevelIndex = selectedFlightTypeIndex ?: return null
+        if (topLevelIndex == DEADHEAD_INDEX) {
+            val detailIndex = selectedDeadheadIndex ?: 0
+            return deadheadLabels()[detailIndex].text.toString()
         }
+        return listOf(
+            binding.labelFlightPrivate,
+            binding.labelFlightOnDuty,
+            binding.labelFlightDeadhead,
+            binding.labelFlightDutyTravel,
+        )[topLevelIndex].text.toString()
+    }
 
     private fun selectedClassType(): String? =
         selectedClassIndex?.let { index ->
@@ -460,6 +720,11 @@ class AddEntryFragment : Fragment() {
                 binding.labelClassFirst,
             )[index].text.toString()
         }
+
+    private fun nextFlightNumber(current: String?): String? {
+        val number = current?.trim()?.toIntOrNull() ?: return current
+        return (number + 1).toString()
+    }
 
     private fun saveFlight() {
         val missingLabels = mutableListOf<String>()
@@ -482,13 +747,29 @@ class AddEntryFragment : Fragment() {
         }
         if (date == null) missingLabels += getString(R.string.date_label)
 
+        val returnDate = if (returnActive) {
+            try {
+                LocalDate.parse(
+                    binding.etDateReturn.text?.toString()?.trim().orEmpty(),
+                    DateTimeFormatter.ofPattern("dd.MM.yyyy")
+                )
+            } catch (e: Exception) {
+                null
+            }
+        } else null
+        if (returnActive && returnDate == null) missingLabels += getString(R.string.return_flight_label)
+
         val from = binding.etAirportFrom.text?.toString()?.trim()?.uppercase().orEmpty()
         val to = binding.etAirportTo.text?.toString()?.trim()?.uppercase().orEmpty()
         if (from.isEmpty()) missingLabels += getString(R.string.airport_departure_label)
         if (to.isEmpty()) missingLabels += getString(R.string.airport_arrival_label)
 
-        val distanceKm = binding.etDistance.text?.toString()?.trim()?.toIntOrNull()
-        val flightMinutes = binding.etFlightTime.text?.toString()?.trim()?.toIntOrNull()
+        val distanceText = binding.etDistance.text?.toString()?.trim().orEmpty()
+        val flightTimeText = binding.etFlightTime.text?.toString()?.trim().orEmpty()
+        val distanceKm = distanceText.toIntOrNull()
+        val flightMinutes = flightTimeText.toIntOrNull()
+        if (distanceText.isNotEmpty() && distanceKm == null) missingLabels += getString(R.string.flight_distance_label)
+        if (flightTimeText.isNotEmpty() && flightMinutes == null) missingLabels += getString(R.string.flight_time_label)
 
         if (missingLabels.isNotEmpty()) {
             Toast.makeText(
@@ -499,21 +780,34 @@ class AddEntryFragment : Fragment() {
             return
         }
 
+        val confirmedDate = date ?: return
+
+        val aircraftType = (if (returnActive) binding.etHinflugAircraft else binding.etAircraftType)
+            .text?.toString()?.trim()?.ifEmpty { null }
+        val registration = (if (returnActive) binding.etHinflugRegistration else binding.etRegistration)
+            .text?.toString()?.trim()?.uppercase()?.ifEmpty { null }
+        val comment = (if (returnActive) binding.etHinflugComment else binding.etComment)
+            .text?.toString()?.trim()?.ifEmpty { null }
+        val function = binding.etFunction.text?.toString()?.trim()?.ifEmpty { null }
+
         val entry = LogbookEntry(
             id = editingEntryId.takeIf { it >= 0 },
-            date = date!!,
+            date = confirmedDate,
             flightType = selectedFlightType(),
             classType = selectedClassType(),
             fromAirport = from,
             toAirport = to,
             airline = airline.uppercase(),
             flightNumber = flightNumber,
-            aircraftType = binding.etAircraftType.text?.toString()?.trim()?.ifEmpty { null },
-            registration = binding.etRegistration.text?.toString()?.trim()?.uppercase()?.ifEmpty { null },
+            aircraftType = aircraftType,
+            registration = registration,
             distanceKm = distanceKm,
             flightMinutes = flightMinutes,
             layover = binding.cbLayover.isChecked,
-            comment = binding.etComment.text?.toString()?.trim()?.ifEmpty { null }
+            fromCountry = AirportData.country(requireContext(), from),
+            toCountry = AirportData.country(requireContext(), to),
+            function = function,
+            comment = comment
         )
         if (editingEntryId >= 0) {
             LogbookRepository.updateEntry(entry)
@@ -521,9 +815,32 @@ class AddEntryFragment : Fragment() {
             LogbookRepository.addEntry(entry)
         }
 
+        if (returnActive && returnDate != null) {
+            val returnEntry = LogbookEntry(
+                id = null,
+                date = returnDate,
+                flightType = entry.flightType,
+                classType = entry.classType,
+                fromAirport = to,
+                toAirport = from,
+                airline = entry.airline,
+                flightNumber = nextFlightNumber(entry.flightNumber),
+                aircraftType = binding.etRueckflugAircraft.text?.toString()?.trim()?.ifEmpty { null },
+                registration = binding.etRueckflugRegistration.text?.toString()?.trim()?.uppercase()?.ifEmpty { null },
+                distanceKm = entry.distanceKm,
+                flightMinutes = entry.flightMinutes,
+                layover = false,
+                fromCountry = entry.toCountry,
+                toCountry = entry.fromCountry,
+                function = entry.function,
+                comment = binding.etRueckflugComment.text?.toString()?.trim()?.ifEmpty { null }
+            )
+            LogbookRepository.addEntry(returnEntry)
+        }
+
         Toast.makeText(
             requireContext(),
-            getString(R.string.flight_saved),
+            getString(if (returnActive) R.string.flights_saved else R.string.flight_saved),
             Toast.LENGTH_SHORT
         ).show()
         findNavController().navigateUp()
@@ -541,7 +858,12 @@ class AddEntryFragment : Fragment() {
     }
 
     private fun setupDateField() {
-        binding.etDate.addTextChangedListener(object : TextWatcher {
+        setupDateEditText(binding.etDate)
+        setupDateEditText(binding.etDateReturn)
+    }
+
+    private fun setupDateEditText(editText: EditText) {
+        editText.addTextChangedListener(object : TextWatcher {
             private var isFormatting = false
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
@@ -556,20 +878,20 @@ class AddEntryFragment : Fragment() {
             }
         })
 
-        binding.etDate.setOnClickListener { showDatePicker() }
-        binding.etDate.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) showDatePicker()
+        editText.setOnClickListener { showDatePicker(editText) }
+        editText.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) showDatePicker(editText)
         }
     }
 
-    private fun showDatePicker() {
+    private fun showDatePicker(target: EditText) {
         val now = LocalDate.now()
         val dialog = DatePickerDialog(
             requireContext(),
             { _: DatePicker, year: Int, month: Int, dayOfMonth: Int ->
-                binding.etDate.setText(
+                target.setText(
                     LocalDate.of(year, month + 1, dayOfMonth)
-                        .format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
+                        .format(DATE_FORMAT)
                 )
             },
             now.year,
@@ -577,9 +899,9 @@ class AddEntryFragment : Fragment() {
             now.dayOfMonth
         )
         dialog.datePicker.setOnDateChangedListener { _, year, month, dayOfMonth ->
-            binding.etDate.setText(
+            target.setText(
                 LocalDate.of(year, month + 1, dayOfMonth)
-                    .format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
+                    .format(DATE_FORMAT)
             )
             dialog.dismiss()
         }

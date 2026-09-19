@@ -39,51 +39,60 @@
                     android:textColor="?attr/colorOnSurface"
                     android:textSize="36sp"
                     android:textStyle="bold" />
-
-                <ImageButton
-                    android:id="@+id/btn_edit_tiles"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="12dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="@string/dashboard_edit"
-                    android:padding="12dp"
-                    android:src="@drawable/ic_edit"
-                    android:tint="?attr/colorPrimary" />
             </LinearLayout>
         </com.google.android.material.appbar.MaterialToolbar>
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/period_layout"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginEnd="16dp"
-            android:layout_marginBottom="8dp"
-            app:boxCornerRadiusBottomEnd="16dp"
-            app:boxCornerRadiusBottomStart="16dp"
-            app:boxCornerRadiusTopEnd="16dp"
-            app:boxCornerRadiusTopStart="16dp"
-            app:boxStrokeColor="?attr/colorOutlineVariant"
-            app:boxStrokeWidth="2dp"
-            app:boxStrokeWidthFocused="2dp">
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp">
 
-            <com.google.android.material.textfield.MaterialAutoCompleteTextView
-                android:id="@+id/period_dropdown"
-                android:layout_width="match_parent"
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/period_layout"
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:inputType="none"
-                android:text="@string/period_all" />
-        </com.google.android.material.textfield.TextInputLayout>
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp"
+                android:layout_weight="1"
+                app:boxCornerRadiusBottomEnd="16dp"
+                app:boxCornerRadiusBottomStart="16dp"
+                app:boxCornerRadiusTopEnd="16dp"
+                app:boxCornerRadiusTopStart="16dp"
+                app:boxStrokeColor="?attr/colorOutlineVariant"
+                app:boxStrokeWidth="2dp"
+                app:boxStrokeWidthFocused="2dp">
+
+                <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                    android:id="@+id/period_dropdown"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="none"
+                    android:text="@string/period_all" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <ImageButton
+                android:id="@+id/btn_edit_tiles"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/dashboard_edit"
+                android:padding="12dp"
+                android:src="@drawable/ic_edit"
+                app:tint="?attr/colorPrimary" />
+        </LinearLayout>
     </com.google.android.material.appbar.AppBarLayout>
 
     <FrameLayout
         android:id="@+id/content_host"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        android:background="?android:attr/colorBackground">
 
         <include layout="@layout/content_main" />
     </FrameLayout>

@@ -14,6 +14,7 @@ class LogbookApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
+        CrashLogger.init(this)
         LogbookRepository.init(this)
         AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(Settings.LANG_DE))
 

@@ -6,6 +6,21 @@
     android:background="?android:attr/colorBackground"
     android:orientation="vertical">
 
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_back_entries"
+        style="?attr/materialIconButtonStyle"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:visibility="gone"
+        app:backgroundTint="?attr/colorSurfaceContainerHigh"
+        app:icon="@drawable/ic_arrow_back"
+        app:iconSize="24dp"
+        app:iconTint="?attr/colorOnSurface"
+        app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Button.Circle"
+        app:contentDescription="@string/btn_back" />
+
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -88,19 +103,34 @@
         </com.google.android.material.card.MaterialCardView>
     </LinearLayout>
 
-    <ScrollView
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:fillViewport="true">
+        android:layout_weight="1">
 
-        <LinearLayout
-            android:id="@+id/entries_container"
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/entries_list"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
             android:paddingHorizontal="16dp"
-            android:paddingTop="12dp"
+            android:paddingTop="4dp"
             android:paddingBottom="16dp" />
-    </ScrollView>
+
+        <ProgressBar
+            android:id="@+id/entries_progress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/entries_empty"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:padding="16dp"
+            android:textSize="16sp"
+            android:visibility="gone" />
+    </FrameLayout>
 </LinearLayout>

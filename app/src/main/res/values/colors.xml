@@ -1,25 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 
     <color name="class_economy_bg">#FF4C6E48</color>
     <color name="class_premium_economy_bg">#FF2C5744</color>
     <color name="class_business_bg">#FF47616C</color>
     <color name="class_first_bg">#FFA54A4A</color>
-    <color name="class_tile_text">#FFFFFFFF</color>
 
     <!-- Travel type colors -->
-    <color name="type_private_bg">#FF2E7D32</color>
-    <color name="type_on_duty_bg">#FF1565C0</color>
-    <color name="type_deadhead_bg">#FF6A1B9A</color>
-    <color name="type_duty_travel_bg">#FFEF6C00</color>
+    <color name="type_private_bg">#FF6F4E37</color>
+    <color name="type_on_duty_bg">#FF05164D</color>
+    <color name="type_deadhead_bg">#FF6E8BB7</color>
+    <color name="type_duty_travel_bg">#FF000000</color>
+    <color name="type_ferry_bg">#FF6E8BB7</color>
+    <color name="type_ground_transfer_bg">#FF6E8BB7</color>
 
     <!-- Class color scheme: Lufthansa -->
     <color name="scheme_lufthansa_bg">#FF05164D</color>
 
     <color name="button_save_bg">#FF4CAF50</color>
     <color name="text_discard">#FFD32F2F</color>
+
+    <!-- Import UI -->
+    <color name="import_ok">#FF2E7D32</color>
+    <color name="import_warn">#FF1565C0</color>
 
     <!-- Accent: Light Blue -->
     <color name="accent_lightblue_primary">#FF006A9B</color>

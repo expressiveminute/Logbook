@@ -12,7 +12,6 @@ object AirlineCatalog {
     private const val TAG = "AirlineCatalog"
 
     private var fileByIata: Map<String, String>? = null
-    private var nameByIata: Map<String, String>? = null
 
     private val bitmapCache = object : LruCache<String, Bitmap>(8 * 1024 * 1024) {
         override fun sizeOf(key: String, value: Bitmap): Int = value.allocationByteCount
@@ -22,7 +21,6 @@ object AirlineCatalog {
     private fun ensureLoaded(context: Context) {
         if (fileByIata != null) return
         val files = mutableMapOf<String, String>()
-        val names = mutableMapOf<String, String>()
         try {
             val json = context.assets.open("airlines/airlines.json")
                 .bufferedReader()
@@ -34,21 +32,11 @@ object AirlineCatalog {
                 if (!item.isNull("file")) {
                     files[iata] = item.getString("file")
                 }
-                if (!item.isNull("name")) {
-                    val name = item.getString("name")
-                    if (name.isNotBlank()) names[iata] = name
-                }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Konnte Airline-Katalog nicht laden", e)
         }
         fileByIata = files
-        nameByIata = names
-    }
-
-    fun airlineName(context: Context, iata: String): String? {
-        ensureLoaded(context)
-        return nameByIata?.get(iata.uppercase())
     }
 
     fun loadLogo(context: Context, iata: String): Bitmap? {

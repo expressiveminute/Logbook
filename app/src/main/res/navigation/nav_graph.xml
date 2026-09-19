@@ -16,12 +16,20 @@
         <action
             android:id="@+id/action_dashboard_to_tile_detail"
             app:destination="@id/nav_tile_detail" />
+        <action
+            android:id="@+id/action_dashboard_to_world_map"
+            app:destination="@id/nav_world_map" />
     </fragment>
 
     <fragment
         android:id="@+id/nav_entries"
         android:name="com.highfly.logbook.EntriesFragment"
         tools:layout="@layout/fragment_entries">
+
+        <argument
+            android:name="airportFilter"
+            app:argType="string"
+            android:defaultValue="" />
 
         <action
             android:id="@+id/action_entries_to_add_entry"
@@ -31,7 +39,17 @@
     <fragment
         android:id="@+id/nav_profile"
         android:name="com.highfly.logbook.ProfileFragment"
-        tools:layout="@layout/fragment_profile" />
+        tools:layout="@layout/fragment_profile">
+
+        <action
+            android:id="@+id/action_profile_to_import"
+            app:destination="@id/nav_import" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_import"
+        android:name="com.highfly.logbook.ImportFragment"
+        tools:layout="@layout/fragment_import" />
 
     <fragment
         android:id="@+id/nav_add_entry"
@@ -53,5 +71,15 @@
             android:name="tileId"
             app:argType="string"
             android:defaultValue="flights" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_world_map"
+        android:name="com.highfly.logbook.WorldMapFragment"
+        tools:layout="@layout/fragment_world_map">
+
+        <action
+            android:id="@+id/action_world_map_to_entries"
+            app:destination="@id/nav_entries" />
     </fragment>
 </navigation>

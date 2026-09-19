@@ -1,99 +1,94 @@
 package com.highfly.logbook
 
 import android.content.Context
-import java.time.LocalDate
 
 object LogbookRepository {
 
+    private const val DEMO_DATABASE_NAME = "logbook_demo.db"
+
     private var db: LogbookDatabase? = null
+    private var demoDb: LogbookDatabase? = null
+    private var appContext: Context? = null
+    private var cache: List<LogbookEntry>? = null
 
     fun init(context: Context) {
-        if (db == null) {
-            db = LogbookDatabase(context.applicationContext)
-            if (db?.count() == 0) {
-                bufferDemoEntries()
-            }
+        if (db != null) return
+        appContext = context.applicationContext
+        if (!Settings.isDemoMigrationDone(context.applicationContext)) {
+            Settings.setDemoDataEnabled(context.applicationContext, false)
+            Settings.setDemoMigrationDone(context.applicationContext)
         }
+        db = LogbookDatabase(context)
+        demoDb = LogbookDatabase(context, DEMO_DATABASE_NAME)
+        if (demoDb?.count() == 0) {
+            demoDb?.replaceAll(DemoData.entries())
+        }
+        Thread {
+            try {
+                val entries = activeDb()?.getAll()?.toList() ?: return@Thread
+                val changed = mutableListOf<LogbookEntry>()
+                for (e in entries) {
+                    val fc = e.fromCountry?.takeIf { it.isNotBlank() }
+                        ?: AirportData.country(appContext ?: context, e.fromAirport)
+                    val tc = e.toCountry?.takeIf { it.isNotBlank() }
+                        ?: AirportData.country(appContext ?: context, e.toAirport)
+                    if (fc != e.fromCountry || tc != e.toCountry) {
+                        changed += e.copy(fromCountry = fc, toCountry = tc)
+                    }
+                }
+                changed.forEach { activeDb()?.update(it) }
+            } catch (e: Exception) {
+                // Fehlende Länder-Rückmeldung ist nicht kritisch
+            }
+        }.start()
     }
 
-    private fun bufferDemoEntries() {
-        addEntries(
-            listOf(
-                LogbookEntry(
-                    date = LocalDate.of(2026, 9, 1),
-                    flightType = "On Duty",
-                    classType = "Business",
-                    fromAirport = "FRA",
-                    toAirport = "JFK",
-                    airline = "LH",
-                    flightNumber = "401",
-                    aircraftType = "A350-900",
-                    registration = "D-AIXA",
-                    distanceKm = 6195,
-                    flightMinutes = 480
-                ),
-                LogbookEntry(
-                    date = LocalDate.of(2026, 3, 10),
-                    flightType = "On Duty",
-                    classType = "Economy",
-                    fromAirport = "JFK",
-                    toAirport = "FRA",
-                    airline = "LH",
-                    flightNumber = "400",
-                    aircraftType = "A350-900",
-                    registration = "D-AIXA",
-                    distanceKm = 6195,
-                    flightMinutes = 455,
-                    layover = true
-                ),
-                LogbookEntry(
-                    date = LocalDate.of(2024, 6, 15),
-                    flightType = "Privat",
-                    classType = "Economy",
-                    fromAirport = "FRA",
-                    toAirport = "CDG",
-                    airline = "LH",
-                    flightNumber = "1032",
-                    aircraftType = "A320",
-                    registration = "D-AIPP",
-                    distanceKm = 450,
-                    flightMinutes = 75
-                ),
-                LogbookEntry(
-                    date = LocalDate.of(2023, 1, 5),
-                    flightType = "Dienstreise",
-                    classType = "Premium Eco",
-                    fromAirport = "MUC",
-                    toAirport = "ZRH",
-                    airline = "LH",
-                    flightNumber = "2140",
-                    aircraftType = "A321",
-                    registration = "D-AIRU",
-                    distanceKm = 265,
-                    flightMinutes = 60
-                ),
-            )
-        )
-    }
+    private fun activeDb(): LogbookDatabase? =
+        if (appContext?.let { Settings.isDemoDataEnabled(it) } == true) demoDb ?: db else db
 
+    @Synchronized
     fun addEntry(entry: LogbookEntry) {
-        db?.insert(entry)
+        activeDb()?.insert(entry)
+        invalidate()
     }
 
+    @Synchronized
     fun addEntries(newEntries: List<LogbookEntry>) {
-        newEntries.forEach { addEntry(it) }
+        newEntries.forEach { activeDb()?.insert(it) }
+        invalidate()
     }
 
-    fun getEntries(): List<LogbookEntry> = db?.getAll() ?: emptyList()
+    @Synchronized
+    fun getEntries(): List<LogbookEntry> {
+        cache?.let { return it }
+        val fresh = activeDb()?.getAll()?.sortedByDescending { it.date } ?: emptyList()
+        cache = fresh
+        return fresh
+    }
 
-    fun getEntry(id: Long): LogbookEntry? = db?.getEntry(id)
+    fun getEntry(id: Long): LogbookEntry? = activeDb()?.getEntry(id)
 
+    @Synchronized
     fun updateEntry(entry: LogbookEntry) {
-        db?.update(entry)
+        activeDb()?.update(entry)
+        invalidate()
     }
 
+    @Synchronized
     fun deleteEntry(id: Long) {
-        db?.delete(id)
+        activeDb()?.delete(id)
+        invalidate()
+    }
+
+    @Synchronized
+    fun replaceAll(entries: List<LogbookEntry>) {
+        activeDb()?.replaceAll(entries)
+        invalidate()
+    }
+
+    @Synchronized
+    fun invalidate() {
+        cache = null
     }
 
     fun getYears(): List<Int> =

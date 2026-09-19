@@ -8,41 +8,49 @@
 
     <LinearLayout
         android:id="@+id/item_entry_actions"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_gravity="end"
         android:orientation="horizontal">
 
         <LinearLayout
             android:id="@+id/btn_edit_entry"
-            android:layout_width="56dp"
+            android:layout_width="72dp"
             android:layout_height="match_parent"
-            android:background="#FF2196F3"
+            android:background="@drawable/bg_entry_action_left"
             android:clickable="true"
             android:focusable="true"
-            android:gravity="center">
+            android:gravity="center"
+            android:paddingEnd="16dp">
 
             <ImageView
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:contentDescription="@string/entry_action_edit"
-                android:src="@drawable/ic_edit" />
+                android:src="@drawable/ic_edit"
+                app:tint="@android:color/white" />
         </LinearLayout>
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1" />
 
         <LinearLayout
             android:id="@+id/btn_delete_entry"
-            android:layout_width="56dp"
+            android:layout_width="72dp"
             android:layout_height="match_parent"
-            android:background="#FFD32F2F"
+            android:background="@drawable/bg_entry_action_right"
             android:clickable="true"
             android:focusable="true"
-            android:gravity="center">
+            android:gravity="center"
+            android:paddingStart="16dp">
 
             <ImageView
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:contentDescription="@string/entry_action_delete"
-                android:src="@drawable/ic_delete" />
+                android:src="@drawable/ic_delete"
+                app:tint="@android:color/white" />
         </LinearLayout>
     </LinearLayout>
 

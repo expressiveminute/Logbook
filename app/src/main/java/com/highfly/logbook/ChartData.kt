@@ -10,6 +10,42 @@ object ChartData {
 
     data class Slice(val label: String, val value: Int, val colorRes: Int)
 
+    private data class TravelType(val resId: Int, val canonical: String, val aliases: List<String>)
+
+    private data class ClassType(val resId: Int, val canonical: String, val aliases: List<String>)
+
+    private val travelTypes = listOf(
+        TravelType(R.string.flight_type_private, "Privat", listOf("privat", "private")),
+        TravelType(R.string.flight_type_on_duty, "On Duty", listOf("on duty")),
+        TravelType(R.string.flight_type_deadhead, "Deadhead", listOf("deadhead")),
+        TravelType(R.string.flight_type_ferry, "Ferry", listOf("ferry")),
+        TravelType(
+            R.string.flight_type_ground_transfer,
+            "Ground Transfer",
+            listOf("ground transfer", "ground")
+        ),
+        TravelType(
+            R.string.flight_type_duty_travel,
+            "Dienstreise",
+            listOf("dienstreise", "duty travel", "business travel")
+        ),
+    )
+
+    private val classTypes = listOf(
+        ClassType(R.string.class_economy, "Economy", listOf("economy", "economy class")),
+        ClassType(
+            R.string.class_premium_economy,
+            "Premium Eco",
+            listOf("premium eco", "premium economy")
+        ),
+        ClassType(
+            R.string.class_business,
+            "Business",
+            listOf("business", "business class")
+        ),
+        ClassType(R.string.class_first, "First", listOf("first", "first class")),
+    )
+
     private val BAR_CHART_TILES = setOf(
         "flights", "routes", "airports", "airlines", "layover", "aircraft", "registration"
     )
@@ -18,6 +54,31 @@ object ChartData {
     fun isBarChart(tileId: String): Boolean = tileId in BAR_CHART_TILES
 
     fun isPieChart(tileId: String): Boolean = tileId in PIE_CHART_TILES
+
+    /**
+     * Normalisiert eine gespeicherte Reiseart auf den kanonischen deutschen
+     * Bezeichner, damit unabhängig von der Sprache, in der der Eintrag erfasst
+     * wurde, korrekt gezählt werden kann. Unbekannte Werte bleiben unverändert.
+     */
+    fun normalizeFlightType(value: String?): String? {
+        val v = value?.trim() ?: return null
+        val lower = v.lowercase()
+        return travelTypes.firstOrNull { t ->
+            t.aliases.any { it == lower } || t.canonical.lowercase() == lower
+        }?.canonical ?: v
+    }
+
+    /**
+     * Normalisiert eine gespeicherte Reiseklasse auf den kanonischen deutschen
+     * Bezeichner. Unbekannte Werte bleiben unverändert.
+     */
+    fun normalizeClassType(value: String?): String? {
+        val v = value?.trim() ?: return null
+        val lower = v.lowercase()
+        return classTypes.firstOrNull { c ->
+            c.aliases.any { it == lower } || c.canonical.lowercase() == lower
+        }?.canonical ?: v
+    }
 
     fun barChart(context: Context, tileId: String): List<Bar> {
         if (!isBarChart(tileId)) return emptyList()
@@ -28,7 +89,7 @@ object ChartData {
         )
         val counts: Map<String, Int> = when (tileId) {
             "flights" -> flightsPerPeriod(entries, key)
-            "layover" -> countBy(entries.filter { it.layover }) { routeOf(it) }
+            "layover" -> countBy(entries.filter { it.layover }) { it.toAirport }
             "routes" -> countBy(entries) { routeOf(it) }
             "airlines" -> countBy(entries) { it.airline }
             "airports" -> countByList(entries.flatMap { listOf(it.fromAirport, it.toAirport) })
@@ -40,36 +101,42 @@ object ChartData {
             .sortedWith(compareByDescending<Bar> { it.count }.thenBy { it.label })
     }
 
-    fun classSlices(context: Context, flightType: String?): List<Slice> {
-        var entries = periodFiltered(context)
-        if (flightType != null) {
-            entries = entries.filter { it.flightType == flightType }
+    fun classSlices(context: Context): List<Slice> =
+        classSlices(context, null)
+
+    fun classSlices(context: Context, classType: String?): List<Slice> =
+        classSlices(context, classType, periodFiltered(context))
+
+    fun classSlices(
+        context: Context,
+        classType: String?,
+        entries: List<LogbookEntry>
+    ): List<Slice> {
+        var filtered = entries
+        if (classType != null) {
+            val target = normalizeClassType(classType)
+            filtered = filtered.filter { normalizeClassType(it.classType) == target }
         }
-        val labels = listOf(
-            context.getString(R.string.class_economy),
-            context.getString(R.string.class_premium_economy),
-            context.getString(R.string.class_business),
-            context.getString(R.string.class_first),
-        )
         val colors = ClassColorSchemes.colorsFor(Settings.getClassScheme(context))
-        return labels.mapIndexedNotNull { index, label ->
-            val value = entries.count { it.classType == label }
-            if (value > 0) Slice(label, value, colors[index]) else null
+        return classTypes.mapIndexed { index, type ->
+            val label = context.getString(type.resId)
+            val value = filtered.count { normalizeClassType(it.classType) == type.canonical }
+            Slice(label, value, colors[index])
         }
     }
 
-    fun travelTypeSlices(context: Context): List<Slice> {
-        val entries = periodFiltered(context)
-        val labels = listOf(
-            context.getString(R.string.flight_type_private),
-            context.getString(R.string.flight_type_on_duty),
-            context.getString(R.string.flight_type_deadhead),
-            context.getString(R.string.flight_type_duty_travel),
-        )
+    fun travelTypeSlices(context: Context): List<Slice> =
+        travelTypeSlices(context, periodFiltered(context))
+
+    fun travelTypeSlices(
+        context: Context,
+        entries: List<LogbookEntry>
+    ): List<Slice> {
         val colors = travelTypeColors()
-        return labels.mapIndexedNotNull { index, label ->
-            val value = entries.count { it.flightType == label }
-            if (value > 0) Slice(label, value, colors[index]) else null
+        return travelTypes.mapIndexed { index, type ->
+            val label = context.getString(type.resId)
+            val value = entries.count { normalizeFlightType(it.flightType) == type.canonical }
+            Slice(label, value, colors[index])
         }
     }
 
@@ -77,6 +144,8 @@ object ChartData {
         R.color.type_private_bg,
         R.color.type_on_duty_bg,
         R.color.type_deadhead_bg,
+        R.color.type_ferry_bg,
+        R.color.type_ground_transfer_bg,
         R.color.type_duty_travel_bg,
     )
 
