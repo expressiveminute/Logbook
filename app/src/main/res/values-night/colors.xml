@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Class text colors: lighter variants for good contrast on dark cards in night mode -->
+    <color name="class_economy_text">#FFA5CF9C</color>
+    <color name="class_premium_economy_text">#FF8CC4A8</color>
+    <color name="class_business_text">#FFA9C3D1</color>
+    <color name="class_first_text">#FFDCA6A6</color>
+
     <!-- Accent: Light Blue -->
     <color name="accent_lightblue_primary">#FF8ACAFF</color>
     <color name="accent_lightblue_on_primary">#FF003353</color>

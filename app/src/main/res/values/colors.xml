@@ -7,6 +7,12 @@
     <color name="class_business_bg">#FF47616C</color>
     <color name="class_first_bg">#FFA54A4A</color>
 
+    <!-- Class text colors (entries list) -->
+    <color name="class_economy_text">#FF4C6E48</color>
+    <color name="class_premium_economy_text">#FF2C5744</color>
+    <color name="class_business_text">#FF47616C</color>
+    <color name="class_first_text">#FFA54A4A</color>
+
     <!-- Travel type colors -->
     <color name="type_private_bg">#FF6F4E37</color>
     <color name="type_on_duty_bg">#FF05164D</color>

@@ -46,6 +46,7 @@ class EntriesFragment : Fragment() {
     private var activeFilters = EntryFilter()
     private var dataLoaded = false
     private var loadGeneration = 0
+    private var scrollToEntryId: Long? = null
 
     private val searchHandler = Handler(Looper.getMainLooper())
     private var searchRunnable: Runnable? = null
@@ -150,13 +151,24 @@ class EntriesFragment : Fragment() {
             matchesQuery && matchesFilters
         }
         adapter.schemeColors =
-            ClassColorSchemes.colorsFor(Settings.getClassScheme(requireContext()))
+            ClassColorSchemes.textColorsFor(Settings.getClassScheme(requireContext()))
         adapter.submit(visible)
         binding.entriesEmpty.setText(
             if (allEntries.isEmpty()) R.string.entries_empty else R.string.entries_no_results
         )
         binding.entriesEmpty.visibility =
             if (dataLoaded && visible.isEmpty()) View.VISIBLE else View.GONE
+
+        val pendingScroll = scrollToEntryId
+        if (pendingScroll != null) {
+            scrollToEntryId = null
+            val target = visible.indexOfFirst { it.id == pendingScroll }
+            if (target >= 0) {
+                binding.entriesList.post {
+                    binding.entriesList.scrollToPosition(target)
+                }
+            }
+        }
     }
 
     private fun searchableText(entry: LogbookEntry): String =
@@ -371,6 +383,7 @@ class EntriesFragment : Fragment() {
 
     private fun openEdit(entry: LogbookEntry) {
         adapter.dismissOpenRow()
+        scrollToEntryId = entry.id
         val args = Bundle().apply { putLong("entryId", entry.id ?: -1L) }
         findNavController().navigate(R.id.action_entries_to_add_entry, args)
     }

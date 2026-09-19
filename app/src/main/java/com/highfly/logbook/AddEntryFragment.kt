@@ -459,7 +459,7 @@ class AddEntryFragment : Fragment() {
                 check.scaleX = 0.3f
                 check.scaleY = 0.3f
             }
-            editText.post {
+            editText.doOnLayout {
                 positionCheckBehindCode(editText, check, code)
                 if (!wasVisible) {
                     check.visibility = View.VISIBLE
