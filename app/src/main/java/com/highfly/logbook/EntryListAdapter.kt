@@ -1,6 +1,9 @@
 package com.highfly.logbook
 
 import android.content.Context
+import android.content.res.Configuration
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
@@ -27,6 +30,22 @@ class EntryListAdapter(
     private val touchSlop by lazy { ViewConfiguration.get(context).scaledTouchSlop.toFloat() }
     private val revealWidth by lazy {
         (56 * context.resources.displayMetrics.density).toFloat()
+    }
+    private val isDarkMode: Boolean
+        get() = (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+            Configuration.UI_MODE_NIGHT_YES
+
+    private val darkLogoFilter by lazy {
+        ColorMatrixColorFilter(
+            ColorMatrix(
+                floatArrayOf(
+                    1.5f, 0f, 0f, 0f, 45f,
+                    0f, 1.5f, 0f, 0f, 45f,
+                    0f, 0f, 1.5f, 0f, 45f,
+                    0f, 0f, 0f, 1f, 0f,
+                )
+            )
+        )
     }
     private val openEntryId = java.util.concurrent.atomic.AtomicLong(Long.MIN_VALUE)
 
@@ -179,6 +198,7 @@ class EntryListAdapter(
         val livery = airlineCode?.let { AirlineCatalog.loadLogo(context, it) }
         if (livery != null) {
             item.ivAirlineLivery.setImageBitmap(livery)
+            item.ivAirlineLivery.colorFilter = if (isDarkMode) darkLogoFilter else null
             item.ivAirlineLivery.visibility = View.VISIBLE
         } else {
             item.ivAirlineLivery.setImageBitmap(null)
