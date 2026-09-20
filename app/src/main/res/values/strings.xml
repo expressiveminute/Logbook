@@ -122,6 +122,7 @@
     <string name="class_premium_economy">Premium Eco</string>
     <string name="class_business">Business</string>
     <string name="class_first">First</string>
+    <string name="class_jump">Jump</string>
     <string name="airport_departure_label">Abflug</string>
     <string name="airport_arrival_label">Ankunft</string>
     <string name="layover_label">Layover</string>

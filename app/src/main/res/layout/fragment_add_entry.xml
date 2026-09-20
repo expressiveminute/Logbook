@@ -322,99 +322,131 @@
 
                             <LinearLayout
                                 android:id="@+id/tile_class_economy"
-                            android:layout_width="0dp"
-                            android:layout_height="match_parent"
-                            android:layout_weight="1"
-                            android:clickable="true"
-                            android:focusable="true"
-                            android:gravity="center">
+                                android:layout_width="0dp"
+                                android:layout_height="match_parent"
+                                android:layout_weight="1"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center">
 
-                            <TextView
-                                android:id="@+id/label_class_economy"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:autoSizeMaxTextSize="14sp"
-                                android:autoSizeMinTextSize="9sp"
-                                android:autoSizeStepGranularity="1sp"
-                                android:autoSizeTextType="uniform"
-                                android:gravity="center"
-                                android:maxLines="1"
-                                android:text="@string/class_economy"
-                                android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-                                android:textStyle="bold" />
-                        </LinearLayout>
+                                <TextView
+                                    android:id="@+id/label_class_economy"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:autoSizeMaxTextSize="14sp"
+                                    android:autoSizeMinTextSize="9sp"
+                                    android:autoSizeStepGranularity="1sp"
+                                    android:autoSizeTextType="uniform"
+                                    android:gravity="center"
+                                    android:maxLines="1"
+                                    android:text="@string/class_economy"
+                                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
 
-                        <LinearLayout
-                            android:id="@+id/tile_class_premium_economy"
-                            android:layout_width="0dp"
-                            android:layout_height="match_parent"
-                            android:layout_weight="1"
-                            android:clickable="true"
-                            android:focusable="true"
-                            android:gravity="center">
+                            <LinearLayout
+                                android:id="@+id/tile_class_premium_economy"
+                                android:layout_width="0dp"
+                                android:layout_height="match_parent"
+                                android:layout_weight="1"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center">
 
-                            <TextView
-                                android:id="@+id/label_class_premium_economy"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:autoSizeMaxTextSize="14sp"
-                                android:autoSizeMinTextSize="9sp"
-                                android:autoSizeStepGranularity="1sp"
-                                android:autoSizeTextType="uniform"
-                                android:gravity="center"
-                                android:maxLines="1"
-                                android:text="@string/class_premium_economy"
-                                android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-                                android:textStyle="bold" />
-                        </LinearLayout>
+                                <TextView
+                                    android:id="@+id/label_class_premium_economy"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:autoSizeMaxTextSize="14sp"
+                                    android:autoSizeMinTextSize="9sp"
+                                    android:autoSizeStepGranularity="1sp"
+                                    android:autoSizeTextType="uniform"
+                                    android:gravity="center"
+                                    android:maxLines="1"
+                                    android:text="@string/class_premium_economy"
+                                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
 
-                        <LinearLayout
-                            android:id="@+id/tile_class_business"
-                            android:layout_width="0dp"
-                            android:layout_height="match_parent"
-                            android:layout_weight="1"
-                            android:clickable="true"
-                            android:focusable="true"
-                            android:gravity="center">
+                            <LinearLayout
+                                android:id="@+id/tile_class_business"
+                                android:layout_width="0dp"
+                                android:layout_height="match_parent"
+                                android:layout_weight="1"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center">
 
-                            <TextView
-                                android:id="@+id/label_class_business"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:autoSizeMaxTextSize="14sp"
-                                android:autoSizeMinTextSize="9sp"
-                                android:autoSizeStepGranularity="1sp"
-                                android:autoSizeTextType="uniform"
-                                android:gravity="center"
-                                android:maxLines="1"
-                                android:text="@string/class_business"
-                                android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-                                android:textStyle="bold" />
-                        </LinearLayout>
+                                <TextView
+                                    android:id="@+id/label_class_business"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:autoSizeMaxTextSize="14sp"
+                                    android:autoSizeMinTextSize="9sp"
+                                    android:autoSizeStepGranularity="1sp"
+                                    android:autoSizeTextType="uniform"
+                                    android:gravity="center"
+                                    android:maxLines="1"
+                                    android:text="@string/class_business"
+                                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
 
-                        <LinearLayout
-                            android:id="@+id/tile_class_first"
-                            android:layout_width="0dp"
-                            android:layout_height="match_parent"
-                            android:layout_weight="1"
-                            android:clickable="true"
-                            android:focusable="true"
-                            android:gravity="center">
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="match_parent"
+                                android:layout_weight="1"
+                                android:orientation="horizontal">
 
-                            <TextView
-                                android:id="@+id/label_class_first"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:autoSizeMaxTextSize="14sp"
-                                android:autoSizeMinTextSize="9sp"
-                                android:autoSizeStepGranularity="1sp"
-                                android:autoSizeTextType="uniform"
-                                android:gravity="center"
-                                android:maxLines="1"
-                                android:text="@string/class_first"
-                                android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-                                android:textStyle="bold" />
-                        </LinearLayout>
+                                <LinearLayout
+                                    android:id="@+id/tile_class_first"
+                                    android:layout_width="0dp"
+                                    android:layout_height="match_parent"
+                                    android:layout_weight="1"
+                                    android:clickable="true"
+                                    android:focusable="true"
+                                    android:gravity="center">
+
+                                    <TextView
+                                        android:id="@+id/label_class_first"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:autoSizeMaxTextSize="14sp"
+                                        android:autoSizeMinTextSize="9sp"
+                                        android:autoSizeStepGranularity="1sp"
+                                        android:autoSizeTextType="uniform"
+                                        android:gravity="center"
+                                        android:maxLines="1"
+                                        android:text="@string/class_first"
+                                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                        android:textStyle="bold" />
+                                </LinearLayout>
+
+                                <LinearLayout
+                                    android:id="@+id/tile_class_jump"
+                                    android:layout_width="0dp"
+                                    android:layout_height="match_parent"
+                                    android:layout_weight="1"
+                                    android:clickable="true"
+                                    android:focusable="true"
+                                    android:gravity="center">
+
+                                    <ImageView
+                                        android:id="@+id/iv_class_jump"
+                                        android:layout_width="24dp"
+                                        android:layout_height="24dp"
+                                        android:importantForAccessibility="no"
+                                        android:contentDescription="@string/class_jump"
+                                        android:src="@drawable/ic_seat" />
+
+                                    <TextView
+                                        android:id="@+id/label_class_jump"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="@string/class_jump"
+                                        android:visibility="gone" />
+                                </LinearLayout>
+                            </LinearLayout>
                         </LinearLayout>
                     </FrameLayout>
                 </com.google.android.material.card.MaterialCardView>
@@ -862,16 +894,34 @@
                                     android:textColor="?attr/colorOnSurfaceVariant"
                                     android:textStyle="bold" />
 
-                                <EditText
-                                    android:id="@+id/et_distance"
+                                <LinearLayout
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:background="@null"
-                                    android:hint="@string/flight_distance_hint"
-                                    android:inputType="number"
-                                    android:maxLines="1"
-                                    android:textSize="17sp"
-                                    android:textColor="?attr/colorOnSurface" />
+                                    android:orientation="horizontal">
+
+                                    <EditText
+                                        android:id="@+id/et_distance"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:background="@null"
+                                        android:hint="@string/flight_distance_hint"
+                                        android:inputType="number"
+                                        android:maxLines="1"
+                                        android:minEms="1"
+                                        android:textSize="17sp"
+                                        android:textColor="?attr/colorOnSurface" />
+
+                                    <TextView
+                                        android:id="@+id/tv_distance_unit"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:gravity="center"
+                                        android:paddingStart="8dp"
+                                        android:text="@string/flight_distance_hint"
+                                        android:textColor="?attr/colorOnSurfaceVariant"
+                                        android:textSize="14sp"
+                                        android:visibility="gone" />
+                                </LinearLayout>
                             </LinearLayout>
                         </com.google.android.material.card.MaterialCardView>
 
@@ -913,15 +963,27 @@
 
                                     <EditText
                                         android:id="@+id/et_flight_time"
-                                        android:layout_width="0dp"
+                                        android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
-                                        android:layout_weight="1"
+                                        android:layout_gravity="center_vertical"
                                         android:background="@null"
                                         android:hint="@string/flight_time_hint"
                                         android:inputType="number"
                                         android:maxLines="1"
+                                        android:minEms="1"
                                         android:textSize="17sp"
                                         android:textColor="?attr/colorOnSurface" />
+
+                                    <TextView
+                                        android:id="@+id/tv_flight_time_min"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:gravity="center"
+                                        android:paddingStart="8dp"
+                                        android:text="@string/flight_time_hint"
+                                        android:textColor="?attr/colorOnSurfaceVariant"
+                                        android:textSize="14sp"
+                                        android:visibility="gone" />
 
                                     <TextView
                                         android:id="@+id/tv_flight_time_equal"

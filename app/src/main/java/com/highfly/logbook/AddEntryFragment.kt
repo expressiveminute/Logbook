@@ -98,7 +98,7 @@ class AddEntryFragment : Fragment() {
             binding.labelFlightDutyTravel,
         )
 
-        configureHighlight(binding.flightGroupFrame, binding.flightHighlight, tiles.size)
+        configureHighlight(binding.flightGroupFrame, binding.flightHighlight, tiles)
 
         tiles.forEachIndexed { index, tile ->
             tile.setOnClickListener { selectFlightType(index) }
@@ -110,7 +110,7 @@ class AddEntryFragment : Fragment() {
         val tiles = deadheadTiles()
         val labels = deadheadLabels()
 
-        configureHighlight(binding.deadheadGroupFrame, binding.deadheadHighlight, tiles.size)
+        configureHighlight(binding.deadheadGroupFrame, binding.deadheadHighlight, tiles)
 
         tiles.forEachIndexed { index, tile ->
             tile.setOnClickListener { selectDeadheadType(index) }
@@ -135,7 +135,7 @@ class AddEntryFragment : Fragment() {
         moveHighlight(
             binding.deadheadGroupFrame,
             binding.deadheadHighlight,
-            deadheadTiles().size,
+            deadheadTiles(),
             index,
             ContextCompat.getColor(requireContext(), R.color.type_deadhead_bg)
         )
@@ -193,7 +193,7 @@ class AddEntryFragment : Fragment() {
         moveHighlight(
             binding.flightGroupFrame,
             binding.flightHighlight,
-            tiles.size,
+            tiles,
             index,
             ContextCompat.getColor(requireContext(), flightTypeColorRes(index))
         )
@@ -213,50 +213,42 @@ class AddEntryFragment : Fragment() {
 
     private fun selectClass(index: Int) {
         selectedClassIndex = index
-        val tiles = listOf(
-            binding.tileClassEconomy,
-            binding.tileClassPremiumEconomy,
-            binding.tileClassBusiness,
-            binding.tileClassFirst,
-        )
-        val labels = listOf(
-            binding.labelClassEconomy,
-            binding.labelClassPremiumEconomy,
-            binding.labelClassBusiness,
-            binding.labelClassFirst,
-        )
+        val tiles = classTiles()
         val classColors = ClassColorSchemes.colorsFor(Settings.getClassScheme(requireContext()))
         moveHighlight(
             binding.classGroupFrame,
             binding.classHighlight,
-            tiles.size,
+            tiles,
             index,
             ContextCompat.getColor(requireContext(), classColors[index])
         )
-        updateClassLabels(labels, index)
+        updateClassLabels(classLabels(), index)
         refreshVisibility()
     }
 
+    private fun classTiles() = listOf(
+        binding.tileClassEconomy,
+        binding.tileClassPremiumEconomy,
+        binding.tileClassBusiness,
+        binding.tileClassFirst,
+        binding.tileClassJump,
+    )
+
+    private fun classLabels() = listOf(
+        binding.labelClassEconomy,
+        binding.labelClassPremiumEconomy,
+        binding.labelClassBusiness,
+        binding.labelClassFirst,
+        binding.labelClassJump,
+    )
+
     private fun setupClassTiles() {
-        val tiles = listOf(
-            binding.tileClassEconomy,
-            binding.tileClassPremiumEconomy,
-            binding.tileClassBusiness,
-            binding.tileClassFirst,
-        )
-        val labels = listOf(
-            binding.labelClassEconomy,
-            binding.labelClassPremiumEconomy,
-            binding.labelClassBusiness,
-            binding.labelClassFirst,
-        )
+        configureHighlight(binding.classGroupFrame, binding.classHighlight, classTiles())
 
-        configureHighlight(binding.classGroupFrame, binding.classHighlight, tiles.size)
-
-        tiles.forEachIndexed { index, tile ->
+        classTiles().forEachIndexed { index, tile ->
             tile.setOnClickListener { selectClass(index) }
         }
-        updateClassLabels(labels, null)
+        updateClassLabels(classLabels(), null)
     }
 
     private fun prefill(entry: LogbookEntry) {
@@ -272,6 +264,7 @@ class AddEntryFragment : Fragment() {
             R.string.class_premium_economy,
             R.string.class_business,
             R.string.class_first,
+            R.string.class_jump,
         )
 
         val normalizedFlightType = ChartData.normalizeFlightType(entry.flightType)
@@ -355,25 +348,30 @@ class AddEntryFragment : Fragment() {
         labels.forEachIndexed { index, label ->
             label.setTextColor(if (index == selectedIndex) Color.WHITE else onSurface)
         }
+        binding.ivClassJump.setColorFilter(
+            if (selectedIndex == CLASS_JUMP_INDEX) Color.WHITE else onSurface
+        )
     }
 
-    private fun configureHighlight(frame: FrameLayout, highlight: View, count: Int) {
+    private fun configureHighlight(frame: FrameLayout, highlight: View, tiles: List<View>) {
         frame.doOnLayout {
-            val cellWidth = it.width / count
-            (highlight.layoutParams as FrameLayout.LayoutParams).width = cellWidth
+            val anchor = tiles.firstOrNull() ?: return@doOnLayout
+            (highlight.layoutParams as FrameLayout.LayoutParams).width = anchor.width
+            highlight.translationX = frame.offsetTo(anchor)
         }
     }
 
     private fun moveHighlight(
         frame: FrameLayout,
         highlight: View,
-        count: Int,
+        tiles: List<View>,
         index: Int,
         color: Int
     ) {
         frame.doOnLayout {
-            val cellWidth = it.width / count
-            (highlight.layoutParams as FrameLayout.LayoutParams).width = cellWidth
+            val tile = tiles.getOrNull(index) ?: return@doOnLayout
+            (highlight.layoutParams as FrameLayout.LayoutParams).width = tile.width
+            highlight.layoutParams = highlight.layoutParams
 
             highlight.background = roundedCellBackground(color)
 
@@ -384,10 +382,18 @@ class AddEntryFragment : Fragment() {
             }
 
             highlight.animate()
-                .translationX((cellWidth * index).toFloat())
+                .translationX(frame.offsetTo(tile))
                 .setDuration(250)
                 .start()
         }
+    }
+
+    private fun FrameLayout.offsetTo(target: View): Float {
+        val framePos = IntArray(2)
+        val targetPos = IntArray(2)
+        getLocationInWindow(framePos)
+        target.getLocationInWindow(targetPos)
+        return (targetPos[0] - framePos[0]).toFloat()
     }
 
     private fun roundedCellBackground(color: Int): GradientDrawable =
@@ -674,6 +680,9 @@ class AddEntryFragment : Fragment() {
         val distance = binding.etDistance.text?.toString()?.trim().orEmpty()
         val flightTime = binding.etFlightTime.text?.toString()?.trim().orEmpty()
 
+        binding.tvDistanceUnit.visibility = if (distance.isNotEmpty()) View.VISIBLE else View.GONE
+        binding.tvFlightTimeMin.visibility = if (flightTime.isNotEmpty()) View.VISIBLE else View.GONE
+
         val allRequired = hasType && hasClass && airline.isNotEmpty() && flightNumber.isNotEmpty() &&
             date && returnDate && from.isNotEmpty() && to.isNotEmpty() &&
             distance.isNotEmpty() && flightTime.isNotEmpty()
@@ -690,6 +699,7 @@ class AddEntryFragment : Fragment() {
         private val DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy")
         private const val DEADHEAD_INDEX = 2
         private const val ON_DUTY_INDEX = 1
+        private const val CLASS_JUMP_INDEX = 4
     }
 
     private fun setupSaveAndDiscard() {
@@ -713,12 +723,7 @@ class AddEntryFragment : Fragment() {
 
     private fun selectedClassType(): String? =
         selectedClassIndex?.let { index ->
-            listOf(
-                binding.labelClassEconomy,
-                binding.labelClassPremiumEconomy,
-                binding.labelClassBusiness,
-                binding.labelClassFirst,
-            )[index].text.toString()
+            classLabels()[index].text.toString()
         }
 
     private fun nextFlightNumber(current: String?): String? {
