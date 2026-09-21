@@ -22,6 +22,9 @@
     <string name="tile_registration">Registration</string>
     <string name="tile_earth_orbits">Earth orbits</string>
     <string name="tile_moon">To the moon</string>
+    <string name="tile_co2">CO₂ balance</string>
+    <string name="co2_tonnes_unit">t</string>
+    <string name="co2_trees_label">trees/year</string>
     <string name="distance_furthest_label">Longest flight:</string>
     <string name="distance_avg_label">Average flight length:</string>
     <string name="distance_shortest_label">Shortest flight:</string>
@@ -112,6 +115,11 @@
     <string name="role_switch_cancel">Cancel</string>
     <string name="fab_add">Add flight</string>
     <string name="btn_back">Back</string>
+    <string name="flights_year_title">Flights by year</string>
+    <string name="flights_months_title">Flights per month</string>
+    <string name="flights_months_empty">No flights in this year.</string>
+    <string name="flights_year_empty">No flights yet.</string>
+    <string name="flights_year_total">%1$s flights</string>
     <string name="flight_type_private">Private</string>
     <string name="flight_type_on_duty">On Duty</string>
     <string name="flight_type_deadhead">Deadhead</string>
@@ -122,6 +130,7 @@
     <string name="class_premium_economy">Premium Eco</string>
     <string name="class_business">Business</string>
     <string name="class_first">First</string>
+    <string name="class_jump">Jump</string>
     <string name="airport_departure_label">Departure</string>
     <string name="airport_arrival_label">Arrival</string>
     <string name="layover_label">Layover</string>

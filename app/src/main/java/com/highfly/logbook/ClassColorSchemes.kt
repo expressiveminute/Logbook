@@ -8,6 +8,7 @@ object ClassColorSchemes {
             R.color.class_premium_economy_bg,
             R.color.class_business_bg,
             R.color.class_first_bg,
+            R.color.class_jump_bg,
         )
     }
 
@@ -23,6 +24,7 @@ object ClassColorSchemes {
             R.color.class_premium_economy_text,
             R.color.class_business_text,
             R.color.class_first_text,
+            R.color.class_jump_text,
         )
     }
 }

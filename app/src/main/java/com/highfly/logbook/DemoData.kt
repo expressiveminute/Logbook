@@ -76,6 +76,8 @@ object DemoData {
         flt("2024-11-13", "SIN", "FRA", "SQ", "26", "A350-900", "9V-SWU", 10300, 780, "On Duty", "Business", layover = true),
         flt("2025-11-05", "FRA", "DXB", "EK", "46", "A380-800", "A6-EOX", 4900, 390, "On Duty", "First"),
         flt("2025-11-20", "DXB", "FRA", "EK", "45", "A380-800", "A6-EOX", 4900, 415, "On Duty", "First", layover = true),
+        flt("2026-06-07", "FRA", "DOH", "QR", "68", "A350-1000", "A7-ANA", 4870, 400, "Deadhead", "Jump", function = "Purser I"),
+        flt("2026-06-08", "DOH", "FRA", "QR", "67", "A350-1000", "A7-ANA", 4870, 430, "On Duty", "Jump", layover = true),
         flt("2024-04-05", "FRA", "HND", "NH", "204", "A350-900", "JA905A", 9400, 700, "On Duty", "Business", comment = "Erstmal in Tokyo"),
         flt("2024-04-07", "HND", "FRA", "NH", "203", "A350-900", "JA905A", 9400, 720, "On Duty", "Business", layover = true),
 

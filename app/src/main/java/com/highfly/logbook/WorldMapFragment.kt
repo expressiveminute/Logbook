@@ -349,7 +349,6 @@ class WorldMapFragment : Fragment() {
             AirportOverlay(
                 airports,
                 routeColor,
-                labelColor,
                 selected,
                 onAirportTapped = { onAirportTap(it) }
             )
@@ -460,7 +459,8 @@ class WorldMapFragment : Fragment() {
                 getString(R.string.class_economy),
                 getString(R.string.class_premium_economy),
                 getString(R.string.class_business),
-                getString(R.string.class_first)
+                getString(R.string.class_first),
+                getString(R.string.class_jump)
             )
         )
         filterAircraftType.setAdapter(stringSuggestionsAdapter { it.aircraftType })
@@ -633,18 +633,13 @@ class WorldMapFragment : Fragment() {
     }
 
     /**
-     * Sets the view the map opens with: in portrait the map starts two zoom
-     * steps in (as if the zoom button was tapped twice), in landscape it
-     * starts at the standard world view.
+     * Sets the view the map opens with: one zoom step in from the standard
+     * world view (as if the plus button was tapped once) with Europe centered.
      */
     private fun applyStartView(mv: MapView) {
-        val portrait =
-            Settings.getMapOrientation(requireContext()) == Settings.MAP_ORIENTATION_PORTRAIT
         mv.minZoomLevel = standardZoom(mv)
-        mv.controller.setZoom(
-            if (portrait) (standardZoom(mv) + 2.0).coerceAtMost(10.0) else standardZoom(mv)
-        )
-        mv.controller.setCenter(GeoPoint(20.0, 0.0))
+        mv.controller.setZoom((standardZoom(mv) + 1.0).coerceAtMost(10.0))
+        mv.controller.setCenter(GeoPoint(48.0, 12.0))
     }
 
     private fun unwrapLongitudes(points: List<GeoPoint>): List<GeoPoint> {
@@ -799,7 +794,6 @@ class WorldMapFragment : Fragment() {
     private class AirportOverlay(
         private val airports: Map<String, GeoPoint>,
         private val dotColor: Int,
-        private val labelColor: Int,
         private val selectedIata: String?,
         private val onAirportTapped: (String) -> Unit
     ) : Overlay() {
@@ -835,44 +829,72 @@ class WorldMapFragment : Fragment() {
             if (shadow) return
             if (airports.isEmpty()) return
             val density = mapView.context.resources.displayMetrics.density
+
+            val label = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = readableOn(dotColor)
+                textSize = 8.5f * density
+                isFakeBoldText = true
+            }
+            val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = dotColor
+            }
             val ring = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = Color.WHITE
                 style = Paint.Style.STROKE
                 strokeWidth = 1.5f * density
-            }
-            val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = dotColor
             }
             val highlight = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = dotColor
                 style = Paint.Style.STROKE
                 strokeWidth = 2f * density
             }
-            val label = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = labelColor
-                textSize = 10f * density
-                isFakeBoldText = true
-            }
-            val labelSelected = Paint(label).apply {
-                color = dotColor
-                isFakeBoldText = true
-            }
+
+            val fm = label.fontMetrics
+            val textHeight = fm.descent - fm.ascent
+            val padX = 3f * density
+            val padY = 1.5f * density
+
             airports.forEach { (iata, point) ->
                 val px = mapView.projection.toPixels(point, null)
                 val sx = px.x.toFloat()
                 val sy = px.y.toFloat()
+
+                val badgeWidth = label.measureText(iata) + 2 * padX
+                val badgeHeight = textHeight + 2 * padY
+                val left = sx - badgeWidth / 2
+                val top = sy - badgeHeight / 2
+                val textWidth = label.measureText(iata)
+
                 if (iata == selectedIata) {
-                    canvas.drawCircle(sx, sy, 8f * density, highlight)
+                    val extra = 3f * density
+                    canvas.drawRoundRect(
+                        left - extra,
+                        top - extra,
+                        left + badgeWidth + extra,
+                        top + badgeHeight + extra,
+                        badgeHeight / 2 + extra,
+                        badgeHeight / 2 + extra,
+                        highlight
+                    )
                 }
-                canvas.drawCircle(sx, sy, 4.5f * density, ring)
-                canvas.drawCircle(sx, sy, 3.5f * density, fill)
-                canvas.drawText(
-                    iata,
-                    sx + 6f * density,
-                    sy + 4f * density,
-                    if (iata == selectedIata) labelSelected else label
+                canvas.drawRoundRect(
+                    left, top, left + badgeWidth, top + badgeHeight,
+                    badgeHeight / 2, badgeHeight / 2, fill
                 )
+                canvas.drawRoundRect(
+                    left, top, left + badgeWidth, top + badgeHeight,
+                    badgeHeight / 2, badgeHeight / 2, ring
+                )
+                canvas.drawText(iata, sx - textWidth / 2, sy - (fm.descent + fm.ascent) / 2, label)
             }
+        }
+
+        private fun readableOn(bg: Int): Int {
+            val r = Color.red(bg) / 255f
+            val g = Color.green(bg) / 255f
+            val b = Color.blue(bg) / 255f
+            val luminance = 0.299f * r + 0.587f * g + 0.114f * b
+            return if (luminance > 0.5f) Color.rgb(43, 43, 43) else Color.WHITE
         }
     }
 

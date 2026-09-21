@@ -240,6 +240,7 @@ class EntryListAdapter(
             R.string.class_premium_economy,
             R.string.class_business,
             R.string.class_first,
+            R.string.class_jump,
         )
         val text = classType ?: return null
         val index = resIds.indexOfFirst { context.getString(it) == text }

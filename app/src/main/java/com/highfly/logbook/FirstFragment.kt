@@ -23,6 +23,7 @@ import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.color.MaterialColors
 import com.highfly.logbook.databinding.FragmentFirstBinding
+import java.util.Locale
 
 class FirstFragment : Fragment() {
 
@@ -88,6 +89,7 @@ class FirstFragment : Fragment() {
             val time = entries.sumOf { it.flightMinutes ?: 0 }
             val values = DashboardStats.values(appContext, entries)
             val distance = DashboardStats.distanceDetails(appContext, entries)
+            val co2 = Co2Calculator.details(entries)
 
             view?.post {
                 if (generation != loadGeneration || _binding == null) return@post
@@ -99,6 +101,7 @@ class FirstFragment : Fragment() {
                     binding.gridTiles,
                     values,
                     distance,
+                    co2,
                     entries
                 )
             }
@@ -110,6 +113,7 @@ class FirstFragment : Fragment() {
         container: LinearLayout,
         values: Map<String, DashboardStats.Value>,
         distance: DashboardStats.DistanceDetails,
+        co2: Co2Calculator.Details,
         entries: List<LogbookEntry>
     ) {
         container.removeAllViews()
@@ -124,10 +128,22 @@ class FirstFragment : Fragment() {
                 orientation = LinearLayout.HORIZONTAL
             }
             rowIds.forEachIndexed { index, tileId ->
+                if (tileId == "function" &&
+                    Settings.getRole(requireContext()) != Settings.ROLE_CREW
+                ) {
+                    return@forEachIndexed
+                }
                 val isDistance = tileId == "distance"
+                val isCo2 = tileId == "co2"
                 val tileContainer = if (isDistance) {
                     layoutInflater.inflate(
                         R.layout.item_dashboard_tile_distance,
+                        row,
+                        false
+                    ) as ViewGroup
+                } else if (isCo2) {
+                    layoutInflater.inflate(
+                        R.layout.item_dashboard_tile_co2,
                         row,
                         false
                     ) as ViewGroup
@@ -144,7 +160,7 @@ class FirstFragment : Fragment() {
                     tileContainer.findViewById<android.widget.ImageView>(R.id.iv_tile_icon)
                 val tileNameView =
                     tileContainer.findViewById<TextView>(R.id.tv_tile_name)
-                if (!isDistance) {
+                if (!isDistance && !isCo2) {
                     iconView.setImageResource(tile.iconRes)
                     tileNameView.text = requireContext().getString(tile.nameRes)
                 }
@@ -154,6 +170,8 @@ class FirstFragment : Fragment() {
 
                 if (isDistance) {
                     populateDistanceTile(tileContainer, distance)
+                } else if (isCo2) {
+                    populateCo2Tile(tileContainer, co2)
                 } else if (tileId == "time") {
                     val value = DashboardStats.timeValue(
                         requireContext(), timeMinutes, timeUnits[timeUnitIndex]
@@ -252,6 +270,16 @@ class FirstFragment : Fragment() {
                 val card =
                     tileContainer.findViewById<com.google.android.material.card.MaterialCardView>(R.id.tile_card)
                 val tileId = card.tag as? String ?: continue
+                if (tileId == "co2") {
+                    // Full width, but as flat as a regular (square) tile.
+                    val target = ((tileContainer.width - dp(8)) / 3).coerceAtLeast(dp(88))
+                    val co2Params = tileContainer.layoutParams
+                    if (co2Params.height != target) {
+                        co2Params.height = target
+                        tileContainer.layoutParams = co2Params
+                    }
+                    continue
+                }
                 if (DashboardPrefs.tileById(tileId).span > 1) continue
                 val params = tileContainer.layoutParams
                 if (params.height != tileContainer.width) {
@@ -322,6 +350,16 @@ class FirstFragment : Fragment() {
             Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
         )
         return builder
+    }
+
+    private fun populateCo2Tile(
+        container: ViewGroup,
+        co2: Co2Calculator.Details
+    ) {
+        container.findViewById<TextView>(R.id.tv_co2_value).text =
+            Co2Calculator.tonnesText(co2.tonnes)
+        container.findViewById<TextView>(R.id.tv_trees_value).text =
+            String.format(Locale.GERMANY, "%,d", co2.treesPerYear)
     }
 
     private fun populateDistanceTile(
@@ -402,6 +440,9 @@ class FirstFragment : Fragment() {
         when {
             id == "worldmap" -> {
                 findNavController().navigate(R.id.action_dashboard_to_world_map)
+            }
+            id == "flights" -> {
+                findNavController().navigate(R.id.action_dashboard_to_flights_year)
             }
             ChartData.isBarChart(id) || ChartData.isPieChart(id) -> {
                 val bundle = Bundle().apply { putString("tileId", id) }

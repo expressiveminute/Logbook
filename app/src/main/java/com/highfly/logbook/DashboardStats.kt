@@ -6,6 +6,14 @@ import java.util.Locale
 
 object DashboardStats {
 
+    /** Canonical flight type of a ground transfer; these are not counted as
+     * "distance" (they do not involve flying). */
+    private const val GROUND_TRANSFER = "Ground Transfer"
+    private const val WORLD_COUNTRIES = 195
+
+    private fun isDistanceRelevant(entry: LogbookEntry): Boolean =
+        ChartData.normalizeFlightType(entry.flightType) != GROUND_TRANSFER
+
     data class Value(val text: String, val unit: String?)
 
     data class DistanceDetails(
@@ -46,7 +54,7 @@ object DashboardStats {
     private val moonDistanceKm = 384400.0
 
     fun distanceDetails(context: Context, entries: List<LogbookEntry>): DistanceDetails {
-        val withDistance = entries.filter { it.distanceKm != null }
+        val withDistance = entries.filter { isDistanceRelevant(it) && it.distanceKm != null }
         val totalKm = withDistance.sumOf { it.distanceKm ?: 0 }
         val distances = withDistance.mapNotNull { it.distanceKm }
         val avgKm = if (distances.isEmpty()) null else
@@ -80,7 +88,8 @@ object DashboardStats {
 
     fun values(context: Context, entries: List<LogbookEntry>): Map<String, Value> {
         val flights = entries.size.toString()
-        val distanceKm = entries.sumOf { it.distanceKm ?: 0 }
+        val distanceEntries = entries.filter { isDistanceRelevant(it) }
+        val distanceKm = distanceEntries.sumOf { it.distanceKm ?: 0 }
         val minutes = entries.sumOf { it.flightMinutes ?: 0 }
         val routes = entries.map { "${it.fromAirport}-${it.toAirport}" }.distinct().size
         val airports = ((entries.map { it.fromAirport } + entries.map { it.toAirport })
@@ -91,6 +100,9 @@ object DashboardStats {
         val travelTypes = nonBlankCount(entries) { it.flightType }
         val aircraftTypes = nonBlankCount(entries) { it.aircraftType }
         val registrations = nonBlankCount(entries) { it.registration }
+        val countries = (entries.mapNotNull { it.toCountry }
+            .filter { it.isNotBlank() }).distinct().size
+        val functionFlights = entries.count { !it.function.isNullOrBlank() }
         val earthOrbits = distanceKm / earthCircumferenceKm
         val moonFlights = distanceKm / moonDistanceKm
 
@@ -106,6 +118,10 @@ object DashboardStats {
             "traveltype" to Value(formatInt(context, travelTypes), null),
             "aircraft" to Value(formatInt(context, aircraftTypes), null),
             "registration" to Value(formatInt(context, registrations), null),
+            "countries" to Value(formatInt(context, countries),
+                String.format(Locale.GERMANY, "%s %% d. Welt",
+                    formatInt(context, (countries * 100.0 / WORLD_COUNTRIES).toInt()))),
+            "function" to Value(formatInt(context, functionFlights), null),
             "earthorbits" to Value(formatFactor(earthOrbits), "×"),
             "moon" to Value(formatFactor(moonFlights), "×"),
         )

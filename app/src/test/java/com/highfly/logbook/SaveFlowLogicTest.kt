@@ -162,6 +162,8 @@ class SaveFlowLogicTest {
         assertEquals("Business", ChartData.normalizeClassType("Business"))
         assertEquals("First", ChartData.normalizeClassType("First"))
         assertEquals("First", ChartData.normalizeClassType("First Class"))
+        assertEquals("Jump", ChartData.normalizeClassType("Jump"))
+        assertEquals("Jump", ChartData.normalizeClassType("Jump Seat"))
         assertNull(ChartData.normalizeClassType(null))
     }
 

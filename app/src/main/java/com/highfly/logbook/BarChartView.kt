@@ -8,6 +8,7 @@ import android.graphics.RectF
 import android.text.TextPaint
 import android.text.TextUtils
 import android.util.AttributeSet
+import android.view.MotionEvent
 import android.view.View
 import com.google.android.material.color.MaterialColors
 
@@ -19,6 +20,8 @@ class BarChartView @JvmOverloads constructor(
     data class Item(val label: String, val count: Int)
 
     private val items = mutableListOf<Item>()
+
+    private var onItemClickListener: ((Int) -> Unit)? = null
 
     private val density get() = resources.displayMetrics.density
     private val scaledDensity get() = resources.displayMetrics.scaledDensity
@@ -73,6 +76,40 @@ class BarChartView @JvmOverloads constructor(
         items.addAll(data)
         requestLayout()
         invalidate()
+    }
+
+    fun setOnItemClickListener(listener: (Int) -> Unit) {
+        onItemClickListener = listener
+        isClickable = listener != null
+    }
+
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        if (onItemClickListener == null) return super.onTouchEvent(event)
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> return true
+            MotionEvent.ACTION_UP -> {
+                val index = indexAt(event.y)
+                if (index != null) {
+                    performClick()
+                    onItemClickListener?.invoke(index)
+                }
+                return true
+            }
+        }
+        return super.onTouchEvent(event)
+    }
+
+    override fun performClick(): Boolean {
+        super.performClick()
+        return true
+    }
+
+    private fun indexAt(y: Float): Int? {
+        for (index in items.indices) {
+            val top = topPadding + index * (rowHeight + gap)
+            if (y >= top && y <= top + rowHeight) return index
+        }
+        return null
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {

@@ -1,0 +1,63 @@
+package com.highfly.logbook
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
+import com.highfly.logbook.databinding.FragmentFlightsYearBinding
+import java.util.Locale
+
+class FlightsYearFragment : Fragment() {
+
+    private var _binding: FragmentFlightsYearBinding? = null
+    private val binding get() = _binding!!
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentFlightsYearBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        binding.btnYearBack.setOnClickListener {
+            findNavController().navigateUp()
+        }
+
+        val entries = LogbookRepository.getEntries()
+        val years = entries.groupingBy { it.date.year }.eachCount()
+            .entries
+            .sortedWith(
+                compareByDescending<Map.Entry<Int, Int>> { it.value }.thenByDescending { it.key }
+            )
+
+        binding.tvYearCount.text = countText(entries.size)
+        binding.tvYearEmpty.visibility = if (years.isEmpty()) View.VISIBLE else View.GONE
+        binding.barChartYear.visibility = if (years.isEmpty()) View.GONE else View.VISIBLE
+
+        binding.barChartYear.setItems(
+            years.map { BarChartView.Item(it.key.toString(), it.value) }
+        )
+        binding.barChartYear.setOnItemClickListener { index ->
+            openMonths(years[index].key)
+        }
+    }
+
+    private fun openMonths(year: Int) {
+        val bundle = Bundle().apply { putInt("year", year) }
+        findNavController().navigate(R.id.action_flights_year_to_months, bundle)
+    }
+
+    private fun countText(count: Int): String =
+        getString(R.string.flights_year_total, String.format(Locale.GERMANY, "%,d", count))
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+}

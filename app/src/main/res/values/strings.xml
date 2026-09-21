@@ -20,8 +20,13 @@
     <string name="tile_travel_type">Reiseart</string>
     <string name="tile_aircraft_type">Flugzeugtypen</string>
     <string name="tile_registration">Registrierung</string>
+    <string name="tile_countries">Länder</string>
+    <string name="tile_function">Funktion</string>
     <string name="tile_earth_orbits">Erdumrundungen</string>
     <string name="tile_moon">Zum Mond</string>
+    <string name="tile_co2">CO₂-Bilanz</string>
+    <string name="co2_tonnes_unit">t</string>
+    <string name="co2_trees_label">Bäume/Jahr</string>
     <string name="distance_furthest_label">Längster Flug:</string>
     <string name="distance_avg_label">Durchschnittliche Fluglänge:</string>
     <string name="distance_shortest_label">Kürzester Flug:</string>
@@ -112,6 +117,11 @@
     <string name="role_switch_cancel">Abbrechen</string>
     <string name="fab_add">Flug hinzufügen</string>
     <string name="btn_back">Zurück</string>
+    <string name="flights_year_title">Flüge nach Jahr</string>
+    <string name="flights_months_title">Flüge pro Monat</string>
+    <string name="flights_months_empty">Keine Flüge in diesem Jahr.</string>
+    <string name="flights_year_empty">Noch keine Flüge.</string>
+    <string name="flights_year_total">%1$s Flüge</string>
     <string name="flight_type_private">Privat</string>
     <string name="flight_type_on_duty">On Duty</string>
     <string name="flight_type_deadhead">Deadhead</string>

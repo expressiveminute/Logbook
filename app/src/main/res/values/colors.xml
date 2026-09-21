@@ -6,12 +6,14 @@
     <color name="class_premium_economy_bg">#FF2C5744</color>
     <color name="class_business_bg">#FF47616C</color>
     <color name="class_first_bg">#FFA54A4A</color>
+    <color name="class_jump_bg">#FF757575</color>
 
     <!-- Class text colors (entries list) -->
     <color name="class_economy_text">#FF4C6E48</color>
     <color name="class_premium_economy_text">#FF2C5744</color>
     <color name="class_business_text">#FF47616C</color>
     <color name="class_first_text">#FFA54A4A</color>
+    <color name="class_jump_text">#FF757575</color>
 
     <!-- Travel type colors -->
     <color name="type_private_bg">#FF6F4E37</color>
@@ -26,6 +28,11 @@
 
     <color name="button_save_bg">#FF4CAF50</color>
     <color name="text_discard">#FFD32F2F</color>
+
+    <!-- CO2 tile: green offset card -->
+    <color name="co2_trees_bg">#FF2E7D32</color>
+    <color name="co2_trees_on">#FFFFFFFF</color>
+    <color name="co2_trees_on_variant">#CCFFFFFF</color>
 
     <!-- Import UI -->
     <color name="import_ok">#FF2E7D32</color>

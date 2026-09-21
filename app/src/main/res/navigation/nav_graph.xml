@@ -19,6 +19,9 @@
         <action
             android:id="@+id/action_dashboard_to_world_map"
             app:destination="@id/nav_world_map" />
+        <action
+            android:id="@+id/action_dashboard_to_flights_year"
+            app:destination="@id/nav_flights_year" />
     </fragment>
 
     <fragment
@@ -71,6 +74,27 @@
             android:name="tileId"
             app:argType="string"
             android:defaultValue="flights" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_flights_year"
+        android:name="com.highfly.logbook.FlightsYearFragment"
+        tools:layout="@layout/fragment_flights_year">
+
+        <action
+            android:id="@+id/action_flights_year_to_months"
+            app:destination="@id/nav_flights_months" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_flights_months"
+        android:name="com.highfly.logbook.FlightsMonthsFragment"
+        tools:layout="@layout/fragment_flights_months">
+
+        <argument
+            android:name="year"
+            app:argType="integer"
+            android:defaultValue="0" />
     </fragment>
 
     <fragment

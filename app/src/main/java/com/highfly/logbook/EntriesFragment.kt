@@ -321,6 +321,7 @@ class EntriesFragment : Fragment() {
                 getString(R.string.class_premium_economy),
                 getString(R.string.class_business),
                 getString(R.string.class_first),
+                getString(R.string.class_jump),
             )
         )
 

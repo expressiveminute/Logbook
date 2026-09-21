@@ -5,6 +5,12 @@
     <color name="class_premium_economy_text">#FF8CC4A8</color>
     <color name="class_business_text">#FFA9C3D1</color>
     <color name="class_first_text">#FFDCA6A6</color>
+    <color name="class_jump_text">#FFC7C7C7</color>
+
+    <!-- CO2 tile: green offset card -->
+    <color name="co2_trees_bg">#FF1B5E20</color>
+    <color name="co2_trees_on">#FFFFFFFF</color>
+    <color name="co2_trees_on_variant">#CCFFFFFF</color>
 
     <!-- Accent: Light Blue -->
     <color name="accent_lightblue_primary">#FF8ACAFF</color>

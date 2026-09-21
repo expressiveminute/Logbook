@@ -44,6 +44,7 @@ object ChartData {
             listOf("business", "business class")
         ),
         ClassType(R.string.class_first, "First", listOf("first", "first class")),
+        ClassType(R.string.class_jump, "Jump", listOf("jump", "jump seat")),
     )
 
     private val BAR_CHART_TILES = setOf(
