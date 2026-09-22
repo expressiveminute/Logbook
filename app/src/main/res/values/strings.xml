@@ -162,7 +162,7 @@
     <string name="flight_number_label">Flugnummer</string>
     <string name="flight_number_hint">123</string>
     <string name="date_label">Datum</string>
-    <string name="return_flight_add">Rückflug hinzufügen?</string>
+    <string name="return_flight_add">- Rückflug -</string>
     <string name="hinflight_label">Hinflug</string>
     <string name="return_flight_label">Rückflug</string>
     <string name="return_remove_desc">Rückflug entfernen</string>

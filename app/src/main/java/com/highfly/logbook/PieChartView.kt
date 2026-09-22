@@ -46,7 +46,6 @@ class PieChartView @JvmOverloads constructor(
         }
 
     private val density get() = resources.displayMetrics.density
-    private val scaledDensity get() = resources.displayMetrics.scaledDensity
 
     private val slicePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
@@ -293,5 +292,6 @@ class PieChartView @JvmOverloads constructor(
 
     private fun dp(value: Int): Float = value * density
 
-    private fun sp(value: Int): Float = value * scaledDensity
+    private fun sp(value: Int): Float =
+        value * density * minOf(resources.configuration.fontScale, 1.0f)
 }

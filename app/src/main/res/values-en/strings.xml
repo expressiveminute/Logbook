@@ -161,7 +161,7 @@
     <string name="flight_number_label">Flight No.</string>
     <string name="flight_number_hint">123</string>
     <string name="date_label">Date</string>
-    <string name="return_flight_add">Add return flight?</string>
+    <string name="return_flight_add">- Return flight -</string>
     <string name="hinflight_label">Outbound</string>
     <string name="return_flight_label">Return</string>
     <string name="return_remove_desc">Remove return flight</string>

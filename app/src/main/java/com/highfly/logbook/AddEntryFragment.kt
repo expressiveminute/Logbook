@@ -66,6 +66,7 @@ class AddEntryFragment : Fragment() {
         setupDeadheadTiles()
         setupClassTiles()
         setupAirlineAutoAdvance()
+        setupAircraftTypeFields()
         setupAirportAutoAdvance()
         setupFlightTimeConversion()
         setupDateField()
@@ -415,9 +416,67 @@ class AddEntryFragment : Fragment() {
                 if (s.length == 2) {
                     focusAndShowKeyboard(binding.etFlightNumber)
                 }
+                prefillRegistration()
             }
         })
     }
+
+    private fun setupAircraftTypeFields() {
+        setupAircraftTypeField(binding.etAircraftType, binding.etRegistration)
+        setupAircraftTypeField(binding.etHinflugAircraft, binding.etHinflugRegistration)
+        setupAircraftTypeField(binding.etRueckflugAircraft, binding.etRueckflugRegistration)
+    }
+
+    private fun setupAircraftTypeField(aircraft: EditText, registration: EditText) {
+        aircraft.addTextChangedListener(object : TextWatcher {
+            private var isFormatting = false
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable) {
+                if (isFormatting) return
+                val formatted = formatAircraftType(s.toString())
+                if (formatted != s.toString()) {
+                    isFormatting = true
+                    s.replace(0, s.length, formatted)
+                    isFormatting = false
+                }
+                prefillRegistration(aircraft, registration)
+            }
+        })
+    }
+
+    /**
+     * Normalisiert den Flugzeugtyp so, dass nur der erste Buchstabe groß und der
+     * Rest klein geschrieben wird, z. B. "A320", "B737" oder "Atr72".
+     */
+    private fun formatAircraftType(input: String): String {
+        if (input.isEmpty()) return input
+        return input.first().uppercaseChar() + input.substring(1).lowercase()
+    }
+
+    /**
+     * Bei "LH" als Fluggesellschaft wird die Registrierung automatisch vorbefüllt:
+     * Flugzeugtyp mit "A..." -> "D-AI" und mit "B..." -> "D-AB".
+     */
+    private fun prefillRegistration() {
+        prefillRegistration(binding.etAircraftType, binding.etRegistration)
+        prefillRegistration(binding.etHinflugAircraft, binding.etHinflugRegistration)
+        prefillRegistration(binding.etRueckflugAircraft, binding.etRueckflugRegistration)
+    }
+
+    private fun prefillRegistration(aircraft: EditText, registration: EditText) {
+        if (registration.text?.isNotEmpty() == true) return
+        if (!airlineIsLh()) return
+        val prefix = when {
+            aircraft.text?.toString()?.trim()?.startsWith("A", ignoreCase = true) == true -> "D-AI"
+            aircraft.text?.toString()?.trim()?.startsWith("B", ignoreCase = true) == true -> "D-AB"
+            else -> return
+        }
+        registration.setText(prefix)
+    }
+
+    private fun airlineIsLh(): Boolean =
+        binding.etAirline.text?.toString()?.trim().equals("LH", ignoreCase = true)
 
     private fun setupAirportAutoAdvance() {
         binding.etAirportFrom.addTextChangedListener(object : TextWatcher {
@@ -617,7 +676,12 @@ class AddEntryFragment : Fragment() {
         binding.etRueckflugAircraft.setText(aircraft)
         binding.etRueckflugRegistration.setText(registration)
         binding.etRueckflugComment.setText(comment)
+        val hinflugDate = binding.etDate.text?.toString()?.trim().orEmpty()
+        if (hinflugDate.isNotEmpty()) {
+            binding.etDateReturn.setText(hinflugDate)
+        }
         updateReturnUi()
+        showDatePicker(binding.etDateReturn)
     }
 
     private fun deactivateReturn() {
@@ -890,7 +954,14 @@ class AddEntryFragment : Fragment() {
     }
 
     private fun showDatePicker(target: EditText) {
-        val now = LocalDate.now()
+        val initial = try {
+            LocalDate.parse(
+                target.text?.toString()?.trim().orEmpty(),
+                DATE_FORMAT
+            )
+        } catch (e: Exception) {
+            LocalDate.now()
+        }
         val dialog = DatePickerDialog(
             requireContext(),
             { _: DatePicker, year: Int, month: Int, dayOfMonth: Int ->
@@ -899,9 +970,9 @@ class AddEntryFragment : Fragment() {
                         .format(DATE_FORMAT)
                 )
             },
-            now.year,
-            now.monthValue - 1,
-            now.dayOfMonth
+            initial.year,
+            initial.monthValue - 1,
+            initial.dayOfMonth
         )
         dialog.datePicker.setOnDateChangedListener { _, year, month, dayOfMonth ->
             target.setText(
