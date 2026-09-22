@@ -87,7 +87,7 @@ object DashboardStats {
         formatFactor(value)
 
     fun values(context: Context, entries: List<LogbookEntry>): Map<String, Value> {
-        val flights = entries.size.toString()
+        val flights = formatInt(context, entries.size)
         val distanceEntries = entries.filter { isDistanceRelevant(it) }
         val distanceKm = distanceEntries.sumOf { it.distanceKm ?: 0 }
         val minutes = entries.sumOf { it.flightMinutes ?: 0 }
@@ -102,7 +102,6 @@ object DashboardStats {
         val registrations = nonBlankCount(entries) { it.registration }
         val countries = (entries.mapNotNull { it.toCountry }
             .filter { it.isNotBlank() }).distinct().size
-        val functionFlights = entries.count { !it.function.isNullOrBlank() }
         val earthOrbits = distanceKm / earthCircumferenceKm
         val moonFlights = distanceKm / moonDistanceKm
 
@@ -119,12 +118,22 @@ object DashboardStats {
             "aircraft" to Value(formatInt(context, aircraftTypes), null),
             "registration" to Value(formatInt(context, registrations), null),
             "countries" to Value(formatInt(context, countries),
-                String.format(Locale.GERMANY, "%s %% d. Welt",
+                String.format(Locale.GERMANY, "(%s%%)",
                     formatInt(context, (countries * 100.0 / WORLD_COUNTRIES).toInt()))),
-            "function" to Value(formatInt(context, functionFlights), null),
             "earthorbits" to Value(formatFactor(earthOrbits), "×"),
             "moon" to Value(formatFactor(moonFlights), "×"),
         )
+    }
+
+    fun tileCount(tileId: String, entries: List<LogbookEntry>): Int = when (tileId) {
+        "flights" -> entries.size
+        "routes" -> entries.map { "${it.fromAirport}-${it.toAirport}" }.distinct().size
+        "airlines" -> nonBlankCount(entries) { it.airline }
+        "aircraft" -> nonBlankCount(entries) { it.aircraftType }
+        "registration" -> nonBlankCount(entries) { it.registration }
+        "countries" -> (entries.mapNotNull { it.toCountry }
+            .filter { it.isNotBlank() }).distinct().size
+        else -> -1
     }
 
     private fun formatFactor(value: Double): String =

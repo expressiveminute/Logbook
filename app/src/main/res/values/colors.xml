@@ -79,4 +79,20 @@
     <color name="accent_brown_on_tertiary">#FFFFFFFF</color>
     <color name="accent_brown_tertiary_container">#FFF6E0A8</color>
     <color name="accent_brown_on_tertiary_container">#FF221A00</color>
+
+    <!-- Function pie colors -->
+    <color name="function_purser_i">#FF05164D</color>
+    <color name="function_purser_ii">#FF47616C</color>
+    <color name="function_flight_attendant">#FF6E8BB7</color>
+    <color name="function_other">#FF757575</color>
+
+    <!-- Continent pie colors -->
+    <color name="continent_europe">#FF0D47A1</color>
+    <color name="continent_asia">#FFA54A4A</color>
+    <color name="continent_north_america">#FF2E7D32</color>
+    <color name="continent_south_america">#FF00838F</color>
+    <color name="continent_africa">#FF6F4E37</color>
+    <color name="continent_oceania">#FF5C6BC0</color>
+    <color name="continent_antarctica">#FF90A4AE</color>
+    <color name="continent_unknown">#FF757575</color>
 </resources>

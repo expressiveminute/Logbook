@@ -1,12 +1,13 @@
 package com.highfly.logbook
 
 import android.content.Context
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 object ChartData {
 
-    data class Bar(val label: String, val count: Int)
+    data class Bar(val label: String, val count: Int, val subLabel: String? = null)
 
     data class Slice(val label: String, val value: Int, val colorRes: Int)
 
@@ -48,9 +49,9 @@ object ChartData {
     )
 
     private val BAR_CHART_TILES = setOf(
-        "flights", "routes", "airports", "airlines", "layover", "aircraft", "registration"
+        "flights", "routes", "airports", "airlines", "layover", "aircraft", "registration", "countries"
     )
-    private val PIE_CHART_TILES = setOf("class", "traveltype")
+    private val PIE_CHART_TILES = setOf("class", "traveltype", "function")
 
     fun isBarChart(tileId: String): Boolean = tileId in BAR_CHART_TILES
 
@@ -96,9 +97,20 @@ object ChartData {
             "airports" -> countByList(entries.flatMap { listOf(it.fromAirport, it.toAirport) })
             "aircraft" -> countBy(entries) { it.aircraftType }
             "registration" -> countBy(entries) { it.registration }
+            "countries" -> countBy(entries) { it.toCountry }
+                .mapKeys { (code, _) -> "${code} ${AirportData.flagEmoji(code)}" }
             else -> emptyMap()
         }
-        return counts.map { (label, count) -> Bar(label, count) }
+        val subLabels = if (tileId == "layover") {
+            layoverLastLabels(entries).mapValues { (_, date) ->
+                context.getString(R.string.layover_last, date)
+            }
+        } else {
+            emptyMap()
+        }
+        return counts.map { (label, count) ->
+            Bar(label, count, subLabels[label])
+        }
             .sortedWith(compareByDescending<Bar> { it.count }.thenBy { it.label })
     }
 
@@ -150,6 +162,73 @@ object ChartData {
         R.color.type_duty_travel_bg,
     )
 
+    fun functionColors(): List<Int> = listOf(
+        R.color.function_purser_i,
+        R.color.function_purser_ii,
+        R.color.function_flight_attendant,
+        R.color.function_other,
+    )
+
+    fun functionSlices(context: Context): List<Slice> =
+        functionSlices(context, periodFiltered(context))
+
+    fun functionSlices(
+        context: Context,
+        entries: List<LogbookEntry>
+    ): List<Slice> {
+        val counts = entries.mapNotNull { it.function?.takeIf(String::isNotBlank) }
+            .groupingBy { it.trim() }
+            .eachCount()
+        val colors = functionColors()
+        return counts.entries.mapIndexed { index, (label, count) ->
+            Slice(label, count, colors[index % colors.size])
+        }.sortedWith(compareByDescending<Slice> { it.value }.thenBy { it.label })
+    }
+
+    fun continentColors(): List<Int> = listOf(
+        R.color.continent_europe,
+        R.color.continent_asia,
+        R.color.continent_north_america,
+        R.color.continent_south_america,
+        R.color.continent_africa,
+        R.color.continent_oceania,
+        R.color.continent_antarctica,
+        R.color.continent_unknown,
+    )
+
+    fun continentSlices(context: Context): List<Slice> =
+        continentSlices(context, periodFiltered(context))
+
+    fun continentSlices(
+        context: Context,
+        entries: List<LogbookEntry>
+    ): List<Slice> {
+        val colors = continentColors()
+        val counts = entries.mapNotNull { it.toCountry?.takeIf(String::isNotBlank) }
+            .map { code -> Continents.continentOf(code) ?: Continents.UNKNOWN }
+            .groupingBy { it }
+            .eachCount()
+        return counts.entries.map { (continent, count) ->
+            val colorIdx = Continents.ORDER.indexOf(continent).coerceAtLeast(0)
+            Slice(
+                context.getString(continentRes(continent)),
+                count,
+                colors[colorIdx]
+            )
+        }.sortedWith(compareByDescending<Slice> { it.value }.thenBy { it.label })
+    }
+
+    private fun continentRes(continent: String): Int = when (continent) {
+        Continents.EUROPE -> R.string.continent_europe
+        Continents.ASIA -> R.string.continent_asia
+        Continents.NORTH_AMERICA -> R.string.continent_north_america
+        Continents.SOUTH_AMERICA -> R.string.continent_south_america
+        Continents.AFRICA -> R.string.continent_africa
+        Continents.OCEANIA -> R.string.continent_oceania
+        Continents.ANTARCTICA -> R.string.continent_antarctica
+        else -> R.string.continent_unknown
+    }
+
     private fun periodFiltered(context: Context): List<LogbookEntry> =
         DashboardStats.filterForPeriod(
             LogbookRepository.getEntries(),
@@ -163,6 +242,16 @@ object ChartData {
             else -> DateTimeFormatter.ofPattern("MMM yyyy", Locale.GERMANY)
         }
         return entries.groupingBy { it.date.format(formatter) }.eachCount()
+    }
+
+    private fun layoverLastLabels(entries: List<LogbookEntry>): Map<String, String> {
+        val formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
+        val lastDates = entries.filter { it.layover && !it.toAirport.isNullOrBlank() }
+            .groupingBy { it.toAirport!!.trim() }
+            .aggregate { _, acc: LocalDate?, element, _ ->
+                if (acc == null || element.date.isAfter(acc)) element.date else acc
+            }
+        return lastDates.mapValues { (_, date) -> date.format(formatter) }
     }
 
     private fun routeOf(entry: LogbookEntry): String =

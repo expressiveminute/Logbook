@@ -7,6 +7,8 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.highfly.logbook.databinding.FragmentFlightsYearBinding
+import java.time.Month
+import java.time.format.TextStyle
 import java.util.Locale
 
 class FlightsYearFragment : Fragment() {
@@ -37,8 +39,21 @@ class FlightsYearFragment : Fragment() {
             )
 
         binding.tvYearCount.text = countText(entries.size)
+
+        val monthCounts = IntArray(Month.values().size)
+        entries.forEach { monthCounts[it.date.monthValue - 1]++ }
+        binding.barChartYearMonths.setItems(
+            Month.values().map { month ->
+                MonthBarChartView.Item(
+                    month.getDisplayName(TextStyle.SHORT, Locale.GERMANY),
+                    monthCounts[month.value - 1]
+                )
+            }
+        )
+
         binding.tvYearEmpty.visibility = if (years.isEmpty()) View.VISIBLE else View.GONE
         binding.barChartYear.visibility = if (years.isEmpty()) View.GONE else View.VISIBLE
+        binding.barChartYearMonths.visibility = if (years.isEmpty()) View.GONE else View.VISIBLE
 
         binding.barChartYear.setItems(
             years.map { BarChartView.Item(it.key.toString(), it.value) }

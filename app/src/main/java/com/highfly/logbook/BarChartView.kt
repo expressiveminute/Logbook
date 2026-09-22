@@ -17,7 +17,7 @@ class BarChartView @JvmOverloads constructor(
     attrs: AttributeSet? = null
 ) : View(context, attrs) {
 
-    data class Item(val label: String, val count: Int)
+    data class Item(val label: String, val count: Int, val subLabel: String? = null)
 
     private val items = mutableListOf<Item>()
 
@@ -29,12 +29,15 @@ class BarChartView @JvmOverloads constructor(
     private val barPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
     private val labelPaint = TextPaint(Paint.ANTI_ALIAS_FLAG)
     private val countPaint = TextPaint(Paint.ANTI_ALIAS_FLAG)
+    private val flagPaint = TextPaint(Paint.ANTI_ALIAS_FLAG)
+    private val subPaint = TextPaint(Paint.ANTI_ALIAS_FLAG)
     private val ribbonPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
     private val ringPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
 
     private var barColor = 0
     private var labelColor = 0
     private var countColor = 0
+    private var backgroundColor = 0
 
     private var topPadding = 0f
     private var rowHeight = 0f
@@ -44,7 +47,9 @@ class BarChartView @JvmOverloads constructor(
     private var rankGap = 0f
     private var barGap = 0f
     private var countGap = 0f
+    private var flagGap = 0f
     private var medalRadius = 0f
+    private var barInset = 0f
 
     init {
         barColor = MaterialColors.getColor(this, com.google.android.material.R.attr.colorPrimary)
@@ -53,6 +58,9 @@ class BarChartView @JvmOverloads constructor(
         )
         countColor = MaterialColors.getColor(
             this, com.google.android.material.R.attr.colorOnSurfaceVariant
+        )
+        backgroundColor = MaterialColors.getColor(
+            this, android.R.attr.colorBackground
         )
 
         topPadding = dp(8)
@@ -63,12 +71,21 @@ class BarChartView @JvmOverloads constructor(
         rankGap = dp(10)
         barGap = dp(10)
         countGap = dp(8)
+        flagGap = dp(8)
         medalRadius = dp(11)
+        barInset = dp(10)
 
         labelPaint.textSize = sp(14)
         labelPaint.isFakeBoldText = true
         countPaint.textSize = sp(12)
         countPaint.isFakeBoldText = true
+        flagPaint.textSize = sp(14)
+        flagPaint.isFakeBoldText = true
+        flagPaint.color = labelColor
+        flagPaint.textAlign = Paint.Align.CENTER
+
+        subPaint.textSize = sp(11)
+        subPaint.textAlign = Paint.Align.LEFT
     }
 
     fun setItems(data: List<Item>) {
@@ -138,10 +155,21 @@ class BarChartView @JvmOverloads constructor(
 
         val rankOffset = items.indices.maxOf { rankWidth(it) } + rankGap
         val countReserve =
-            items.maxOf { countPaint.measureText(it.count.toString()) } + countGap
-        val labelReserve = items.maxOf { labelPaint.measureText(it.label) }
-            .coerceAtMost(width * 0.6f)
+            items.maxOf { countPaint.measureText(it.count.toString()) } + countGap + sidePadding
+
+        var maxCodeWidth = 0f
+        var maxFlagWidth = 0f
+        items.forEach { item ->
+            val (text, flag) = splitLabelFlag(item.label)
+            maxCodeWidth = maxOf(maxCodeWidth, labelPaint.measureText(text))
+            if (flag.isNotEmpty()) {
+                maxFlagWidth = maxOf(maxFlagWidth, flagPaint.measureText(flag))
+            }
+        }
+        val labelReserve = (maxCodeWidth + flagGap + maxFlagWidth).coerceAtMost(width * 0.6f)
         val labelLeft = sidePadding + rankOffset
+        val flagLeft = labelLeft + maxCodeWidth + flagGap
+        val flagCenterX = flagLeft + maxFlagWidth / 2f
         val barLeft = labelLeft + labelReserve + barGap
         val usableBarWidth = (width - barLeft - countReserve).coerceAtLeast(0f)
 
@@ -155,13 +183,15 @@ class BarChartView @JvmOverloads constructor(
 
             drawRank(canvas, index, barTop, barBottom)
 
+            val (text, flag) = splitLabelFlag(item.label)
+
             labelPaint.color = labelColor
-            val label = if (labelPaint.measureText(item.label) > labelReserve) {
+            val label = if (labelPaint.measureText(text) > labelReserve) {
                 TextUtils.ellipsize(
-                    item.label, labelPaint, labelReserve, TextUtils.TruncateAt.END
+                    text, labelPaint, labelReserve, TextUtils.TruncateAt.END
                 ).toString()
             } else {
-                item.label
+                text
             }
             canvas.drawText(
                 label,
@@ -169,6 +199,15 @@ class BarChartView @JvmOverloads constructor(
                 centeredBaseline(barTop, barBottom, labelPaint),
                 labelPaint
             )
+
+            if (flag.isNotEmpty()) {
+                canvas.drawText(
+                    flag,
+                    flagCenterX,
+                    flagBaseline(barTop, barBottom),
+                    flagPaint
+                )
+            }
 
             barRect.set(barLeft, barTop, barRight, barBottom)
             barPaint.color = barColor
@@ -181,6 +220,27 @@ class BarChartView @JvmOverloads constructor(
                 centeredBaseline(barTop, barBottom, countPaint),
                 countPaint
             )
+
+            item.subLabel?.takeIf { it.isNotEmpty() }?.let { subLabel ->
+                val subWidth = subPaint.measureText(subLabel)
+                val subBaseline = centeredBaseline(barTop, barBottom, subPaint)
+                if (barWidth - 2 * barInset >= subWidth) {
+                    subPaint.textAlign = Paint.Align.LEFT
+                    subPaint.color = backgroundColor
+                    canvas.drawText(
+                        subLabel,
+                        barLeft + barInset,
+                        subBaseline,
+                        subPaint
+                    )
+                } else {
+                    subPaint.textAlign = Paint.Align.RIGHT
+                    subPaint.color = labelColor
+                    subPaint.isFakeBoldText = true
+                    canvas.drawText(subLabel, width - sidePadding, subBaseline, subPaint)
+                    subPaint.isFakeBoldText = false
+                }
+            }
         }
     }
 
@@ -259,11 +319,44 @@ class BarChartView @JvmOverloads constructor(
     private fun centeredBaseline(top: Float, bottom: Float, paint: TextPaint): Float =
         top + (bottom - top - (paint.descent() - paint.ascent())) / 2f - paint.ascent()
 
+    /**
+     * Zeichnet die Flagge (Farb-Emoji) vertikal in der Reihe zentriert. Das
+     * Emoji-Glyph erstreckt sich ausgehend von der Baseline nach oben, daher
+     * wird die Baseline leicht nach unten korrigiert.
+     */
+    private fun flagBaseline(top: Float, bottom: Float): Float =
+        centeredBaseline(top, bottom, flagPaint) + flagPaint.textSize * 0.20f
+
+    /**
+     * Trennt ein Label wie "DE 🇩🇪" in Ländercode und Flagge. Der Code wird als
+     * normaler Text gezeichnet, die Flagge separat, damit Abstand und vertikale
+     * Ausrichtung kontrollierbar sind.
+     */
+    private fun splitLabelFlag(label: String): Pair<String, String> {
+        if (label.isEmpty()) return "" to ""
+        var idx = label.length
+        val parts = mutableListOf<Int>()
+        while (idx > 0 && parts.size < 2) {
+            val cp = label.codePointBefore(idx)
+            parts.add(cp)
+            idx -= Character.charCount(cp)
+        }
+        if (parts.size == 2 &&
+            parts.all { it in REGIONAL_INDICATOR_START..REGIONAL_INDICATOR_END }
+        ) {
+            return label.substring(0, idx) to String(parts.reversed().toIntArray(), 0, 2)
+        }
+        return label to ""
+    }
+
     private fun dp(value: Int): Float = value * density
 
     private fun sp(value: Int): Float = value * scaledDensity
 
     private companion object {
+        const val REGIONAL_INDICATOR_START = 0x1F1E6
+        const val REGIONAL_INDICATOR_END = 0x1F1FF
+
         val MEDAL_GOLD = 0xFFD9A800.toInt()
         val MEDAL_GOLD_RIM = 0xFFB98A00.toInt()
         val MEDAL_SILVER = 0xFFC4C4C4.toInt()

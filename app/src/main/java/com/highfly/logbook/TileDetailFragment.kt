@@ -50,7 +50,13 @@ class TileDetailFragment : Fragment() {
             tileId == "traveltype" -> {
                 renderPie(ChartData.travelTypeSlices(requireContext()))
             }
+            tileId == "function" -> {
+                renderPie(ChartData.functionSlices(requireContext()))
+            }
             ChartData.isBarChart(tileId) -> {
+                if (tileId == "countries") {
+                    renderContinents()
+                }
                 renderBars(ChartData.barChart(requireContext(), tileId))
             }
             else -> {
@@ -59,11 +65,28 @@ class TileDetailFragment : Fragment() {
         }
     }
 
+    private fun renderContinents() {
+        val slices = ChartData.continentSlices(requireContext())
+        binding.tvContinentTitle.visibility = View.VISIBLE
+        binding.pieContinent.visibility = View.VISIBLE
+        binding.pieContinent.setSlices(
+            slices.map {
+                PieChartView.Slice(
+                    it.label,
+                    it.value,
+                    ContextCompat.getColor(requireContext(), it.colorRes)
+                )
+            }
+        )
+    }
+
     private fun renderBars(bars: List<ChartData.Bar>) {
         binding.pieChart.visibility = View.GONE
         binding.tvEmpty.visibility = if (bars.isEmpty()) View.VISIBLE else View.GONE
         binding.barChart.visibility = View.VISIBLE
-        binding.barChart.setItems(bars.map { BarChartView.Item(it.label, it.count) })
+        binding.barChart.setItems(
+            bars.map { BarChartView.Item(it.label, it.count, it.subLabel) }
+        )
     }
 
     private fun renderPie(slices: List<ChartData.Slice>) {

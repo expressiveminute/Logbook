@@ -66,6 +66,22 @@
                 </LinearLayout>
             </LinearLayout>
 
+            <TextView
+                android:id="@+id/tv_continent_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/tile_detail_continents"
+                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <com.highfly.logbook.PieChartView
+                android:id="@+id/pie_continent"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone" />
+
             <com.highfly.logbook.BarChartView
                 android:id="@+id/bar_chart"
                 android:layout_width="match_parent"

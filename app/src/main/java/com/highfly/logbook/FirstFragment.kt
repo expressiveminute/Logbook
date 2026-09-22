@@ -57,6 +57,50 @@ class FirstFragment : Fragment() {
         binding.fabAdd.setOnClickListener {
             findNavController().navigate(R.id.action_dashboard_to_add_entry)
         }
+
+        binding.dashboardScroll.setOnScrollChangeListener { _, _, _, _, _ ->
+            updateFabVisibility()
+        }
+        binding.dashboardScroll.post { updateFabVisibility() }
+    }
+
+    private fun updateFabVisibility() {
+        val scroll = binding.dashboardScroll
+        val contentScrolls = scroll.canScrollVertically(-1) || scroll.canScrollVertically(1)
+        val showFab = !contentScrolls || scroll.canScrollVertically(1)
+        val fab = binding.fabAdd
+        val target = if (showFab) View.VISIBLE else View.GONE
+        if (fab.visibility == target) return
+        fab.animate().cancel()
+
+        if (showFab) {
+            fab.visibility = View.VISIBLE
+            fab.alpha = 0f
+            fab.scaleX = 1.15f
+            fab.scaleY = 1.15f
+            fab.animate()
+                .alpha(1f)
+                .scaleX(1f)
+                .scaleY(1f)
+                .setDuration(200)
+                .start()
+        } else {
+            fab.animate()
+                .scaleX(1.15f)
+                .scaleY(1.15f)
+                .alpha(0.85f)
+                .setDuration(130)
+                .withEndAction {
+                    fab.animate()
+                        .scaleX(0f)
+                        .scaleY(0f)
+                        .alpha(0f)
+                        .setDuration(120)
+                        .withEndAction { fab.visibility = View.GONE }
+                        .start()
+                }
+                .start()
+        }
     }
 
     override fun onResume() {
@@ -106,6 +150,15 @@ class FirstFragment : Fragment() {
                 )
             }
         }.start()
+    }
+
+    private fun tileName(tile: DashboardPrefs.Tile, entries: List<LogbookEntry>): CharSequence {
+        val singular = tile.nameSingularRes
+        return if (singular != null && DashboardStats.tileCount(tile.id, entries) == 1) {
+            getString(singular)
+        } else {
+            getString(tile.nameRes)
+        }
     }
 
     private fun renderGrid(
@@ -162,7 +215,7 @@ class FirstFragment : Fragment() {
                     tileContainer.findViewById<TextView>(R.id.tv_tile_name)
                 if (!isDistance && !isCo2) {
                     iconView.setImageResource(tile.iconRes)
-                    tileNameView.text = requireContext().getString(tile.nameRes)
+                    tileNameView.text = tileName(tile, entries)
                 }
 
                 val pieView = tileContainer.findViewById<PieChartView>(R.id.tile_pie_chart)
@@ -193,14 +246,17 @@ class FirstFragment : Fragment() {
                     val primaryColor = MaterialColors.getColor(tileContainer, com.google.android.material.R.attr.colorPrimary)
                     worldmapPreview.setColors(primaryColor, primaryColor)
                 } else if (ChartData.isPieChart(tileId)) {
-                    iconView.visibility = View.GONE
+                    iconView.visibility = if (tileId == "function") View.VISIBLE else View.GONE
                     tileContainer.findViewById<View>(R.id.ll_tile_top_right).visibility = View.GONE
                     worldmapPreview.visibility = View.GONE
                     pieView.visibility = View.VISIBLE
-                    val slices = if (tileId == "class") {
-                        ChartData.classSlices(requireContext(), null, entries)
-                    } else {
-                        ChartData.travelTypeSlices(requireContext(), entries)
+                    val slices = when (tileId) {
+                        "class" -> ChartData.classSlices(requireContext(), null, entries)
+                        "function" -> ChartData.functionSlices(requireContext(), entries)
+                        else -> ChartData.travelTypeSlices(requireContext(), entries)
+                    }
+                    if (tileId == "function") {
+                        iconView.bringToFront()
                     }
                     pieView.showLegend = false
                     pieView.sliceTouchEnabled = false
@@ -258,6 +314,7 @@ class FirstFragment : Fragment() {
                 container.viewTreeObserver.removeOnGlobalLayoutListener(this)
                 resizeStatTiles(container)
                 fitBigNumberTiles(container)
+                updateFabVisibility()
             }
         })
     }
