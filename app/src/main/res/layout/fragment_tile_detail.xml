@@ -82,6 +82,13 @@
                 android:layout_height="wrap_content"
                 android:visibility="gone" />
 
+            <com.highfly.logbook.MonthBarChartView
+                android:id="@+id/bar_airports"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:visibility="gone" />
+
             <com.highfly.logbook.BarChartView
                 android:id="@+id/bar_chart"
                 android:layout_width="match_parent"

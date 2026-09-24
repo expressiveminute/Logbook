@@ -100,8 +100,14 @@ class MainActivity : AppCompatActivity() {
      * keeps the drill-down (world map -> entries) intact and the tabs working.
      */
     private fun setupBottomNav(navController: NavController) {
-        fun goToTab(item: android.view.MenuItem) {
-            val destId = item.itemId
+        binding.bottomNav.setTabs(
+            listOf(
+                BottomTabBar.Tab(R.id.nav_entries, R.drawable.ic_entries, R.string.nav_entries),
+                BottomTabBar.Tab(R.id.nav_dashboard, R.drawable.ic_dashboard, R.string.nav_dashboard),
+                BottomTabBar.Tab(R.id.nav_profile, R.drawable.ic_profile, R.string.nav_profile),
+            )
+        )
+        binding.bottomNav.setOnTabSelectedListener { destId ->
             val currentId = navController.currentDestination?.id
             if (currentId == destId) {
                 navController.popBackStack(
@@ -121,26 +127,6 @@ class MainActivity : AppCompatActivity() {
                 )
             }
         }
-        binding.bottomNav.setOnItemSelectedListener { item ->
-            goToTab(item)
-            true
-        }
-        binding.bottomNav.setOnItemReselectedListener { item ->
-            // A "reselected" item is normally one we are already on. But the
-            // bar decides selected/reselected from its internal
-            // NavigationBarMenuView.selectedItemId, which can go stale when we
-            // leave every tab unchecked while a full-screen destination (world
-            // map) is shown. In that case the tap must behave like a regular
-            // tab click instead of popping to the start destination.
-            if (navController.currentDestination?.id == item.itemId) {
-                navController.popBackStack(
-                    navController.graph.findStartDestination().id,
-                    false
-                )
-            } else {
-                goToTab(item)
-            }
-        }
         navController.addOnDestinationChangedListener { _, destination, _ ->
             updateTabSelection(destination.id)
         }
@@ -155,8 +141,7 @@ class MainActivity : AppCompatActivity() {
      * like the other navigation icons.
      */
     fun refreshProfileNavIcon() {
-        val item = binding.bottomNav.menu.findItem(R.id.nav_profile) ?: return
-        item.icon = ProfileAvatar.load(this)
+        binding.bottomNav.setTabIcon(R.id.nav_profile, ProfileAvatar.load(this))
     }
 
     private fun isMenuTab(destinationId: Int?): Boolean =
@@ -165,18 +150,11 @@ class MainActivity : AppCompatActivity() {
                 destinationId == R.id.nav_profile
 
     private fun updateTabSelection(destinationId: Int?) {
-        if (!isMenuTab(destinationId)) return
-        // Bottom navigation items are exclusive-checkable. Calling isChecked
-        // on any single item rewrites the whole group so that THIS item is
-        // the only checked one (the passed boolean is effectively ignored).
-        // Therefore we only (re-)check the active tab and let exclusivity
-        // uncheck the rest. Rewriting every item in a loop would leave the
-        // last one (profile) checked no matter what the destination is.
-        // On full-screen destinations (world map, add entry, import) the tabs
-        // are left untouched instead of unchecking everything, which would
-        // make the bar's internal selectedItemId go stale and resurrect an
-        // old tab highlight when returning.
-        binding.bottomNav.menu.findItem(destinationId!!)?.isChecked = true
+        if (!isMenuTab(destinationId)) {
+            binding.bottomNav.setSelectedDestination(-1)
+            return
+        }
+        binding.bottomNav.setSelectedDestination(destinationId!!)
     }
 
     private fun updateHeaderAndContent() {

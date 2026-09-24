@@ -53,6 +53,8 @@ object ChartData {
     )
     private val PIE_CHART_TILES = setOf("class", "traveltype", "function")
 
+    private const val TOP_AIRPORTS_LIMIT = 10
+
     fun isBarChart(tileId: String): Boolean = tileId in BAR_CHART_TILES
 
     fun isPieChart(tileId: String): Boolean = tileId in PIE_CHART_TILES
@@ -114,6 +116,16 @@ object ChartData {
             .sortedWith(compareByDescending<Bar> { it.count }.thenBy { it.label })
     }
 
+    fun topAirports(context: Context, limit: Int = TOP_AIRPORTS_LIMIT): List<Bar> =
+        periodFiltered(context)
+            .flatMap { listOf(it.fromAirport, it.toAirport) }
+            .filter { it.isNotBlank() }
+            .groupingBy { it }
+            .eachCount()
+            .map { (label, count) -> Bar(label, count) }
+            .sortedWith(compareByDescending<Bar> { it.count }.thenBy { it.label })
+            .take(limit)
+
     fun classSlices(context: Context): List<Slice> =
         classSlices(context, null)
 
@@ -135,7 +147,7 @@ object ChartData {
             val label = context.getString(type.resId)
             val value = filtered.count { normalizeClassType(it.classType) == type.canonical }
             Slice(label, value, colors[index])
-        }
+        }.filter { it.value > 0 }
     }
 
     fun travelTypeSlices(context: Context): List<Slice> =
@@ -150,7 +162,7 @@ object ChartData {
             val label = context.getString(type.resId)
             val value = entries.count { normalizeFlightType(it.flightType) == type.canonical }
             Slice(label, value, colors[index])
-        }
+        }.filter { it.value > 0 }
     }
 
     fun travelTypeColors(): List<Int> = listOf(

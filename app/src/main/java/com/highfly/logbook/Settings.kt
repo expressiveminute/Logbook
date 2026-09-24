@@ -39,9 +39,11 @@ object Settings {
     private const val KEY_ACCENT = "accent_color"
     private const val KEY_ROLE = "role"
     private const val KEY_CREW_FUNCTION = "crew_function"
+    private const val KEY_PREFERRED_CLASS = "preferred_class"
     private const val KEY_CLASS_SCHEME = "class_scheme"
     private const val KEY_AVATAR = "profile_avatar"
     private const val KEY_PROFILE_NAME = "profile_name"
+    private const val KEY_AIRLINE = "airline"
     private const val KEY_DEMO_DATA = "demo_data_enabled"
     private const val KEY_CITY_LABEL_LANGUAGE = "city_label_language"
     private const val KEY_MAP_ORIENTATION = "map_orientation"
@@ -101,6 +103,18 @@ object Settings {
     fun selectedCrewFunctionLabel(context: Context): String =
         crewFunctionLabel(context, getCrewFunction(context))
 
+    /**
+     * Bevorzugte Arbeitsposition (Reiseklasse) der Crew. Liefert den Index der
+     * Reiseklasse (0 Economy, 1 Premium Economy, 2 Business, 3 First) oder -1,
+     * wenn keine hinterlegt ist.
+     */
+    fun getPreferredClassIndex(context: Context): Int =
+        prefs(context).getInt(KEY_PREFERRED_CLASS, -1)
+
+    fun setPreferredClassIndex(context: Context, index: Int) {
+        prefs(context).edit().putInt(KEY_PREFERRED_CLASS, index).apply()
+    }
+
     fun getClassScheme(context: Context): String =
         prefs(context).getString(KEY_CLASS_SCHEME, CLASS_SCHEME_LUFTHANSA) ?: CLASS_SCHEME_LUFTHANSA
 
@@ -120,6 +134,13 @@ object Settings {
 
     fun setProfileName(context: Context, value: String) {
         prefs(context).edit().putString(KEY_PROFILE_NAME, value).apply()
+    }
+
+    fun getAirline(context: Context): String =
+        prefs(context).getString(KEY_AIRLINE, "") ?: ""
+
+    fun setAirline(context: Context, value: String) {
+        prefs(context).edit().putString(KEY_AIRLINE, value).apply()
     }
 
     fun isDemoDataEnabled(context: Context): Boolean =

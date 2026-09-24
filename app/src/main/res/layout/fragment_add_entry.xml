@@ -74,6 +74,7 @@
                         android:layout_height="match_parent" />
 
                     <LinearLayout
+                        android:id="@+id/flight_type_container"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:orientation="horizontal">
@@ -701,16 +702,18 @@
                     android:layout_height="wrap_content"
                     android:orientation="vertical">
 
-                    <LinearLayout
+                    <androidx.constraintlayout.widget.ConstraintLayout
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal">
+                        android:layout_height="wrap_content">
 
                     <com.google.android.material.card.MaterialCardView
                         android:id="@+id/tile_airport_departure"
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
+                        android:layout_height="0dp"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toStartOf="@id/tile_airport_arrival"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
                         app:cardCornerRadius="16dp"
                         app:cardElevation="0dp"
                         app:contentPaddingStart="16dp"
@@ -756,7 +759,7 @@
                                 android:id="@+id/iv_airport_check_from"
                                 android:layout_width="16dp"
                                 android:layout_height="16dp"
-                                android:layout_gravity="start|center_vertical"
+                                android:layout_gravity="start|top"
                                 android:contentDescription="@string/airport_valid_icon_desc"
                                 android:src="@drawable/ic_airport_check"
                                 android:visibility="gone" />
@@ -772,21 +775,14 @@
                         </FrameLayout>
                     </com.google.android.material.card.MaterialCardView>
 
-                    <ImageView
-                        android:id="@+id/iv_flight_departure"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:layout_gravity="center_vertical"
-                        android:layout_marginStart="6dp"
-                        android:layout_marginEnd="6dp"
-                        android:contentDescription="@string/airport_departure_icon_desc"
-                        android:src="@drawable/ic_flight_top" />
-
                     <com.google.android.material.card.MaterialCardView
                         android:id="@+id/tile_airport_arrival"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toEndOf="@id/tile_airport_departure"
+                        app:layout_constraintTop_toTopOf="parent"
                         app:cardCornerRadius="16dp"
                         app:cardElevation="0dp"
                         app:contentPaddingStart="16dp"
@@ -826,13 +822,23 @@
                                     android:maxLines="1"
                                     android:textSize="17sp"
                                     android:textColor="?attr/colorOnSurface" />
+
+                                <com.google.android.material.checkbox.MaterialCheckBox
+                                    android:id="@+id/cb_layover"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="-8dp"
+                                    android:text="@string/layover_label"
+                                    android:minWidth="0dp"
+                                    android:paddingEnd="4dp"
+                                    android:visibility="gone" />
                             </LinearLayout>
 
                             <ImageView
                                 android:id="@+id/iv_airport_check_to"
                                 android:layout_width="16dp"
                                 android:layout_height="16dp"
-                                android:layout_gravity="start|center_vertical"
+                                android:layout_gravity="start|top"
                                 android:contentDescription="@string/airport_valid_icon_desc"
                                 android:src="@drawable/ic_airport_check"
                                 android:visibility="gone" />
@@ -847,18 +853,7 @@
                                 android:visibility="gone" />
                         </FrameLayout>
                     </com.google.android.material.card.MaterialCardView>
-
-                    <com.google.android.material.checkbox.MaterialCheckBox
-                        android:id="@+id/cb_layover"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center_vertical"
-                        android:layout_marginStart="8dp"
-                        android:text="@string/layover_label"
-                        android:minWidth="0dp"
-                        android:paddingEnd="4dp"
-                        android:visibility="gone" />
-                    </LinearLayout>
+                    </androidx.constraintlayout.widget.ConstraintLayout>
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -1247,10 +1242,10 @@
                     android:minLines="3"
                     android:textSize="16sp"
                     android:textColor="?attr/colorOnSurface" />
-            </com.google.android.material.card.MaterialCardView>
-                </LinearLayout>
+</com.google.android.material.card.MaterialCardView>
+                    </LinearLayout>
 
-                <LinearLayout
+                    <LinearLayout
                     android:id="@+id/optional_split_block"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

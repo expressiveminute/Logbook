@@ -1,5 +1,8 @@
 package com.highfly.logbook
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.ValueAnimator
 import android.graphics.Typeface
 import android.os.Bundle
 import android.text.Layout
@@ -15,6 +18,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.LayoutInflater
 import android.view.ViewTreeObserver
+import android.view.animation.DecelerateInterpolator
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -23,6 +27,8 @@ import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.color.MaterialColors
 import com.highfly.logbook.databinding.FragmentFirstBinding
+import java.text.DecimalFormat
+import java.text.DecimalFormatSymbols
 import java.util.Locale
 
 class FirstFragment : Fragment() {
@@ -35,6 +41,9 @@ class FirstFragment : Fragment() {
     private var timeMinutes = 0
     private var timeUnitIndex = 0
     private var loadGeneration = 0
+
+    private val valueAnimators = mutableListOf<ValueAnimator>()
+    private val finalValueTexts = mutableMapOf<TextView, CharSequence>()
 
     private val timeUnits = listOf(
         DashboardStats.TimeUnit.HOURS,
@@ -116,6 +125,9 @@ class FirstFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        valueAnimators.forEach { it.cancel() }
+        valueAnimators.clear()
+        finalValueTexts.clear()
         _binding = null
     }
 
@@ -169,6 +181,9 @@ class FirstFragment : Fragment() {
         co2: Co2Calculator.Details,
         entries: List<LogbookEntry>
     ) {
+        valueAnimators.forEach { it.cancel() }
+        valueAnimators.clear()
+        finalValueTexts.clear()
         container.removeAllViews()
         if (rows.isEmpty()) {
             container.visibility = View.GONE
@@ -230,7 +245,7 @@ class FirstFragment : Fragment() {
                         requireContext(), timeMinutes, timeUnits[timeUnitIndex]
                     )
                     tileContainer.findViewById<TextView>(R.id.tv_tile_value).apply {
-                        text = value.text
+                        animateCountUp(this, value.text)
                         visibility = View.VISIBLE
                     }
                     tileContainer.findViewById<TextView>(R.id.tv_tile_unit).apply {
@@ -278,7 +293,7 @@ class FirstFragment : Fragment() {
                             text = ""
                             visibility = View.GONE
                         } else {
-                            text = buildValueText(value)
+                            animateCountUp(this, buildValueText(value))
                             visibility = View.VISIBLE
                         }
                     }
@@ -365,8 +380,11 @@ class FirstFragment : Fragment() {
                 targets.add(tv)
                 val baseTextSize = tv.textSize
                 val textPaint = TextPaint(tv.paint).apply { textSize = baseTextSize }
+                // Vermisst den END-Wert statt des animierten Zwischenwerts,
+                // damit die Schrift auf die finale Zahl passt.
+                val measureText = finalValueTexts[tv] ?: tv.text
                 val layout = StaticLayout.Builder
-                    .obtain(tv.text, 0, tv.text.length, textPaint, Int.MAX_VALUE)
+                    .obtain(measureText, 0, measureText.length, textPaint, Int.MAX_VALUE)
                     .setAlignment(Layout.Alignment.ALIGN_NORMAL)
                     .setLineSpacing(0f, 1f)
                     .setIncludePad(false)
@@ -409,14 +427,88 @@ class FirstFragment : Fragment() {
         return builder
     }
 
+    private data class AnimatedParts(val number: Double, val decimals: Int, val suffix: String)
+
+    /**
+     * Zählt den führenden Zahlenwert eines Tile-Werts von 0 auf den Zielwert hoch.
+     * Erkennbare Formate (deutsch): "22", "73,3", "884,234", "1.234", "10 (5%)".
+     */
+    private fun animateCountUp(tv: TextView, finalText: CharSequence?) {
+        if (finalText.isNullOrEmpty()) {
+            tv.text = finalText ?: ""
+            return
+        }
+        val parts = parseAnimated(finalText.toString())
+        if (parts == null) {
+            tv.text = finalText
+            return
+        }
+
+        val formatter = DecimalFormat(
+            "#,##0",
+            DecimalFormatSymbols.getInstance(Locale.GERMANY)
+        ).apply {
+            minimumFractionDigits = parts.decimals
+            maximumFractionDigits = parts.decimals
+        }
+        val target = parts.number
+
+        finalValueTexts[tv] = finalText
+        tv.text = formatter.format(0.0) + parts.suffix
+
+        val animator = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 900L
+            interpolator = DecelerateInterpolator()
+            addUpdateListener {
+                val t = it.animatedValue as Float
+                tv.text = formatter.format(target * t) + parts.suffix
+            }
+            addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) {
+                    tv.text = finalText
+                    finalValueTexts.remove(tv)
+                }
+            })
+            start()
+        }
+        valueAnimators += animator
+    }
+
+    private fun parseAnimated(text: String): AnimatedParts? {
+        val normalized = text.replace("\u00A0", " ").replace("\u2009", " ")
+        val rawMatch = Regex("^[0-9., ]*").find(normalized)?.value ?: return null
+        if (rawMatch.isEmpty()) return null
+        val match = rawMatch.trim()
+        val suffix = normalized.substring(rawMatch.length)
+
+        // Deutsch: ',' ist IMMER das Dezimaltrennzeichen, '.' nur Tausender-
+        // trenner ("1.234,567"). Ohne ',' ist die Zahl ganzzahlig.
+        val comma = match.lastIndexOf(',')
+        if (comma >= 0) {
+            val decimals = match.length - 1 - comma
+            val intPart = match.substring(0, comma).replace(".", "")
+            val intValue = intPart.toLongOrNull() ?: return null
+            var value = intValue.toDouble()
+            if (decimals > 0) {
+                val fracValue = match.substring(comma + 1).toLongOrNull() ?: return null
+                value += fracValue / Math.pow(10.0, decimals.toDouble())
+            }
+            return AnimatedParts(value, decimals, suffix)
+        }
+        val value = match.replace(".", "").toLongOrNull() ?: return null
+        return AnimatedParts(value.toDouble(), 0, suffix)
+    }
+
     private fun populateCo2Tile(
         container: ViewGroup,
         co2: Co2Calculator.Details
     ) {
-        container.findViewById<TextView>(R.id.tv_co2_value).text =
-            Co2Calculator.tonnesText(co2.tonnes)
-        container.findViewById<TextView>(R.id.tv_trees_value).text =
-            String.format(Locale.GERMANY, "%,d", co2.treesPerYear)
+        container.findViewById<TextView>(R.id.tv_co2_value).apply {
+            animateCountUp(this, Co2Calculator.tonnesText(co2.tonnes))
+        }
+        container.findViewById<TextView>(R.id.tv_trees_value).apply {
+            animateCountUp(this, String.format(Locale.GERMANY, "%,d", co2.treesPerYear))
+        }
     }
 
     private fun populateDistanceTile(
@@ -426,12 +518,12 @@ class FirstFragment : Fragment() {
         val context = requireContext()
         val none = context.getString(R.string.distance_none)
 
-        container.findViewById<TextView>(R.id.tv_dist_value).text = buildValueText(
-            DashboardStats.Value(
-                DashboardStats.kmText(context, distance.totalKm),
-                null
+        container.findViewById<TextView>(R.id.tv_dist_value).apply {
+            animateCountUp(
+                this,
+                buildValueText(DashboardStats.Value(DashboardStats.kmText(context, distance.totalKm), null))
             )
-        )
+        }
 
         container.findViewById<TextView>(R.id.tv_dist_furthest_label).text =
             context.getString(R.string.distance_furthest_label)
@@ -453,12 +545,12 @@ class FirstFragment : Fragment() {
         container.findViewById<TextView>(R.id.tv_dist_shortest_km).text =
             distance.shortestKm?.let { DashboardStats.kmText(context, it) } ?: none
 
-        container.findViewById<TextView>(R.id.tv_orbits_value).text = buildValueText(
-            DashboardStats.Value(DashboardStats.factorText(distance.earthOrbits), "×")
-        )
-        container.findViewById<TextView>(R.id.tv_moon_value).text = buildValueText(
-            DashboardStats.Value(DashboardStats.factorText(distance.moonTrips), "×")
-        )
+        container.findViewById<TextView>(R.id.tv_orbits_value).apply {
+            animateCountUp(this, buildValueText(DashboardStats.Value(DashboardStats.factorText(distance.earthOrbits), "×")))
+        }
+        container.findViewById<TextView>(R.id.tv_moon_value).apply {
+            animateCountUp(this, buildValueText(DashboardStats.Value(DashboardStats.factorText(distance.moonTrips), "×")))
+        }
     }
 
     private fun cycleTimeUnit(tileContainer: ViewGroup) {

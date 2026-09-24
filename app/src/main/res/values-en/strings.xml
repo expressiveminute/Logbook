@@ -70,9 +70,13 @@
     <string name="profile_avatar_world">Globe</string>
     <string name="profile_avatar_upload">Upload from gallery</string>
     <string name="profile_name_hint">Name</string>
+    <string name="profile_airline_label">Airline:</string>
+    <string name="profile_airline_hint">LH</string>
+    <string name="profile_preferred_class_label">Preferred working position travel class</string>
     <string name="settings_section_themes">Themes</string>
     <string name="settings_section_customization">Customization</string>
     <string name="settings_expand">Expand section</string>
+    <string name="settings_open">Open settings</string>
     <string name="settings_dark_mode">Dark Mode</string>
     <string name="settings_light_mode">Light Mode</string>
     <string name="settings_accent_color">Accent Color</string>
@@ -181,6 +185,7 @@
     <string name="airport_departure_icon_desc">Departure</string>
     <string name="airport_valid_icon_desc">Airport code exists and can be shown on the map</string>
 <string name="btn_save_flight">Save flight</string>
+    <string name="btn_update_flight">Update flight</string>
     <string name="btn_discard_flight">Discard flight</string>
     <string name="btn_save_flights">Save flights</string>
     <string name="btn_discard_flights">Discard flights</string>

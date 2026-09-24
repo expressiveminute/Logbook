@@ -71,9 +71,13 @@
     <string name="profile_avatar_world">Weltkugel</string>
     <string name="profile_avatar_upload">Aus Galerie hochladen</string>
     <string name="profile_name_hint">Name</string>
+    <string name="profile_airline_label">Fluggesellschaft:</string>
+    <string name="profile_airline_hint">LH</string>
+    <string name="profile_preferred_class_label">Bevorzugte Arbeitsposition Reiseklasse</string>
     <string name="settings_section_themes">Themes</string>
     <string name="settings_section_customization">Customization</string>
     <string name="settings_expand">Abschnitt ausklappen</string>
+    <string name="settings_open">Einstellungen öffnen</string>
     <string name="settings_dark_mode">Dunkelmodus</string>
     <string name="settings_light_mode">Hellmodus</string>
     <string name="settings_accent_color">Akzentfarbe</string>
@@ -182,6 +186,7 @@
     <string name="airport_departure_icon_desc">Abflug</string>
     <string name="airport_valid_icon_desc">Flughafencode vorhanden und auf der Karte anzeigbar</string>
     <string name="btn_save_flight">Flug speichern</string>
+    <string name="btn_update_flight">Flug aktualisieren</string>
     <string name="btn_discard_flight">Flug verwerfen</string>
     <string name="btn_save_flights">Flüge speichern</string>
     <string name="btn_discard_flights">Flüge verwerfen</string>

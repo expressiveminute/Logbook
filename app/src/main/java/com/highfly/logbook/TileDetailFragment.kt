@@ -53,6 +53,9 @@ class TileDetailFragment : Fragment() {
             tileId == "function" -> {
                 renderPie(ChartData.functionSlices(requireContext()))
             }
+            tileId == "routes" -> {
+                renderRoutes()
+            }
             ChartData.isBarChart(tileId) -> {
                 if (tileId == "countries") {
                     renderContinents()
@@ -78,6 +81,17 @@ class TileDetailFragment : Fragment() {
                 )
             }
         )
+    }
+
+    private fun renderRoutes() {
+        val topAirports = ChartData.topAirports(requireContext())
+        if (topAirports.isNotEmpty()) {
+            binding.barAirports.visibility = View.VISIBLE
+            binding.barAirports.setItems(
+                topAirports.map { MonthBarChartView.Item(it.label, it.count) }
+            )
+        }
+        renderBars(ChartData.barChart(requireContext(), "routes"))
     }
 
     private fun renderBars(bars: List<ChartData.Bar>) {

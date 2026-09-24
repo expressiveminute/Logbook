@@ -43,6 +43,14 @@ class AddEntryFragment : Fragment() {
     private var editingEntryId: Long = -1L
     private var returnActive = false
 
+    /**
+     * Wird true, sobald der Speichern-Button im aktuellen Bearbeitungsdurchgang
+     * sichtbar geworden ist. Verhindert, dass ein erneutes Sichtbarwerden nach
+     * kurzem Löschen/Wieder-Eintippen eines Pflichtfeldes den Fokus aus dem
+     * Eingabefeld reißt (Auto-Scroll zum Speichern-Button).
+     */
+    private var saveButtonRevealHandled = false
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -66,11 +74,14 @@ class AddEntryFragment : Fragment() {
         setupDeadheadTiles()
         setupClassTiles()
         setupAirlineAutoAdvance()
+        setupFlightNumberRoutePrefill()
         setupAircraftTypeFields()
+        setupRegistrationUppercase()
         setupAirportAutoAdvance()
         setupFlightTimeConversion()
         setupDateField()
         setupReturnToggle()
+        updateReturnUi()
         setupProgressiveReveal()
         setupOptionalSection()
         setupSaveAndDiscard()
@@ -86,25 +97,55 @@ class AddEntryFragment : Fragment() {
     }
 
     private fun setupFlightTypeTiles() {
-        val tiles = listOf(
-            binding.tileFlightPrivate,
-            binding.tileFlightOnDuty,
-            binding.tileFlightDeadhead,
-            binding.tileFlightDutyTravel,
-        )
-        val labels = listOf(
-            binding.labelFlightPrivate,
-            binding.labelFlightOnDuty,
-            binding.labelFlightDeadhead,
-            binding.labelFlightDutyTravel,
-        )
+        reorderFlightTypeTiles()
+        val tiles = orderedFlightTypeTiles()
+        val labels = orderedFlightTypeLabels()
 
         configureHighlight(binding.flightGroupFrame, binding.flightHighlight, tiles)
 
-        tiles.forEachIndexed { index, tile ->
-            tile.setOnClickListener { selectFlightType(index) }
+        tiles.forEachIndexed { visualIndex, tile ->
+            tile.setOnClickListener { selectFlightType(flightTypeVisualOrder()[visualIndex]) }
         }
         updateFlightLabels(labels, null)
+    }
+
+    /**
+     * Semantische Indizes -> Kacheln. Die sichtbare Reihenfolge kann je nach Rolle
+     * abweichen (Crew: On Duty, Deadhead, Dienstreise, Privat; Passagier: wie im
+     * Layout), daher werden Kacheln/Labels immer über diese Zuordnung aufgelöst.
+     */
+    private fun flightTypeTilesByIndex(): Map<Int, View> = mapOf(
+        PRIVATE_INDEX to binding.tileFlightPrivate,
+        ON_DUTY_INDEX to binding.tileFlightOnDuty,
+        DEADHEAD_INDEX to binding.tileFlightDeadhead,
+        DUTY_TRAVEL_INDEX to binding.tileFlightDutyTravel,
+    )
+
+    private fun flightTypeLabelsByIndex(): Map<Int, TextView> = mapOf(
+        PRIVATE_INDEX to binding.labelFlightPrivate,
+        ON_DUTY_INDEX to binding.labelFlightOnDuty,
+        DEADHEAD_INDEX to binding.labelFlightDeadhead,
+        DUTY_TRAVEL_INDEX to binding.labelFlightDutyTravel,
+    )
+
+    private fun flightTypeVisualOrder(): IntArray =
+        if (Settings.getRole(requireContext()) == Settings.ROLE_CREW) {
+            intArrayOf(ON_DUTY_INDEX, DEADHEAD_INDEX, DUTY_TRAVEL_INDEX, PRIVATE_INDEX)
+        } else {
+            intArrayOf(PRIVATE_INDEX, ON_DUTY_INDEX, DEADHEAD_INDEX, DUTY_TRAVEL_INDEX)
+        }
+
+    private fun orderedFlightTypeTiles(): List<View> =
+        flightTypeVisualOrder().map { flightTypeTilesByIndex()[it]!! }
+
+    private fun orderedFlightTypeLabels(): List<TextView> =
+        flightTypeVisualOrder().map { flightTypeLabelsByIndex()[it]!! }
+
+    private fun reorderFlightTypeTiles() {
+        val container = binding.flightTypeContainer
+        val ordered = orderedFlightTypeTiles()
+        for (tile in ordered) container.removeView(tile)
+        for (tile in ordered) container.addView(tile)
     }
 
     private fun setupDeadheadTiles() {
@@ -179,37 +220,62 @@ class AddEntryFragment : Fragment() {
 
     private fun selectFlightType(index: Int) {
         selectedFlightTypeIndex = index
-        val tiles = listOf(
-            binding.tileFlightPrivate,
-            binding.tileFlightOnDuty,
-            binding.tileFlightDeadhead,
-            binding.tileFlightDutyTravel,
-        )
-        val labels = listOf(
-            binding.labelFlightPrivate,
-            binding.labelFlightOnDuty,
-            binding.labelFlightDeadhead,
-            binding.labelFlightDutyTravel,
-        )
+        val tiles = orderedFlightTypeTiles()
+        val labels = orderedFlightTypeLabels()
+        val visualIndex = flightTypeVisualOrder().indexOf(index)
         moveHighlight(
             binding.flightGroupFrame,
             binding.flightHighlight,
             tiles,
-            index,
+            visualIndex,
             ContextCompat.getColor(requireContext(), flightTypeColorRes(index))
         )
-        updateFlightLabels(labels, index)
+        updateFlightLabels(labels, visualIndex)
         updateDeadheadRowVisibility()
         updateFunctionVisibility()
+        updateAirlineVisibility()
+        updatePreferredClass()
         updateLayoverVisibility()
         refreshVisibility()
     }
 
+    /**
+     * Ist in den Einstellungen eine bevorzugte Arbeitsposition (Reiseklasse)
+     * hinterlegt, wird sie bei "On Duty" automatisch vorausgewählt (sofern noch
+     * keine Reiseklasse gewählt wurde).
+     */
+    private fun updatePreferredClass() {
+        if (prefilling) return
+        if (selectedFlightTypeIndex != ON_DUTY_INDEX) return
+        if (selectedClassIndex != null) return
+        val preferred = Settings.getPreferredClassIndex(requireContext())
+        if (preferred in 0..3) {
+            selectClass(preferred)
+        }
+    }
+
     private fun updateLayoverVisibility() {
         val isCrew = Settings.getRole(requireContext()) == Settings.ROLE_CREW
-        val isPrivate = selectedFlightTypeIndex == 0
+        val isPrivate = selectedFlightTypeIndex == PRIVATE_INDEX
         binding.cbLayover.visibility =
             if (isCrew && !isPrivate) View.VISIBLE else View.GONE
+    }
+
+    /**
+     * Bei den Reisearten On Duty, Deadhead und Dienstreise wird das Feld
+     * "Fluggesellschaft" automatisch mit der in den Einstellungen hinterlegten
+     * Fluggesellschaft vorbefüllt (sofern es noch leer ist).
+     */
+    private fun updateAirlineVisibility() {
+        val prefill = selectedFlightTypeIndex == ON_DUTY_INDEX ||
+            selectedFlightTypeIndex == DEADHEAD_INDEX ||
+            selectedFlightTypeIndex == DUTY_TRAVEL_INDEX
+        if (prefill && !prefilling && binding.etAirline.text.isNullOrBlank()) {
+            val airline = Settings.getAirline(requireContext())
+            if (airline.isNotBlank()) {
+                binding.etAirline.setText(airline)
+            }
+        }
     }
 
     private fun selectClass(index: Int) {
@@ -417,8 +483,38 @@ class AddEntryFragment : Fragment() {
                     focusAndShowKeyboard(binding.etFlightNumber)
                 }
                 prefillRegistration()
+                prefillRouteFromHistory()
             }
         })
+    }
+
+    private fun setupFlightNumberRoutePrefill() {
+        binding.etFlightNumber.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable) {
+                prefillRouteFromHistory()
+            }
+        })
+    }
+
+    /**
+     * Wenn Fluggesellschaft und Flugnummer bereits in gespeicherten Einträgen
+     * vorkommen, werden Abflug und Ankunft automatisch mit der am häufigsten
+     * gespeicherten Strecke übernommen. Eigene Eingaben werden nicht überschrieben.
+     */
+    private fun prefillRouteFromHistory() {
+        if (editingEntryId >= 0) return
+        if (!binding.etAirportFrom.text.isNullOrBlank() || !binding.etAirportTo.text.isNullOrBlank()) {
+            return
+        }
+        val airline = binding.etAirline.text?.toString()?.trim().orEmpty()
+        val flightNumber = binding.etFlightNumber.text?.toString()?.trim().orEmpty()
+        if (airline.isEmpty() || flightNumber.isEmpty()) return
+        val route = mostFrequentRoute(LogbookRepository.getEntries(), airline, flightNumber)
+            ?: return
+        binding.etAirportFrom.setText(route.from)
+        binding.etAirportTo.setText(route.to)
     }
 
     private fun setupAircraftTypeFields() {
@@ -427,13 +523,44 @@ class AddEntryFragment : Fragment() {
         setupAircraftTypeField(binding.etRueckflugAircraft, binding.etRueckflugRegistration)
     }
 
+    private fun setupRegistrationUppercase() {
+        setupUppercaseWatcher(binding.etRegistration)
+        setupUppercaseWatcher(binding.etHinflugRegistration)
+        setupUppercaseWatcher(binding.etRueckflugRegistration)
+    }
+
+    private fun setupUppercaseWatcher(editText: EditText) {
+        editText.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable) {
+                val upper = s.toString().uppercase()
+                if (upper != s.toString()) {
+                    s.replace(0, s.length, upper)
+                }
+            }
+        })
+    }
+
     private fun setupAircraftTypeField(aircraft: EditText, registration: EditText) {
         aircraft.addTextChangedListener(object : TextWatcher {
             private var isFormatting = false
+            private var completed = false
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable) {
                 if (isFormatting) return
+                val completion = if (!completed) aircraftCompletion(s.toString()) else null
+                if (completion != null) {
+                    completed = true
+                    isFormatting = true
+                    s.replace(0, s.length, completion)
+                    isFormatting = false
+                    prefillRegistration(aircraft, registration)
+                    focusAndShowKeyboard(registration)
+                    registration.setSelection(registration.length())
+                    return
+                }
                 val formatted = formatAircraftType(s.toString())
                 if (formatted != s.toString()) {
                     isFormatting = true
@@ -443,6 +570,12 @@ class AddEntryFragment : Fragment() {
                 prefillRegistration(aircraft, registration)
             }
         })
+    }
+
+    private fun aircraftCompletion(input: String): String? {
+        val prefix = input.trim().uppercase()
+        if (prefix.length < 3) return null
+        return AIRCRAFT_AUTOCOMPLETE[prefix]
     }
 
     /**
@@ -550,10 +683,8 @@ class AddEntryFragment : Fragment() {
         val gap = 5f * resources.displayMetrics.density
         check.translationX = textStartX + textWidth + gap
 
-        val frame = check.parent as? ViewGroup
-        val frameHeight = frame?.height ?: editText.height
-        val editCenterInFrame = editText.top + editText.height / 2f
-        check.translationY = editCenterInFrame - frameHeight / 2f
+        val checkHalfHeight = 8f * resources.displayMetrics.density
+        check.translationY = editText.top + editText.height / 2f - checkHalfHeight
     }
 
     private fun updateCountryFlag(code: String, flag: TextView) {
@@ -694,12 +825,18 @@ class AddEntryFragment : Fragment() {
     }
 
     private fun updateReturnUi() {
+        val editing = editingEntryId >= 0
+        binding.returnSection.visibility = if (editing) View.GONE else View.VISIBLE
         binding.tvAddReturn.visibility = if (returnActive) View.GONE else View.VISIBLE
         binding.tileDateReturn.visibility = if (returnActive) View.VISIBLE else View.GONE
         binding.tvDateLabel.setText(if (returnActive) R.string.hinflight_label else R.string.date_label)
         binding.optionalSingleBlock.visibility = if (returnActive) View.GONE else View.VISIBLE
         binding.optionalSplitBlock.visibility = if (returnActive) View.VISIBLE else View.GONE
-        binding.btnSaveFlight.setText(if (returnActive) R.string.btn_save_flights else R.string.btn_save_flight)
+        binding.btnSaveFlight.setText(
+            if (editing) R.string.btn_update_flight
+            else if (returnActive) R.string.btn_save_flights
+            else R.string.btn_save_flight
+        )
         binding.btnDiscardFlight.setText(if (returnActive) R.string.btn_discard_flights else R.string.btn_discard_flight)
         refreshVisibility()
     }
@@ -752,18 +889,28 @@ class AddEntryFragment : Fragment() {
             distance.isNotEmpty() && flightTime.isNotEmpty()
 
         val saveWasVisible = binding.btnSaveFlight.visibility == View.VISIBLE
+        if (saveWasVisible) {
+            saveButtonRevealHandled = true
+        }
         binding.btnSaveFlight.visibility = if (allRequired) View.VISIBLE else View.GONE
         binding.btnDiscardFlight.visibility = if (allRequired) View.VISIBLE else View.GONE
-        if (allRequired && !saveWasVisible) {
+        if (allRequired && !saveWasVisible && !saveButtonRevealHandled && editingEntryId < 0) {
+            saveButtonRevealHandled = true
             binding.btnSaveFlight.post { binding.scrollView.fullScroll(View.FOCUS_DOWN) }
         }
     }
 
     companion object {
         private val DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy")
-        private const val DEADHEAD_INDEX = 2
+        private const val PRIVATE_INDEX = 0
         private const val ON_DUTY_INDEX = 1
+        private const val DEADHEAD_INDEX = 2
+        private const val DUTY_TRAVEL_INDEX = 3
         private const val CLASS_JUMP_INDEX = 4
+        private val AIRCRAFT_AUTOCOMPLETE = mapOf(
+            "A35" to "A350-900",
+            "A38" to "A380-800",
+        )
     }
 
     private fun setupSaveAndDiscard() {
@@ -777,12 +924,7 @@ class AddEntryFragment : Fragment() {
             val detailIndex = selectedDeadheadIndex ?: 0
             return deadheadLabels()[detailIndex].text.toString()
         }
-        return listOf(
-            binding.labelFlightPrivate,
-            binding.labelFlightOnDuty,
-            binding.labelFlightDeadhead,
-            binding.labelFlightDutyTravel,
-        )[topLevelIndex].text.toString()
+        return flightTypeLabelsByIndex()[topLevelIndex]?.text?.toString()
     }
 
     private fun selectedClassType(): String? =
