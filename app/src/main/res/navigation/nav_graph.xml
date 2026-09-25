@@ -22,6 +22,9 @@
         <action
             android:id="@+id/action_dashboard_to_flights_year"
             app:destination="@id/nav_flights_year" />
+        <action
+            android:id="@+id/action_dashboard_to_discovery"
+            app:destination="@id/nav_discovery" />
     </fragment>
 
     <fragment
@@ -125,4 +128,9 @@
             android:id="@+id/action_world_map_to_entries"
             app:destination="@id/nav_entries" />
     </fragment>
+
+    <fragment
+        android:id="@+id/nav_discovery"
+        android:name="com.highfly.logbook.DiscoveryFragment"
+        tools:layout="@layout/fragment_discovery" />
 </navigation>

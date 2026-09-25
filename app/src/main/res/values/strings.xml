@@ -17,12 +17,12 @@
     <string name="tile_layover">Layover</string>
     <string name="tile_class">Reiseklasse</string>
     <string name="tile_travel_type">Reiseart</string>
-    <string name="tile_aircraft_reg">A/C type &amp; registarion</string>
+    <string name="tile_aircraft_reg">A/C Typ &amp; Kennung</string>
     <string name="tile_countries">Länder</string>
     <string name="tile_flights_singular">Flug</string>
     <string name="tile_airlines_singular">Fluggesellschaft</string>
     <string name="tile_routes_singular">Flughäfen/-routen</string>
-    <string name="tile_aircraft_reg_singular">A/C type &amp; registarion</string>
+    <string name="tile_aircraft_reg_singular">A/C Typ &amp; Kennung</string>
     <string name="tile_countries_singular">Land</string>
     <string name="tile_function">Funktion</string>
     <string name="tile_earth_orbits">Erdumrundungen</string>
@@ -238,6 +238,16 @@
     <string name="world_map_city_language_de">Deutsch</string>
     <string name="world_map_show_entries">Alle Logbucheinträge hierzu anzeigen</string>
     <string name="world_map_rotate">Hoch-/Querformat wechseln</string>
+
+    <!-- Discovery page -->
+    <string name="discovery_title">Discovery</string>
+    <string name="discovery_subtitle">Zum ersten Mal geflogene Strecken</string>
+    <string name="discovery_year_title">Jahr auswählen</string>
+    <string name="discovery_empty">In diesem Jahr wurde keine neue Strecke entdeckt.</string>
+    <string name="discovery_aircraft">%1$s · %2$s</string>
+    <string name="discovery_month">%1$s %2$d</string>
+    <string name="discovery_map">Karte der Flugstrecke</string>
+    <string name="discovery_map_desc">Kartenausschnitt der Flugstrecke %1$s – %2$s</string>
 
     <!-- Import page -->
     <string name="import_page_title">Import</string>

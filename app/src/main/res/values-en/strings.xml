@@ -238,6 +238,16 @@
     <string name="world_map_show_entries">Show all logbook entries for this airport</string>
     <string name="world_map_rotate">Switch portrait/landscape</string>
 
+    <!-- Discovery page -->
+    <string name="discovery_title">Discovery</string>
+    <string name="discovery_subtitle">Routes flown for the first time</string>
+    <string name="discovery_year_title">Select year</string>
+    <string name="discovery_empty">No new route has been discovered in this year.</string>
+    <string name="discovery_aircraft">%1$s · %2$s</string>
+    <string name="discovery_month">%1$s %2$d</string>
+    <string name="discovery_map">Map of the flight route</string>
+    <string name="discovery_map_desc">Map excerpt of the flight route %1$s – %2$s</string>
+
     <!-- Import page -->
     <string name="import_page_title">Import</string>
     <string name="import_step1_title">Step 1 · Choose import mode</string>

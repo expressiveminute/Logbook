@@ -20,7 +20,6 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.color.MaterialColors
 import com.highfly.logbook.databinding.FragmentWorldMapBinding
-import org.json.JSONObject
 import org.osmdroid.config.Configuration as OsmdroidConfig
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
@@ -51,7 +50,7 @@ class WorldMapFragment : Fragment() {
     private var entriesData: List<LogbookEntry> = emptyList()
     private var routesData: List<RouteLine>? = null
     private var airportsData: Map<String, GeoPoint>? = null
-    private var citiesData: List<CitiesOverlay.City>? = null
+    private var citiesData: List<MapCity>? = null
     private var countriesData: List<CountryLabelOverlay.Country>? = null
 
     private class RouteLine(
@@ -268,7 +267,7 @@ class WorldMapFragment : Fragment() {
     private fun render(
         routes: List<RouteLine>,
         airports: Map<String, GeoPoint>,
-        cities: List<CitiesOverlay.City>,
+        cities: List<MapCity>,
         countries: List<CountryLabelOverlay.Country>,
         entries: List<LogbookEntry>
     ) {
@@ -654,34 +653,7 @@ class WorldMapFragment : Fragment() {
         return points
     }
 
-    private fun loadCities(context: Context): List<CitiesOverlay.City> {
-        return try {
-            val json = context.assets.open("cities.json")
-                .bufferedReader()
-                .use { it.readText() }
-            val root = JSONObject(json)
-            val result = mutableListOf<CitiesOverlay.City>()
-            val keys = root.keys()
-            while (keys.hasNext()) {
-                val name = keys.next()
-                val coords = root.getJSONArray(name)
-                result.add(
-                    CitiesOverlay.City(
-                        nativeName = name,
-                        deName = if (coords.length() > 4) coords.getString(4) else name,
-                        enName = if (coords.length() > 5) coords.getString(5) else name,
-                        point = GeoPoint(coords.getDouble(0), coords.getDouble(1)),
-                        rank = coords.optInt(2, 0),
-                        isCapital = coords.optInt(3, 0) == 1
-                    )
-                )
-            }
-            result
-        } catch (e: Exception) {
-            Log.e(TAG, "Städte konnten nicht geladen werden", e)
-            emptyList()
-        }
-    }
+    private fun loadCities(context: Context): List<MapCity> = MapCities.load(context)
 
     private fun loadCountries(context: Context): List<CountryLabelOverlay.Country> {
         return try {
@@ -702,26 +674,11 @@ class WorldMapFragment : Fragment() {
     }
 
     private class CitiesOverlay(
-        private val cities: List<City>,
+        private val cities: List<MapCity>,
         private val labelColor: Int,
         private val collision: LabelCollision,
         private val language: String
     ) : Overlay() {
-
-        class City(
-            val nativeName: String,
-            val deName: String,
-            val enName: String,
-            val point: GeoPoint,
-            val rank: Int,
-            val isCapital: Boolean
-        ) {
-            fun displayName(language: String): String = when (language) {
-                Settings.CITY_LANG_DE -> deName
-                Settings.CITY_LANG_EN -> enName
-                else -> nativeName
-            }
-        }
 
         override fun draw(canvas: Canvas, mapView: MapView, shadow: Boolean) {
             if (shadow) return
@@ -755,7 +712,9 @@ class WorldMapFragment : Fragment() {
                 }
                 if (zoom < minLabelZoom) return@forEach
 
-                val px = mapView.projection.toPixels(city.point, null)
+                val px = mapView.projection.toPixels(
+                    GeoPoint(city.lat, city.lon), null
+                )
                 val sx = px.x.toFloat()
                 val sy = px.y.toFloat()
                 if (sx < -30 || sx > mapView.width + 30) return@forEach

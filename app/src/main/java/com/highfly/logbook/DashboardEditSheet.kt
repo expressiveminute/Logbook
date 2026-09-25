@@ -33,6 +33,9 @@ class DashboardEditSheet(
     }
 
     private val rows = mutableListOf<List<String>>()
+
+    /** Rasterposition je Kachel, fuer die Farbdarstellung der Vorschau. */
+    private val tilePositions = mutableMapOf<String, DashboardPrefs.TilePosition>()
     private var preview: LinearLayout? = null
     private var empty: TextView? = null
     private var highlightedTile: View? = null
@@ -178,6 +181,8 @@ class DashboardEditSheet(
         emptyView.visibility = if (isEmptyRows) View.VISIBLE else View.GONE
         previewLayout.visibility = if (isEmptyRows) View.GONE else View.VISIBLE
 
+        tilePositions.clear()
+        var column = 0
         rows.forEachIndexed { rowIndex, rowIds ->
             val row = LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
@@ -211,7 +216,10 @@ class DashboardEditSheet(
 
                 val card = binding.tileCard
                 card.tag = tileId
-                DashboardTileColors.apply(card, tileId)
+                val position = DashboardPrefs.TilePosition(rowIndex, column)
+                tilePositions[tileId] = position
+                DashboardTileColors.apply(card, position)
+                column++
                 card.isLongClickable = true
                 card.setOnLongClickListener { cardView ->
                     cardView.startDragAndDrop(
@@ -404,8 +412,9 @@ class DashboardEditSheet(
             card.strokeColor = color(com.google.android.material.R.attr.colorPrimary)
         } else {
             val tileId = card.tag as? String
-            if (tileId != null) {
-                DashboardTileColors.apply(card, tileId)
+            val position = tileId?.let { tilePositions[it] }
+            if (position != null) {
+                DashboardTileColors.apply(card, position)
             } else {
                 card.strokeWidth = dp(1)
                 card.strokeColor = color(com.google.android.material.R.attr.colorOutline)

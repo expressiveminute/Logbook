@@ -191,10 +191,13 @@ class FirstFragment : Fragment() {
         }
         container.visibility = View.VISIBLE
 
-        rows.forEach { rowIds ->
+        rows.forEachIndexed { rowIndex, rowIds ->
             val row = LinearLayout(requireContext()).apply {
                 orientation = LinearLayout.HORIZONTAL
             }
+            // Zaehlt nur tatsaechlich sichtbare Kacheln, damit eine
+            // ausgeblendete Kachel die Spalten danach nicht verschiebt.
+            var column = 0
             rowIds.forEachIndexed { index, tileId ->
                 if (tileId == "function" &&
                     Settings.getRole(requireContext()) != Settings.ROLE_CREW
@@ -305,7 +308,10 @@ class FirstFragment : Fragment() {
 
                 val card = tileContainer.findViewById<com.google.android.material.card.MaterialCardView>(R.id.tile_card)
                 card.tag = tileId
-                DashboardTileColors.apply(card, tileId)
+                DashboardTileColors.apply(
+                    card,
+                    DashboardPrefs.TilePosition(rowIndex, column)
+                )
                 card.setOnClickListener {
                     if (tileId == "time") {
                         cycleTimeUnit(tileContainer)
@@ -321,6 +327,7 @@ class FirstFragment : Fragment() {
                         if (index < rowIds.lastIndex) dp(4) else dp(0)
                 }
                 row.addView(tileContainer, params)
+                column++
             }
             container.addView(row)
         }
@@ -593,6 +600,9 @@ class FirstFragment : Fragment() {
             }
             id == "flights" -> {
                 findNavController().navigate(R.id.action_dashboard_to_flights_year)
+            }
+            id == "discovery" -> {
+                findNavController().navigate(R.id.action_dashboard_to_discovery)
             }
             ChartData.isBarChart(id) || ChartData.isPieChart(id) -> {
                 val bundle = Bundle().apply { putString("tileId", id) }

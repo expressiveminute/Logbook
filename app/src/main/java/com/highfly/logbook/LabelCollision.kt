@@ -34,6 +34,14 @@ class LabelCollision {
     }
 
     /**
+     * Reserviert Fläche, die bereits von anderen Elementen belegt ist, damit
+     * [place] sie nicht als frei betrachtet.
+     */
+    fun reserve(left: Float, top: Float, right: Float, bottom: Float) {
+        occupy(left, top, right, bottom)
+    }
+
+    /**
      * Reserves space for one label, trying several staggered positions so that
      * as many labels as possible are shown side by side or offset from each
      * other instead of overlapping.

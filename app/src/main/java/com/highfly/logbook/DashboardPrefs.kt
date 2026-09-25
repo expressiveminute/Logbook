@@ -29,9 +29,15 @@ object DashboardPrefs {
         val iconRes: Int,
         val span: Int = 1,
         val heightDp: Int = 72,
-        val nameSingularRes: Int? = null,
-        val styles: Map<String, TileStyle> = emptyMap()
+        val nameSingularRes: Int? = null
     )
+
+    /**
+     * Platz einer Kachel im Raster, 0-basiert. Die Farbe hängt an der
+     * Position, nicht an der Kachel: wird eine Kachel verschoben, nimmt sie
+     * die Farbe ihres neuen Platzes an.
+     */
+    data class TilePosition(val row: Int, val column: Int)
 
     private fun brownStyle(backgroundColorRes: Int) =
         TileStyle(backgroundColorRes)
@@ -42,49 +48,109 @@ object DashboardPrefs {
     private fun blueStyle(backgroundColorRes: Int) =
         TileStyle(backgroundColorRes)
 
+    /** Anzahl der Reihen, die eine eigene Kachelfarbe haben. */
+    const val COLORED_ROWS = 3
+
+    /** Spalten je Reihe, die eine eigene Kachelfarbe haben. */
+    const val COLORED_COLUMNS = 3
+
+    private fun accentStyles(
+        brown: Int,
+        purple: Int,
+        blue: Int
+    ): Map<String, TileStyle> = mapOf(
+        Settings.ACCENT_BROWN to brownStyle(brown),
+        Settings.ACCENT_PURPLE to purpleStyle(purple),
+        Settings.ACCENT_BLUE to blueStyle(blue)
+    )
+
+    /**
+     * Farbcodes der Rasterpositionen, nicht der Kacheln. Position 1 ist links
+     * oben, danach zeilenweise nach rechts. Positionen ohne Eintrag werden in
+     * der Standarddarstellung gezeichnet.
+     */
+    private val POSITION_STYLES: Map<Int, Map<String, TileStyle>> = mapOf(
+        0 to accentStyles(
+            R.color.dashboard_brown_pos1,
+            R.color.dashboard_purple_pos1,
+            R.color.dashboard_blue_pos1
+        ),
+        1 to accentStyles(
+            R.color.dashboard_brown_pos2,
+            R.color.dashboard_purple_pos2,
+            R.color.dashboard_blue_pos2
+        ),
+        2 to accentStyles(
+            R.color.dashboard_brown_pos3,
+            R.color.dashboard_purple_pos3,
+            R.color.dashboard_blue_pos3
+        ),
+        3 to accentStyles(
+            R.color.dashboard_brown_pos4,
+            R.color.dashboard_purple_pos4,
+            R.color.dashboard_blue_pos4
+        ),
+        4 to accentStyles(
+            R.color.dashboard_brown_pos5,
+            R.color.dashboard_purple_pos5,
+            R.color.dashboard_blue_pos5
+        ),
+        5 to accentStyles(
+            R.color.dashboard_brown_pos6,
+            R.color.dashboard_purple_pos6,
+            R.color.dashboard_blue_pos6
+        ),
+        6 to accentStyles(
+            R.color.dashboard_brown_pos7,
+            R.color.dashboard_purple_pos7,
+            R.color.dashboard_blue_pos7
+        ),
+        7 to accentStyles(
+            R.color.dashboard_brown_pos8,
+            R.color.dashboard_purple_pos8,
+            R.color.dashboard_blue_pos8
+        ),
+        8 to accentStyles(
+            R.color.dashboard_brown_pos9,
+            R.color.dashboard_purple_pos9,
+            R.color.dashboard_blue_pos9
+        )
+    )
+
+    /**
+     * Farbcode der Rasterposition für den gewählten Akzent, oder null, wenn die
+     * Position keine eigene Farbe hat und die Standarddarstellung gilt.
+     */
+    fun positionStyle(position: TilePosition, accent: String): TileStyle? {
+        if (position.row !in 0 until COLORED_ROWS) return null
+        if (position.column !in 0 until COLORED_COLUMNS) return null
+        val key = position.row * COLORED_COLUMNS + position.column
+        return POSITION_STYLES[key]?.get(accent)
+    }
+
     val CATALOG = listOf(
         Tile(
             "flights",
             R.string.tile_flights,
             R.drawable.ic_flight,
-            nameSingularRes = R.string.tile_flights_singular,
-            styles = mapOf(
-                Settings.ACCENT_BROWN to brownStyle(R.color.dashboard_brown_flights),
-                Settings.ACCENT_PURPLE to purpleStyle(R.color.dashboard_purple_flights),
-                Settings.ACCENT_BLUE to blueStyle(R.color.dashboard_blue_flights)
-            )
+            nameSingularRes = R.string.tile_flights_singular
         ),
         Tile(
             "layover",
             R.string.tile_layover,
-            R.drawable.ic_umbrella,
-            styles = mapOf(
-                Settings.ACCENT_BROWN to brownStyle(R.color.dashboard_brown_layover),
-                Settings.ACCENT_PURPLE to purpleStyle(R.color.dashboard_purple_layover),
-                Settings.ACCENT_BLUE to blueStyle(R.color.dashboard_blue_layover)
-            )
+            R.drawable.ic_umbrella
         ),
         Tile(
             "airlines",
             R.string.tile_airlines,
             R.drawable.ic_airlines,
-            nameSingularRes = R.string.tile_airlines_singular,
-            styles = mapOf(
-                Settings.ACCENT_BROWN to brownStyle(R.color.dashboard_brown_airlines),
-                Settings.ACCENT_PURPLE to purpleStyle(R.color.dashboard_purple_airlines),
-                Settings.ACCENT_BLUE to blueStyle(R.color.dashboard_blue_airlines)
-            )
+            nameSingularRes = R.string.tile_airlines_singular
         ),
         Tile(
             "aircraftreg",
             R.string.tile_aircraft_reg,
             R.drawable.ic_aircraft,
-            nameSingularRes = R.string.tile_aircraft_reg_singular,
-            styles = mapOf(
-                Settings.ACCENT_BROWN to brownStyle(R.color.dashboard_brown_aircraft),
-                Settings.ACCENT_PURPLE to purpleStyle(R.color.dashboard_purple_aircraft),
-                Settings.ACCENT_BLUE to blueStyle(R.color.dashboard_blue_aircraft)
-            )
+            nameSingularRes = R.string.tile_aircraft_reg_singular
         ),
         Tile(
             "class",
@@ -120,44 +186,24 @@ object DashboardPrefs {
         Tile(
             "time",
             R.string.tile_time,
-            R.drawable.ic_time,
-            styles = mapOf(
-                Settings.ACCENT_BROWN to brownStyle(R.color.dashboard_brown_time),
-                Settings.ACCENT_PURPLE to purpleStyle(R.color.dashboard_purple_time),
-                Settings.ACCENT_BLUE to blueStyle(R.color.dashboard_blue_time)
-            )
+            R.drawable.ic_time
         ),
         Tile(
             "routes",
             R.string.tile_routes,
             R.drawable.ic_routes,
-            nameSingularRes = R.string.tile_routes_singular,
-            styles = mapOf(
-                Settings.ACCENT_BROWN to brownStyle(R.color.dashboard_brown_routes),
-                Settings.ACCENT_PURPLE to purpleStyle(R.color.dashboard_purple_routes),
-                Settings.ACCENT_BLUE to blueStyle(R.color.dashboard_blue_routes)
-            )
+            nameSingularRes = R.string.tile_routes_singular
         ),
         Tile(
             "countries",
             R.string.tile_countries,
             R.drawable.ic_countries,
-            nameSingularRes = R.string.tile_countries_singular,
-            styles = mapOf(
-                Settings.ACCENT_BROWN to brownStyle(R.color.dashboard_brown_countries),
-                Settings.ACCENT_PURPLE to purpleStyle(R.color.dashboard_purple_countries),
-                Settings.ACCENT_BLUE to blueStyle(R.color.dashboard_blue_countries)
-            )
+            nameSingularRes = R.string.tile_countries_singular
         ),
         Tile(
             "function",
             R.string.tile_function,
-            R.drawable.ic_function,
-            styles = mapOf(
-                Settings.ACCENT_BROWN to brownStyle(R.color.dashboard_brown_function),
-                Settings.ACCENT_PURPLE to purpleStyle(R.color.dashboard_purple_function),
-                Settings.ACCENT_BLUE to blueStyle(R.color.dashboard_blue_function)
-            )
+            R.drawable.ic_function
         ),
         Tile(
             "earthorbits",
@@ -172,7 +218,7 @@ object DashboardPrefs {
         Tile(
             "discovery",
             R.string.tile_discovery,
-            R.drawable.ic_search
+            R.drawable.ic_star
         ),
     )
 
@@ -187,7 +233,7 @@ object DashboardPrefs {
     )
 
     private const val PREF_NAME = "dashboard_layout"
-    private const val KEY_TILES = "tiles_standard_v11"
+    private const val KEY_TILES = "tiles_standard_v12"
     private const val ROW_SEPARATOR = ";"
 
     private fun prefs(context: Context): SharedPreferences =
@@ -229,9 +275,9 @@ object DashboardTileColors {
         R.id.tv_tile_unit
     )
 
-    fun apply(card: MaterialCardView, tileId: String) {
+    fun apply(card: MaterialCardView, position: DashboardPrefs.TilePosition) {
         val accent = Settings.getAccentColor(card.context)
-        val style = DashboardPrefs.tileById(tileId).styles[accent]
+        val style = DashboardPrefs.positionStyle(position, accent)
         if (style == null) {
             card.setCardBackgroundColor(
                 MaterialColors.getColor(

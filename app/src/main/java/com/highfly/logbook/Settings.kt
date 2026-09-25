@@ -2,6 +2,7 @@ package com.highfly.logbook
 
 import android.content.Context
 import android.content.SharedPreferences
+import java.time.LocalDate
 
 object Settings {
 
@@ -50,6 +51,7 @@ object Settings {
     private const val KEY_DEMO_DATA = "demo_data_enabled"
     private const val KEY_CITY_LABEL_LANGUAGE = "city_label_language"
     private const val KEY_MAP_ORIENTATION = "map_orientation"
+    private const val KEY_DISCOVERY_YEAR = "discovery_year"
 
     private fun prefs(context: Context): SharedPreferences =
         context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
@@ -181,5 +183,16 @@ object Settings {
 
     fun setMapOrientation(context: Context, value: String) {
         prefs(context).edit().putString(KEY_MAP_ORIENTATION, value).apply()
+    }
+
+    /**
+     * Jahr, das auf der Discovery-Seite angezeigt wird. Ohne Auswahl ist immer
+     * das laufende Jahr zu sehen.
+     */
+    fun getDiscoveryYear(context: Context): Int =
+        prefs(context).getInt(KEY_DISCOVERY_YEAR, LocalDate.now().year)
+
+    fun setDiscoveryYear(context: Context, year: Int) {
+        prefs(context).edit().putInt(KEY_DISCOVERY_YEAR, year).apply()
     }
 }
