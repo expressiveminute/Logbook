@@ -80,15 +80,15 @@
     <!-- Kachelfarben gehoeren der Position im Raster (Zeile 1-3, Spalte 1-3),
          nicht der Kachel. Wird eine Kachel verschoben, nimmt sie die Farbe
          ihrer neuen Position an. -->
-    <color name="dashboard_brown_pos1">#FF2C2010</color>
-    <color name="dashboard_brown_pos2">#FF4A3820</color>
-    <color name="dashboard_brown_pos3">#FF7A6040</color>
-    <color name="dashboard_brown_pos4">#FF4A2C18</color>
-    <color name="dashboard_brown_pos5">#FF7A5030</color>
-    <color name="dashboard_brown_pos6">#FFC4905A</color>
-    <color name="dashboard_brown_pos7">#FF8B3A18</color>
-    <color name="dashboard_brown_pos8">#FFC4623A</color>
-    <color name="dashboard_brown_pos9">#FFD4845A</color>
+    <color name="dashboard_brown_pos1">#FF1A1208</color>
+    <color name="dashboard_brown_pos2">#FF2C2010</color>
+    <color name="dashboard_brown_pos3">#FF4A3820</color>
+    <color name="dashboard_brown_pos4">#FF4A3828</color>
+    <color name="dashboard_brown_pos5">#FF8A6848</color>
+    <color name="dashboard_brown_pos6">#FFC4A878</color>
+    <color name="dashboard_brown_pos7">#FF6B4A38</color>
+    <color name="dashboard_brown_pos8">#FF8B6A50</color>
+    <color name="dashboard_brown_pos9">#FFB09070</color>
 
     <color name="dashboard_purple_pos1">#FF300830</color>
     <color name="dashboard_purple_pos2">#FF500848</color>
@@ -106,9 +106,9 @@
     <color name="dashboard_blue_pos4">#FF1A3048</color>
     <color name="dashboard_blue_pos5">#FF2A5080</color>
     <color name="dashboard_blue_pos6">#FF5A80A8</color>
-    <color name="dashboard_blue_pos7">#FF1A3A18</color>
-    <color name="dashboard_blue_pos8">#FF2C5A28</color>
-    <color name="dashboard_blue_pos9">#FF5A8A50</color>
+    <color name="dashboard_blue_pos7">#FF1A3060</color>
+    <color name="dashboard_blue_pos8">#FF6080A8</color>
+    <color name="dashboard_blue_pos9">#FFA0B8D8</color>
 
     <!-- Function pie colors -->
     <color name="function_purser_i">#FF05164D</color>

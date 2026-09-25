@@ -116,8 +116,7 @@ class DiscoveryFragment : Fragment() {
 
     private fun createRouteView(route: RouteDiscovery, parent: ViewGroup): View {
         val view = layoutInflater.inflate(R.layout.item_discovery_route, parent, false)
-        view.findViewById<TextView>(R.id.tv_discovery_date).text =
-            route.date.format(DATE_FORMAT)
+        view.findViewById<TextView>(R.id.tv_discovery_date).text = dateText(route)
         view.findViewById<TextView>(R.id.tv_discovery_aircraft).apply {
             text = aircraftText(route)
             visibility = if (text.isEmpty()) View.GONE else View.VISIBLE
@@ -146,6 +145,16 @@ class DiscoveryFragment : Fragment() {
             map.setRoute(from, to, route.from, route.to)
         }
         return view
+    }
+
+    /**
+     * Bei einem Hin- und Rückflug stehen beide Daten in der Zeile, sonst nur
+     * das Datum des Erstdurchflugs.
+     */
+    private fun dateText(route: RouteDiscovery): String {
+        val outbound = route.date.format(DATE_FORMAT)
+        val back = route.returnDate?.format(DATE_FORMAT) ?: return outbound
+        return getString(R.string.discovery_date_range, outbound, back)
     }
 
     /**

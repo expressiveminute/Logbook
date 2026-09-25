@@ -111,6 +111,98 @@ class DiscoveryRoutesTest {
     }
 
     @Test
+    fun firstFlownInYear_repeatFlightOfEarlierYearIsNoDiscovery() {
+        val entries = listOf(
+            entry(LocalDate.of(2026, 2, 1)),
+            entry(LocalDate.of(2024, 9, 1))
+        )
+        assertEquals(
+            RouteDiscovery("MUC", "DEN", LocalDate.of(2024, 9, 1)),
+            DiscoveryRoutes.firstFlownInYear(entries, 2024).single()
+        )
+        assertTrue(DiscoveryRoutes.firstFlownInYear(entries, 2026).isEmpty())
+    }
+
+    @Test
+    fun firstFlown_mergesRoundTripWithinSevenDays() {
+        val entries = listOf(
+            entry(LocalDate.of(2026, 3, 12), from = "MUC", to = "DEN"),
+            entry(LocalDate.of(2026, 3, 15), from = "DEN", to = "MUC")
+        )
+        val discovery = DiscoveryRoutes.firstFlown(entries).single()
+        assertEquals("MUC", discovery.from)
+        assertEquals("DEN", discovery.to)
+        assertEquals(LocalDate.of(2026, 3, 12), discovery.date)
+        assertEquals(LocalDate.of(2026, 3, 15), discovery.returnDate)
+        assertTrue(discovery.isRoundTrip)
+    }
+
+    @Test
+    fun firstFlown_keepsBothDirectionsWhenRoundTripIsTooLongApart() {
+        val entries = listOf(
+            entry(LocalDate.of(2026, 3, 1), from = "MUC", to = "DEN"),
+            entry(LocalDate.of(2026, 3, 9), from = "DEN", to = "MUC")
+        )
+        val discoveries = DiscoveryRoutes.firstFlown(entries)
+        assertEquals(2, discoveries.size)
+        assertTrue(discoveries.none { it.isRoundTrip })
+    }
+
+    @Test
+    fun firstFlown_sameDayRoundTripKeepsOneEntryWithLaterCreatedFlight() {
+        val entries = listOf(
+            entry(LocalDate.of(2026, 3, 12), id = 7, from = "MUC", to = "DEN"),
+            entry(LocalDate.of(2026, 3, 12), id = 2, from = "DEN", to = "MUC")
+        )
+        val discovery = DiscoveryRoutes.firstFlown(entries).single()
+        assertEquals("DEN", discovery.from)
+        assertEquals("MUC", discovery.to)
+        assertEquals(LocalDate.of(2026, 3, 12), discovery.returnDate)
+    }
+
+    @Test
+    fun firstFlown_roundTripKeepsAircraftOfOutboundFlight() {
+        val entries = listOf(
+            entry(
+                LocalDate.of(2026, 3, 12), from = "MUC", to = "DEN",
+                aircraftType = "A320", registration = "D-ABXA"
+            ),
+            entry(
+                LocalDate.of(2026, 3, 15), from = "DEN", to = "MUC",
+                aircraftType = "A321", registration = "D-ABXB"
+            )
+        )
+        val discovery = DiscoveryRoutes.firstFlown(entries).single()
+        assertEquals("A320", discovery.aircraftType)
+        assertEquals("D-ABXA", discovery.registration)
+    }
+
+    @Test
+    fun byMonth_groupsRoundTripByOutboundMonth() {
+        val entries = listOf(
+            entry(LocalDate.of(2026, 3, 30), from = "MUC", to = "DEN"),
+            entry(LocalDate.of(2026, 4, 2), from = "DEN", to = "MUC")
+        )
+        val months = DiscoveryRoutes.byMonth(entries, 2026)
+        assertEquals(listOf(YearMonth.of(2026, 3)), months.map { it.month })
+        assertEquals(1, months.single().routes.size)
+        assertEquals(
+            listOf("MUC", "DEN"),
+            months.single().routes.single().let { listOf(it.from, it.to) }
+        )
+    }
+
+    @Test
+    fun firstFlownInYear_mergedRoundTripOnlyShowsInOutboundYear() {
+        val entries = listOf(
+            entry(LocalDate.of(2024, 12, 30), from = "MUC", to = "DEN"),
+            entry(LocalDate.of(2025, 1, 3), from = "DEN", to = "MUC")
+        )
+        assertEquals(1, DiscoveryRoutes.firstFlownInYear(entries, 2024).size)
+        assertTrue(DiscoveryRoutes.firstFlownInYear(entries, 2025).isEmpty())
+    }
+
+    @Test
     fun byMonth_returnsEmptyListForYearWithoutDiscoveries() {
         val entries = listOf(entry(LocalDate.of(2025, 5, 5)))
         assertTrue(DiscoveryRoutes.byMonth(entries, 2026).isEmpty())
