@@ -13,13 +13,15 @@ import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.highfly.logbook.databinding.FragmentDiscoveryBinding
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 
 /**
  * Zeigt alle Flugstrecken, die im gewählten Jahr zum ersten Mal geflogen
- * wurden: absteigend nach Datum, nach Monaten gruppiert.
+ * wurden: absteigend nach Datum, nach Monaten gruppiert. Beim Öffnen der Seite
+ * ist immer das laufende Jahr eingestellt.
  */
 class DiscoveryFragment : Fragment() {
 
@@ -63,7 +65,20 @@ class DiscoveryFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
+        resetToCurrentYear()
         refresh()
+    }
+
+    /**
+     * Beim Öffnen der Seite wird immer das laufende Jahr gezeigt, auch wenn
+     * zuvor ein anderes Jahr gewählt wurde. Eine Auswahl im Jahresdialog gilt
+     * bis zum nächsten Öffnen der Seite.
+     */
+    private fun resetToCurrentYear() {
+        val year = LocalDate.now().year
+        if (Settings.getDiscoveryYear(requireContext()) != year) {
+            Settings.setDiscoveryYear(requireContext(), year)
+        }
     }
 
     private fun refresh() {

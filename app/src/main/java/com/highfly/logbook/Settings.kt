@@ -186,8 +186,9 @@ object Settings {
     }
 
     /**
-     * Jahr, das auf der Discovery-Seite angezeigt wird. Ohne Auswahl ist immer
-     * das laufende Jahr zu sehen.
+     * Zuletzt in der Jahresauswahl gewähltes Jahr der Discovery-Seite. Die Seite
+     * stellt beim Öffnen auf das laufende Jahr um, gespeichert wird nur die
+     * Auswahl des Dialogs.
      */
     fun getDiscoveryYear(context: Context): Int =
         prefs(context).getInt(KEY_DISCOVERY_YEAR, LocalDate.now().year)
