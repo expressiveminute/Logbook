@@ -245,7 +245,7 @@
     <string name="discovery_year_title">Jahr auswählen</string>
     <string name="discovery_empty">In diesem Jahr wurde keine neue Strecke entdeckt.</string>
     <string name="discovery_aircraft">%1$s · %2$s</string>
-    <string name="discovery_date_range">%1$s – %2$s</string>
+    <string name="discovery_date_range">%1$s · %2$s</string>
     <string name="discovery_month">%1$s %2$d</string>
     <string name="discovery_map">Karte der Flugstrecke</string>
     <string name="discovery_map_desc">Kartenausschnitt der Flugstrecke %1$s – %2$s</string>

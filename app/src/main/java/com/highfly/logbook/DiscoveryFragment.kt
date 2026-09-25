@@ -164,11 +164,13 @@ class DiscoveryFragment : Fragment() {
 
     /**
      * Bei einem Hin- und Rückflug stehen beide Daten in der Zeile, sonst nur
-     * das Datum des Erstdurchflugs.
+     * das Datum des Erstdurchflugs. Fahren Hin- und Rückflug am selben Tag,
+     * wird das Datum nur einmal angezeigt.
      */
     private fun dateText(route: RouteDiscovery): String {
         val outbound = route.date.format(DATE_FORMAT)
         val back = route.returnDate?.format(DATE_FORMAT) ?: return outbound
+        if (back == outbound) return outbound
         return getString(R.string.discovery_date_range, outbound, back)
     }
 
