@@ -12,7 +12,7 @@ android {
         applicationId = "com.highfly.logbook"
         minSdk = 29
         targetSdk = 37
-        // Muss zum GitHub-Release passen. versionCode MUSS bei jedem Release
+        // Muss zum GitLab-Release passen. versionCode MUSS bei jedem Release
         // steigen, sonst erkennt Obtainium kein Update (oder Android blockt
         // es als Downgrade).
         versionCode = 10

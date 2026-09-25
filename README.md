@@ -39,7 +39,7 @@ See the LICENSE file for full terms.
 
 # 📬 Contact & Support
 
-GitHub: @expressiveminute
+GitLab: @empty.quiet87
 
 Issues: Submit an issue
 
