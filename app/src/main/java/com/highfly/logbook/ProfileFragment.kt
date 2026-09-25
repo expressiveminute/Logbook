@@ -46,6 +46,8 @@ class ProfileFragment : Fragment() {
 
         binding.avatarTile.setOnClickListener { showAvatarDialog() }
         loadAvatarPreview()
+        binding.tvSettingsVersion.text =
+            getString(R.string.settings_version_label, BuildConfig.VERSION_NAME)
         binding.profileNameInput.setText(Settings.getProfileName(requireContext()))
         binding.profileNameInput.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit

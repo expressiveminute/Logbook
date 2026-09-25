@@ -282,4 +282,8 @@
     <string name="import_conflict_invalid_iata">Invalid or unknown airport code: %1$s</string>
     <string name="import_review_summary_route">%1$s → %2$s</string>
     <string name="import_review_summary_unknown">Unknown</string>
+
+    <string name="settings_version_label">Version %1$s</string>
+    <string name="settings_made_with_prefix">Made with</string>
+    <string name="settings_made_with_suffix">by expressiveminute</string>
 </resources>
