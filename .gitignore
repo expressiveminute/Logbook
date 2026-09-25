@@ -17,3 +17,7 @@ local.properties
 __pycache__/
 *.pyc
 /crash.log
+*.apk
+*.idsig
+*.aab
+keystore.properties
