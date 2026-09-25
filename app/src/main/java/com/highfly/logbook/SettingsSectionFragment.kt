@@ -154,10 +154,9 @@ class SettingsSectionFragment : Fragment() {
         binding.darkModeTile.setOnClickListener { applyMode(true) }
         binding.lightModeTile.setOnClickListener { applyMode(false) }
 
-        binding.accentPurpleTile.setOnClickListener { applyAccent(Settings.ACCENT_PURPLE) }
-        binding.accentLightBlueTile.setOnClickListener { applyAccent(Settings.ACCENT_LIGHT_BLUE) }
-        binding.accentLightGreenTile.setOnClickListener { applyAccent(Settings.ACCENT_LIGHT_GREEN) }
         binding.accentBrownTile.setOnClickListener { applyAccent(Settings.ACCENT_BROWN) }
+        binding.accentPurpleTile.setOnClickListener { applyAccent(Settings.ACCENT_PURPLE) }
+        binding.accentBlueTile.setOnClickListener { applyAccent(Settings.ACCENT_BLUE) }
 
         binding.tileClassSchemeLufthansa.setOnClickListener { applyClassScheme(Settings.CLASS_SCHEME_LUFTHANSA) }
 
@@ -385,10 +384,46 @@ class SettingsSectionFragment : Fragment() {
     }
 
     private fun updateAccentTiles(accent: String) {
-        highlight(binding.accentPurpleTile, binding.accentPurpleLabel, accent == Settings.ACCENT_PURPLE)
-        highlight(binding.accentLightBlueTile, binding.accentLightBlueLabel, accent == Settings.ACCENT_LIGHT_BLUE)
-        highlight(binding.accentLightGreenTile, binding.accentLightGreenLabel, accent == Settings.ACCENT_LIGHT_GREEN)
-        highlight(binding.accentBrownTile, binding.accentBrownLabel, accent == Settings.ACCENT_BROWN)
+        styleAccentTile(
+            binding.accentBrownTile,
+            binding.accentBrownLabel,
+            R.color.accent_brown_primary_container,
+            R.color.accent_brown_on_primary_container,
+            R.color.accent_brown_primary,
+            accent == Settings.ACCENT_BROWN
+        )
+        styleAccentTile(
+            binding.accentPurpleTile,
+            binding.accentPurpleLabel,
+            R.color.accent_purple_primary_container,
+            R.color.accent_purple_on_primary_container,
+            R.color.accent_purple_primary,
+            accent == Settings.ACCENT_PURPLE
+        )
+        styleAccentTile(
+            binding.accentBlueTile,
+            binding.accentBlueLabel,
+            R.color.accent_blue_primary_container,
+            R.color.accent_blue_on_primary_container,
+            R.color.accent_blue_primary,
+            accent == Settings.ACCENT_BLUE
+        )
+    }
+
+    private fun styleAccentTile(
+        card: MaterialCardView,
+        label: TextView,
+        backgroundColorRes: Int,
+        contentColorRes: Int,
+        outlineColorRes: Int,
+        active: Boolean
+    ) {
+        val context = card.context
+        card.setCardBackgroundColor(ContextCompat.getColor(context, backgroundColorRes))
+        card.strokeColor = ContextCompat.getColor(context, outlineColorRes)
+        card.strokeWidth = if (active) dp(2) else dp(1)
+        card.isSelected = active
+        label.setTextColor(ContextCompat.getColor(context, contentColorRes))
     }
 
     private fun applyClassScheme(scheme: String) {

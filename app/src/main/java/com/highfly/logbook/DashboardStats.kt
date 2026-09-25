@@ -92,14 +92,11 @@ object DashboardStats {
         val distanceKm = distanceEntries.sumOf { it.distanceKm ?: 0 }
         val minutes = entries.sumOf { it.flightMinutes ?: 0 }
         val routes = entries.map { "${it.fromAirport}-${it.toAirport}" }.distinct().size
-        val airports = ((entries.map { it.fromAirport } + entries.map { it.toAirport })
-            .filter { it.isNotBlank() }).distinct().size
         val airlines = nonBlankCount(entries) { it.airline }
         val layovers = entries.count { it.layover }.toString()
         val classes = nonBlankCount(entries) { it.classType }
         val travelTypes = nonBlankCount(entries) { it.flightType }
         val aircraftTypes = nonBlankCount(entries) { it.aircraftType }
-        val registrations = nonBlankCount(entries) { it.registration }
         val countries = (entries.mapNotNull { it.toCountry }
             .filter { it.isNotBlank() }).distinct().size
         val earthOrbits = distanceKm / earthCircumferenceKm
@@ -110,13 +107,11 @@ object DashboardStats {
             "distance" to Value(formatInt(context, distanceKm), context.getString(R.string.flight_distance_hint)),
             "time" to formatTime(context, minutes),
             "routes" to Value(formatInt(context, routes), null),
-            "airports" to Value(formatInt(context, airports), null),
             "airlines" to Value(formatInt(context, airlines), null),
             "layover" to Value(layovers, null),
             "class" to Value(formatInt(context, classes), null),
             "traveltype" to Value(formatInt(context, travelTypes), null),
-            "aircraft" to Value(formatInt(context, aircraftTypes), null),
-            "registration" to Value(formatInt(context, registrations), null),
+            "aircraftreg" to Value(formatInt(context, aircraftTypes), null),
             "countries" to Value(formatInt(context, countries),
                 String.format(Locale.GERMANY, "(%s%%)",
                     formatInt(context, (countries * 100.0 / WORLD_COUNTRIES).toInt()))),
@@ -129,8 +124,7 @@ object DashboardStats {
         "flights" -> entries.size
         "routes" -> entries.map { "${it.fromAirport}-${it.toAirport}" }.distinct().size
         "airlines" -> nonBlankCount(entries) { it.airline }
-        "aircraft" -> nonBlankCount(entries) { it.aircraftType }
-        "registration" -> nonBlankCount(entries) { it.registration }
+        "aircraftreg" -> nonBlankCount(entries) { it.aircraftType }
         "countries" -> (entries.mapNotNull { it.toCountry }
             .filter { it.isNotBlank() }).distinct().size
         else -> -1

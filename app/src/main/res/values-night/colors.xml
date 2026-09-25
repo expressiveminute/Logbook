@@ -12,37 +12,8 @@
     <color name="co2_trees_on">#FFFFFFFF</color>
     <color name="co2_trees_on_variant">#CCFFFFFF</color>
 
-    <!-- Accent: Light Blue -->
-    <color name="accent_lightblue_primary">#FF8ACAFF</color>
-    <color name="accent_lightblue_on_primary">#FF003353</color>
-    <color name="accent_lightblue_primary_container">#FF004D78</color>
-    <color name="accent_lightblue_on_primary_container">#FFC9E6FF</color>
-    <color name="accent_lightblue_secondary">#FFBAC8D8</color>
-    <color name="accent_lightblue_on_secondary">#FF243544</color>
-    <color name="accent_lightblue_secondary_container">#FF3B4C5B</color>
-    <color name="accent_lightblue_on_secondary_container">#FFD6E3F2</color>
-    <color name="accent_lightblue_tertiary">#FFD8BBE6</color>
-    <color name="accent_lightblue_on_tertiary">#FF3E2A4B</color>
-    <color name="accent_lightblue_tertiary_container">#FF554064</color>
-    <color name="accent_lightblue_on_tertiary_container">#FFF1DAFD</color>
-
-    <!-- Accent: Light Green -->
-    <color name="accent_lightgreen_primary">#FF8ADA9A</color>
-    <color name="accent_lightgreen_on_primary">#FF00391B</color>
-    <color name="accent_lightgreen_primary_container">#FF0F5226</color>
-    <color name="accent_lightgreen_on_primary_container">#FFA5F6B4</color>
-    <color name="accent_lightgreen_secondary">#FFBAC8B0</color>
-    <color name="accent_lightgreen_on_secondary">#FF24291F</color>
-    <color name="accent_lightgreen_secondary_container">#FF3B3F34</color>
-    <color name="accent_lightgreen_on_secondary_container">#FFD6E8CD</color>
-    <color name="accent_lightgreen_tertiary">#FFA1CDDA</color>
-    <color name="accent_lightgreen_on_tertiary">#FF063641</color>
-    <color name="accent_lightgreen_tertiary_container">#FF214C58</color>
-    <color name="accent_lightgreen_on_tertiary_container">#FFBDE9F6</color>
-
-    <!-- Accent: Brown -->
-    <color name="accent_brown_primary">#FFD7C2B4</color>
-    <color name="accent_brown_on_primary">#FF3E2E21</color>
+    <color name="accent_brown_primary">#FFE8C898</color>
+    <color name="accent_brown_on_primary">#FF2D1600</color>
     <color name="accent_brown_primary_container">#FF554536</color>
     <color name="accent_brown_on_primary_container">#FFF4E0D3</color>
     <color name="accent_brown_secondary">#FFCCC6C0</color>
@@ -53,4 +24,30 @@
     <color name="accent_brown_on_tertiary">#FF3A2F00</color>
     <color name="accent_brown_tertiary_container">#FF534528</color>
     <color name="accent_brown_on_tertiary_container">#FFF6E0A8</color>
+
+    <color name="accent_purple_primary">#FFC090B0</color>
+    <color name="accent_purple_on_primary">#FF2D0A23</color>
+    <color name="accent_purple_primary_container">#FF4F378B</color>
+    <color name="accent_purple_on_primary_container">#FFEADDFF</color>
+    <color name="accent_purple_secondary">#FFCCC2DC</color>
+    <color name="accent_purple_on_secondary">#FF332D41</color>
+    <color name="accent_purple_secondary_container">#FF4A4458</color>
+    <color name="accent_purple_on_secondary_container">#FFE8DEF8</color>
+    <color name="accent_purple_tertiary">#FFEFB8C8</color>
+    <color name="accent_purple_on_tertiary">#FF492532</color>
+    <color name="accent_purple_tertiary_container">#FF633B48</color>
+    <color name="accent_purple_on_tertiary_container">#FFFFD8E4</color>
+
+    <color name="accent_blue_primary">#FFC8D8F4</color>
+    <color name="accent_blue_on_primary">#FF14243A</color>
+    <color name="accent_blue_primary_container">#FF004D78</color>
+    <color name="accent_blue_on_primary_container">#FFC9E6FF</color>
+    <color name="accent_blue_secondary">#FFBAC8D8</color>
+    <color name="accent_blue_on_secondary">#FF243544</color>
+    <color name="accent_blue_secondary_container">#FF3B4C5B</color>
+    <color name="accent_blue_on_secondary_container">#FFD6E3F2</color>
+    <color name="accent_blue_tertiary">#FFD8BBE6</color>
+    <color name="accent_blue_on_tertiary">#FF3E2A4B</color>
+    <color name="accent_blue_tertiary_container">#FF554064</color>
+    <color name="accent_blue_on_tertiary_container">#FFF1DAFD</color>
 </resources>

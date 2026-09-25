@@ -8,6 +8,7 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.highfly.logbook.databinding.FragmentTileDetailBinding
+import kotlin.math.roundToInt
 
 class TileDetailFragment : Fragment() {
 
@@ -56,6 +57,9 @@ class TileDetailFragment : Fragment() {
             tileId == "routes" -> {
                 renderRoutes()
             }
+            tileId == "aircraftreg" -> {
+                renderAircraftRegistrations()
+            }
             ChartData.isBarChart(tileId) -> {
                 if (tileId == "countries") {
                     renderContinents()
@@ -84,14 +88,54 @@ class TileDetailFragment : Fragment() {
     }
 
     private fun renderRoutes() {
-        val topAirports = ChartData.topAirports(requireContext())
-        if (topAirports.isNotEmpty()) {
-            binding.barAirports.visibility = View.VISIBLE
-            binding.barAirports.setItems(
-                topAirports.map { MonthBarChartView.Item(it.label, it.count) }
-            )
-        }
+        renderScrollableColumnChart(
+            ChartData.airportBars(requireContext()),
+            binding.airportsChart,
+            binding.barAirports,
+            binding.barAirportsAxis,
+            null
+        )
         renderBars(ChartData.barChart(requireContext(), "routes"))
+    }
+
+    private fun renderAircraftRegistrations() {
+        val types = ChartData.aircraftBars(requireContext())
+        renderScrollableColumnChart(
+            types,
+            binding.aircraftChart,
+            binding.barAircraft,
+            binding.barAircraftAxis,
+            binding.tvAircraftTitle
+        )
+        val registrations = ChartData.barChart(requireContext(), "aircraftreg")
+        renderBars(registrations)
+        binding.tvRegistrationsTitle.visibility =
+            if (registrations.isEmpty()) View.GONE else View.VISIBLE
+        binding.tvEmpty.visibility =
+            if (types.isEmpty() && registrations.isEmpty()) View.VISIBLE else View.GONE
+    }
+
+    private fun renderScrollableColumnChart(
+        bars: List<ChartData.Bar>,
+        container: View,
+        chart: MonthBarChartView,
+        axis: MonthBarChartView,
+        title: View?
+    ) {
+        if (bars.isEmpty()) return
+        val chartHeight = (resources.displayMetrics.heightPixels * 0.45f).roundToInt()
+        val chartItems = bars.map { MonthBarChartView.Item(it.label, it.count) }
+
+        chart.setLeadingSpace(axis.layoutParams.width)
+        chart.setPlotHeight(chartHeight)
+        chart.setItems(chartItems)
+
+        axis.setContentVisible(false)
+        axis.setPlotHeight(chartHeight)
+        axis.setItems(chartItems)
+
+        title?.visibility = View.VISIBLE
+        container.visibility = View.VISIBLE
     }
 
     private fun renderBars(bars: List<ChartData.Bar>) {

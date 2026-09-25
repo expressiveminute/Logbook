@@ -305,6 +305,7 @@ class FirstFragment : Fragment() {
 
                 val card = tileContainer.findViewById<com.google.android.material.card.MaterialCardView>(R.id.tile_card)
                 card.tag = tileId
+                DashboardTileColors.apply(card, tileId)
                 card.setOnClickListener {
                     if (tileId == "time") {
                         cycleTimeUnit(tileContainer)

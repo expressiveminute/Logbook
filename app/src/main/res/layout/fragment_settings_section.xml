@@ -449,9 +449,33 @@
                 android:orientation="horizontal">
 
                 <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/accent_brown_tile"
+                    android:layout_width="0dp"
+                    android:layout_height="60dp"
+                    android:layout_marginEnd="4dp"
+                    android:layout_weight="1"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="1dp">
+
+                    <TextView
+                        android:id="@+id/accent_brown_label"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:text="@string/settings_accent_brown"
+                        android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+                        android:textStyle="bold" />
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
                     android:id="@+id/accent_purple_tile"
                     android:layout_width="0dp"
                     android:layout_height="60dp"
+                    android:layout_marginStart="4dp"
                     android:layout_marginEnd="4dp"
                     android:layout_weight="1"
                     android:clickable="true"
@@ -472,7 +496,7 @@
                 </com.google.android.material.card.MaterialCardView>
 
                 <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/accent_light_blue_tile"
+                    android:id="@+id/accent_blue_tile"
                     android:layout_width="0dp"
                     android:layout_height="60dp"
                     android:layout_marginStart="4dp"
@@ -485,64 +509,11 @@
                     app:strokeWidth="1dp">
 
                     <TextView
-                        android:id="@+id/accent_light_blue_label"
+                        android:id="@+id/accent_blue_label"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:gravity="center"
-                        android:text="@string/settings_accent_light_blue"
-                        android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
-                        android:textStyle="bold" />
-                </com.google.android.material.card.MaterialCardView>
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:orientation="horizontal">
-
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/accent_light_green_tile"
-                    android:layout_width="0dp"
-                    android:layout_height="60dp"
-                    android:layout_marginEnd="4dp"
-                    android:layout_weight="1"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground"
-                    app:cardCornerRadius="16dp"
-                    app:cardElevation="0dp"
-                    app:strokeWidth="1dp">
-
-                    <TextView
-                        android:id="@+id/accent_light_green_label"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:text="@string/settings_accent_light_green"
-                        android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
-                        android:textStyle="bold" />
-                </com.google.android.material.card.MaterialCardView>
-
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/accent_brown_tile"
-                    android:layout_width="0dp"
-                    android:layout_height="60dp"
-                    android:layout_marginStart="4dp"
-                    android:layout_weight="1"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground"
-                    app:cardCornerRadius="16dp"
-                    app:cardElevation="0dp"
-                    app:strokeWidth="1dp">
-
-                    <TextView
-                        android:id="@+id/accent_brown_label"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:text="@string/settings_accent_brown"
+                        android:text="@string/settings_accent_blue"
                         android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
                         android:textStyle="bold" />
                 </com.google.android.material.card.MaterialCardView>

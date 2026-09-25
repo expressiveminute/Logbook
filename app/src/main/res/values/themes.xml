@@ -11,36 +11,6 @@
         <item name="android:windowLightStatusBar">?attr/isLightTheme</item>
     </style>
 
-    <style name="Theme.Logbook.LightBlue" parent="Theme.Logbook">
-        <item name="colorPrimary">@color/accent_lightblue_primary</item>
-        <item name="colorOnPrimary">@color/accent_lightblue_on_primary</item>
-        <item name="colorPrimaryContainer">@color/accent_lightblue_primary_container</item>
-        <item name="colorOnPrimaryContainer">@color/accent_lightblue_on_primary_container</item>
-        <item name="colorSecondary">@color/accent_lightblue_secondary</item>
-        <item name="colorOnSecondary">@color/accent_lightblue_on_secondary</item>
-        <item name="colorSecondaryContainer">@color/accent_lightblue_secondary_container</item>
-        <item name="colorOnSecondaryContainer">@color/accent_lightblue_on_secondary_container</item>
-        <item name="colorTertiary">@color/accent_lightblue_tertiary</item>
-        <item name="colorOnTertiary">@color/accent_lightblue_on_tertiary</item>
-        <item name="colorTertiaryContainer">@color/accent_lightblue_tertiary_container</item>
-        <item name="colorOnTertiaryContainer">@color/accent_lightblue_on_tertiary_container</item>
-    </style>
-
-    <style name="Theme.Logbook.LightGreen" parent="Theme.Logbook">
-        <item name="colorPrimary">@color/accent_lightgreen_primary</item>
-        <item name="colorOnPrimary">@color/accent_lightgreen_on_primary</item>
-        <item name="colorPrimaryContainer">@color/accent_lightgreen_primary_container</item>
-        <item name="colorOnPrimaryContainer">@color/accent_lightgreen_on_primary_container</item>
-        <item name="colorSecondary">@color/accent_lightgreen_secondary</item>
-        <item name="colorOnSecondary">@color/accent_lightgreen_on_secondary</item>
-        <item name="colorSecondaryContainer">@color/accent_lightgreen_secondary_container</item>
-        <item name="colorOnSecondaryContainer">@color/accent_lightgreen_on_secondary_container</item>
-        <item name="colorTertiary">@color/accent_lightgreen_tertiary</item>
-        <item name="colorOnTertiary">@color/accent_lightgreen_on_tertiary</item>
-        <item name="colorTertiaryContainer">@color/accent_lightgreen_tertiary_container</item>
-        <item name="colorOnTertiaryContainer">@color/accent_lightgreen_on_tertiary_container</item>
-    </style>
-
     <style name="Theme.Logbook.Brown" parent="Theme.Logbook">
         <item name="colorPrimary">@color/accent_brown_primary</item>
         <item name="colorOnPrimary">@color/accent_brown_on_primary</item>
@@ -54,6 +24,36 @@
         <item name="colorOnTertiary">@color/accent_brown_on_tertiary</item>
         <item name="colorTertiaryContainer">@color/accent_brown_tertiary_container</item>
         <item name="colorOnTertiaryContainer">@color/accent_brown_on_tertiary_container</item>
+    </style>
+
+    <style name="Theme.Logbook.Purple" parent="Theme.Logbook">
+        <item name="colorPrimary">@color/accent_purple_primary</item>
+        <item name="colorOnPrimary">@color/accent_purple_on_primary</item>
+        <item name="colorPrimaryContainer">@color/accent_purple_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/accent_purple_on_primary_container</item>
+        <item name="colorSecondary">@color/accent_purple_secondary</item>
+        <item name="colorOnSecondary">@color/accent_purple_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/accent_purple_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/accent_purple_on_secondary_container</item>
+        <item name="colorTertiary">@color/accent_purple_tertiary</item>
+        <item name="colorOnTertiary">@color/accent_purple_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/accent_purple_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/accent_purple_on_tertiary_container</item>
+    </style>
+
+    <style name="Theme.Logbook.Blue" parent="Theme.Logbook">
+        <item name="colorPrimary">@color/accent_blue_primary</item>
+        <item name="colorOnPrimary">@color/accent_blue_on_primary</item>
+        <item name="colorPrimaryContainer">@color/accent_blue_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/accent_blue_on_primary_container</item>
+        <item name="colorSecondary">@color/accent_blue_secondary</item>
+        <item name="colorOnSecondary">@color/accent_blue_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/accent_blue_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/accent_blue_on_secondary_container</item>
+        <item name="colorTertiary">@color/accent_blue_tertiary</item>
+        <item name="colorOnTertiary">@color/accent_blue_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/accent_blue_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/accent_blue_on_tertiary_container</item>
     </style>
 
     <style name="ShapeAppearance.Logbook.Tile.Full" parent="">

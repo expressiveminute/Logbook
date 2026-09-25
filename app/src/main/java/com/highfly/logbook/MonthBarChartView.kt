@@ -51,9 +51,12 @@ class MonthBarChartView @JvmOverloads constructor(
     private var bottomPadding = 0f
     private var leftPadding = 0f
     private var rightPadding = 0f
+    private var leadingSpace = 0f
+    private var columnWidthDp = HORIZONTAL_ITEM_WIDTH_DP
 
     private var axisMax = 1
     private var axisStep = 1
+    private var contentVisible = true
 
     init {
         barColor = MaterialColors.getColor(this, com.google.android.material.R.attr.colorPrimary)
@@ -92,14 +95,44 @@ class MonthBarChartView @JvmOverloads constructor(
         invalidate()
     }
 
-    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        val width = if (MeasureSpec.getMode(widthMeasureSpec) == MeasureSpec.UNSPECIFIED) {
-            suggestedMinimumWidth
-        } else {
-            MeasureSpec.getSize(widthMeasureSpec)
-        }
+    fun setLeadingSpace(widthPx: Int) {
+        val newSpace = widthPx.toFloat().coerceAtLeast(0f)
+        if (leadingSpace == newSpace) return
+        leadingSpace = newSpace
+        requestLayout()
+        invalidate()
+    }
 
+    fun setContentVisible(visible: Boolean) {
+        if (contentVisible == visible) return
+        contentVisible = visible
+        invalidate()
+    }
+
+    /** Mindestbreite einer Spalte; breitere Labels (z. B. Flugzeugtypen)
+     * verbreitern die Spalte automatisch. */
+    fun setColumnWidthDp(value: Int) {
+        val newWidth = value.coerceAtLeast(1)
+        if (columnWidthDp == newWidth) return
+        columnWidthDp = newWidth
+        requestLayout()
+        invalidate()
+    }
+
+    fun setPlotHeight(heightPx: Int) {
+        chartHeight = heightPx.toFloat().coerceAtLeast(dp(200))
+        requestLayout()
+        invalidate()
+    }
+
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        val widthMode = MeasureSpec.getMode(widthMeasureSpec)
         if (items.isEmpty()) {
+            val width = if (widthMode == MeasureSpec.UNSPECIFIED) {
+                suggestedMinimumWidth
+            } else {
+                MeasureSpec.getSize(widthMeasureSpec)
+            }
             setMeasuredDimension(width, 0)
             return
         }
@@ -107,7 +140,18 @@ class MonthBarChartView @JvmOverloads constructor(
         updateAxis()
         val widest = (0..axisMax step axisStep)
             .maxOf { axisLabelPaint.measureText(it.toString()) }
-        leftPadding = widest + dp(8)
+        leftPadding = maxOf(widest + dp(8), leadingSpace)
+
+        val widestLabel = items.maxOf { monthPaint.measureText(it.label) }
+        val columnWidth = maxOf(dp(columnWidthDp), widestLabel + dp(12))
+
+        val contentWidth =
+            (items.size * columnWidth + leftPadding + rightPadding).toInt()
+        val width = if (widthMode == MeasureSpec.UNSPECIFIED) {
+            suggestedMinimumWidth.coerceAtLeast(contentWidth)
+        } else {
+            MeasureSpec.getSize(widthMeasureSpec)
+        }
 
         val height = (topPadding + chartHeight + bottomPadding).toInt()
         setMeasuredDimension(width, height)
@@ -140,21 +184,26 @@ class MonthBarChartView @JvmOverloads constructor(
 
         val baseline = topPadding + chartHeight
         val chartTop = topPadding
-        val axisX = leftPadding
+        val axisX = if (contentVisible) leftPadding else width - dp(1)
+        val tickLabelX = if (contentVisible) axisX - dp(6) else axisX - dp(2)
         val plotRight = width - rightPadding
         val plotWidth = (plotRight - axisX).coerceAtLeast(0f)
         val slotWidth = plotWidth / items.size
 
         for (tick in 0..axisMax step axisStep) {
             val y = baseline - chartHeight * tick / axisMax.toFloat()
-            canvas.drawLine(axisX, y, plotRight, y, gridPaint)
+            if (contentVisible) {
+                canvas.drawLine(axisX, y, plotRight, y, gridPaint)
+            }
             canvas.drawText(
                 tick.toString(),
-                axisX - dp(6),
+                tickLabelX,
                 centeredBaseline(y, axisLabelPaint),
                 axisLabelPaint
             )
         }
+
+        if (!contentVisible) return
 
         canvas.drawLine(axisX, chartTop, axisX, baseline, axisPaint)
         canvas.drawLine(axisX, baseline, plotRight, baseline, axisPaint)
@@ -198,4 +247,8 @@ class MonthBarChartView @JvmOverloads constructor(
 
     private fun sp(value: Int): Float =
         value * density * minOf(resources.configuration.fontScale, 1.0f)
+
+    private companion object {
+        const val HORIZONTAL_ITEM_WIDTH_DP = 48
+    }
 }

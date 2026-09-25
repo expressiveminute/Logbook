@@ -5,7 +5,10 @@ import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.text.Editable
+import android.text.SpannableString
+import android.text.Spanned
 import android.text.TextWatcher
+import android.text.style.ForegroundColorSpan
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -17,6 +20,7 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.core.view.doOnLayout
 import androidx.fragment.app.Fragment
@@ -67,7 +71,7 @@ class AddEntryFragment : Fragment() {
         editingEntryId = requireArguments().getLong("entryId", -1L)
 
         binding.btnBack.setOnClickListener {
-            findNavController().navigateUp()
+            confirmDiscard()
         }
 
         setupFlightTypeTiles()
@@ -1058,14 +1062,35 @@ class AddEntryFragment : Fragment() {
     }
 
     private fun confirmDiscard() {
-        MaterialAlertDialogBuilder(requireContext())
+        val errorColor = MaterialColors.getColor(
+            requireView(),
+            com.google.android.material.R.attr.colorError
+        )
+        val notSavedText = getString(R.string.discard_not_saved)
+        val messageText = getString(R.string.discard_message, notSavedText)
+        val notSavedStart = messageText.indexOf(notSavedText)
+        val message = SpannableString(messageText).apply {
+            if (notSavedStart >= 0) {
+                setSpan(
+                    ForegroundColorSpan(errorColor),
+                    notSavedStart,
+                    notSavedStart + notSavedText.length,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+            }
+        }
+        val dialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.discard_title)
-            .setMessage(R.string.discard_message)
+            .setMessage(message)
             .setPositiveButton(R.string.discard_confirm) { _, _ ->
                 findNavController().navigateUp()
             }
             .setNegativeButton(R.string.discard_cancel, null)
-            .show()
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(errorColor)
+        }
+        dialog.show()
     }
 
     private fun setupDateField() {

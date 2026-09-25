@@ -49,11 +49,9 @@ object ChartData {
     )
 
     private val BAR_CHART_TILES = setOf(
-        "flights", "routes", "airports", "airlines", "layover", "aircraft", "registration", "countries"
+        "flights", "routes", "airlines", "layover", "aircraftreg", "countries"
     )
     private val PIE_CHART_TILES = setOf("class", "traveltype", "function")
-
-    private const val TOP_AIRPORTS_LIMIT = 10
 
     fun isBarChart(tileId: String): Boolean = tileId in BAR_CHART_TILES
 
@@ -96,9 +94,7 @@ object ChartData {
             "layover" -> countBy(entries.filter { it.layover }) { it.toAirport }
             "routes" -> countBy(entries) { routeOf(it) }
             "airlines" -> countBy(entries) { it.airline }
-            "airports" -> countByList(entries.flatMap { listOf(it.fromAirport, it.toAirport) })
-            "aircraft" -> countBy(entries) { it.aircraftType }
-            "registration" -> countBy(entries) { it.registration }
+            "aircraftreg" -> countBy(entries) { it.registration }
             "countries" -> countBy(entries) { it.toCountry }
                 .mapKeys { (code, _) -> "${code} ${AirportData.flagEmoji(code)}" }
             else -> emptyMap()
@@ -116,7 +112,7 @@ object ChartData {
             .sortedWith(compareByDescending<Bar> { it.count }.thenBy { it.label })
     }
 
-    fun topAirports(context: Context, limit: Int = TOP_AIRPORTS_LIMIT): List<Bar> =
+    fun airportBars(context: Context): List<Bar> =
         periodFiltered(context)
             .flatMap { listOf(it.fromAirport, it.toAirport) }
             .filter { it.isNotBlank() }
@@ -124,7 +120,14 @@ object ChartData {
             .eachCount()
             .map { (label, count) -> Bar(label, count) }
             .sortedWith(compareByDescending<Bar> { it.count }.thenBy { it.label })
-            .take(limit)
+
+    fun aircraftBars(context: Context): List<Bar> =
+        aircraftBars(periodFiltered(context))
+
+    fun aircraftBars(entries: List<LogbookEntry>): List<Bar> =
+        countBy(entries) { it.aircraftType }
+            .map { (label, count) -> Bar(label, count) }
+            .sortedWith(compareByDescending<Bar> { it.count }.thenBy { it.label })
 
     fun classSlices(context: Context): List<Slice> =
         classSlices(context, null)
@@ -275,7 +278,4 @@ object ChartData {
     ): Map<String, Int> = entries.mapNotNull { selector(it)?.takeIf(String::isNotBlank) }
         .groupingBy { it }
         .eachCount()
-
-    private fun countByList(values: List<String>): Map<String, Int> =
-        values.filter { it.isNotBlank() }.groupingBy { it }.eachCount()
 }

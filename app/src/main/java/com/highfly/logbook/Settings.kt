@@ -11,10 +11,13 @@ object Settings {
     const val CITY_LANG_EN = "en"
     const val CITY_LANG_DE = "de"
 
-    const val ACCENT_PURPLE = "purple"
-    const val ACCENT_LIGHT_BLUE = "light_blue"
-    const val ACCENT_LIGHT_GREEN = "light_green"
     const val ACCENT_BROWN = "brown"
+    const val ACCENT_PURPLE = "purple"
+    const val ACCENT_BLUE = "blue"
+
+    val ACCENT_OPTIONS = listOf(ACCENT_BROWN, ACCENT_PURPLE, ACCENT_BLUE)
+
+    private const val LEGACY_ACCENT_LIGHT_BLUE = "light_blue"
 
     const val ROLE_CREW = "crew"
     const val ROLE_PASSENGER = "passenger"
@@ -66,17 +69,23 @@ object Settings {
     }
 
     fun getAccentColor(context: Context): String =
-        prefs(context).getString(KEY_ACCENT, ACCENT_BROWN) ?: ACCENT_BROWN
+        normalizeAccentColor(prefs(context).getString(KEY_ACCENT, ACCENT_BROWN))
 
     fun setAccentColor(context: Context, value: String) {
+        require(value in ACCENT_OPTIONS)
         prefs(context).edit().putString(KEY_ACCENT, value).apply()
     }
 
     fun accentThemeResId(context: Context): Int = when (getAccentColor(context)) {
-        ACCENT_LIGHT_BLUE -> R.style.Theme_Logbook_LightBlue
-        ACCENT_LIGHT_GREEN -> R.style.Theme_Logbook_LightGreen
-        ACCENT_BROWN -> R.style.Theme_Logbook_Brown
-        else -> R.style.Theme_Logbook
+        ACCENT_PURPLE -> R.style.Theme_Logbook_Purple
+        ACCENT_BLUE -> R.style.Theme_Logbook_Blue
+        else -> R.style.Theme_Logbook_Brown
+    }
+
+    private fun normalizeAccentColor(value: String?): String = when (value) {
+        ACCENT_PURPLE -> ACCENT_PURPLE
+        ACCENT_BLUE, LEGACY_ACCENT_LIGHT_BLUE -> ACCENT_BLUE
+        else -> ACCENT_BROWN
     }
 
     fun getRole(context: Context): String =

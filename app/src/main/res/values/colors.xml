@@ -38,37 +38,8 @@
     <color name="import_ok">#FF2E7D32</color>
     <color name="import_warn">#FF1565C0</color>
 
-    <!-- Accent: Light Blue -->
-    <color name="accent_lightblue_primary">#FF006A9B</color>
-    <color name="accent_lightblue_on_primary">#FFFFFFFF</color>
-    <color name="accent_lightblue_primary_container">#FFC9E6FF</color>
-    <color name="accent_lightblue_on_primary_container">#FF001E30</color>
-    <color name="accent_lightblue_secondary">#FF52606F</color>
-    <color name="accent_lightblue_on_secondary">#FFFFFFFF</color>
-    <color name="accent_lightblue_secondary_container">#FFD6E3F2</color>
-    <color name="accent_lightblue_on_secondary_container">#FF0F1D29</color>
-    <color name="accent_lightblue_tertiary">#FF6A5677</color>
-    <color name="accent_lightblue_on_tertiary">#FFFFFFFF</color>
-    <color name="accent_lightblue_tertiary_container">#FFF1DAFD</color>
-    <color name="accent_lightblue_on_tertiary_container">#FF241430</color>
-
-    <!-- Accent: Light Green -->
-    <color name="accent_lightgreen_primary">#FF256A3A</color>
-    <color name="accent_lightgreen_on_primary">#FFFFFFFF</color>
-    <color name="accent_lightgreen_primary_container">#FFA5F6B4</color>
-    <color name="accent_lightgreen_on_primary_container">#FF002107</color>
-    <color name="accent_lightgreen_secondary">#FF53634E</color>
-    <color name="accent_lightgreen_on_secondary">#FFFFFFFF</color>
-    <color name="accent_lightgreen_secondary_container">#FFD6E8CD</color>
-    <color name="accent_lightgreen_on_secondary_container">#FF112010</color>
-    <color name="accent_lightgreen_tertiary">#FF3B6470</color>
-    <color name="accent_lightgreen_on_tertiary">#FFFFFFFF</color>
-    <color name="accent_lightgreen_tertiary_container">#FFBDE9F6</color>
-    <color name="accent_lightgreen_on_tertiary_container">#FF001F27</color>
-
-    <!-- Accent: Brown -->
-    <color name="accent_brown_primary">#FF6E5B4C</color>
-    <color name="accent_brown_on_primary">#FFFFFFFF</color>
+    <color name="accent_brown_primary">#FFE8C898</color>
+    <color name="accent_brown_on_primary">#FF2D1600</color>
     <color name="accent_brown_primary_container">#FFF4E0D3</color>
     <color name="accent_brown_on_primary_container">#FF221B10</color>
     <color name="accent_brown_secondary">#FF635E58</color>
@@ -79,6 +50,59 @@
     <color name="accent_brown_on_tertiary">#FFFFFFFF</color>
     <color name="accent_brown_tertiary_container">#FFF6E0A8</color>
     <color name="accent_brown_on_tertiary_container">#FF221A00</color>
+
+    <color name="accent_purple_primary">#FFC090B0</color>
+    <color name="accent_purple_on_primary">#FF2D0A23</color>
+    <color name="accent_purple_primary_container">#FFEADDFF</color>
+    <color name="accent_purple_on_primary_container">#FF21005D</color>
+    <color name="accent_purple_secondary">#FF625B71</color>
+    <color name="accent_purple_on_secondary">#FFFFFFFF</color>
+    <color name="accent_purple_secondary_container">#FFE8DEF8</color>
+    <color name="accent_purple_on_secondary_container">#FF1D192B</color>
+    <color name="accent_purple_tertiary">#FF7D5260</color>
+    <color name="accent_purple_on_tertiary">#FFFFFFFF</color>
+    <color name="accent_purple_tertiary_container">#FFFFD8E4</color>
+    <color name="accent_purple_on_tertiary_container">#FF31111D</color>
+
+    <color name="accent_blue_primary">#FFC8D8F4</color>
+    <color name="accent_blue_on_primary">#FF14243A</color>
+    <color name="accent_blue_primary_container">#FFC9E6FF</color>
+    <color name="accent_blue_on_primary_container">#FF001E30</color>
+    <color name="accent_blue_secondary">#FF52606F</color>
+    <color name="accent_blue_on_secondary">#FFFFFFFF</color>
+    <color name="accent_blue_secondary_container">#FFD6E3F2</color>
+    <color name="accent_blue_on_secondary_container">#FF0F1D29</color>
+    <color name="accent_blue_tertiary">#FF6A5677</color>
+    <color name="accent_blue_on_tertiary">#FFFFFFFF</color>
+    <color name="accent_blue_tertiary_container">#FFF1DAFD</color>
+    <color name="accent_blue_on_tertiary_container">#FF241430</color>
+
+    <color name="dashboard_brown_flights">#FF2C2010</color>
+    <color name="dashboard_brown_layover">#FF4A3820</color>
+    <color name="dashboard_brown_time">#FF7A6040</color>
+    <color name="dashboard_brown_airlines">#FF4A2C18</color>
+    <color name="dashboard_brown_aircraft">#FF7A5030</color>
+    <color name="dashboard_brown_countries">#FF8B3A18</color>
+    <color name="dashboard_brown_routes">#FFC4623A</color>
+    <color name="dashboard_brown_function">#FFD4845A</color>
+
+    <color name="dashboard_purple_flights">#FF300830</color>
+    <color name="dashboard_purple_layover">#FF500848</color>
+    <color name="dashboard_purple_time">#FF804878</color>
+    <color name="dashboard_purple_airlines">#FF3A1018</color>
+    <color name="dashboard_purple_aircraft">#FF6A2030</color>
+    <color name="dashboard_purple_countries">#FF483848</color>
+    <color name="dashboard_purple_routes">#FF785868</color>
+    <color name="dashboard_purple_function">#FFA87080</color>
+
+    <color name="dashboard_blue_flights">#FF1A1A2A</color>
+    <color name="dashboard_blue_layover">#FF2A2A4A</color>
+    <color name="dashboard_blue_time">#FF5A5A8A</color>
+    <color name="dashboard_blue_airlines">#FF1A3048</color>
+    <color name="dashboard_blue_aircraft">#FF2A5080</color>
+    <color name="dashboard_blue_countries">#FF1A3A18</color>
+    <color name="dashboard_blue_routes">#FF2C5A28</color>
+    <color name="dashboard_blue_function">#FF5A8A50</color>
 
     <!-- Function pie colors -->
     <color name="function_purser_i">#FF05164D</color>

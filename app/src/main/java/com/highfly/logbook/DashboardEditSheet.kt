@@ -211,6 +211,7 @@ class DashboardEditSheet(
 
                 val card = binding.tileCard
                 card.tag = tileId
+                DashboardTileColors.apply(card, tileId)
                 card.isLongClickable = true
                 card.setOnLongClickListener { cardView ->
                     cardView.startDragAndDrop(
@@ -398,10 +399,18 @@ class DashboardEditSheet(
 
     private fun setDragHighlight(view: View, on: Boolean) {
         val card = view as? MaterialCardView ?: return
-        card.strokeWidth = if (on) dp(2) else dp(1)
-        card.strokeColor =
-            if (on) color(com.google.android.material.R.attr.colorPrimary)
-            else color(com.google.android.material.R.attr.colorOutline)
+        if (on) {
+            card.strokeWidth = dp(3)
+            card.strokeColor = color(com.google.android.material.R.attr.colorPrimary)
+        } else {
+            val tileId = card.tag as? String
+            if (tileId != null) {
+                DashboardTileColors.apply(card, tileId)
+            } else {
+                card.strokeWidth = dp(1)
+                card.strokeColor = color(com.google.android.material.R.attr.colorOutline)
+            }
+        }
         if (on) {
             highlightedTile?.takeIf { it !== view }?.let { setDragHighlight(it, false) }
             highlightedTile = view

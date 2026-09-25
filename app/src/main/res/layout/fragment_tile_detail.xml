@@ -82,11 +82,84 @@
                 android:layout_height="wrap_content"
                 android:visibility="gone" />
 
-            <com.highfly.logbook.MonthBarChartView
-                android:id="@+id/bar_airports"
+            <FrameLayout
+                android:id="@+id/airports_chart"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
+                android:visibility="gone">
+
+                <HorizontalScrollView
+                    android:id="@+id/airports_scroll"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fillViewport="true"
+                    android:scrollbars="horizontal">
+
+                    <com.highfly.logbook.MonthBarChartView
+                        android:id="@+id/bar_airports"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </HorizontalScrollView>
+
+                <com.highfly.logbook.MonthBarChartView
+                    android:id="@+id/bar_airports_axis"
+                    android:layout_width="28dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="start"
+                    android:background="?android:attr/colorBackground"
+                    android:clickable="false"
+                    android:importantForAccessibility="no" />
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/tv_aircraft_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/tile_detail_aircraft_types"
+                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <FrameLayout
+                android:id="@+id/aircraft_chart"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:visibility="gone">
+
+                <HorizontalScrollView
+                    android:id="@+id/aircraft_scroll"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fillViewport="true"
+                    android:scrollbars="horizontal">
+
+                    <com.highfly.logbook.MonthBarChartView
+                        android:id="@+id/bar_aircraft"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </HorizontalScrollView>
+
+                <com.highfly.logbook.MonthBarChartView
+                    android:id="@+id/bar_aircraft_axis"
+                    android:layout_width="28dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="start"
+                    android:background="?android:attr/colorBackground"
+                    android:clickable="false"
+                    android:importantForAccessibility="no" />
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/tv_registrations_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/tile_detail_registrations"
+                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                android:textStyle="bold"
                 android:visibility="gone" />
 
             <com.highfly.logbook.BarChartView
