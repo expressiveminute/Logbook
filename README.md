@@ -21,7 +21,7 @@ As stated at the beginning: This is a private project and should be treated as s
 
 Please respect the privacy intentions of this repository. While it is open source under GPL-3.0, certain aspects may remain intentionally private or configurable for self-hosting purposes.
 
-BUT: Feel free to contact me and ask we for any new features.
+BUT: Feel free to contact me about anything!
 
 # 🤖 Development Story
 
@@ -40,6 +40,9 @@ See the LICENSE file for full terms.
 # 📬 Contact & Support
 
 GitHub: @expressiveminute
+
 Issues: Submit an issue
+
+
     
 Made with ❤️ (and AI) by expressiveminute
