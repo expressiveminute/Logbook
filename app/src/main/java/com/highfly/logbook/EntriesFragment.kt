@@ -11,9 +11,11 @@ import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
 import android.graphics.Color
+import androidx.core.view.doOnPreDraw
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -21,7 +23,7 @@ import com.google.android.material.snackbar.Snackbar
 import com.highfly.logbook.databinding.FragmentEntriesBinding
 import java.time.format.DateTimeFormatter
 
-class EntriesFragment : Fragment() {
+class EntriesFragment : Fragment(), ImeVisibilityAware {
 
     private var _binding: FragmentEntriesBinding? = null
 
@@ -70,6 +72,31 @@ class EntriesFragment : Fragment() {
         updateFilterIcon()
         binding.tileEntryFilter.setOnClickListener { showFilterDialog() }
         setupBackArrow()
+    }
+
+    /**
+     * Oeffnet sich die Tastatur, schrumpft der Bereich der Liste und der
+     * letzte Eintrag wird mittig abgeschnitten. Das sieht wie ein leeres
+     * Eingabefeld aus, also schieben wir die Liste so weit, dass die
+     * Unterkante genau an einer Kartengrenze liegt. doOnPreDraw statt post(),
+     * weil die Liste erst im nachfolgenden Layout ihre neue Hoehe bekommt.
+     */
+    override fun onImeVisibilityChanged(visible: Boolean) {
+        if (!visible) return
+        binding.entriesList.doOnPreDraw { alignListBottomToItemGap() }
+    }
+
+    private fun alignListBottomToItemGap() {
+        if (_binding == null) return
+        val list = binding.entriesList
+        val layoutManager = list.layoutManager as? LinearLayoutManager ?: return
+        if (adapter.itemCount == 0) return
+        val lastVisible = layoutManager.findLastVisibleItemPosition()
+        if (lastVisible == RecyclerView.NO_POSITION) return
+        val lastView = layoutManager.findViewByPosition(lastVisible) ?: return
+        if (lastView.bottom <= list.height - list.paddingBottom) return
+        val target = if (lastVisible < adapter.itemCount - 1) lastVisible + 1 else lastVisible
+        layoutManager.scrollToPositionWithOffset(target, list.height)
     }
 
     /**

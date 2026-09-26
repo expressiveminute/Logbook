@@ -24,6 +24,7 @@
     <string name="tile_routes_singular">Airport route</string>
     <string name="tile_aircraft_reg_singular">A/C type &amp; registarion</string>
     <string name="tile_countries_singular">Country</string>
+    <string name="tile_function">Function</string>
     <string name="tile_earth_orbits">Earth orbits</string>
     <string name="tile_moon">To the moon</string>
     <string name="tile_discovery">Discovery</string>
