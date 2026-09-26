@@ -17,7 +17,17 @@ class BarChartView @JvmOverloads constructor(
     attrs: AttributeSet? = null
 ) : View(context, attrs) {
 
-    data class Item(val label: String, val count: Int, val subLabel: String? = null)
+    /**
+     * @param countLabel Zahl, die statt [count] neben dem Balken steht, wenn der
+     *   Balken nicht eine Anzahl, sondern einen anderen Messwert darstellt
+     *   (z. B. eine Flugdauer in Minuten).
+     */
+    data class Item(
+        val label: String,
+        val count: Int,
+        val subLabel: String? = null,
+        val countLabel: String? = null
+    )
 
     private val items = mutableListOf<Item>()
 
@@ -154,7 +164,7 @@ class BarChartView @JvmOverloads constructor(
 
         val rankOffset = items.indices.maxOf { rankWidth(it) } + rankGap
         val countReserve =
-            items.maxOf { countPaint.measureText(it.count.toString()) } + countGap + sidePadding
+            items.maxOf { countPaint.measureText(countText(it)) } + countGap + sidePadding
 
         var maxCodeWidth = 0f
         var maxFlagWidth = 0f
@@ -214,7 +224,7 @@ class BarChartView @JvmOverloads constructor(
 
             countPaint.color = countColor
             canvas.drawText(
-                item.count.toString(),
+                countText(item),
                 barRight + countGap,
                 centeredBaseline(barTop, barBottom, countPaint),
                 countPaint
@@ -242,6 +252,9 @@ class BarChartView @JvmOverloads constructor(
             }
         }
     }
+
+    private fun countText(item: Item): String =
+        item.countLabel ?: item.count.toString()
 
     private fun rankFor(index: Int): Int =
         items.map { it.count }.distinct().count { it > items[index].count } + 1

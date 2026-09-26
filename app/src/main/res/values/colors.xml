@@ -51,64 +51,64 @@
     <color name="accent_brown_tertiary_container">#FFF6E0A8</color>
     <color name="accent_brown_on_tertiary_container">#FF221A00</color>
 
-    <color name="accent_purple_primary">#FFC090B0</color>
-    <color name="accent_purple_on_primary">#FF2D0A23</color>
-    <color name="accent_purple_primary_container">#FFEADDFF</color>
-    <color name="accent_purple_on_primary_container">#FF21005D</color>
-    <color name="accent_purple_secondary">#FF625B71</color>
-    <color name="accent_purple_on_secondary">#FFFFFFFF</color>
-    <color name="accent_purple_secondary_container">#FFE8DEF8</color>
-    <color name="accent_purple_on_secondary_container">#FF1D192B</color>
-    <color name="accent_purple_tertiary">#FF7D5260</color>
-    <color name="accent_purple_on_tertiary">#FFFFFFFF</color>
-    <color name="accent_purple_tertiary_container">#FFFFD8E4</color>
-    <color name="accent_purple_on_tertiary_container">#FF31111D</color>
+    <color name="accent_magenta_primary">#FFC090B0</color>
+    <color name="accent_magenta_on_primary">#FF330926</color>
+    <color name="accent_magenta_primary_container">#FFFBD8EF</color>
+    <color name="accent_magenta_on_primary_container">#FF3A0A2E</color>
+    <color name="accent_magenta_secondary">#FFA5749D</color>
+    <color name="accent_magenta_on_secondary">#FFFFFFFF</color>
+    <color name="accent_magenta_secondary_container">#FFF2DCEA</color>
+    <color name="accent_magenta_on_secondary_container">#FF33212F</color>
+    <color name="accent_magenta_tertiary">#FF7F2982</color>
+    <color name="accent_magenta_on_tertiary">#FFFFFFFF</color>
+    <color name="accent_magenta_tertiary_container">#FFF6D9F0</color>
+    <color name="accent_magenta_on_tertiary_container">#FF31063B</color>
 
-    <color name="accent_blue_primary">#FFC8D8F4</color>
-    <color name="accent_blue_on_primary">#FF14243A</color>
-    <color name="accent_blue_primary_container">#FFC9E6FF</color>
-    <color name="accent_blue_on_primary_container">#FF001E30</color>
-    <color name="accent_blue_secondary">#FF52606F</color>
-    <color name="accent_blue_on_secondary">#FFFFFFFF</color>
-    <color name="accent_blue_secondary_container">#FFD6E3F2</color>
-    <color name="accent_blue_on_secondary_container">#FF0F1D29</color>
-    <color name="accent_blue_tertiary">#FF6A5677</color>
-    <color name="accent_blue_on_tertiary">#FFFFFFFF</color>
-    <color name="accent_blue_tertiary_container">#FFF1DAFD</color>
-    <color name="accent_blue_on_tertiary_container">#FF241430</color>
+    <color name="accent_turquoise_primary">#FFC8D8F4</color>
+    <color name="accent_turquoise_on_primary">#FF14243A</color>
+    <color name="accent_turquoise_primary_container">#FFC9E6FF</color>
+    <color name="accent_turquoise_on_primary_container">#FF001E30</color>
+    <color name="accent_turquoise_secondary">#FF52606F</color>
+    <color name="accent_turquoise_on_secondary">#FFFFFFFF</color>
+    <color name="accent_turquoise_secondary_container">#FFD6E3F2</color>
+    <color name="accent_turquoise_on_secondary_container">#FF0F1D29</color>
+    <color name="accent_turquoise_tertiary">#FF6A5677</color>
+    <color name="accent_turquoise_on_tertiary">#FFFFFFFF</color>
+    <color name="accent_turquoise_tertiary_container">#FFF1DAFD</color>
+    <color name="accent_turquoise_on_tertiary_container">#FF241430</color>
 
     <!-- Kachelfarben gehoeren der Position im Raster (Zeile 1-3, Spalte 1-3),
          nicht der Kachel. Wird eine Kachel verschoben, nimmt sie die Farbe
          ihrer neuen Position an. -->
-    <color name="dashboard_brown_pos1">#FF1A1208</color>
-    <color name="dashboard_brown_pos2">#FF2C2010</color>
-    <color name="dashboard_brown_pos3">#FF4A3820</color>
-    <color name="dashboard_brown_pos4">#FF4A3828</color>
-    <color name="dashboard_brown_pos5">#FF8A6848</color>
-    <color name="dashboard_brown_pos6">#FFC4A878</color>
-    <color name="dashboard_brown_pos7">#FF6B4A38</color>
-    <color name="dashboard_brown_pos8">#FF8B6A50</color>
-    <color name="dashboard_brown_pos9">#FFB09070</color>
+    <color name="dashboard_brown_pos1">#FF362417</color>
+    <color name="dashboard_brown_pos2">#FF39271B</color>
+    <color name="dashboard_brown_pos3">#FF423024</color>
+    <color name="dashboard_brown_pos4">#FF3C2A1E</color>
+    <color name="dashboard_brown_pos5">#FF4D3C30</color>
+    <color name="dashboard_brown_pos6">#FF645349</color>
+    <color name="dashboard_brown_pos7">#FF59483D</color>
+    <color name="dashboard_brown_pos8">#FF7B6A62</color>
+    <color name="dashboard_brown_pos9">#FF92817A</color>
 
-    <color name="dashboard_purple_pos1">#FF300830</color>
-    <color name="dashboard_purple_pos2">#FF500848</color>
-    <color name="dashboard_purple_pos3">#FF804878</color>
-    <color name="dashboard_purple_pos4">#FF3A1018</color>
-    <color name="dashboard_purple_pos5">#FF6A2030</color>
-    <color name="dashboard_purple_pos6">#FFA04058</color>
-    <color name="dashboard_purple_pos7">#FF483848</color>
-    <color name="dashboard_purple_pos8">#FF785868</color>
-    <color name="dashboard_purple_pos9">#FFA87080</color>
+    <color name="dashboard_magenta_pos1">#FF16001E</color>
+    <color name="dashboard_magenta_pos2">#FF310B37</color>
+    <color name="dashboard_magenta_pos3">#FF4B1550</color>
+    <color name="dashboard_magenta_pos4">#FF3E1044</color>
+    <color name="dashboard_magenta_pos5">#FF651F69</color>
+    <color name="dashboard_magenta_pos6">#FF973888</color>
+    <color name="dashboard_magenta_pos7">#FF7F2982</color>
+    <color name="dashboard_magenta_pos8">#FFAF468E</color>
+    <color name="dashboard_magenta_pos9">#FFDE639A</color>
 
-    <color name="dashboard_blue_pos1">#FF1A1A2A</color>
-    <color name="dashboard_blue_pos2">#FF2A2A4A</color>
-    <color name="dashboard_blue_pos3">#FF5A5A8A</color>
-    <color name="dashboard_blue_pos4">#FF1A3048</color>
-    <color name="dashboard_blue_pos5">#FF2A5080</color>
-    <color name="dashboard_blue_pos6">#FF5A80A8</color>
-    <color name="dashboard_blue_pos7">#FF1A3060</color>
-    <color name="dashboard_blue_pos8">#FF6080A8</color>
-    <color name="dashboard_blue_pos9">#FFA0B8D8</color>
+    <color name="dashboard_turquoise_pos1">#FF041B15</color>
+    <color name="dashboard_turquoise_pos2">#FF06261F</color>
+    <color name="dashboard_turquoise_pos3">#FF0C453C</color>
+    <color name="dashboard_turquoise_pos4">#FF083029</color>
+    <color name="dashboard_turquoise_pos5">#FF105A50</color>
+    <color name="dashboard_turquoise_pos6">#FF177E73</color>
+    <color name="dashboard_turquoise_pos7">#FF136F63</color>
+    <color name="dashboard_turquoise_pos8">#FF1B8D82</color>
+    <color name="dashboard_turquoise_pos9">#FF22AAA1</color>
 
     <!-- Function pie colors -->
     <color name="function_purser_i">#FF05164D</color>

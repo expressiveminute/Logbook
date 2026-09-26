@@ -472,7 +472,7 @@
                 </com.google.android.material.card.MaterialCardView>
 
                 <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/accent_purple_tile"
+                    android:id="@+id/accent_magenta_tile"
                     android:layout_width="0dp"
                     android:layout_height="60dp"
                     android:layout_marginStart="4dp"
@@ -486,17 +486,17 @@
                     app:strokeWidth="1dp">
 
                     <TextView
-                        android:id="@+id/accent_purple_label"
+                        android:id="@+id/accent_magenta_label"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:gravity="center"
-                        android:text="@string/settings_accent_purple"
+                        android:text="@string/settings_accent_magenta"
                         android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
                         android:textStyle="bold" />
                 </com.google.android.material.card.MaterialCardView>
 
                 <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/accent_blue_tile"
+                    android:id="@+id/accent_turquoise_tile"
                     android:layout_width="0dp"
                     android:layout_height="60dp"
                     android:layout_marginStart="4dp"
@@ -509,11 +509,11 @@
                     app:strokeWidth="1dp">
 
                     <TextView
-                        android:id="@+id/accent_blue_label"
+                        android:id="@+id/accent_turquoise_label"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:gravity="center"
-                        android:text="@string/settings_accent_blue"
+                        android:text="@string/settings_accent_turquoise"
                         android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
                         android:textStyle="bold" />
                 </com.google.android.material.card.MaterialCardView>
@@ -710,6 +710,34 @@
 
                 <com.google.android.material.textfield.MaterialAutoCompleteTextView
                     android:id="@+id/default_period_dropdown"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="none" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/settings_default_time_unit"
+                android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/default_time_unit_layout"
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                app:boxCornerRadiusBottomEnd="16dp"
+                app:boxCornerRadiusBottomStart="16dp"
+                app:boxCornerRadiusTopEnd="16dp"
+                app:boxCornerRadiusTopStart="16dp"
+                app:boxStrokeColor="?attr/colorOutlineVariant"
+                app:boxStrokeWidth="2dp"
+                app:boxStrokeWidthFocused="2dp">
+
+                <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                    android:id="@+id/default_time_unit_dropdown"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:inputType="none" />

@@ -42,10 +42,10 @@ object DashboardPrefs {
     private fun brownStyle(backgroundColorRes: Int) =
         TileStyle(backgroundColorRes)
 
-    private fun purpleStyle(backgroundColorRes: Int) =
+    private fun magentaStyle(backgroundColorRes: Int) =
         TileStyle(backgroundColorRes)
 
-    private fun blueStyle(backgroundColorRes: Int) =
+    private fun turquoiseStyle(backgroundColorRes: Int) =
         TileStyle(backgroundColorRes)
 
     /** Anzahl der Reihen, die eine eigene Kachelfarbe haben. */
@@ -56,12 +56,12 @@ object DashboardPrefs {
 
     private fun accentStyles(
         brown: Int,
-        purple: Int,
-        blue: Int
+        magenta: Int,
+        turquoise: Int
     ): Map<String, TileStyle> = mapOf(
         Settings.ACCENT_BROWN to brownStyle(brown),
-        Settings.ACCENT_PURPLE to purpleStyle(purple),
-        Settings.ACCENT_BLUE to blueStyle(blue)
+        Settings.ACCENT_MAGENTA to magentaStyle(magenta),
+        Settings.ACCENT_TURQUOISE to turquoiseStyle(turquoise)
     )
 
     /**
@@ -72,48 +72,48 @@ object DashboardPrefs {
     private val POSITION_STYLES: Map<Int, Map<String, TileStyle>> = mapOf(
         0 to accentStyles(
             R.color.dashboard_brown_pos1,
-            R.color.dashboard_purple_pos1,
-            R.color.dashboard_blue_pos1
+            R.color.dashboard_magenta_pos1,
+            R.color.dashboard_turquoise_pos1
         ),
         1 to accentStyles(
             R.color.dashboard_brown_pos2,
-            R.color.dashboard_purple_pos2,
-            R.color.dashboard_blue_pos2
+            R.color.dashboard_magenta_pos2,
+            R.color.dashboard_turquoise_pos2
         ),
         2 to accentStyles(
             R.color.dashboard_brown_pos3,
-            R.color.dashboard_purple_pos3,
-            R.color.dashboard_blue_pos3
+            R.color.dashboard_magenta_pos3,
+            R.color.dashboard_turquoise_pos3
         ),
         3 to accentStyles(
             R.color.dashboard_brown_pos4,
-            R.color.dashboard_purple_pos4,
-            R.color.dashboard_blue_pos4
+            R.color.dashboard_magenta_pos4,
+            R.color.dashboard_turquoise_pos4
         ),
         4 to accentStyles(
             R.color.dashboard_brown_pos5,
-            R.color.dashboard_purple_pos5,
-            R.color.dashboard_blue_pos5
+            R.color.dashboard_magenta_pos5,
+            R.color.dashboard_turquoise_pos5
         ),
         5 to accentStyles(
             R.color.dashboard_brown_pos6,
-            R.color.dashboard_purple_pos6,
-            R.color.dashboard_blue_pos6
+            R.color.dashboard_magenta_pos6,
+            R.color.dashboard_turquoise_pos6
         ),
         6 to accentStyles(
             R.color.dashboard_brown_pos7,
-            R.color.dashboard_purple_pos7,
-            R.color.dashboard_blue_pos7
+            R.color.dashboard_magenta_pos7,
+            R.color.dashboard_turquoise_pos7
         ),
         7 to accentStyles(
             R.color.dashboard_brown_pos8,
-            R.color.dashboard_purple_pos8,
-            R.color.dashboard_blue_pos8
+            R.color.dashboard_magenta_pos8,
+            R.color.dashboard_turquoise_pos8
         ),
         8 to accentStyles(
             R.color.dashboard_brown_pos9,
-            R.color.dashboard_purple_pos9,
-            R.color.dashboard_blue_pos9
+            R.color.dashboard_magenta_pos9,
+            R.color.dashboard_turquoise_pos9
         )
     )
 

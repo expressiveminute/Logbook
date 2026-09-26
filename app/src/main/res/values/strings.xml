@@ -35,6 +35,12 @@
     <string name="co2_trees_title">Bäume zum Ausgleich</string>
     <string name="tile_detail_continents">Nach Kontinent</string>
     <string name="tile_detail_aircraft_types">Flugzeugtypen</string>
+    <string name="time_detail_longest">Längster Flug</string>
+    <string name="time_detail_average">Durchschnittliche Flugzeit</string>
+    <string name="time_detail_shortest">Kürzester Flug</string>
+    <string name="time_detail_distribution">Flüge nach Flugdauer</string>
+    <string name="time_detail_all_flights">Alle Flüge</string>
+    <string name="time_route_flights">%1$d Flüge</string>
     <string name="tile_detail_registrations">Registrierungen</string>
     <string name="continent_europe">Europa</string>
     <string name="continent_asia">Asien</string>
@@ -82,11 +88,12 @@
     <string name="settings_light_mode">Hellmodus</string>
     <string name="settings_accent_color">Akzentfarbe</string>
     <string name="settings_accent_brown">Braun</string>
-    <string name="settings_accent_purple">Lila</string>
-    <string name="settings_accent_blue">Blau</string>
+    <string name="settings_accent_magenta">Magenta</string>
+    <string name="settings_accent_turquoise">Türkis</string>
     <string name="settings_class_scheme">Farbeschema Reiseklasse</string>
     <string name="class_scheme_lufthansa">Lufthansa</string>
     <string name="settings_default_period">Standard-Zeitraum</string>
+    <string name="settings_default_time_unit">Standard-Zeitanzeige</string>
     <string name="settings_language">Sprache</string>
     <string name="settings_lang_de">Deutsch</string>
     <string name="settings_map_orientation">Weltkartenformat</string>

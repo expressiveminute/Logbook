@@ -13,12 +13,13 @@ object Settings {
     const val CITY_LANG_DE = "de"
 
     const val ACCENT_BROWN = "brown"
-    const val ACCENT_PURPLE = "purple"
-    const val ACCENT_BLUE = "blue"
+    const val ACCENT_MAGENTA = "magenta"
+    const val ACCENT_TURQUOISE = "turquoise"
 
-    val ACCENT_OPTIONS = listOf(ACCENT_BROWN, ACCENT_PURPLE, ACCENT_BLUE)
+    val ACCENT_OPTIONS = listOf(ACCENT_BROWN, ACCENT_MAGENTA, ACCENT_TURQUOISE)
 
     private const val LEGACY_ACCENT_LIGHT_BLUE = "light_blue"
+    private const val LEGACY_ACCENT_BLUE = "blue"
 
     const val ROLE_CREW = "crew"
     const val ROLE_PASSENGER = "passenger"
@@ -40,6 +41,7 @@ object Settings {
     private const val PREF_NAME = "logbook_settings"
     private const val KEY_DARK_MODE = "dark_mode"
     private const val KEY_DEFAULT_PERIOD = "default_period"
+    private const val KEY_DEFAULT_TIME_UNIT = "default_time_unit"
     private const val KEY_ACCENT = "accent_color"
     private const val KEY_ROLE = "role"
     private const val KEY_CREW_FUNCTION = "crew_function"
@@ -70,6 +72,18 @@ object Settings {
         prefs(context).edit().putString(KEY_DEFAULT_PERIOD, key).apply()
     }
 
+    /**
+     * Einheit, in der die Kachel "Zeit" ihre Summe anzeigt. Ein unbekannter
+     * Schlüssel wird wie Stunden behandelt, siehe [TimeUnitOptions.unit].
+     */
+    fun getDefaultTimeUnitKey(context: Context): String =
+        prefs(context).getString(KEY_DEFAULT_TIME_UNIT, TimeUnitOptions.KEY_HOURS)
+            ?: TimeUnitOptions.KEY_HOURS
+
+    fun setDefaultTimeUnitKey(context: Context, key: String) {
+        prefs(context).edit().putString(KEY_DEFAULT_TIME_UNIT, key).apply()
+    }
+
     fun getAccentColor(context: Context): String =
         normalizeAccentColor(prefs(context).getString(KEY_ACCENT, ACCENT_BROWN))
 
@@ -79,14 +93,15 @@ object Settings {
     }
 
     fun accentThemeResId(context: Context): Int = when (getAccentColor(context)) {
-        ACCENT_PURPLE -> R.style.Theme_Logbook_Purple
-        ACCENT_BLUE -> R.style.Theme_Logbook_Blue
+        ACCENT_MAGENTA -> R.style.Theme_Logbook_Magenta
+        ACCENT_TURQUOISE -> R.style.Theme_Logbook_Turquoise
         else -> R.style.Theme_Logbook_Brown
     }
 
     private fun normalizeAccentColor(value: String?): String = when (value) {
-        ACCENT_PURPLE -> ACCENT_PURPLE
-        ACCENT_BLUE, LEGACY_ACCENT_LIGHT_BLUE -> ACCENT_BLUE
+        ACCENT_MAGENTA -> ACCENT_MAGENTA
+        ACCENT_TURQUOISE, LEGACY_ACCENT_BLUE -> ACCENT_TURQUOISE
+        LEGACY_ACCENT_LIGHT_BLUE -> ACCENT_TURQUOISE
         else -> ACCENT_BROWN
     }
 

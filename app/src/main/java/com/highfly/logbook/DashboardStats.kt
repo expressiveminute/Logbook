@@ -27,28 +27,50 @@ object DashboardStats {
         val moonTrips: Double
     )
 
-    fun filterForPeriod(entries: List<LogbookEntry>, key: String): List<LogbookEntry> {
-        val range = when (key) {
-            PeriodOptions.KEY_ALL -> null
-            PeriodOptions.KEY_THIS_MONTH -> {
-                val today = LocalDate.now()
-                today.withDayOfMonth(1) to today.withDayOfMonth(1).plusMonths(1)
-            }
-            PeriodOptions.KEY_YTD -> {
-                val today = LocalDate.now()
-                LocalDate.of(today.year, 1, 1) to LocalDate.of(today.year + 1, 1, 1)
-            }
-            else -> {
-                val year = key.toIntOrNull() ?: return entries
-                LocalDate.of(year, 1, 1) to LocalDate.of(year + 1, 1, 1)
-            }
+    /**
+     * Zeitraumgrenzen des Periodenschlüssels als halb-offenes Intervall
+     * [von, bis), damit der 1. Januar des Folgejahres nicht doppelt hinein
+     * fällt. `null` bedeutet "alle Einträge", auch bei einem unbekannten
+     * Schlüssel.
+     */
+    fun periodRange(key: String): Pair<LocalDate, LocalDate>? = when (key) {
+        PeriodOptions.KEY_ALL -> null
+        PeriodOptions.KEY_THIS_MONTH -> {
+            val today = LocalDate.now()
+            today.withDayOfMonth(1) to today.withDayOfMonth(1).plusMonths(1)
         }
-        return if (range == null) {
-            entries
-        } else {
-            entries.filter { it.date >= range.first && it.date < range.second }
+        PeriodOptions.KEY_YTD -> {
+            val today = LocalDate.now()
+            LocalDate.of(today.year, 1, 1) to LocalDate.of(today.year + 1, 1, 1)
+        }
+        else -> {
+            val year = key.toIntOrNull() ?: return null
+            LocalDate.of(year, 1, 1) to LocalDate.of(year + 1, 1, 1)
         }
     }
+
+    fun filterForPeriod(entries: List<LogbookEntry>, key: String): List<LogbookEntry> {
+        val range = periodRange(key) ?: return entries
+        return entries.filter { it.date >= range.first && it.date < range.second }
+    }
+
+    /**
+     * Anzahl der Strecken, die im Jahr [year] zum ersten Mal geflogen wurden.
+     *
+     * Eine Entdeckung ist immer relativ zur Gesamtheit aller Einträge: Eine
+     * Strecke, die 2023 zum ersten Mal geflogen wurde, zählt 2026 nicht als
+     * neu, auch wenn sie 2026 erneut geflogen wurde. Deshalb wird erst über
+     * alle Einträge ermittelt, welche Strecken es überhaupt neu gab, und
+     * danach auf das Jahr gefiltert. Ein Filtern der Einträge vor der
+     * Auswertung würde jeden Wiederholungsflug als Entdeckung zählen.
+     *
+     * Die Kachel zählt bewusst nur das laufende Jahr und nicht den gewählten
+     * Zeitraum: Die Discovery-Seite springt beim Öffnen ebenfalls auf das
+     * laufende Jahr, sonst zeigte die Kachel eine andere Zahl als die Seite,
+     * zu der sie führt.
+     */
+    fun discoveryCount(allEntries: List<LogbookEntry>, year: Int): Int =
+        DiscoveryRoutes.firstFlownInYear(allEntries, year).size
 
     private val earthCircumferenceKm = 40075.0
     private val moonDistanceKm = 384400.0
@@ -86,7 +108,17 @@ object DashboardStats {
     fun factorText(value: Double): String =
         formatFactor(value)
 
-    fun values(context: Context, entries: List<LogbookEntry>): Map<String, Value> {
+    /**
+     * Werte aller Kacheln. [entries] ist bereits auf die Periode gefiltert,
+     * [discoveries] nicht: eine Entdeckung lässt sich nur über alle Einträge
+     * bestimmen, siehe [discoveryCount]. Die Kachel "discovery" bleibt dabei
+     * immer auf das laufende Jahr bezogen, unabhängig von [entries].
+     */
+    fun values(
+        context: Context,
+        entries: List<LogbookEntry>,
+        discoveries: Int
+    ): Map<String, Value> {
         val flights = formatInt(context, entries.size)
         val distanceEntries = entries.filter { isDistanceRelevant(it) }
         val distanceKm = distanceEntries.sumOf { it.distanceKm ?: 0 }
@@ -117,6 +149,7 @@ object DashboardStats {
                     formatInt(context, (countries * 100.0 / WORLD_COUNTRIES).toInt()))),
             "earthorbits" to Value(formatFactor(earthOrbits), "×"),
             "moon" to Value(formatFactor(moonFlights), "×"),
+            "discovery" to Value(formatInt(context, discoveries), null),
         )
     }
 

@@ -25,6 +25,9 @@
         <action
             android:id="@+id/action_dashboard_to_discovery"
             app:destination="@id/nav_discovery" />
+        <action
+            android:id="@+id/action_dashboard_to_time_detail"
+            app:destination="@id/nav_time_detail" />
     </fragment>
 
     <fragment
@@ -133,4 +136,9 @@
         android:id="@+id/nav_discovery"
         android:name="com.highfly.logbook.DiscoveryFragment"
         tools:layout="@layout/fragment_discovery" />
+
+    <fragment
+        android:id="@+id/nav_time_detail"
+        android:name="com.highfly.logbook.TimeDetailFragment"
+        tools:layout="@layout/fragment_time_detail" />
 </navigation>

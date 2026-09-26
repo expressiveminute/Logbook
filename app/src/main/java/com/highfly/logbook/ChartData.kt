@@ -4,10 +4,16 @@ import android.content.Context
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlin.math.roundToInt
 
 object ChartData {
 
-    data class Bar(val label: String, val count: Int, val subLabel: String? = null)
+    data class Bar(
+        val label: String,
+        val count: Int,
+        val subLabel: String? = null,
+        val countLabel: String? = null
+    )
 
     data class Slice(val label: String, val value: Int, val colorRes: Int)
 
@@ -52,6 +58,12 @@ object ChartData {
         "flights", "routes", "airlines", "layover", "aircraftreg", "countries"
     )
     private val PIE_CHART_TILES = setOf("class", "traveltype", "function")
+
+    /** Balken der Flugdauer-Histogramm: 1-19 Stunden, danach "20+". */
+    private const val HOUR_BUCKETS = 20
+
+    private val DATE_LABEL_FORMAT: DateTimeFormatter =
+        DateTimeFormatter.ofPattern("dd.MM.yyyy")
 
     fun isBarChart(tileId: String): Boolean = tileId in BAR_CHART_TILES
 
@@ -128,6 +140,93 @@ object ChartData {
         countBy(entries) { it.aircraftType }
             .map { (label, count) -> Bar(label, count) }
             .sortedWith(compareByDescending<Bar> { it.count }.thenBy { it.label })
+
+    /**
+     * Längster bzw. kürzester Einzelflug des Zeitraums als einzelner Balken:
+     * Strecke als Label, Dauer als Balkenlänge und als [Bar.countLabel], das
+     * Datum im Balken. Bei gleicher Dauer entscheidet das Datum, damit die
+     * Auswahl eindeutig ist. `null`, wenn kein Flug eine Flugzeit hat.
+     */
+    fun longestFlightBar(entries: List<LogbookEntry>): Bar? =
+        extremeFlightBar(entries, longest = true)
+
+    fun shortestFlightBar(entries: List<LogbookEntry>): Bar? =
+        extremeFlightBar(entries, longest = false)
+
+    private fun extremeFlightBar(
+        entries: List<LogbookEntry>,
+        longest: Boolean
+    ): Bar? {
+        val timed = entries.filter { (it.flightMinutes ?: 0) > 0 }
+        val byDuration = compareBy<LogbookEntry>({ it.flightMinutes ?: 0 }, { it.date })
+        val flight = if (longest) {
+            timed.maxWithOrNull(byDuration)
+        } else {
+            timed.minWithOrNull(byDuration)
+        } ?: return null
+        val minutes = flight.flightMinutes ?: return null
+        return Bar(
+            label = routeOf(flight),
+            count = minutes,
+            subLabel = flight.date.format(DATE_LABEL_FORMAT),
+            countLabel = durationText(minutes)
+        )
+    }
+
+    /**
+     * Mittlere Flugzeit ueber alle Fluege des Zeitraums als einzelner Balken.
+     * Gerechnet wird ueber jeden einzelnen Flug, nicht ueber einen Mittelwert
+     * je Strecke, damit jede Flugzeit genau einmal eingeht. `null`, wenn kein
+     * Flug eine Flugzeit hat.
+     */
+    fun averageDurationBar(
+        entries: List<LogbookEntry>,
+        label: String,
+        flightsText: (Int) -> String
+    ): Bar? {
+        val minutes = entries.mapNotNull { it.flightMinutes }.filter { it > 0 }
+        if (minutes.isEmpty()) return null
+        val average = (minutes.sum().toDouble() / minutes.size).roundToInt()
+        return Bar(
+            label = label,
+            count = average,
+            subLabel = flightsText(minutes.size),
+            countLabel = durationText(average)
+        )
+    }
+
+    /**
+     * Anzahl der Flüge je voller Stunde: 1 bis 19 Stunden, danach ein
+     * Sammel-Balken "20+" für alles darueber. Kuerzere Fluege landen im
+     * 1-Stunden-Balken. Ohne erfasste Flugzeit wird der Flug nicht gezaehlt.
+     */
+    fun durationHistogram(context: Context): List<Bar> =
+        durationHistogram(periodFiltered(context))
+
+    fun durationHistogram(entries: List<LogbookEntry>): List<Bar> {
+        val counts = IntArray(HOUR_BUCKETS)
+        entries.forEach { entry ->
+            val minutes = entry.flightMinutes ?: return@forEach
+            if (minutes <= 0) return@forEach
+            val hours = Math.round(minutes / 60.0).toInt()
+            counts[hours.coerceIn(1, HOUR_BUCKETS) - 1]++
+        }
+        return counts.mapIndexed { index, count ->
+            val hours = index + 1
+            Bar(
+                label = if (hours >= HOUR_BUCKETS) "${HOUR_BUCKETS}+" else "$hours",
+                count = count
+            )
+        }
+    }
+
+    /** Flugdauer als "7:05 h", unter einer Stunde als "45 min". */
+    fun durationText(minutes: Int): String =
+        if (minutes < 60) {
+            "$minutes min"
+        } else {
+            String.format(Locale.GERMANY, "%d:%02d h", minutes / 60, minutes % 60)
+        }
 
     fun classSlices(context: Context): List<Slice> =
         classSlices(context, null)
@@ -244,7 +343,7 @@ object ChartData {
         else -> R.string.continent_unknown
     }
 
-    private fun periodFiltered(context: Context): List<LogbookEntry> =
+    fun periodFiltered(context: Context): List<LogbookEntry> =
         DashboardStats.filterForPeriod(
             LogbookRepository.getEntries(),
             Settings.getDefaultPeriodKey(context)

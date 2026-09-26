@@ -12,14 +12,9 @@ class DashboardPrefsPositionStyleTest {
 
     @Test
     fun positionStyle_coversFirstThreeRowsAndColumns() {
-        val accents = listOf(
-            Settings.ACCENT_BROWN,
-            Settings.ACCENT_PURPLE,
-            Settings.ACCENT_BLUE
-        )
         for (row in 0 until DashboardPrefs.COLORED_ROWS) {
             for (column in 0 until DashboardPrefs.COLORED_COLUMNS) {
-                for (accent in accents) {
+                for (accent in Settings.ACCENT_OPTIONS) {
                     assertNotNull(
                         "Position ${row + 1}/${column + 1} ohne Farbe ($accent)",
                         style(row, column, accent)
@@ -32,13 +27,13 @@ class DashboardPrefsPositionStyleTest {
     @Test
     fun positionStyle_usesAccentSpecificColorsForNinthPosition() {
         assertEquals(R.color.dashboard_brown_pos9, style(2, 2, Settings.ACCENT_BROWN)?.backgroundColorRes)
-        assertEquals(R.color.dashboard_purple_pos9, style(2, 2, Settings.ACCENT_PURPLE)?.backgroundColorRes)
-        assertEquals(R.color.dashboard_blue_pos9, style(2, 2, Settings.ACCENT_BLUE)?.backgroundColorRes)
+        assertEquals(R.color.dashboard_magenta_pos9, style(2, 2, Settings.ACCENT_MAGENTA)?.backgroundColorRes)
+        assertEquals(R.color.dashboard_turquoise_pos9, style(2, 2, Settings.ACCENT_TURQUOISE)?.backgroundColorRes)
     }
 
     @Test
     fun positionStyle_usesWhiteTextAndIconColor() {
-        for (accent in listOf(Settings.ACCENT_BROWN, Settings.ACCENT_PURPLE, Settings.ACCENT_BLUE)) {
+        for (accent in Settings.ACCENT_OPTIONS) {
             val style = style(0, 0, accent)!!
             assertEquals(R.color.white, style.contentColorRes)
             assertEquals(R.color.white, style.strokeColorRes)
@@ -59,16 +54,20 @@ class DashboardPrefsPositionStyleTest {
             style(0, 0, Settings.ACCENT_BROWN)?.backgroundColorRes
         )
         assertEquals(
-            R.color.dashboard_purple_pos5,
-            style(1, 1, Settings.ACCENT_PURPLE)?.backgroundColorRes
+            R.color.dashboard_magenta_pos5,
+            style(1, 1, Settings.ACCENT_MAGENTA)?.backgroundColorRes
         )
         assertEquals(
-            R.color.dashboard_blue_pos8,
-            style(2, 1, Settings.ACCENT_BLUE)?.backgroundColorRes
+            R.color.dashboard_turquoise_pos8,
+            style(2, 1, Settings.ACCENT_TURQUOISE)?.backgroundColorRes
         )
         assertEquals(
-            R.color.dashboard_purple_pos6,
-            style(1, 2, Settings.ACCENT_PURPLE)?.backgroundColorRes
+            R.color.dashboard_magenta_pos6,
+            style(1, 2, Settings.ACCENT_MAGENTA)?.backgroundColorRes
+        )
+        assertEquals(
+            R.color.dashboard_magenta_pos1,
+            style(0, 0, Settings.ACCENT_MAGENTA)?.backgroundColorRes
         )
     }
 }

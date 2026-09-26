@@ -123,7 +123,8 @@ class TileDetailFragment : Fragment() {
         title: View?
     ) {
         if (bars.isEmpty()) return
-        val chartHeight = (resources.displayMetrics.heightPixels * 0.45f).roundToInt()
+        val chartHeight =
+            (resources.displayMetrics.heightPixels * COLUMN_CHART_HEIGHT_FACTOR).roundToInt()
         val chartItems = bars.map { MonthBarChartView.Item(it.label, it.count) }
 
         chart.setLeadingSpace(axis.layoutParams.width)
@@ -165,5 +166,10 @@ class TileDetailFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    private companion object {
+        /** Anteil der Bildschirmhoehe, den die Diagrammflaeche einnimmt. */
+        const val COLUMN_CHART_HEIGHT_FACTOR = 0.33f
     }
 }

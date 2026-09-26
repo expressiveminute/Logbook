@@ -155,8 +155,8 @@ class SettingsSectionFragment : Fragment() {
         binding.lightModeTile.setOnClickListener { applyMode(false) }
 
         binding.accentBrownTile.setOnClickListener { applyAccent(Settings.ACCENT_BROWN) }
-        binding.accentPurpleTile.setOnClickListener { applyAccent(Settings.ACCENT_PURPLE) }
-        binding.accentBlueTile.setOnClickListener { applyAccent(Settings.ACCENT_BLUE) }
+        binding.accentMagentaTile.setOnClickListener { applyAccent(Settings.ACCENT_MAGENTA) }
+        binding.accentTurquoiseTile.setOnClickListener { applyAccent(Settings.ACCENT_TURQUOISE) }
 
         binding.tileClassSchemeLufthansa.setOnClickListener { applyClassScheme(Settings.CLASS_SCHEME_LUFTHANSA) }
 
@@ -169,6 +169,7 @@ class SettingsSectionFragment : Fragment() {
         updateLanguageTiles()
         updateMapOrientationTiles(Settings.getMapOrientation(requireContext()))
         setupDefaultPeriodDropdown()
+        setupDefaultTimeUnitDropdown()
 
         binding.mapOrientationLandscapeTile.setOnClickListener {
             applyMapOrientation(Settings.MAP_ORIENTATION_LANDSCAPE)
@@ -393,20 +394,20 @@ class SettingsSectionFragment : Fragment() {
             accent == Settings.ACCENT_BROWN
         )
         styleAccentTile(
-            binding.accentPurpleTile,
-            binding.accentPurpleLabel,
-            R.color.accent_purple_primary_container,
-            R.color.accent_purple_on_primary_container,
-            R.color.accent_purple_primary,
-            accent == Settings.ACCENT_PURPLE
+            binding.accentMagentaTile,
+            binding.accentMagentaLabel,
+            R.color.accent_magenta_primary_container,
+            R.color.accent_magenta_on_primary_container,
+            R.color.accent_magenta_primary,
+            accent == Settings.ACCENT_MAGENTA
         )
         styleAccentTile(
-            binding.accentBlueTile,
-            binding.accentBlueLabel,
-            R.color.accent_blue_primary_container,
-            R.color.accent_blue_on_primary_container,
-            R.color.accent_blue_primary,
-            accent == Settings.ACCENT_BLUE
+            binding.accentTurquoiseTile,
+            binding.accentTurquoiseLabel,
+            R.color.accent_turquoise_primary_container,
+            R.color.accent_turquoise_on_primary_container,
+            R.color.accent_turquoise_primary,
+            accent == Settings.ACCENT_TURQUOISE
         )
     }
 
@@ -493,6 +494,24 @@ class SettingsSectionFragment : Fragment() {
             val key = PeriodOptions.keyForLabel(requireContext(), label)
             if (key != null) {
                 Settings.setDefaultPeriodKey(requireContext(), key)
+            }
+        }
+    }
+
+    private fun setupDefaultTimeUnitDropdown() {
+        val keys = TimeUnitOptions.keys()
+        val labels = keys.map { TimeUnitOptions.label(requireContext(), it) }
+        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_list_item_1, labels)
+        binding.defaultTimeUnitDropdown.setAdapter(adapter)
+        binding.defaultTimeUnitDropdown.setText(
+            TimeUnitOptions.label(requireContext(), Settings.getDefaultTimeUnitKey(requireContext())),
+            false
+        )
+        binding.defaultTimeUnitDropdown.setOnItemClickListener { parent, _, position, _ ->
+            val label = parent.getItemAtPosition(position) as String
+            val key = TimeUnitOptions.keyForLabel(requireContext(), label)
+            if (key != null) {
+                Settings.setDefaultTimeUnitKey(requireContext(), key)
             }
         }
     }

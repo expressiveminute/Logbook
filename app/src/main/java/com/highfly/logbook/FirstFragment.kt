@@ -1,9 +1,5 @@
 package com.highfly.logbook
 
-import android.animation.Animator
-import android.animation.AnimatorListenerAdapter
-import android.animation.ValueAnimator
-import android.graphics.Typeface
 import android.os.Bundle
 import android.text.Layout
 import android.text.SpannableStringBuilder
@@ -12,13 +8,11 @@ import android.text.StaticLayout
 import android.text.TextPaint
 import android.text.style.ForegroundColorSpan
 import android.text.style.RelativeSizeSpan
-import android.text.style.StyleSpan
 import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
 import android.view.LayoutInflater
 import android.view.ViewTreeObserver
-import android.view.animation.DecelerateInterpolator
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -27,8 +21,7 @@ import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.color.MaterialColors
 import com.highfly.logbook.databinding.FragmentFirstBinding
-import java.text.DecimalFormat
-import java.text.DecimalFormatSymbols
+import java.time.LocalDate
 import java.util.Locale
 
 class FirstFragment : Fragment() {
@@ -39,18 +32,8 @@ class FirstFragment : Fragment() {
     private val bigNumberTiles = setOf("earthorbits", "moon")
 
     private var timeMinutes = 0
-    private var timeUnitIndex = 0
+    private var timeUnit = DashboardStats.TimeUnit.HOURS
     private var loadGeneration = 0
-
-    private val valueAnimators = mutableListOf<ValueAnimator>()
-    private val finalValueTexts = mutableMapOf<TextView, CharSequence>()
-
-    private val timeUnits = listOf(
-        DashboardStats.TimeUnit.HOURS,
-        DashboardStats.TimeUnit.DAYS,
-        DashboardStats.TimeUnit.MONTHS,
-        DashboardStats.TimeUnit.YEARS,
-    )
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -125,9 +108,7 @@ class FirstFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        valueAnimators.forEach { it.cancel() }
-        valueAnimators.clear()
-        finalValueTexts.clear()
+        TileValueAnimator.cancelAll()
         _binding = null
     }
 
@@ -138,12 +119,21 @@ class FirstFragment : Fragment() {
         val appContext = requireContext().applicationContext
         Thread {
             val key = Settings.getDefaultPeriodKey(appContext)
+            val timeUnitKey = Settings.getDefaultTimeUnitKey(appContext)
+            val allEntries = LogbookRepository.getEntries()
             val entries = DashboardStats.filterForPeriod(
-                LogbookRepository.getEntries(),
+                allEntries,
                 key
             )
             val time = entries.sumOf { it.flightMinutes ?: 0 }
-            val values = DashboardStats.values(appContext, entries)
+            // Braucht alle Eintraege, nicht die gefilterten: eine Strecke ist
+            // nur dann neu, wenn sie noch nie geflogen wurde. Gezaehlt wird
+            // immer das laufende Jahr, unabhaengig vom gewaehlten Zeitraum.
+            val discoveries = DashboardStats.discoveryCount(
+                allEntries,
+                LocalDate.now().year
+            )
+            val values = DashboardStats.values(appContext, entries, discoveries)
             val distance = DashboardStats.distanceDetails(appContext, entries)
             val co2 = Co2Calculator.details(entries)
 
@@ -151,7 +141,7 @@ class FirstFragment : Fragment() {
                 if (generation != loadGeneration || _binding == null) return@post
                 binding.dashboardProgress.visibility = View.GONE
                 timeMinutes = time
-                timeUnitIndex = 0
+                timeUnit = TimeUnitOptions.unit(timeUnitKey)
                 renderGrid(
                     DashboardPrefs.readRows(binding.root.context),
                     binding.gridTiles,
@@ -181,9 +171,7 @@ class FirstFragment : Fragment() {
         co2: Co2Calculator.Details,
         entries: List<LogbookEntry>
     ) {
-        valueAnimators.forEach { it.cancel() }
-        valueAnimators.clear()
-        finalValueTexts.clear()
+        TileValueAnimator.cancelAll()
         container.removeAllViews()
         if (rows.isEmpty()) {
             container.visibility = View.GONE
@@ -245,17 +233,17 @@ class FirstFragment : Fragment() {
                     populateCo2Tile(tileContainer, co2)
                 } else if (tileId == "time") {
                     val value = DashboardStats.timeValue(
-                        requireContext(), timeMinutes, timeUnits[timeUnitIndex]
+                        requireContext(), timeMinutes, timeUnit
                     )
                     tileContainer.findViewById<TextView>(R.id.tv_tile_value).apply {
-                        animateCountUp(this, value.text)
+                        TileValueAnimator.animate(this, value.text)
                         visibility = View.VISIBLE
                     }
                     tileContainer.findViewById<TextView>(R.id.tv_tile_unit).apply {
                         text = ""
                         visibility = View.GONE
                     }
-                    tileNameView.text = timeTileTitle(timeUnits[timeUnitIndex])
+                    tileNameView.text = TimeUnitOptions.tileTitle(requireContext(), timeUnit)
                 } else if (tileId == "worldmap") {
                     iconView.visibility = View.GONE
                     tileContainer.findViewById<View>(R.id.ll_tile_top_right).visibility = View.GONE
@@ -296,7 +284,7 @@ class FirstFragment : Fragment() {
                             text = ""
                             visibility = View.GONE
                         } else {
-                            animateCountUp(this, buildValueText(value))
+                            TileValueAnimator.animate(this, buildValueText(value))
                             visibility = View.VISIBLE
                         }
                     }
@@ -314,7 +302,7 @@ class FirstFragment : Fragment() {
                 )
                 card.setOnClickListener {
                     if (tileId == "time") {
-                        cycleTimeUnit(tileContainer)
+                        openTimeTile()
                     } else {
                         openTile(tileId)
                     }
@@ -390,7 +378,7 @@ class FirstFragment : Fragment() {
                 val textPaint = TextPaint(tv.paint).apply { textSize = baseTextSize }
                 // Vermisst den END-Wert statt des animierten Zwischenwerts,
                 // damit die Schrift auf die finale Zahl passt.
-                val measureText = finalValueTexts[tv] ?: tv.text
+                val measureText = TileValueAnimator.finalTextOf(tv) ?: tv.text
                 val layout = StaticLayout.Builder
                     .obtain(measureText, 0, measureText.length, textPaint, Int.MAX_VALUE)
                     .setAlignment(Layout.Alignment.ALIGN_NORMAL)
@@ -435,87 +423,15 @@ class FirstFragment : Fragment() {
         return builder
     }
 
-    private data class AnimatedParts(val number: Double, val decimals: Int, val suffix: String)
-
-    /**
-     * Zählt den führenden Zahlenwert eines Tile-Werts von 0 auf den Zielwert hoch.
-     * Erkennbare Formate (deutsch): "22", "73,3", "884,234", "1.234", "10 (5%)".
-     */
-    private fun animateCountUp(tv: TextView, finalText: CharSequence?) {
-        if (finalText.isNullOrEmpty()) {
-            tv.text = finalText ?: ""
-            return
-        }
-        val parts = parseAnimated(finalText.toString())
-        if (parts == null) {
-            tv.text = finalText
-            return
-        }
-
-        val formatter = DecimalFormat(
-            "#,##0",
-            DecimalFormatSymbols.getInstance(Locale.GERMANY)
-        ).apply {
-            minimumFractionDigits = parts.decimals
-            maximumFractionDigits = parts.decimals
-        }
-        val target = parts.number
-
-        finalValueTexts[tv] = finalText
-        tv.text = formatter.format(0.0) + parts.suffix
-
-        val animator = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = 900L
-            interpolator = DecelerateInterpolator()
-            addUpdateListener {
-                val t = it.animatedValue as Float
-                tv.text = formatter.format(target * t) + parts.suffix
-            }
-            addListener(object : AnimatorListenerAdapter() {
-                override fun onAnimationEnd(animation: Animator) {
-                    tv.text = finalText
-                    finalValueTexts.remove(tv)
-                }
-            })
-            start()
-        }
-        valueAnimators += animator
-    }
-
-    private fun parseAnimated(text: String): AnimatedParts? {
-        val normalized = text.replace("\u00A0", " ").replace("\u2009", " ")
-        val rawMatch = Regex("^[0-9., ]*").find(normalized)?.value ?: return null
-        if (rawMatch.isEmpty()) return null
-        val match = rawMatch.trim()
-        val suffix = normalized.substring(rawMatch.length)
-
-        // Deutsch: ',' ist IMMER das Dezimaltrennzeichen, '.' nur Tausender-
-        // trenner ("1.234,567"). Ohne ',' ist die Zahl ganzzahlig.
-        val comma = match.lastIndexOf(',')
-        if (comma >= 0) {
-            val decimals = match.length - 1 - comma
-            val intPart = match.substring(0, comma).replace(".", "")
-            val intValue = intPart.toLongOrNull() ?: return null
-            var value = intValue.toDouble()
-            if (decimals > 0) {
-                val fracValue = match.substring(comma + 1).toLongOrNull() ?: return null
-                value += fracValue / Math.pow(10.0, decimals.toDouble())
-            }
-            return AnimatedParts(value, decimals, suffix)
-        }
-        val value = match.replace(".", "").toLongOrNull() ?: return null
-        return AnimatedParts(value.toDouble(), 0, suffix)
-    }
-
     private fun populateCo2Tile(
         container: ViewGroup,
         co2: Co2Calculator.Details
     ) {
         container.findViewById<TextView>(R.id.tv_co2_value).apply {
-            animateCountUp(this, Co2Calculator.tonnesText(co2.tonnes))
+            TileValueAnimator.animate(this, Co2Calculator.tonnesText(co2.tonnes))
         }
         container.findViewById<TextView>(R.id.tv_trees_value).apply {
-            animateCountUp(this, String.format(Locale.GERMANY, "%,d", co2.treesPerYear))
+            TileValueAnimator.animate(this, String.format(Locale.GERMANY, "%,d", co2.treesPerYear))
         }
     }
 
@@ -527,7 +443,7 @@ class FirstFragment : Fragment() {
         val none = context.getString(R.string.distance_none)
 
         container.findViewById<TextView>(R.id.tv_dist_value).apply {
-            animateCountUp(
+            TileValueAnimator.animate(
                 this,
                 buildValueText(DashboardStats.Value(DashboardStats.kmText(context, distance.totalKm), null))
             )
@@ -554,43 +470,15 @@ class FirstFragment : Fragment() {
             distance.shortestKm?.let { DashboardStats.kmText(context, it) } ?: none
 
         container.findViewById<TextView>(R.id.tv_orbits_value).apply {
-            animateCountUp(this, buildValueText(DashboardStats.Value(DashboardStats.factorText(distance.earthOrbits), "×")))
+            TileValueAnimator.animate(this, buildValueText(DashboardStats.Value(DashboardStats.factorText(distance.earthOrbits), "×")))
         }
         container.findViewById<TextView>(R.id.tv_moon_value).apply {
-            animateCountUp(this, buildValueText(DashboardStats.Value(DashboardStats.factorText(distance.moonTrips), "×")))
+            TileValueAnimator.animate(this, buildValueText(DashboardStats.Value(DashboardStats.factorText(distance.moonTrips), "×")))
         }
     }
 
-    private fun cycleTimeUnit(tileContainer: ViewGroup) {
-        timeUnitIndex = (timeUnitIndex + 1) % timeUnits.size
-        val unit = timeUnits[timeUnitIndex]
-        val value = DashboardStats.timeValue(requireContext(), timeMinutes, unit)
-        tileContainer.findViewById<TextView>(R.id.tv_tile_value).apply {
-            if (visibility != View.VISIBLE) return@apply
-            text = value.text
-        }
-        tileContainer.findViewById<TextView>(R.id.tv_tile_name).text = timeTileTitle(unit)
-    }
-
-    private fun timeTileTitle(unit: DashboardStats.TimeUnit): CharSequence {
-        val inRes = when (unit) {
-            DashboardStats.TimeUnit.HOURS -> R.string.tile_time_in_hours
-            DashboardStats.TimeUnit.DAYS -> R.string.tile_time_in_days
-            DashboardStats.TimeUnit.MONTHS -> R.string.tile_time_in_months
-            DashboardStats.TimeUnit.YEARS -> R.string.tile_time_in_years
-        }
-        val parts = SpannableStringBuilder()
-            .append(getString(R.string.tile_time))
-            .append(" [")
-            .append(getString(inRes))
-            .append("]")
-        parts.setSpan(
-            StyleSpan(Typeface.NORMAL),
-            getString(R.string.tile_time).length,
-            parts.length,
-            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-        )
-        return parts
+    private fun openTimeTile() {
+        findNavController().navigate(R.id.action_dashboard_to_time_detail)
     }
 
     private fun openTile(id: String) {

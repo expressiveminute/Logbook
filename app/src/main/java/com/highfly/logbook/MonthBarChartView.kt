@@ -125,6 +125,19 @@ class MonthBarChartView @JvmOverloads constructor(
         invalidate()
     }
 
+    /**
+     * Kleinere Beschriftung der x-Achse. Noetig bei Diagrammen mit vielen
+     * schmalen Spalten (z. B. 20 Stunden-Balken), in denen die Spaltenbreite
+     * nicht mehr von der Textbreite bestimmt wird.
+     */
+    fun setCategoryTextSizeSp(value: Int) {
+        val size = sp(value)
+        if (monthPaint.textSize == size) return
+        monthPaint.textSize = size
+        requestLayout()
+        invalidate()
+    }
+
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val widthMode = MeasureSpec.getMode(widthMeasureSpec)
         if (items.isEmpty()) {
@@ -203,9 +216,14 @@ class MonthBarChartView @JvmOverloads constructor(
             )
         }
 
+        // Die y-Achse wird in beiden Modi gezeichnet: Die scrollende Instanz
+        // zeichnet sie am Diagramm, die ueberlagerte Achsenmaske am festen
+        // linken Rand, damit der Strich beim Scrollen nicht mitwandert. Die
+        // x-Achse gehoert dagegen zum Inhalt und wird nur im Diagramm gezeichnet.
+        canvas.drawLine(axisX, chartTop, axisX, baseline, axisPaint)
+
         if (!contentVisible) return
 
-        canvas.drawLine(axisX, chartTop, axisX, baseline, axisPaint)
         canvas.drawLine(axisX, baseline, plotRight, baseline, axisPaint)
 
         val barWidth = slotWidth * 0.56f
