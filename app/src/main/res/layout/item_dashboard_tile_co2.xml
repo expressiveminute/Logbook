@@ -42,15 +42,17 @@
                 android:paddingBottom="8dp">
 
                 <LinearLayout
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="bottom"
                     android:orientation="horizontal">
 
                     <TextView
                         android:id="@+id/tv_co2_value"
-                        android:layout_width="wrap_content"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
                         android:maxLines="1"
                         android:textColor="?attr/colorOnSurface"
                         android:textSize="30sp"
@@ -62,15 +64,19 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="4dp"
                         android:layout_marginBottom="4dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
                         android:text="@string/co2_tonnes_unit"
                         android:textColor="?attr/colorOnSurfaceVariant"
                         android:textSize="13sp" />
                 </LinearLayout>
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
                     android:text="@string/co2_emissions_label"
                     android:textColor="?attr/colorOnSurfaceVariant"
                     android:textSize="11sp" />
@@ -138,17 +144,20 @@
 
                     <TextView
                         android:id="@+id/tv_trees_value"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:ellipsize="end"
                         android:maxLines="1"
                         android:textColor="@color/co2_trees_on"
                         android:textSize="18sp"
                         android:textStyle="bold" />
 
                     <TextView
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="1dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
                         android:text="@string/co2_trees_label"
                         android:textColor="@color/co2_trees_on_variant"
                         android:textSize="10sp" />

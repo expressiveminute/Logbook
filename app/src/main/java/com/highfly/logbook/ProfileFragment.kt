@@ -11,6 +11,7 @@ import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.graphics.drawable.RoundedBitmapDrawableFactory
@@ -19,6 +20,7 @@ import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.highfly.logbook.databinding.FragmentProfileBinding
 import java.io.File
+import kotlin.math.roundToInt
 
 class ProfileFragment : Fragment() {
 
@@ -70,22 +72,19 @@ class ProfileFragment : Fragment() {
 
     private fun loadAvatarPreview() {
         val value = Settings.getAvatar(requireContext())
-        val card = binding.avatarTile
+        val frame = binding.avatarTile
         val icon = binding.avatarPreview
         if (value == Settings.AVATAR_FILE) {
             val file = File(requireContext().filesDir, ProfileAvatar.FILE_NAME)
             val bmp = if (file.exists()) BitmapFactory.decodeFile(file.absolutePath) else null
             if (bmp != null) {
-                card.setCardBackgroundColor(
+                frame.backgroundTintList = ColorStateList.valueOf(
                     MaterialColors.getColor(
                         binding.root,
                         com.google.android.material.R.attr.colorSurfaceContainerLow
                     )
                 )
-                card.strokeColor = MaterialColors.getColor(
-                    binding.root,
-                    com.google.android.material.R.attr.colorOutlineVariant
-                )
+                setIconInset(icon, 0)
                 icon.setImageDrawable(
                     RoundedBitmapDrawableFactory.create(resources, bmp).apply {
                         isCircular = true
@@ -96,16 +95,13 @@ class ProfileFragment : Fragment() {
                 return
             }
         }
-        card.setCardBackgroundColor(
+        frame.backgroundTintList = ColorStateList.valueOf(
             MaterialColors.getColor(
                 binding.root,
                 com.google.android.material.R.attr.colorPrimaryContainer
             )
         )
-        card.strokeColor = MaterialColors.getColor(
-            binding.root,
-            com.google.android.material.R.attr.colorPrimaryContainer
-        )
+        setIconInset(icon, AVATAR_ICON_INSET_DP)
         icon.setImageResource(ProfileAvatar.resId(value))
         icon.imageTintList = ColorStateList.valueOf(
             MaterialColors.getColor(
@@ -114,6 +110,13 @@ class ProfileFragment : Fragment() {
             )
         )
         refreshNavAvatar()
+    }
+
+    /** Verkleinert ein Preset-Icon auf [insetDp] innerhalb des runden Rahmens;
+     * ein hochgeladenes Foto ([insetDp] = 0) fuellt ihn komplett. */
+    private fun setIconInset(icon: ImageView, insetDp: Int) {
+        val inset = (insetDp * resources.displayMetrics.density).roundToInt()
+        icon.setPadding(inset, inset, inset, inset)
     }
 
     private fun refreshNavAvatar() {
@@ -167,5 +170,9 @@ class ProfileFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    private companion object {
+        const val AVATAR_ICON_INSET_DP = 24
     }
 }

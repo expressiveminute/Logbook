@@ -170,12 +170,27 @@ class SettingsSectionFragment : Fragment() {
         updateMapOrientationTiles(Settings.getMapOrientation(requireContext()))
         setupDefaultPeriodDropdown()
         setupDefaultTimeUnitDropdown()
+        setupCompactText()
 
         binding.mapOrientationLandscapeTile.setOnClickListener {
             applyMapOrientation(Settings.MAP_ORIENTATION_LANDSCAPE)
         }
         binding.mapOrientationPortraitTile.setOnClickListener {
             applyMapOrientation(Settings.MAP_ORIENTATION_PORTRAIT)
+        }
+    }
+
+    /**
+     * Die Schriftgrösse wird in [com.highfly.logbook.MainActivity.attachBaseContext]
+     * gesetzt, deshalb ist nach dem Umschalten ein Neustart der Activity nötig.
+     */
+    private fun setupCompactText() {
+        binding.compactTextSwitch.isChecked = Settings.isCompactText(requireContext())
+        binding.compactTextTile.setOnClickListener { binding.compactTextSwitch.toggle() }
+        binding.compactTextSwitch.setOnCheckedChangeListener { _, checked ->
+            if (Settings.isCompactText(requireContext()) == checked) return@setOnCheckedChangeListener
+            Settings.setCompactText(requireContext(), checked)
+            requireActivity().recreate()
         }
     }
 

@@ -59,6 +59,9 @@ class BarChartView @JvmOverloads constructor(
     private var flagGap = 0f
     private var medalRadius = 0f
     private var barInset = 0f
+    private var showRanks = true
+    private var barFraction = 1f
+    private var labelReferences: List<String> = emptyList()
 
     init {
         barColor = MaterialColors.getColor(this, com.google.android.material.R.attr.colorPrimary)
@@ -101,6 +104,40 @@ class BarChartView @JvmOverloads constructor(
         items.clear()
         items.addAll(data)
         requestLayout()
+        invalidate()
+    }
+
+    /**
+     * Schaltet Rangzeichen (Medaillen und Platznummern) ab. Ohne sie startet
+     * das Label am linken Rand und der Balken wird entsprechend länger.
+     */
+    fun setShowRanks(show: Boolean) {
+        if (showRanks == show) return
+        showRanks = show
+        requestLayout()
+        invalidate()
+    }
+
+    /**
+     * Anteil der verfügbaren Breite, den der längste Balken einnimmt (Standard
+     * 1). Kürzere Balken werden anteilig skaliert, damit die Werte direkt
+     * vergleichbar sind. Unter [MIN_BAR_FRACTION] wird der Balken verbreitert,
+     * damit sehr kurze Werte sichtbar bleiben.
+     */
+    fun setBarFraction(fraction: Float) {        val value = fraction.coerceIn(MIN_BAR_FRACTION, 1f)
+        if (barFraction == value) return
+        barFraction = value
+        invalidate()
+    }
+
+    /**
+     * Labels, die nur für die Breite der Beschriftungsspalte zählen. Übergibt
+     * man denselben Satz an mehrere Diagramme, beginnen deren Balken exakt an
+     * derselben Stelle, auch wenn die eigenen Labels unterschiedlich lang sind.
+     */
+    fun setLabelReferences(labels: List<String>) {
+        if (labelReferences == labels) return
+        labelReferences = labels.toList()
         invalidate()
     }
 
@@ -162,14 +199,16 @@ class BarChartView @JvmOverloads constructor(
         val maxCount = items.maxOf { it.count }
         val pill = rowHeight / 2f
 
-        val rankOffset = items.indices.maxOf { rankWidth(it) } + rankGap
+        val rankOffset = if (showRanks) items.indices.maxOf { rankWidth(it) } + rankGap else 0f
         val countReserve =
             items.maxOf { countPaint.measureText(countText(it)) } + countGap + sidePadding
 
         var maxCodeWidth = 0f
         var maxFlagWidth = 0f
-        items.forEach { item ->
-            val (text, flag) = splitLabelFlag(item.label)
+        val measured = ArrayList<Pair<String, String>>(items.size + labelReferences.size)
+        items.forEach { item -> measured += splitLabelFlag(item.label) }
+        labelReferences.forEach { measured += splitLabelFlag(it) }
+        measured.forEach { (text, flag) ->
             maxCodeWidth = maxOf(maxCodeWidth, labelPaint.measureText(text))
             if (flag.isNotEmpty()) {
                 maxFlagWidth = maxOf(maxFlagWidth, flagPaint.measureText(flag))
@@ -187,7 +226,7 @@ class BarChartView @JvmOverloads constructor(
         items.forEachIndexed { index, item ->
             val barTop = topPadding + index * (rowHeight + gap)
             val barBottom = barTop + rowHeight
-            val barWidth = usableBarWidth * item.count / maxCount.toFloat()
+            val barWidth = usableBarWidth * barFraction * item.count / maxCount.toFloat()
             val barRight = barLeft + barWidth
 
             drawRank(canvas, index, barTop, barBottom)
@@ -269,6 +308,7 @@ class BarChartView @JvmOverloads constructor(
     }
 
     private fun drawRank(canvas: Canvas, index: Int, barTop: Float, barBottom: Float) {
+        if (!showRanks) return
         val rank = rankFor(index)
         if (rank <= 3) {
             val (color, rim) = when (rank) {
@@ -364,9 +404,15 @@ class BarChartView @JvmOverloads constructor(
     private fun dp(value: Int): Float = value * density
 
     private fun sp(value: Int): Float =
-        value * density * minOf(resources.configuration.fontScale, 1.0f)
+        value * density * resources.configuration.fontScale.coerceAtMost(MAX_CHART_FONT_SCALE)
 
     private companion object {
+        /** Obergrenze fuer die Systemschrift in Diagrammen. */
+        const val MAX_CHART_FONT_SCALE = 1.3f
+
+        /** Mindestanteil der Balkenbreite, damit sehr kurze Werte sichtbar bleiben. */
+        const val MIN_BAR_FRACTION = 0.06f
+
         const val REGIONAL_INDICATOR_START = 0x1F1E6
         const val REGIONAL_INDICATOR_END = 0x1F1FF
 

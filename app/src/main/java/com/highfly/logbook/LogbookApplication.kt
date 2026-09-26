@@ -8,7 +8,10 @@ import androidx.core.os.LocaleListCompat
 class LogbookApplication : Application() {
 
     override fun attachBaseContext(base: Context) {
-        super.attachBaseContext(LocaleUtils.applyLocale(base, Settings.LANG_DE))
+        val localized = LocaleUtils.applyLocale(base, Settings.LANG_DE)
+        super.attachBaseContext(
+            LocaleUtils.applyTextScale(localized, Settings.isCompactText(localized))
+        )
     }
 
     override fun onCreate() {

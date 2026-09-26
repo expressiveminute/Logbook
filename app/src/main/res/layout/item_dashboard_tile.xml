@@ -36,7 +36,9 @@
             android:orientation="horizontal"
             app:layout_constraintBottom_toTopOf="@id/tv_tile_name"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent">
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="1">
 
             <TextView
                 android:id="@+id/tv_tile_value"
@@ -55,6 +57,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="bottom"
                 android:layout_marginStart="4dp"
+                android:ellipsize="end"
                 android:maxLines="1"
                 android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="10sp" />

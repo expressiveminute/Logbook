@@ -68,7 +68,7 @@
     <string name="period_ytd">YTD</string>
     <string name="nav_entries">Einträge</string>
     <string name="nav_dashboard">Dashboard</string>
-    <string name="nav_profile">Profil</string>
+    <string name="nav_profile">Einstellungen</string>
     <string name="settings_title">Einstellungen</string>
     <string name="settings_section_profile">Profil</string>
     <string name="profile_avatar_title">Avatar</string>
@@ -97,6 +97,8 @@
     <string name="settings_language">Sprache</string>
     <string name="settings_lang_de">Deutsch</string>
     <string name="settings_map_orientation">Weltkartenformat</string>
+    <string name="settings_compact_text">Kompakte Schrift</string>
+    <string name="settings_compact_text_subtitle">Kleinere Schrift, damit auf kleinen Displays mehr Text passt</string>
     <string name="map_orientation_landscape">Querformat</string>
     <string name="map_orientation_portrait">Hochkant</string>
     <string name="settings_section_data">Daten</string>

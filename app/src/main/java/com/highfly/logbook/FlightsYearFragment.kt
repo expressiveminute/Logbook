@@ -32,8 +32,8 @@ class FlightsYearFragment : Fragment() {
         }
 
         val entries = LogbookRepository.getEntries()
-        val years = entries.groupingBy { it.date.year }.eachCount()
-            .entries
+        val countsByYear = entries.groupingBy { it.date.year }.eachCount()
+        val years = countsByYear.entries
             .sortedWith(
                 compareByDescending<Map.Entry<Int, Int>> { it.value }.thenByDescending { it.key }
             )
@@ -54,6 +54,7 @@ class FlightsYearFragment : Fragment() {
         binding.tvYearEmpty.visibility = if (years.isEmpty()) View.VISIBLE else View.GONE
         binding.barChartYear.visibility = if (years.isEmpty()) View.GONE else View.VISIBLE
         binding.barChartYearMonths.visibility = if (years.isEmpty()) View.GONE else View.VISIBLE
+        binding.yearLineChart.visibility = if (years.isEmpty()) View.GONE else View.VISIBLE
 
         binding.barChartYear.setItems(
             years.map { BarChartView.Item(it.key.toString(), it.value) }
@@ -61,6 +62,27 @@ class FlightsYearFragment : Fragment() {
         binding.barChartYear.setOnItemClickListener { index ->
             openMonths(years[index].key)
         }
+
+        bindYearLineChart(
+            countsByYear.toSortedMap().map { LineChartView.Item(it.key.toString(), it.value) }
+        )
+    }
+
+    /**
+     * Das Liniendiagramm waechst mit der Zahl der Jahre ueber die Bildschirmbreite
+     * hinaus und wird dann horizontal gescrollt. Damit die y-Achse beim Scrollen
+     * stehen bleibt, zeichnet eine zweite Instanz nur die Achse ueber den linken
+     * Rand; das Diagramm selbst reserviert deren Breite als [setLeadingSpace].
+     */
+    private fun bindYearLineChart(items: List<LineChartView.Item>) {
+        val chart = binding.lineChartYear
+        val axis = binding.lineChartYearAxis
+
+        chart.setLeadingSpace(axis.layoutParams.width)
+        chart.setItems(items)
+
+        axis.setContentVisible(false)
+        axis.setItems(items)
     }
 
     private fun openMonths(year: Int) {

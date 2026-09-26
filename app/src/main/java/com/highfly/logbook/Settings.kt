@@ -54,6 +54,7 @@ object Settings {
     private const val KEY_CITY_LABEL_LANGUAGE = "city_label_language"
     private const val KEY_MAP_ORIENTATION = "map_orientation"
     private const val KEY_DISCOVERY_YEAR = "discovery_year"
+    private const val KEY_COMPACT_TEXT = "compact_text"
 
     private fun prefs(context: Context): SharedPreferences =
         context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
@@ -174,6 +175,18 @@ object Settings {
 
     fun setDemoDataEnabled(context: Context, value: Boolean) {
         prefs(context).edit().putBoolean(KEY_DEMO_DATA, value).apply()
+    }
+
+    /**
+     * Kompakte Schrift: verkleinert die Schrift global, damit auf schmalen
+     * Displays mehr Text in Kacheln und Listen passt. Wird in
+     * [LocaleUtils.applyTextScale] ausgewertet.
+     */
+    fun isCompactText(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_COMPACT_TEXT, false)
+
+    fun setCompactText(context: Context, value: Boolean) {
+        prefs(context).edit().putBoolean(KEY_COMPACT_TEXT, value).apply()
     }
 
     private const val KEY_DEMO_MIGRATION = "demo_disabled_migration_v1"

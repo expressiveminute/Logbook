@@ -52,23 +52,43 @@ class TimeDetailFragment : Fragment() {
         bindTimeTile(binding.tileYears, DashboardStats.TimeUnit.YEARS, 1, 0, minutes)
         bindTimeTile(binding.tileMonths, DashboardStats.TimeUnit.MONTHS, 1, 1, minutes)
 
+        val longest = ChartData.longestFlightBar(entries)
+        val average = ChartData.averageDurationBar(
+            entries,
+            getString(R.string.time_detail_all_flights)
+        ) { count -> getString(R.string.time_route_flights, count) }
+        val shortest = ChartData.shortestFlightBar(entries)
+
+        // Alle drei Balken beziehen sich auf den längsten Wert, damit die
+        // Dauern direkt vergleichbar sind, und teilen sich dieselbe
+        // Beschriftungsspalte, damit sie links bündig starten.
+        val reference = maxOf(
+            longest?.count ?: 0,
+            average?.count ?: 0,
+            shortest?.count ?: 0
+        ).coerceAtLeast(1)
+        val sharedLabels = listOfNotNull(longest?.label, average?.label, shortest?.label)
+
         bindSingleBar(
             binding.tvLongestTitle,
             binding.barLongest,
-            ChartData.longestFlightBar(entries)
+            longest,
+            reference,
+            sharedLabels
         )
         bindSingleBar(
             binding.tvAverageTitle,
             binding.barAverage,
-            ChartData.averageDurationBar(
-                entries,
-                getString(R.string.time_detail_all_flights)
-            ) { count -> getString(R.string.time_route_flights, count) }
+            average,
+            reference,
+            sharedLabels
         )
         bindSingleBar(
             binding.tvShortestTitle,
             binding.barShortest,
-            ChartData.shortestFlightBar(entries)
+            shortest,
+            reference,
+            sharedLabels
         )
         bindHistogram(entries, timed)
     }
@@ -108,17 +128,25 @@ class TimeDetailFragment : Fragment() {
     /**
      * Diagramm mit genau einem Balken: der auffaelligste Wert des Zeitraums
      * (längster bzw. kürzester Flug) bzw. die mittlere Flugzeit. Ohne Wert
-     * bleibt die ganze Zeile inklusive Überschrift verborgen.
+     * bleibt die ganze Zeile inklusive Überschrift verborgen. Die
+     * Rangzeichen (Medaillen) entfallen, die Balkenlänge wird auf [reference]
+     * bezogen und [sharedLabels] legt die Beschriftungsspalte fest, damit die
+     * drei Balken gleich starten.
      */
     private fun bindSingleBar(
         title: TextView,
         chart: BarChartView,
-        bar: ChartData.Bar?
+        bar: ChartData.Bar?,
+        reference: Int,
+        sharedLabels: List<String>
     ) {
         val visible = bar != null
         title.visibility = if (visible) View.VISIBLE else View.GONE
         chart.visibility = if (visible) View.VISIBLE else View.GONE
         if (bar == null) return
+        chart.setShowRanks(false)
+        chart.setLabelReferences(sharedLabels)
+        chart.setBarFraction(bar.count.toFloat() / reference.toFloat())
         chart.setItems(
             listOf(BarChartView.Item(bar.label, bar.count, bar.subLabel, bar.countLabel))
         )

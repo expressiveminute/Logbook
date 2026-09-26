@@ -70,54 +70,69 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-<FrameLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+<!-- Zeile 1: Flugnummer (links, schrumpft zuerst), Strecke (Mitte) und
+     Datum (rechts, feste Breite). Ohne diese Constraints wuchsen die
+     Texte auf schmalen Bildschirmen uebereinander. -->
+<androidx.constraintlayout.widget.ConstraintLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
 
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="start|center_vertical"
-                    android:orientation="horizontal">
+    <ImageView
+        android:id="@+id/iv_airline_livery"
+        android:layout_width="48dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:adjustViewBounds="true"
+        android:contentDescription="@string/entry_airline_logo"
+        android:scaleType="fitCenter"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
-                    <ImageView
-                        android:id="@+id/iv_airline_livery"
-                        android:layout_width="48dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginEnd="8dp"
-                        android:adjustViewBounds="true"
-                        android:contentDescription="@string/entry_airline_logo"
-                        android:scaleType="fitCenter"
-                        android:visibility="gone" />
+    <TextView
+        android:id="@+id/item_flight_no"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/item_route"
+        app:layout_constraintStart_toEndOf="@id/iv_airline_livery"
+        app:layout_constraintTop_toTopOf="parent" />
 
-                    <TextView
-                        android:id="@+id/item_flight_no"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:ellipsize="end"
-                        android:maxLines="1"
-                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
-                        android:textStyle="bold" />
-                </LinearLayout>
+    <TextView
+        android:id="@+id/item_route"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="4dp"
+        android:layout_marginEnd="4dp"
+        android:ellipsize="end"
+        android:gravity="center"
+        android:maxLines="1"
+        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+        android:textColor="?attr/colorPrimary"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/item_date"
+        app:layout_constraintStart_toEndOf="@id/item_flight_no"
+        app:layout_constraintTop_toTopOf="parent" />
 
-                <TextView
-                    android:id="@+id/item_route"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:maxLines="1"
-                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-                    android:textColor="?attr/colorPrimary" />
+    <TextView
+        android:id="@+id/item_date"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+</androidx.constraintlayout.widget.ConstraintLayout>
 
-                <TextView
-                    android:id="@+id/item_date"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="end|center_vertical"
-                    android:maxLines="1"
-                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-                    android:textStyle="bold" />
-            </FrameLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -130,7 +145,7 @@
                     android:id="@+id/item_type_meta"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
+                    android:layout_weight="2"
                     android:ellipsize="end"
                     android:maxLines="1"
                     android:textAppearance="@style/TextAppearance.Material3.BodyMedium"

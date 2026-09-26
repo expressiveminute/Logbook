@@ -65,6 +65,37 @@
                 android:layout_marginTop="4dp"
                 android:paddingHorizontal="16dp" />
 
+            <FrameLayout
+                android:id="@+id/year_line_chart"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:visibility="gone">
+
+                <HorizontalScrollView
+                    android:id="@+id/year_line_scroll"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fillViewport="true"
+                    android:scrollbars="horizontal">
+
+                    <com.highfly.logbook.LineChartView
+                        android:id="@+id/line_chart_year"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingHorizontal="16dp" />
+                </HorizontalScrollView>
+
+                <com.highfly.logbook.LineChartView
+                    android:id="@+id/line_chart_year_axis"
+                    android:layout_width="28dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="start"
+                    android:background="?android:attr/colorBackground"
+                    android:clickable="false"
+                    android:importantForAccessibility="no" />
+            </FrameLayout>
+
             <com.highfly.logbook.BarChartView
                 android:id="@+id/bar_chart_year"
                 android:layout_width="match_parent"

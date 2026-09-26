@@ -11,6 +11,7 @@ import android.graphics.PorterDuffColorFilter
 import android.graphics.RectF
 import android.graphics.drawable.Drawable
 import android.text.TextPaint
+import android.text.TextUtils
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
@@ -68,8 +69,9 @@ class BottomTabBar @JvmOverloads constructor(
     private val labelPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
         textAlign = Paint.Align.CENTER
         isFakeBoldText = true
-        textSize = sp(11)
+        textSize = sp(LABEL_TEXT_SIZE_SP)
     }
+    private val pillHalfWidth: Float get() = dp(PILL_HALF_WIDTH_DP)
     private val dividerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
     }
@@ -314,6 +316,7 @@ class BottomTabBar @JvmOverloads constructor(
         val inBarIconCenterY = barTop + dp(22f)
         val innerIconCenterY = moundTop + moundHeight * 0.32f
         val labelCenterY = moundTop + moundHeight * 0.76f
+        val labelMaxWidth = 2f * pillHalfWidth - 2f * dp(4f)
 
         val sliding = slideFrom >= 0 && slideTo >= 0 && slideProgress < 1f
 
@@ -342,7 +345,7 @@ class BottomTabBar @JvmOverloads constructor(
 
         pillPaint.color = withAlpha(pillColor, elementProgress)
         val pillScaleY = 0.4f + 0.6f * elementProgress
-        val halfW = dp(32f)
+        val halfW = pillHalfWidth
         val moundPath = Path().apply {
             addRoundRect(
                 RectF(ex - halfW, moundTop, ex + halfW, moundBottom),
@@ -360,11 +363,11 @@ class BottomTabBar @JvmOverloads constructor(
             val t = slideEase()
             drawCenteredIcon(canvas, slideFrom, ex, iconY, 1f - t)
             drawCenteredIcon(canvas, slideTo, ex, iconY, t)
-            drawCenteredLabel(canvas, slideFrom, ex, labelCenterY, 1f - t)
-            drawCenteredLabel(canvas, slideTo, ex, labelCenterY, t)
+            drawCenteredLabel(canvas, slideFrom, ex, labelCenterY, 1f - t, labelMaxWidth)
+            drawCenteredLabel(canvas, slideTo, ex, labelCenterY, t, labelMaxWidth)
         } else {
             drawCenteredIcon(canvas, contentIndex, ex, iconY, 1f)
-            drawCenteredLabel(canvas, contentIndex, ex, labelCenterY, 1f)
+            drawCenteredLabel(canvas, contentIndex, ex, labelCenterY, 1f, labelMaxWidth)
         }
     }
 
@@ -379,11 +382,44 @@ class BottomTabBar @JvmOverloads constructor(
         canvas.drawBitmap(bitmap, cx - half, cy - half, iconPaint)
     }
 
-    private fun drawCenteredLabel(canvas: Canvas, index: Int, cx: Float, cy: Float, alpha: Float) {
+    private fun drawCenteredLabel(
+        canvas: Canvas,
+        index: Int,
+        cx: Float,
+        cy: Float,
+        alpha: Float,
+        maxWidth: Float
+    ) {
         if (index < 0 || index >= tabs.size) return
         labelPaint.color = withAlpha(labelActiveColor, alpha * elementProgress)
+        val text = fitLabelText(context.getString(tabs[index].labelRes), maxWidth)
         val baseline = cy - (labelPaint.descent() + labelPaint.ascent()) / 2f
-        canvas.drawText(context.getString(tabs[index].labelRes), cx, baseline, labelPaint)
+        canvas.drawText(text, cx, baseline, labelPaint)
+    }
+
+    /**
+     * Verkleinert die Beschriftung, bis sie in [maxWidth] passt. Ohne das
+     * ragt ein langer Name (z. B. "Einstellungen") auf schmalen Displays über
+     * das aufgesetzte Element hinaus. Notfalls wird am Ende gekürzt.
+     */
+    private fun fitLabelText(raw: String, maxWidth: Float): String {
+        val baseSize = sp(LABEL_TEXT_SIZE_SP)
+        labelPaint.textSize = baseSize
+        if (maxWidth <= 0f || labelPaint.measureText(raw) <= maxWidth) return raw
+
+        val minSize = dp(MIN_LABEL_TEXT_DP)
+        var size = baseSize
+        while (size > minSize) {
+            size = maxOf(minSize, size * 0.94f)
+            labelPaint.textSize = size
+            if (labelPaint.measureText(raw) <= maxWidth) return raw
+        }
+        return TextUtils.ellipsize(
+            raw,
+            TextPaint(labelPaint),
+            maxWidth,
+            TextUtils.TruncateAt.END
+        ).toString()
     }
 
     private fun refreshColors() {
@@ -424,5 +460,14 @@ class BottomTabBar @JvmOverloads constructor(
     private fun dp(value: Float): Float = value * density
 
     private fun sp(value: Int): Float =
-        value * density * minOf(resources.configuration.fontScale, 1.0f)
+        value * density * resources.configuration.fontScale.coerceAtMost(MAX_CHART_FONT_SCALE)
+
+    private companion object {
+        /** Obergrenze fuer die Systemschrift in Diagrammen. */
+        const val MAX_CHART_FONT_SCALE = 1.3f
+
+        const val LABEL_TEXT_SIZE_SP = 11
+        const val MIN_LABEL_TEXT_DP = 8f
+        const val PILL_HALF_WIDTH_DP = 32f
+    }
 }

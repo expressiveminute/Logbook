@@ -37,7 +37,10 @@ class MainActivity : AppCompatActivity() {
     private var imeVisible = false
 
     override fun attachBaseContext(newBase: Context) {
-        super.attachBaseContext(LocaleUtils.applyLocale(newBase, Settings.LANG_DE))
+        val localized = LocaleUtils.applyLocale(newBase, Settings.LANG_DE)
+        super.attachBaseContext(
+            LocaleUtils.applyTextScale(localized, Settings.isCompactText(localized))
+        )
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

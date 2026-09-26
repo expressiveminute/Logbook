@@ -293,5 +293,11 @@ class PieChartView @JvmOverloads constructor(
     private fun dp(value: Int): Float = value * density
 
     private fun sp(value: Int): Float =
-        value * density * minOf(resources.configuration.fontScale, 1.0f)
+        value * density * resources.configuration.fontScale.coerceAtMost(MAX_CHART_FONT_SCALE)
+
+    private companion object {
+        /** Obergrenze fuer die Systemschrift in Diagrammen. */
+        const val MAX_CHART_FONT_SCALE = 1.3f
+    }
+
 }

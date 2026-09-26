@@ -23,6 +23,7 @@ import com.google.android.material.color.MaterialColors
 import com.highfly.logbook.databinding.FragmentFirstBinding
 import java.time.LocalDate
 import java.util.Locale
+import kotlin.math.roundToInt
 
 class FirstFragment : Fragment() {
 
@@ -308,7 +309,7 @@ class FirstFragment : Fragment() {
                     }
                 }
 
-                val params = LinearLayout.LayoutParams(0, dp(tile.heightDp), 1f)
+                val params = LinearLayout.LayoutParams(0, tileHeight(tile), 1f)
                 params.topMargin = dp(8)
                 if (rowIds.size > 1) {
                     params.rightMargin =
@@ -330,6 +331,16 @@ class FirstFragment : Fragment() {
         })
     }
 
+    /**
+     * Feste Kachelhöhen wachsen mit der Systemschrift: Bei grosser Schrift
+     * passt der Inhalt sonst nicht mehr in die Kachel und wird abgeschnitten.
+     */
+    private fun tileHeight(tile: DashboardPrefs.Tile): Int =
+        dp((tile.heightDp * fontScale()).roundToInt())
+
+    private fun fontScale(): Float =
+        resources.configuration.fontScale.coerceIn(1f, MAX_TILE_FONT_SCALE)
+
     private fun resizeStatTiles(container: LinearLayout) {
         for (i in 0 until container.childCount) {
             val row = container.getChildAt(i) as? LinearLayout ?: continue
@@ -338,9 +349,15 @@ class FirstFragment : Fragment() {
                 val card =
                     tileContainer.findViewById<com.google.android.material.card.MaterialCardView>(R.id.tile_card)
                 val tileId = card.tag as? String ?: continue
+                val tile = DashboardPrefs.tileById(tileId)
+                val minHeight = tileHeight(tile)
                 if (tileId == "co2") {
                     // Full width, but as flat as a regular (square) tile.
-                    val target = ((tileContainer.width - dp(8)) / 3).coerceAtLeast(dp(88))
+                    val target = maxOf(
+                        (tileContainer.width - dp(8)) / 3,
+                        dp(88),
+                        minHeight
+                    )
                     val co2Params = tileContainer.layoutParams
                     if (co2Params.height != target) {
                         co2Params.height = target
@@ -348,10 +365,11 @@ class FirstFragment : Fragment() {
                     }
                     continue
                 }
-                if (DashboardPrefs.tileById(tileId).span > 1) continue
+                if (tile.span > 1) continue
                 val params = tileContainer.layoutParams
-                if (params.height != tileContainer.width) {
-                    params.height = tileContainer.width
+                val target = maxOf(tileContainer.width, minHeight)
+                if (params.height != target) {
+                    params.height = target
                     tileContainer.layoutParams = params
                 }
             }
@@ -508,4 +526,9 @@ class FirstFragment : Fragment() {
 
     private fun dp(value: Int): Int =
         (value * resources.displayMetrics.density).toInt()
+
+    private companion object {
+        /** Obergrenze fuer die Schrift-Skalierung der Kachelhöhen. */
+        const val MAX_TILE_FONT_SCALE = 1.4f
+    }
 }
