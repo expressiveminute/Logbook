@@ -33,8 +33,12 @@ object Settings {
     const val AVATAR_DEFAULT = "ic_profile"
     const val AVATAR_FILE = "file"
 
-    const val MAP_ORIENTATION_LANDSCAPE = "landscape"
-    const val MAP_ORIENTATION_PORTRAIT = "portrait"
+    /**
+     * Ausrichtung der Weltkarte, siehe [getWorldMapOrientation]. Die
+     * Rubbelkarte hat hier nichts mehr zu wählen: sie zeigt immer die Kugel.
+     */
+    const val WORLD_MAP_LANDSCAPE = "landscape"
+    const val WORLD_MAP_PORTRAIT = "portrait"
 
     private const val PREF_NAME = "logbook_settings"
     private const val KEY_DARK_MODE = "dark_mode"
@@ -204,11 +208,19 @@ object Settings {
         prefs(context).edit().putString(KEY_CITY_LABEL_LANGUAGE, value).apply()
     }
 
-    fun getMapOrientation(context: Context): String =
-        prefs(context).getString(KEY_MAP_ORIENTATION, MAP_ORIENTATION_LANDSCAPE)
-            ?: MAP_ORIENTATION_LANDSCAPE
+    /**
+     * Ausrichtung, in der die Weltkarte (osmdroid) gezeigt wird. Sie wird auf
+     * den Schlüssel "map_orientation" gespeichert, den sie schon immer benutzt
+     * hat - deshalb behält eine installierte App ihre Wahl. Der Schlüssel
+     * gehörte früher auch der Rubbelkarte, die zwischen flacher Karte und Kugel
+     * umschaltete; die Kugel ist jetzt die einzige Darstellung, deshalb steuert
+     * der Wert nur noch die Bildschirmausrichtung der Weltkarte.
+     */
+    fun getWorldMapOrientation(context: Context): String =
+        prefs(context).getString(KEY_MAP_ORIENTATION, WORLD_MAP_LANDSCAPE)
+            ?: WORLD_MAP_LANDSCAPE
 
-    fun setMapOrientation(context: Context, value: String) {
+    fun setWorldMapOrientation(context: Context, value: String) {
         prefs(context).edit().putString(KEY_MAP_ORIENTATION, value).apply()
     }
 

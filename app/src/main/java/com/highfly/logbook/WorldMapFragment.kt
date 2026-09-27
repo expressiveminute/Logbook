@@ -129,13 +129,14 @@ class WorldMapFragment : Fragment() {
         configureMap()
         loadAndRender()
 
-        // Apply the configured map format (default landscape); restore portrait when leaving.
+        // Apply the configured map orientation (default landscape); restore
+        // portrait when leaving.
         applyOrientationSetting()
     }
 
     private fun applyOrientationSetting() {
         val portrait =
-            Settings.getMapOrientation(requireContext()) == Settings.MAP_ORIENTATION_PORTRAIT
+            Settings.getWorldMapOrientation(requireContext()) == Settings.WORLD_MAP_PORTRAIT
         requireActivity().requestedOrientation =
             if (portrait) android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
             else android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
@@ -148,18 +149,18 @@ class WorldMapFragment : Fragment() {
      */
     private fun updateOrientationIcon() {
         val targetPortrait =
-            Settings.getMapOrientation(requireContext()) == Settings.MAP_ORIENTATION_LANDSCAPE
+            Settings.getWorldMapOrientation(requireContext()) == Settings.WORLD_MAP_LANDSCAPE
         binding.btnRotateIcon.setImageResource(
             if (targetPortrait) R.drawable.ic_phone_portrait else R.drawable.ic_phone_landscape
         )
     }
 
     private fun toggleMapOrientation() {
-        val current = Settings.getMapOrientation(requireContext())
+        val current = Settings.getWorldMapOrientation(requireContext())
         val next =
-            if (current == Settings.MAP_ORIENTATION_PORTRAIT) Settings.MAP_ORIENTATION_LANDSCAPE
-            else Settings.MAP_ORIENTATION_PORTRAIT
-        Settings.setMapOrientation(requireContext(), next)
+            if (current == Settings.WORLD_MAP_PORTRAIT) Settings.WORLD_MAP_LANDSCAPE
+            else Settings.WORLD_MAP_PORTRAIT
+        Settings.setWorldMapOrientation(requireContext(), next)
         applyOrientationSetting()
     }
 

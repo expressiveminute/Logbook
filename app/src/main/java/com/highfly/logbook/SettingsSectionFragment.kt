@@ -1,6 +1,5 @@
 package com.highfly.logbook
 
-import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Bundle
 import androidx.fragment.app.Fragment
@@ -10,7 +9,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
-import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -167,17 +165,9 @@ class SettingsSectionFragment : Fragment() {
 
     private fun setupCustomization() {
         updateLanguageTiles()
-        updateMapOrientationTiles(Settings.getMapOrientation(requireContext()))
         setupDefaultPeriodDropdown()
         setupDefaultTimeUnitDropdown()
         setupCompactText()
-
-        binding.mapOrientationLandscapeTile.setOnClickListener {
-            applyMapOrientation(Settings.MAP_ORIENTATION_LANDSCAPE)
-        }
-        binding.mapOrientationPortraitTile.setOnClickListener {
-            applyMapOrientation(Settings.MAP_ORIENTATION_PORTRAIT)
-        }
     }
 
     /**
@@ -298,27 +288,6 @@ class SettingsSectionFragment : Fragment() {
 
     private fun updateLanguageTiles() {
         highlight(binding.langDeTile, binding.langDeLabel, true)
-    }
-
-    private fun applyMapOrientation(orientation: String) {
-        if (Settings.getMapOrientation(requireContext()) == orientation) return
-        Settings.setMapOrientation(requireContext(), orientation)
-        updateMapOrientationTiles(orientation)
-    }
-
-    private fun updateMapOrientationTiles(orientation: String) {
-        highlight(
-            binding.mapOrientationLandscapeTile,
-            binding.mapOrientationLandscapeLabel,
-            orientation == Settings.MAP_ORIENTATION_LANDSCAPE,
-            binding.mapOrientationLandscapeIcon
-        )
-        highlight(
-            binding.mapOrientationPortraitTile,
-            binding.mapOrientationPortraitLabel,
-            orientation == Settings.MAP_ORIENTATION_PORTRAIT,
-            binding.mapOrientationPortraitIcon
-        )
     }
 
     private fun confirmRoleSwitch(role: String, label: TextView) {
@@ -463,8 +432,7 @@ class SettingsSectionFragment : Fragment() {
     private fun highlight(
         card: MaterialCardView,
         label: TextView,
-        active: Boolean,
-        icon: ImageView? = null
+        active: Boolean
     ) {
         val primaryContainer = MaterialColors.getColor(
             binding.root, com.google.android.material.R.attr.colorPrimaryContainer
@@ -488,9 +456,6 @@ class SettingsSectionFragment : Fragment() {
         card.strokeColor =
             if (active) primaryContainer else outlineVariant
         label.setTextColor(
-            if (active) onPrimaryContainer else onSurface
-        )
-        icon?.imageTintList = ColorStateList.valueOf(
             if (active) onPrimaryContainer else onSurface
         )
     }

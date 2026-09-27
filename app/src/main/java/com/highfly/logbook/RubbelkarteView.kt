@@ -30,24 +30,18 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 /**
- * Weltkarte für die Rubbelkarte: besuchte Länder werden farblich hervorgehoben,
+ * Weltkugel für die Rubbelkarte: besuchte Länder werden farblich hervorgehoben,
  * alle übrigen bleiben gedeckt.
  *
- * Das Format richtet sich nach der Einstellung "Weltkartenformat":
- *
- *  * [FORMAT_LANDSCAPE] zeigt die flache Weltkarte im Seitenverhältnis 2:1. Eine
- *    Weltkarte ist immer breit, deshalb nimmt sie nur den oberen Teil der Seite
- *    ein und darunter folgt die Liste der besuchten Länder.
- *  * [FORMAT_PORTRAIT] zeigt einen Globus, der auf die besuchten Länder
- *    zentriert ist und sich mit dem Finger in jede Richtung drehen lässt. Der
- *    füllt ein hochformatiges Rechteck aus, in dem eine flache Karte sonst zur
- *    Hälfte leer bliebe, und reicht links und rechts bis an den Rand der Seite.
- *    Das Wasser endet am Rand der Kugel, darüber und darunter bleibt der
- *    Hintergrund der Seite frei.
+ * Die Kugel ist auf die besuchten Länder zentriert und lässt sich mit dem Finger
+ * in jede Richtung drehen, per Zwei-Finger-Zoom und Doppeltipp zoomen. Sie füllt
+ * ein fast quadratisches Feld aus und reicht links und rechts bis an den Rand der
+ * Seite. Das Wasser endet am Rand der Kugel, darüber und darunter bleibt der
+ * Hintergrund der Seite frei.
  *
  * Die Umrisse werden einmalig im Hintergrund geladen, die gezeichneten Pfade
- * bei jeder Größenänderung neu gebaut. [onDraw] zeichnet danach nur noch
- * fertige Pfade und bleibt auch mit über 230 Ländern flüssig.
+ * bei jeder Größenänderung und Drehung neu gebaut. [onDraw] zeichnet danach nur
+ * noch fertige Pfade und bleibt auch mit über 230 Ländern flüssig.
  */
 class RubbelkarteView @JvmOverloads constructor(
     context: Context,
@@ -55,29 +49,11 @@ class RubbelkarteView @JvmOverloads constructor(
 ) : View(context, attrs) {
 
     companion object {
-        /** Flache Karte im Seitenverhältnis 2:1. */
-        const val FORMAT_LANDSCAPE = "landscape"
-
-        /** Globus, zentriert auf die besuchten Länder. */
-        const val FORMAT_PORTRAIT = "portrait"
-
         private const val TAG = "RubbelkarteView"
 
-        /** Längengradspanne der flachen Karte. */
+        /** Längengradspanne, in der normalizeLon rechnet. */
         private const val LON_MIN = -180.0
         private const val LON_MAX = 180.0
-
-        /**
-         * Breitengrade der flachen Karte. Der Süden endet bei -58 Grad: bis
-         * dorthin reichen bewohnte Küsten, alles darunter ist Antarktis, in die
-         * ohnehin niemand fliegt. So passt die Karte ins breite Format, ohne
-         * dass eine leere Eisfläche die halbe Seite einnimmt.
-         */
-        private const val LAT_MIN = -58.0
-        private const val LAT_MAX = 84.0
-
-        /** Seitenverhältnis der flachen Karte. */
-        private const val MAP_ASPECT = 2f
 
         /**
          * Anteil des Kartenrahmens, den die Kugel einnimmt. Sie reicht damit
@@ -86,8 +62,6 @@ class RubbelkarteView @JvmOverloads constructor(
          * Breite stehen lässt. Der Rahmen der Seite schneidet den Rest ab.
          */
         private const val GLOBE_FILL = 1.005f
-
-        private const val CORNER_RADIUS_DP = 20f
 
         private const val ZERO_EPS = 1e-9
 
@@ -219,13 +193,11 @@ class RubbelkarteView @JvmOverloads constructor(
         textSize = namePaint.textSize
     }
 
-    private val frame = RectF()
     private val clipPath = Path()
 
     /** Nur zum Aufspüren des Landes unter dem Finger, siehe [landAt]. */
     private val hitClip = Region()
     private val hitRegion = Region()
-    private val scratchPath = Path()
     private val runPath = Path()
 
     /** Zielpuffer für [project], gehört dem Zeichen-Thread. */
@@ -265,10 +237,6 @@ class RubbelkarteView @JvmOverloads constructor(
     @Volatile
     private var points: List<AirportPoint> = emptyList()
 
-    @Volatile
-    private var mapRect = RectF()
-
-    private var format = FORMAT_LANDSCAPE
     private var visitedIso2: Set<String> = emptySet()
     private var visitedAirports: List<String> = emptyList()
     private var built = false
@@ -374,20 +342,10 @@ class RubbelkarteView @JvmOverloads constructor(
     }
 
     /**
-     * Setzt Kartenformat und Besuch. [format] ist [FORMAT_LANDSCAPE] oder
-     * [FORMAT_PORTRAIT], [visited] enthält die besuchten Länder als ISO-2,
+     * Setzt den Besuch. [visited] enthält die besuchten Länder als ISO-2,
      * [airports] die besuchten Flughäfen als IATA.
      */
-    fun setContent(format: String, visited: Set<String>, airports: List<String>) {
-        if (this.format != format) {
-            this.format = format
-            // Die flache Karte kennt keinen Zoom, also beginnt der Globus
-            // nach jedem Wechsel wieder bei Normalgröße.
-            zoom = ZOOM_MIN
-            built = false
-            // Die Höhe folgt dem Format, invalidate() allein misst nicht neu.
-            requestLayout()
-        }
+    fun setContent(visited: Set<String>, airports: List<String>) {
         visitedIso2 = visited
         visitedAirports = airports
         requestCountries(context, this)
@@ -405,7 +363,7 @@ class RubbelkarteView @JvmOverloads constructor(
             post {
                 if (generation != loadGeneration) return@post
                 points = collected
-                // Die Pfade hängen an Format, Größe und Besuch, also müssen sie
+                // Die Pfade hängen an Größe, Drehung und Besuch, also müssen sie
                 // nach jedem neuen Datensatz neu gebaut werden.
                 built = false
                 rebuildIfNeeded()
@@ -431,10 +389,8 @@ class RubbelkarteView @JvmOverloads constructor(
     }
 
     /**
-     * Die Karte bestimmt ihre Höhe selbst: die flache Karte ist 2:1 und damit
-     * breiter als hoch, der Globus braucht ein fast quadratisches Feld. So
-     * passt sich die Seite der Einstellung "Weltkartenformat" an, ohne dass das
-     * Layout zwei Varianten kennen muss.
+     * Die Kugel bestimmt ihre Höhe selbst: sie braucht ein quadratisches Feld,
+     * damit sie links und rechts bis an den Seitenrand reicht.
      */
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val widthMode = MeasureSpec.getMode(widthMeasureSpec)
@@ -449,44 +405,29 @@ class RubbelkarteView @JvmOverloads constructor(
         } else {
             MeasureSpec.getSize(heightMeasureSpec)
         }
-        val desired = if (format == FORMAT_PORTRAIT) {
-            width
-        } else {
-            (width / MAP_ASPECT).toInt()
-        }
         val height = if (heightMode == MeasureSpec.EXACTLY) {
             MeasureSpec.getSize(heightMeasureSpec)
         } else {
-            desired.coerceAtMost(maxHeight)
+            width.coerceAtMost(maxHeight)
         }
         setMeasuredDimension(width, height)
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
-        val radius = CORNER_RADIUS_DP * density
-        frame.set(0f, 0f, w.toFloat(), h.toFloat())
-        clipPath.reset()
-        clipPath.addRoundRect(frame, radius, radius, Path.Direction.CW)
         built = false
     }
 
     override fun onDraw(canvas: Canvas) {
         if (width <= 0 || height <= 0) return
-        val globe = format == FORMAT_PORTRAIT
-        if (globe) {
-            // Nur das Wasser ist blau, der Kasten um die Kugel verschwindet.
-            updateCenterShift()
-            val cx = globeCenterX()
-            val cy = globeCenterY()
-            val r = globeRadius()
-            clipPath.reset()
-            clipPath.addCircle(cx, cy, r, Path.Direction.CW)
-            canvas.drawCircle(cx, cy, r, oceanPaint)
-        } else {
-            val radius = CORNER_RADIUS_DP * density
-            canvas.drawRoundRect(frame, radius, radius, oceanPaint)
-        }
+        // Nur das Wasser ist blau, der Kasten um die Kugel verschwindet.
+        updateCenterShift()
+        val cx = globeCenterX()
+        val cy = globeCenterY()
+        val r = globeRadius()
+        clipPath.reset()
+        clipPath.addCircle(cx, cy, r, Path.Direction.CW)
+        canvas.drawCircle(cx, cy, r, oceanPaint)
 
         if (!built) {
             if (sharedCountries == null) {
@@ -509,10 +450,8 @@ class RubbelkarteView @JvmOverloads constructor(
         drawAirports(canvas)
         drawName(canvas)
         canvas.restore()
-        if (globe) {
-            // Der Rand gehört zum Bild, nicht zum Wasser, deshalb ohne Beschneiden.
-            canvas.drawCircle(globeCenterX(), globeCenterY(), globeRadius(), rimPaint)
-        }
+        // Der Rand gehört zum Bild, nicht zum Wasser, deshalb ohne Beschneiden.
+        canvas.drawCircle(globeCenterX(), globeCenterY(), globeRadius(), rimPaint)
     }
 
     /**
@@ -534,8 +473,7 @@ class RubbelkarteView @JvmOverloads constructor(
 
     /**
      * Dreht die Kugel mit dem Finger, in beide Richtungen: waagerecht um die
-     * Hochachse, senkrecht um die Querachse. Die flache Karte bleibt stehen,
-     * dort gibt es nichts zu drehen, nur den Ländernamen zu erfahren.
+     * Hochachse, senkrecht um die Querachse.
      *
      * Der Weg wird 1:1 umgesetzt, bezogen auf die Kugelmitte: ein Fingerweg von
      * einem Kugelradius entspricht einem Radiant. Am Äquator ist das genau
@@ -549,12 +487,9 @@ class RubbelkarteView @JvmOverloads constructor(
      */
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (width <= 0 || height <= 0) return super.onTouchEvent(event)
-        val globe = format == FORMAT_PORTRAIT
-        if (globe) {
-            zoomDetector.onTouchEvent(event)
-            tipDetector.onTouchEvent(event)
-            if (zoomDetector.isInProgress) return true
-        }
+        zoomDetector.onTouchEvent(event)
+        tipDetector.onTouchEvent(event)
+        if (zoomDetector.isInProgress) return true
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 touchIndex = 0
@@ -598,9 +533,7 @@ class RubbelkarteView @JvmOverloads constructor(
                 tapX = x
                 tapY = y
                 draggedPx += abs(dx) + abs(dy)
-                // Die flache Karte lässt sich nicht drehen, ein Wischen auf ihr
-                // bleibt folgenlos. Getippt wird in beiden Formaten.
-                if (globe && (dx != 0f || dy != 0f)) rotate(dx, dy)
+                if (dx != 0f || dy != 0f) rotate(dx, dy)
                 return true
             }
 
@@ -616,7 +549,6 @@ class RubbelkarteView @JvmOverloads constructor(
 
     /** Vergrößert oder verkleinert die Kugel um [faktor]. */
     private fun zoomBy(faktor: Float) {
-        if (format != FORMAT_PORTRAIT) return
         val naechste = clampZoom(zoom * faktor)
         if (abs(naechste - zoom) < 0.001f) return
         zoom = naechste
@@ -733,7 +665,7 @@ class RubbelkarteView @JvmOverloads constructor(
 
     /**
      * Baut die gezeichneten Pfade neu auf. Das passiert nur bei
-     * Größenänderung, Formatwechsel oder neuen Daten, nicht pro Bild.
+     * Größenänderung, Drehung oder neuen Daten, nicht pro Bild.
      */
     private fun rebuildIfNeeded() {
         val w = width
@@ -743,14 +675,9 @@ class RubbelkarteView @JvmOverloads constructor(
         built = true
         building = true
         val generation = ++buildGeneration
-        val formatSnapshot = format
         val visitedSnapshot = visitedIso2
         Thread {
-            val builtShapes = if (formatSnapshot == FORMAT_PORTRAIT) {
-                buildGlobe(w, h, list, visitedSnapshot, generation)
-            } else {
-                buildFlat(w, h, list, visitedSnapshot, generation)
-            }
+            val builtShapes = buildGlobe(w, h, list, visitedSnapshot, generation)
             post {
                 building = false
                 if (generation != buildGeneration) return@post
@@ -758,52 +685,6 @@ class RubbelkarteView @JvmOverloads constructor(
                 invalidate()
             }
         }.start()
-    }
-
-    private fun buildFlat(
-        w: Int,
-        h: Int,
-        list: List<CountryShapes.Country>,
-        visited: Set<String>,
-        generation: Int
-    ): List<Shape> {
-        val viewWidth = w.toFloat()
-        val viewHeight = h.toFloat()
-        val mapHeight = min(viewHeight, viewWidth / MAP_ASPECT)
-        val top = (viewHeight - mapHeight) / 2f
-        mapRect = RectF(0f, top, viewWidth, top + mapHeight)
-        val sx = viewWidth / (LON_MAX - LON_MIN)
-        val sy = mapHeight / (LAT_MAX - LAT_MIN)
-        val german = useGermanNames()
-        val result = ArrayList<Shape>(list.size)
-        for (country in list) {
-            if (generation != buildGeneration) return result
-            if (country.iso2 == ANTARCTICA) continue
-            val path = Path()
-            for (ring in country.rings) {
-                val count = ring.size / 2
-                if (count < 3) continue
-                scratchPath.reset()
-                for (i in 0 until count) {
-                    val x = ((ring[i * 2] - LON_MIN) * sx).toFloat()
-                    val y = ((LAT_MAX - ring[i * 2 + 1]) * sy + top).toFloat()
-                    if (i == 0) scratchPath.moveTo(x, y) else scratchPath.lineTo(x, y)
-                }
-                scratchPath.close()
-                path.addPath(scratchPath)
-            }
-            if (path.isEmpty) continue
-            result.add(
-                Shape(
-                    iso2 = country.iso2,
-                    name = if (german) country.nameDe else country.nameEn,
-                    path = path,
-                    bounds = RectF().apply { path.computeBounds(this, true) },
-                    visited = visited.contains(country.iso2)
-                )
-            )
-        }
-        return drawOrder(result)
     }
 
     /**
@@ -827,7 +708,6 @@ class RubbelkarteView @JvmOverloads constructor(
         val radius = globeRadius(viewWidth, viewHeight)
         val cx = viewWidth / 2f
         val cy = viewHeight / 2f + centerShiftY
-        mapRect = RectF(cx - radius, cy - radius, cx + radius, cy + radius)
 
         val center = RubbelkarteStats.centerOf(list, visited)
         val centerLon = normalizeLon(center?.first ?: DEFAULT_CENTER_LON)
@@ -1023,33 +903,22 @@ class RubbelkarteView @JvmOverloads constructor(
     }
 
     /**
-     * Bildschirmposition eines Punktes im aktuell gewählten Format. Das
-     * Ergebnis landet in [projected] - der Zeichen-Thread liest es sofort aus,
-     * deshalb wird nichts allokiert. Aufbau und Zeichnen laufen in
-     * verschiedenen Threads, deshalb hat der Aufbau eigene Puffer.
+     * Bildschirmposition eines Punktes auf der Kugel. Liegt er auf der Rückseite,
+     * ist das Ergebnis ungültig und die Rückgabe null. Das Ergebnis landet in
+     * [projected] - der Zeichen-Thread liest es sofort aus, deshalb wird nichts
+     * allokiert. Aufbau und Zeichnen laufen in verschiedenen Threads, deshalb hat
+     * der Aufbau eigene Puffer.
      */
-    private fun project(lat: Double, lon: Double): FloatArray? {
-        if (format == FORMAT_PORTRAIT) {
-            if (!projectGlobe(
-                    lat, lon, globeCenter, globeCenterX(), globeCenterY(), globeRadius(),
-                    drawPoint, projected
-                )
-            ) {
-                return null
-            }
-            return projected
+    private fun project(lat: Double, lon: Double): FloatArray? =
+        if (projectGlobe(
+                lat, lon, globeCenter, globeCenterX(), globeCenterY(), globeRadius(),
+                drawPoint, projected
+            )
+        ) {
+            projected
+        } else {
+            null
         }
-        if (lat < LAT_MIN || lat > LAT_MAX) return null
-        val rect = mapRect
-        if (rect.isEmpty) return null
-        val x = rect.left +
-                ((normalizeLon(lon) - LON_MIN) / (LON_MAX - LON_MIN) * rect.width()).toFloat()
-        val y = rect.top +
-                ((LAT_MAX - lat) / (LAT_MAX - LAT_MIN) * rect.height()).toFloat()
-        projected[0] = x
-        projected[1] = y
-        return projected
-    }
 
     private fun globeCenterX(): Float = width / 2f
 

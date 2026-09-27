@@ -1,6 +1,5 @@
 package com.highfly.logbook
 
-import android.content.Context
 import android.content.res.Configuration
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -13,9 +12,9 @@ import com.highfly.logbook.databinding.FragmentRubbelkarteBinding
 import com.highfly.logbook.databinding.ItemContinentTileBinding
 
 /**
- * Rubbelkarte: Weltkarte mit allen Ländern, in die der Nutzer bereits geflogen
- * ist. Die Karte folgt der Einstellung "Weltkartenformat" - im Querformat die
- * flache Karte, im Hochformat ein Globus.
+ * Rubbelkarte: Weltkugel mit allen Ländern, in die der Nutzer bereits geflogen
+ * ist. Die Kugel ist auf die besuchten Länder zentriert und lässt sich mit dem
+ * Finger drehen und zoomen.
  *
  * Der Stift oben rechts öffnet die Länderliste, auf der sich Länder von Hand
  * abhaken lassen. Diese gehören genauso zur Karte wie die angeflogenen.
@@ -46,7 +45,7 @@ class RubbelkarteFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        applyMapArea(mapFormat(requireContext().applicationContext))
+        applyMapArea()
         binding.btnCountries.setOnClickListener {
             findNavController().navigate(R.id.action_rubbelkarte_to_countries)
         }
@@ -54,18 +53,16 @@ class RubbelkarteFragment : Fragment() {
     }
 
     /**
-     * Im Hochformat füllt die Karte den Raum unter der Überschrift ganz, damit
-     * die Kugel auch Platz für die Bildschirmmitte hat. Im Querformat ist die
-     * flache Karte nur knapp halb so hoch wie breit; der Rest darunter bleibt
-     * frei und wird von den Kontinent-Kacheln eingenommen.
+     * Die Kugel füllt den Raum unter der Überschrift ganz, damit sie auch Platz
+     * für die Bildschirmmitte hat.
      *
-     * Ist das Gerät selbst quer, passt die halbe Bildschirmbreite als Höhe
-     * nicht mehr neben Überschrift und Kachelzeile. Dann nimmt die Karte nur
-     * den Rest ein und zeichnet sich kleiner in diese Höhe - sonst schöbe sich
-     * die Kachelzeile ganz aus dem Bild.
+     * Ist das Gerät selbst quer, passt die volle Bildschirmbreite als Höhe nicht
+     * mehr neben Überschrift und Kachelzeile. Dann nimmt die Karte nur den Rest
+     * ein und zeichnet sich kleiner in diese Höhe - sonst schöbe sich die
+     * Kachelzeile ganz aus dem Bild.
      */
-    private fun applyMapArea(format: String) {
-        val fuelltHoehe = format == RubbelkarteView.FORMAT_PORTRAIT || isQuerformat()
+    private fun applyMapArea() {
+        val fuelltHoehe = !isQuerformat()
         val area = binding.rubbelkarteArea.layoutParams as LinearLayout.LayoutParams
         if (fuelltHoehe == (area.weight > 0f)) return
         area.height = if (fuelltHoehe) 0 else LinearLayout.LayoutParams.WRAP_CONTENT
@@ -85,7 +82,6 @@ class RubbelkarteFragment : Fragment() {
     private fun refresh() {
         val generation = ++loadGeneration
         val appContext = requireContext().applicationContext
-        val format = mapFormat(appContext)
 
         Thread {
             val summary = RubbelkarteStats.summarize(LogbookRepository.getEntries()) { iata ->
@@ -107,22 +103,11 @@ class RubbelkarteFragment : Fragment() {
                 if (tiles == null) {
                     renderUnavailable()
                 } else {
-                    render(marked, format, tiles)
+                    render(marked, tiles)
                 }
             }
         }.start()
     }
-
-    /**
-     * Die Einstellung "Weltkartenformat" entscheidet, ob die Karte flach oder
-     * als Kugel gezeichnet wird.
-     */
-    private fun mapFormat(context: Context): String =
-        if (Settings.getMapOrientation(context) == Settings.MAP_ORIENTATION_PORTRAIT) {
-            RubbelkarteView.FORMAT_PORTRAIT
-        } else {
-            RubbelkarteView.FORMAT_LANDSCAPE
-        }
 
     /** Die Länderumrisse fehlen: statt einer leeren Karte einen Grund zeigen. */
     private fun renderUnavailable() {
@@ -136,7 +121,6 @@ class RubbelkarteFragment : Fragment() {
 
     private fun render(
         summary: RubbelkarteStats.Summary,
-        format: String,
         tiles: List<ContinentStats.Progress>
     ) {
         binding.tvRubbelkarteSubtitle.text = if (summary.isEmpty) {
@@ -150,9 +134,8 @@ class RubbelkarteFragment : Fragment() {
             )
         }
 
-        applyMapArea(format)
+        applyMapArea()
         binding.rubbelkarte.setContent(
-            format,
             summary.countries.toSet(),
             summary.airports
         )

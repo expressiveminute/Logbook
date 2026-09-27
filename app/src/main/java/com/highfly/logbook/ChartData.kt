@@ -135,21 +135,35 @@ object ChartData {
         layoverExtremum(entries, newest = true)
 
     /**
-     * Ältester Layover-Eintrag der Liste: der Flughafen, der am längsten her
-     * ist. Ohne Layover `null`.
+     * Layover, das am längsten her ist: der Flughafen, bei dem der *letzte*
+     * Layover am weitesten zurückliegt. Nicht der früheste Layover überhaupt -
+     * das wäre der Ort, an dem man das erste Mal war, auch wenn man seither
+     * ständig dort stand. Gesucht ist "am längsten nicht mehr dort gewesen".
+     * Ohne Layover `null`.
      */
     fun oldestLayover(entries: List<LogbookEntry>): LayoverExtreme? =
         layoverExtremum(entries, newest = false)
 
     private fun layoverExtremum(entries: List<LogbookEntry>, newest: Boolean): LayoverExtreme? {
-        val layovers = entries.filter { it.layover && it.toAirport.isNotBlank() }
-        val entry = if (newest) {
-            layovers.maxByOrNull { it.date }
+        val zeilen = lastLayoverPerAirport(entries)
+        val (airport, date) = if (newest) {
+            zeilen.maxByOrNull { it.second }
         } else {
-            layovers.minByOrNull { it.date }
+            zeilen.minByOrNull { it.second }
         } ?: return null
-        return LayoverExtreme(entry.toAirport.trim().uppercase(), entry.date)
+        return LayoverExtreme(airport, date)
     }
+
+    /**
+     * Letzter Layover je Flughafen als Paar aus Flughafen und Datum. Der
+     * Flughafen dient als Schlüssel, deshalb zählt ein mehrfach besuchter
+     * Flughafen nur mit seinem jüngsten Layover - sonst gewönne das älteste
+     * Layover eines oft besuchten Flughafens immer die Kachel.
+     */
+    private fun lastLayoverPerAirport(entries: List<LogbookEntry>): List<Pair<String, LocalDate>> =
+        entries.filter { it.layover && it.toAirport.isNotBlank() }
+            .groupBy { it.toAirport.trim().uppercase() }
+            .map { (airport, layovers) -> airport to layovers.maxOf { it.date } }
 
     fun airportBars(context: Context): List<Bar> =
         periodFiltered(context)

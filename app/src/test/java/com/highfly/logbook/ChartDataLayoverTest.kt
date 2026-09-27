@@ -69,6 +69,69 @@ class ChartDataLayoverTest {
         val entries = listOf(entry(" dxb ", LocalDate.of(2026, 3, 12)))
 
         assertEquals("DXB", ChartData.newestLayover(entries)?.airport)
+        assertEquals("DXB", ChartData.oldestLayover(entries)?.airport)
+    }
+
+    @Test
+    fun oldestLayover_ignoresTheFirstVisitOfAnOftenUsedAirport() {
+        // SIN war zwar am Anfang das erste Mal dort, war seither aber wieder
+        // dort. Das älteste Layover ist deshalb IST, denn dort war man
+        // am längsten nicht mehr.
+        val entries = listOf(
+            entry("SIN", LocalDate.of(2019, 8, 4)),
+            entry("SIN", LocalDate.of(2026, 1, 10)),
+            entry("IST", LocalDate.of(2024, 11, 2))
+        )
+
+        val oldest = ChartData.oldestLayover(entries)!!
+
+        assertEquals("IST", oldest.airport)
+        assertEquals(LocalDate.of(2024, 11, 2), oldest.date)
+    }
+
+    @Test
+    fun newestLayover_takesTheLastVisitOfAnOftenUsedAirport() {
+        val entries = listOf(
+            entry("SIN", LocalDate.of(2019, 8, 4)),
+            entry("IST", LocalDate.of(2024, 11, 2)),
+            entry("SIN", LocalDate.of(2026, 1, 10))
+        )
+
+        val newest = ChartData.newestLayover(entries)!!
+
+        assertEquals("SIN", newest.airport)
+        assertEquals(LocalDate.of(2026, 1, 10), newest.date)
+    }
+
+    @Test
+    fun layoverExtremes_countAnAirportOnlyOnce() {
+        // " dxb " und "DXB" sind derselbe Flughafen. Ohne Zusammenfassung
+        // entstünden zwei Kacheln für denselben Ort.
+        val entries = listOf(
+            entry(" dxb ", LocalDate.of(2026, 3, 12)),
+            entry("DXB", LocalDate.of(2025, 1, 5))
+        )
+
+        val newest = ChartData.newestLayover(entries)!!
+        val oldest = ChartData.oldestLayover(entries)!!
+
+        assertEquals("DXB", newest.airport)
+        assertEquals("DXB", oldest.airport)
+        assertEquals(LocalDate.of(2026, 3, 12), newest.date)
+        assertEquals(LocalDate.of(2026, 3, 12), oldest.date)
+    }
+
+    @Test
+    fun oldestLayover_usesTheLastVisitEvenForASingleAirport() {
+        val entries = listOf(
+            entry("DOH", LocalDate.of(2015, 2, 1)),
+            entry("DOH", LocalDate.of(2024, 9, 9))
+        )
+
+        val oldest = ChartData.oldestLayover(entries)!!
+
+        assertEquals("DOH", oldest.airport)
+        assertEquals(LocalDate.of(2024, 9, 9), oldest.date)
     }
 
     @Test

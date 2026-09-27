@@ -114,11 +114,8 @@
     <string name="settings_default_time_unit">Default Time Display</string>
     <string name="settings_language">Language</string>
     <string name="settings_lang_de">German</string>
-    <string name="settings_map_orientation">World map format</string>
     <string name="settings_compact_text">Compact text</string>
     <string name="settings_compact_text_subtitle">Smaller text so more content fits on small screens</string>
-    <string name="map_orientation_landscape">Landscape</string>
-    <string name="map_orientation_portrait">Portrait</string>
     <string name="settings_section_data">Data</string>
     <string name="data_export">Export</string>
     <string name="data_import">Import</string>

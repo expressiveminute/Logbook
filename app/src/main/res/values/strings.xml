@@ -114,11 +114,8 @@
     <string name="settings_default_time_unit">Standard-Zeitanzeige</string>
     <string name="settings_language">Sprache</string>
     <string name="settings_lang_de">Deutsch</string>
-    <string name="settings_map_orientation">Weltkartenformat</string>
     <string name="settings_compact_text">Kompakte Schrift</string>
     <string name="settings_compact_text_subtitle">Kleinere Schrift, damit auf kleinen Displays mehr Text passt</string>
-    <string name="map_orientation_landscape">Querformat</string>
-    <string name="map_orientation_portrait">Hochkant</string>
     <string name="settings_section_data">Daten</string>
     <string name="data_export">Export</string>
     <string name="data_import">Import</string>
