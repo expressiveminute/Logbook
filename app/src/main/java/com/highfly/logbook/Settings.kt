@@ -30,9 +30,7 @@ object Settings {
     const val CREW_FUNCTION_PURSER_I = "purser_i"
     const val CREW_FUNCTION_FLIGHT_ATTENDANT = "flight_attendant"
 
-    const val AVATAR_PERSON = "avatar:person"
-    const val AVATAR_FLIGHT = "avatar:flight"
-    const val AVATAR_WORLD = "avatar:world"
+    const val AVATAR_DEFAULT = "ic_profile"
     const val AVATAR_FILE = "file"
 
     const val MAP_ORIENTATION_LANDSCAPE = "landscape"
@@ -150,7 +148,7 @@ object Settings {
     }
 
     fun getAvatar(context: Context): String =
-        prefs(context).getString(KEY_AVATAR, AVATAR_PERSON) ?: AVATAR_PERSON
+        prefs(context).getString(KEY_AVATAR, AVATAR_DEFAULT) ?: AVATAR_DEFAULT
 
     fun setAvatar(context: Context, value: String) {
         prefs(context).edit().putString(KEY_AVATAR, value).apply()

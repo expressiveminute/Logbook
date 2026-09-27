@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="0dp"
+    android:layout_height="wrap_content"
+    android:layout_weight="1"
+    android:padding="3dp">
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/card_avatar_choice"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?attr/selectableItemBackground"
+        app:cardBackgroundColor="@color/avatar_choice_bg"
+        app:cardCornerRadius="20dp"
+        app:cardElevation="0dp"
+        app:strokeColor="@color/avatar_choice_stroke"
+        app:strokeWidth="1dp">
+
+        <ImageView
+            android:id="@+id/iv_avatar_choice"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:duplicateParentState="true"
+            android:importantForAccessibility="no"
+            android:padding="17dp"
+            android:scaleType="fitCenter"
+            app:tint="@color/avatar_choice_tint" />
+
+        <ImageView
+            android:id="@+id/iv_avatar_choice_check"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_gravity="top|end"
+            android:layout_margin="3dp"
+            android:background="@drawable/bg_avatar_check"
+            android:importantForAccessibility="no"
+            android:padding="2dp"
+            android:src="@drawable/ic_check"
+            android:visibility="gone" />
+    </com.google.android.material.card.MaterialCardView>
+</FrameLayout>

@@ -13,7 +13,7 @@ import com.highfly.logbook.databinding.ItemDashboardTileBinding
 /**
  * Detailseite der Kachel "Zeit": die Gesamtdauer in allen Einheiten, darunter
  * der laengste, der kuerzeste und der mittlere Flug sowie die Verteilung der
- * Flugdauern.
+ * Flugdauern. Ground Transfers zaehlen nicht mit, wie bei der Distanz.
  */
 class TimeDetailFragment : Fragment() {
 
@@ -43,14 +43,14 @@ class TimeDetailFragment : Fragment() {
             PeriodOptions.label(context, Settings.getDefaultPeriodKey(context))
         )
 
-        val entries = ChartData.periodFiltered(context)
+        val entries = DashboardStats.flyingEntries(ChartData.periodFiltered(context))
         val minutes = entries.sumOf { it.flightMinutes ?: 0 }
         val timed = entries.any { (it.flightMinutes ?: 0) > 0 }
 
-        bindTimeTile(binding.tileDays, DashboardStats.TimeUnit.DAYS, 0, 0, minutes)
-        bindTimeTile(binding.tileHours, DashboardStats.TimeUnit.HOURS, 0, 1, minutes)
-        bindTimeTile(binding.tileYears, DashboardStats.TimeUnit.YEARS, 1, 0, minutes)
-        bindTimeTile(binding.tileMonths, DashboardStats.TimeUnit.MONTHS, 1, 1, minutes)
+        bindTimeTile(binding.tileHours, DashboardStats.TimeUnit.HOURS, 0, 0, minutes)
+        bindTimeTile(binding.tileDays, DashboardStats.TimeUnit.DAYS, 0, 1, minutes)
+        bindTimeTile(binding.tileMonths, DashboardStats.TimeUnit.MONTHS, 1, 0, minutes)
+        bindTimeTile(binding.tileYears, DashboardStats.TimeUnit.YEARS, 1, 1, minutes)
 
         val longest = ChartData.longestFlightBar(entries)
         val average = ChartData.averageDurationBar(

@@ -61,7 +61,7 @@ class MainActivity : AppCompatActivity() {
             navBarLeft = navigationBars.left
             navBarRight = navigationBars.right
             navBarBottom = navigationBars.bottom
-            imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+            imeBottom = clampImeBottom(insets.getInsets(WindowInsetsCompat.Type.ime()).bottom)
             updateHeaderAndContent()
             updateImeVisibility(insets.isVisible(WindowInsetsCompat.Type.ime()))
             WindowInsetsCompat.CONSUMED
@@ -174,19 +174,48 @@ class MainActivity : AppCompatActivity() {
         binding.appBar.visibility = if (showHeader) View.VISIBLE else View.GONE
         binding.btnEditTiles.visibility = if (showHeader) View.VISIBLE else View.GONE
         binding.appBar.setPadding(navBarLeft, if (showHeader) statusBarTop else 0, navBarRight, 0)
-        binding.bottomNav.visibility =
-            if (isAddEntry || isWorldMap || isImport || imeVisible) View.GONE else View.VISIBLE
+        val navVisible = !isAddEntry && !isWorldMap && !isImport
+        binding.bottomNav.visibility = if (navVisible) View.VISIBLE else View.GONE
         binding.bottomNav.updatePadding(
             left = navBarLeft,
             right = navBarRight,
-            bottom = navBarBottom
+            bottom = navBarBottom + if (navVisible) imeBottom else 0
         )
         binding.contentHost.updatePadding(
             top = if (showHeader) 0 else statusBarTop,
             left = if (showHeader) 0 else navBarLeft,
             right = if (showHeader) 0 else navBarRight,
-            bottom = imeBottom
+            bottom = if (navVisible) 0 else imeBottom
         )
+    }
+
+    /**
+     * Die Tastaturhoehe stammt bevorzugt aus den echten Insets, ersatzweise aus
+     * dem Rahmen der laufenden Animation. Beide Werte werden begrenzt: Der
+     * Content darf nie auf 0 zusammenfallen, sonst waere fuer die Dauer der
+     * Animation nur noch der Fensterhintergrund zu sehen (die Seite schlaegt
+     * dann kurz schwarz bzw. weiss um).
+     */
+    private fun clampImeBottom(candidate: Int): Int {
+        val minContent = 240f * resources.displayMetrics.density
+        val maxBottom = (binding.main.height - statusBarTop - minContent).toInt()
+        if (candidate <= 0 || candidate > maxBottom) return 0
+        return candidate
+    }
+
+    private fun applyImeInset(bounds: WindowInsetsAnimationCompat.BoundsCompat? = null) {
+        val insets = ViewCompat.getRootWindowInsets(binding.main) ?: return
+        val reported = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+        val candidate = if (clampImeBottom(reported) > 0) {
+            reported
+        } else {
+            bounds?.let { binding.main.height - it.lowerBound.top } ?: 0
+        }
+        val bottom = clampImeBottom(candidate)
+        if (bottom != imeBottom) {
+            imeBottom = bottom
+            updateHeaderAndContent()
+        }
     }
 
     /**
@@ -207,13 +236,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * Im Edge-to-Edge-Modus liefern die normalen Insets keine Tastaturhoehe
-     * mehr, sondern nur noch isVisible(). Die tatsaechliche Hoehe steht nur
-     * waehrend der Animation als Rahmen des Tastaturfensters zur Verfuegung.
-     * Daraus wird der Abstand fuer den Content, damit die Liste nicht unter
-     * der Tastatur verschwindet. onStart reicht, weil dort die Zielposition
-     * des Rahmens bereits feststeht - auch beim Einblenden wird sie genutzt,
-     * dann ergibt sich automatisch 0.
+     * Im Edge-to-Edge-Modus wird die Tastaturhoehe ueber die Insets der
+     * Tastatur gelesen, die waehrend der Animation frameweise aktualisiert
+     * werden. Der Rahmen der Animation dient nur als Rueckfall, wenn das
+     * System keine Tastaturhoehe meldet - und wird dabei geprueft, weil er auf
+     * manchen Geraeten den kompletten Fensterbereich umfasst (top = 0).
      */
     private fun setupImeAnimation() {
         ViewCompat.setWindowInsetsAnimationCallback(
@@ -232,13 +259,7 @@ class MainActivity : AppCompatActivity() {
                     animation: WindowInsetsAnimationCompat,
                     bounds: WindowInsetsAnimationCompat.BoundsCompat
                 ): WindowInsetsAnimationCompat.BoundsCompat {
-                    if (isIme(animation)) {
-                        val covered = (binding.main.height - bounds.lowerBound.top).coerceAtLeast(0)
-                        if (covered != imeBottom) {
-                            imeBottom = covered
-                            updateHeaderAndContent()
-                        }
-                    }
+                    if (isIme(animation)) applyImeInset(bounds)
                     return bounds
                 }
 
@@ -249,12 +270,9 @@ class MainActivity : AppCompatActivity() {
 
                 override fun onEnd(animation: WindowInsetsAnimationCompat) {
                     if (!isIme(animation)) return
+                    applyImeInset()
                     val visible = ViewCompat.getRootWindowInsets(binding.main)
                         ?.isVisible(WindowInsetsCompat.Type.ime()) == true
-                    if (imeBottom != 0) {
-                        imeBottom = 0
-                        updateHeaderAndContent()
-                    }
                     updateImeVisibility(visible)
                 }
             }

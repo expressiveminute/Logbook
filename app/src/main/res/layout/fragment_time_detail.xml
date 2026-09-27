@@ -73,7 +73,7 @@
                 android:orientation="horizontal">
 
                 <include
-                    android:id="@+id/tile_days"
+                    android:id="@+id/tile_hours"
                     layout="@layout/item_dashboard_tile"
                     android:layout_width="0dp"
                     android:layout_height="112dp"
@@ -81,7 +81,7 @@
                     android:layout_weight="1" />
 
                 <include
-                    android:id="@+id/tile_hours"
+                    android:id="@+id/tile_days"
                     layout="@layout/item_dashboard_tile"
                     android:layout_width="0dp"
                     android:layout_height="112dp"
@@ -96,7 +96,7 @@
                 android:orientation="horizontal">
 
                 <include
-                    android:id="@+id/tile_years"
+                    android:id="@+id/tile_months"
                     layout="@layout/item_dashboard_tile"
                     android:layout_width="0dp"
                     android:layout_height="112dp"
@@ -104,7 +104,7 @@
                     android:layout_weight="1" />
 
                 <include
-                    android:id="@+id/tile_months"
+                    android:id="@+id/tile_years"
                     layout="@layout/item_dashboard_tile"
                     android:layout_width="0dp"
                     android:layout_height="112dp"

@@ -126,7 +126,7 @@ class FirstFragment : Fragment() {
                 allEntries,
                 key
             )
-            val time = entries.sumOf { it.flightMinutes ?: 0 }
+            val time = DashboardStats.flightMinutes(entries)
             // Braucht alle Eintraege, nicht die gefilterten: eine Strecke ist
             // nur dann neu, wenn sie noch nie geflogen wurde. Gezaehlt wird
             // immer das laufende Jahr, unabhaengig vom gewaehlten Zeitraum.

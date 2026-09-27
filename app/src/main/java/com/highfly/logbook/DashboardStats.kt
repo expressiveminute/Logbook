@@ -11,8 +11,20 @@ object DashboardStats {
     private const val GROUND_TRANSFER = "Ground Transfer"
     private const val WORLD_COUNTRIES = 195
 
-    private fun isDistanceRelevant(entry: LogbookEntry): Boolean =
+    /**
+     * Echte Flugdauer: Ein Ground Transfer (Auto, Zug, Bus) ist kein Flug und
+     * zaehlt deshalb weder zur Distanz noch zur Flugzeit.
+     */
+    fun isFlying(entry: LogbookEntry): Boolean =
         ChartData.normalizeFlightType(entry.flightType) != GROUND_TRANSFER
+
+    /** [entries] ohne Ground Transfers. */
+    fun flyingEntries(entries: List<LogbookEntry>): List<LogbookEntry> =
+        entries.filter { isFlying(it) }
+
+    /** Gesamtflugzeit in Minuten ohne Ground Transfers. */
+    fun flightMinutes(entries: List<LogbookEntry>): Int =
+        flyingEntries(entries).sumOf { it.flightMinutes ?: 0 }
 
     data class Value(val text: String, val unit: String?)
 
@@ -76,7 +88,7 @@ object DashboardStats {
     private val moonDistanceKm = 384400.0
 
     fun distanceDetails(context: Context, entries: List<LogbookEntry>): DistanceDetails {
-        val withDistance = entries.filter { isDistanceRelevant(it) && it.distanceKm != null }
+        val withDistance = flyingEntries(entries).filter { it.distanceKm != null }
         val totalKm = withDistance.sumOf { it.distanceKm ?: 0 }
         val distances = withDistance.mapNotNull { it.distanceKm }
         val avgKm = if (distances.isEmpty()) null else
@@ -120,9 +132,9 @@ object DashboardStats {
         discoveries: Int
     ): Map<String, Value> {
         val flights = formatInt(context, entries.size)
-        val distanceEntries = entries.filter { isDistanceRelevant(it) }
+        val distanceEntries = flyingEntries(entries)
         val distanceKm = distanceEntries.sumOf { it.distanceKm ?: 0 }
-        val minutes = entries.sumOf { it.flightMinutes ?: 0 }
+        val minutes = flightMinutes(entries)
         val routes = entries.map { "${it.fromAirport}-${it.toAirport}" }.distinct().size
         val airlines = nonBlankCount(entries) { it.airline }
         val layovers = entries.count { it.layover }.toString()

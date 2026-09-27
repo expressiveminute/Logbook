@@ -12,13 +12,18 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.core.graphics.drawable.RoundedBitmapDrawableFactory
+import androidx.core.view.isVisible
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.highfly.logbook.databinding.DialogAvatarPickerBinding
 import com.highfly.logbook.databinding.FragmentProfileBinding
+import com.highfly.logbook.databinding.ItemAvatarChoiceBinding
 import java.io.File
 import kotlin.math.roundToInt
 
@@ -124,29 +129,67 @@ class ProfileFragment : Fragment() {
     }
 
     private fun showAvatarDialog() {
-        val options = arrayOf(
-            getString(R.string.profile_avatar_person),
-            getString(R.string.profile_avatar_flight),
-            getString(R.string.profile_avatar_world),
-            getString(R.string.profile_avatar_upload)
-        )
-        val keys = arrayOf(
-            Settings.AVATAR_PERSON,
-            Settings.AVATAR_FLIGHT,
-            Settings.AVATAR_WORLD
-        )
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.profile_avatar_title)
-            .setItems(options) { _, which ->
-                if (which < keys.size) {
-                    Settings.setAvatar(requireContext(), keys[which])
-                    loadAvatarPreview()
-                } else {
-                    avatarPickerLauncher.launch("image/*")
-                }
+        val dialogBinding = DialogAvatarPickerBinding.inflate(layoutInflater)
+        val current = ProfileAvatar.normalize(Settings.getAvatar(requireContext()))
+        lateinit var dialog: AlertDialog
+
+        ProfileAvatar.presets.chunked(AVATAR_GRID_COLUMNS).forEach { rowPresets ->
+            val row = LinearLayout(requireContext()).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
             }
+            rowPresets.forEach { preset ->
+                val cell = ItemAvatarChoiceBinding.inflate(layoutInflater, row, false)
+                val selected = preset.value == current
+                cell.cardAvatarChoice.contentDescription = getString(preset.nameRes)
+                cell.cardAvatarChoice.isSelected = selected
+                cell.cardAvatarChoice.strokeWidth = dp(if (selected) 2 else 1)
+                cell.ivAvatarChoiceCheck.isVisible = selected
+                cell.ivAvatarChoice.setImageResource(preset.iconRes)
+                cell.cardAvatarChoice.setOnClickListener {
+                    Settings.setAvatar(requireContext(), preset.value)
+                    loadAvatarPreview()
+                    dialog.dismiss()
+                }
+                row.addView(cell.root)
+            }
+            dialogBinding.llAvatarGrid.addView(row)
+        }
+
+        dialogBinding.tvAvatarCurrent.text = getString(
+            R.string.profile_avatar_current,
+            getString(
+                if (current == Settings.AVATAR_FILE) R.string.profile_avatar_own_photo
+                else ProfileAvatar.presetNameRes(current)
+            )
+        )
+
+        dialogBinding.btnAvatarUpload.setOnClickListener {
+            dialog.dismiss()
+            avatarPickerLauncher.launch("image/*")
+        }
+        if (current == Settings.AVATAR_FILE) {
+            // Hochgeladenes Foto ist der aktive Avatar: Upload-Kante hervorheben.
+            dialogBinding.btnAvatarUpload.strokeWidth = dp(2)
+            dialogBinding.btnAvatarUpload.strokeColor = ColorStateList.valueOf(
+                MaterialColors.getColor(
+                    binding.root,
+                    com.google.android.material.R.attr.colorPrimary
+                )
+            )
+        }
+
+        dialog = MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.profile_avatar_title)
+            .setView(dialogBinding.root)
             .show()
     }
+
+    private fun dp(value: Int): Int =
+        (value * resources.displayMetrics.density).roundToInt()
 
     private fun saveAvatarFromUri(uri: Uri) {
         try {
@@ -174,5 +217,6 @@ class ProfileFragment : Fragment() {
 
     private companion object {
         const val AVATAR_ICON_INSET_DP = 24
+        const val AVATAR_GRID_COLUMNS = 4
     }
 }
