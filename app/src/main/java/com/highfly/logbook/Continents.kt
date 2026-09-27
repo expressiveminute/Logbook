@@ -62,4 +62,20 @@ object Continents {
     }
 
     fun continentOf(iso2: String): String? = byIso2[iso2.uppercase()]
+
+    /**
+     * String der App-Sprache für den Anzeigenamen eines Kontinents. Steht hier
+     * und nicht bei den Diagrammen, weil auch die Kacheln der Rubbelkarte
+     * Namen brauchen - so gibt es nur eine Zuordnung.
+     */
+    fun nameRes(continent: String): Int = when (continent) {
+        EUROPE -> R.string.continent_europe
+        ASIA -> R.string.continent_asia
+        NORTH_AMERICA -> R.string.continent_north_america
+        SOUTH_AMERICA -> R.string.continent_south_america
+        AFRICA -> R.string.continent_africa
+        OCEANIA -> R.string.continent_oceania
+        ANTARCTICA -> R.string.continent_antarctica
+        else -> R.string.continent_unknown
+    }
 }

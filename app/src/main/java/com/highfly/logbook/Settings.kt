@@ -53,6 +53,7 @@ object Settings {
     private const val KEY_MAP_ORIENTATION = "map_orientation"
     private const val KEY_DISCOVERY_YEAR = "discovery_year"
     private const val KEY_COMPACT_TEXT = "compact_text"
+    private const val KEY_MANUAL_COUNTRIES = "manual_countries"
 
     private fun prefs(context: Context): SharedPreferences =
         context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
@@ -221,5 +222,27 @@ object Settings {
 
     fun setDiscoveryYear(context: Context, year: Int) {
         prefs(context).edit().putInt(KEY_DISCOVERY_YEAR, year).apply()
+    }
+
+    /**
+     * Länder, die der Nutzer auf der Länderliste der Rubbelkarte selbst
+     * abgehakt hat, als ISO-2. Sie kommen zusätzlich zu den Ländern aus den
+     * Flugeinträgen auf die Karte.
+     *
+     * getStringSet liefert die Menge der Einstellungen selbst zurück, deshalb
+     * wird sie kopiert: Sonst würde ein Aufrufer, der die Menge ändert, auch die
+     * gespeicherten Werte ändern, ohne zu speichern.
+     */
+    fun getManualCountries(context: Context): Set<String> =
+        prefs(context).getStringSet(KEY_MANUAL_COUNTRIES, null)
+            ?.map { it.trim().uppercase() }
+            ?.toSet()
+            .orEmpty()
+
+    fun setManualCountries(context: Context, value: Set<String>) {
+        val codes = value.map { it.trim().uppercase() }
+            .filter { it.length == 2 && it.all { c -> c in 'A'..'Z' } }
+            .toSet()
+        prefs(context).edit().putStringSet(KEY_MANUAL_COUNTRIES, codes).apply()
     }
 }

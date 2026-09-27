@@ -8,6 +8,7 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.highfly.logbook.databinding.FragmentTileDetailBinding
+import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
 
 class TileDetailFragment : Fragment() {
@@ -64,6 +65,9 @@ class TileDetailFragment : Fragment() {
                 if (tileId == "countries") {
                     renderContinents()
                 }
+                if (tileId == "layover") {
+                    renderLayoverExtremes()
+                }
                 renderBars(ChartData.barChart(requireContext(), tileId))
             }
             else -> {
@@ -85,6 +89,22 @@ class TileDetailFragment : Fragment() {
                 )
             }
         )
+    }
+
+    /**
+     * Letztes und ältestes Layover des Zeitraums als zwei Kacheln ueber dem
+     * Balkendiagramm. Ohne Layover im Zeitraum bleiben beide Kacheln
+     * ausgeblendet, dann zeigt das Diagramm allein seinen Leertext.
+     */
+    private fun renderLayoverExtremes() {
+        val entries = ChartData.periodFiltered(requireContext())
+        val newest = ChartData.newestLayover(entries) ?: return
+        val oldest = ChartData.oldestLayover(entries) ?: return
+        binding.tvLayoverNewest.text = newest.airport
+        binding.tvLayoverNewestDate.text = newest.date.format(DATE_LABEL_FORMAT)
+        binding.tvLayoverOldest.text = oldest.airport
+        binding.tvLayoverOldestDate.text = oldest.date.format(DATE_LABEL_FORMAT)
+        binding.layoverExtremes.visibility = View.VISIBLE
     }
 
     private fun renderRoutes() {
@@ -171,5 +191,7 @@ class TileDetailFragment : Fragment() {
     private companion object {
         /** Anteil der Bildschirmhoehe, den die Diagrammflaeche einnimmt. */
         const val COLUMN_CHART_HEIGHT_FACTOR = 0.33f
+
+        val DATE_LABEL_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
     }
 }

@@ -23,9 +23,6 @@
             android:id="@+id/action_dashboard_to_flights_year"
             app:destination="@id/nav_flights_year" />
         <action
-            android:id="@+id/action_dashboard_to_discovery"
-            app:destination="@id/nav_discovery" />
-        <action
             android:id="@+id/action_dashboard_to_time_detail"
             app:destination="@id/nav_time_detail" />
     </fragment>
@@ -44,6 +41,21 @@
             android:id="@+id/action_entries_to_add_entry"
             app:destination="@id/nav_add_entry" />
     </fragment>
+
+    <fragment
+        android:id="@+id/nav_rubbelkarte"
+        android:name="com.highfly.logbook.RubbelkarteFragment"
+        tools:layout="@layout/fragment_rubbelkarte">
+
+        <action
+            android:id="@+id/action_rubbelkarte_to_countries"
+            app:destination="@id/nav_countries" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_countries"
+        android:name="com.highfly.logbook.CountriesFragment"
+        tools:layout="@layout/fragment_countries" />
 
     <fragment
         android:id="@+id/nav_profile"

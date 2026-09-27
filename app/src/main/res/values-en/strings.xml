@@ -27,7 +27,8 @@
     <string name="tile_function">Function</string>
     <string name="tile_earth_orbits">Earth orbits</string>
     <string name="tile_moon">To the moon</string>
-    <string name="tile_discovery">Discovery</string>
+    <string name="tile_reisebuddy">Travel buddy</string>
+    <string name="reisebuddy_placeholder">Travel buddy — coming soon</string>
     <string name="tile_co2">CO₂ balance</string>
     <string name="co2_tonnes_unit">Tonnes</string>
     <string name="co2_emissions_label">CO₂ emissions</string>
@@ -67,7 +68,9 @@
     <string name="period_this_month">This Month</string>
     <string name="period_ytd">YTD</string>
     <string name="nav_entries">Entries</string>
+    <string name="nav_discovery">Discovery</string>
     <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_rubbelkarte">Scratch map</string>
     <string name="nav_profile">Settings</string>
     <string name="settings_title">Settings</string>
     <string name="settings_section_profile">Profile</string>
@@ -242,6 +245,8 @@
     <string name="filter_clear">Clear filters</string>
     <string name="tile_detail_period">Period: %1$s</string>
     <string name="layover_last">Last: %1$s</string>
+    <string name="layover_extreme_newest">Last layover</string>
+    <string name="layover_extreme_oldest">Oldest layover</string>
     <string name="chart_filter_all">All</string>
     <string name="chart_empty">No data for this period.</string>
     <string name="world_map_loading">Loading world map…</string>
@@ -274,7 +279,22 @@
     <string name="discovery_map">Map of the flight route</string>
     <string name="discovery_map_desc">Map excerpt of the flight route %1$s – %2$s</string>
 
-    <!-- Import page -->
+    <!-- Rubbelkarte -->
+    <string name="rubbelkarte_subtitle">%1$d countries · %2$d continents · %3$d airports</string>
+    <string name="rubbelkarte_subtitle_empty">No flights yet</string>
+    <string name="rubbelkarte_map_desc">World map with %1$d visited countries</string>
+    <string name="rubbelkarte_empty">As soon as you add a flight, the scratch map fills in.</string>
+    <string name="rubbelkarte_error">Country outlines could not be loaded. Please reinstall the app.</string>
+    <string name="rubbelkarte_countries">Tick countries by hand</string>
+    <string name="rubbelkarte_continent_count">%1$d/%2$d</string>
+    <string name="rubbelkarte_continent_desc">%1$s: %2$d of %3$d countries visited, %4$d percent</string>
+
+    <!-- Country list of the scratch map -->
+    <string name="countries_title">Countries</string>
+    <string name="countries_subtitle">%1$d of %2$d countries ticked</string>
+    <string name="countries_flight">Flown to</string>
+    <string name="countries_error">Countries could not be loaded. Please reinstall the app.</string>
+<!-- Import page -->
     <string name="import_page_title">Import</string>
     <string name="import_step1_title">Step 1 · Choose import mode</string>
     <string name="import_mode_explain">Decide what happens to your existing saved entries:</string>

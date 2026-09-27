@@ -1,0 +1,1085 @@
+package com.highfly.logbook
+
+import android.content.Context
+import android.content.res.Configuration
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.RectF
+import android.graphics.Region
+import android.util.AttributeSet
+import android.util.Log
+import android.util.TypedValue
+import android.view.GestureDetector
+import android.view.MotionEvent
+import android.view.ScaleGestureDetector
+import android.view.View
+import android.view.ViewConfiguration
+import androidx.core.graphics.ColorUtils
+import com.google.android.material.color.MaterialColors
+import java.lang.ref.WeakReference
+import kotlin.math.PI
+import kotlin.math.abs
+import kotlin.math.atan2
+import kotlin.math.ceil
+import kotlin.math.cos
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.sin
+import kotlin.math.sqrt
+
+/**
+ * Weltkarte für die Rubbelkarte: besuchte Länder werden farblich hervorgehoben,
+ * alle übrigen bleiben gedeckt.
+ *
+ * Das Format richtet sich nach der Einstellung "Weltkartenformat":
+ *
+ *  * [FORMAT_LANDSCAPE] zeigt die flache Weltkarte im Seitenverhältnis 2:1. Eine
+ *    Weltkarte ist immer breit, deshalb nimmt sie nur den oberen Teil der Seite
+ *    ein und darunter folgt die Liste der besuchten Länder.
+ *  * [FORMAT_PORTRAIT] zeigt einen Globus, der auf die besuchten Länder
+ *    zentriert ist und sich mit dem Finger in jede Richtung drehen lässt. Der
+ *    füllt ein hochformatiges Rechteck aus, in dem eine flache Karte sonst zur
+ *    Hälfte leer bliebe, und reicht links und rechts bis an den Rand der Seite.
+ *    Das Wasser endet am Rand der Kugel, darüber und darunter bleibt der
+ *    Hintergrund der Seite frei.
+ *
+ * Die Umrisse werden einmalig im Hintergrund geladen, die gezeichneten Pfade
+ * bei jeder Größenänderung neu gebaut. [onDraw] zeichnet danach nur noch
+ * fertige Pfade und bleibt auch mit über 230 Ländern flüssig.
+ */
+class RubbelkarteView @JvmOverloads constructor(
+    context: Context,
+    attrs: AttributeSet? = null
+) : View(context, attrs) {
+
+    companion object {
+        /** Flache Karte im Seitenverhältnis 2:1. */
+        const val FORMAT_LANDSCAPE = "landscape"
+
+        /** Globus, zentriert auf die besuchten Länder. */
+        const val FORMAT_PORTRAIT = "portrait"
+
+        private const val TAG = "RubbelkarteView"
+
+        /** Längengradspanne der flachen Karte. */
+        private const val LON_MIN = -180.0
+        private const val LON_MAX = 180.0
+
+        /**
+         * Breitengrade der flachen Karte. Der Süden endet bei -58 Grad: bis
+         * dorthin reichen bewohnte Küsten, alles darunter ist Antarktis, in die
+         * ohnehin niemand fliegt. So passt die Karte ins breite Format, ohne
+         * dass eine leere Eisfläche die halbe Seite einnimmt.
+         */
+        private const val LAT_MIN = -58.0
+        private const val LAT_MAX = 84.0
+
+        /** Seitenverhältnis der flachen Karte. */
+        private const val MAP_ASPECT = 2f
+
+        /**
+         * Anteil des Kartenrahmens, den die Kugel einnimmt. Sie reicht damit
+         * genau bis zum Seitenrand - ein Hauch mehr, weil eine exakt auf der
+         * Kante gezeichnete Kugel sonst einen hellen Saum von einem Pixel
+         * Breite stehen lässt. Der Rahmen der Seite schneidet den Rest ab.
+         */
+        private const val GLOBE_FILL = 1.005f
+
+        private const val CORNER_RADIUS_DP = 20f
+
+        private const val ZERO_EPS = 1e-9
+
+        /** Deckkraft des Halos hinter dem eingeblendeten Ländernamen. */
+        private const val NAME_HALO_ALPHA = 210
+
+        /** Wie lange der Name eines angetippten Landes stehen bleibt. */
+        private const val NAME_ANZEIGE_MS = 2600L
+
+        /** Abstand des Namens vom Rand der Karte. */
+        private const val NAME_RAND_DP = 8f
+
+        /**
+         * Zoombereich der Kugel. [ZOOM_MAX] ist bewusst klein gewählt: bei
+         * 1,35 ragt der Kugelrand bereits über die Seitenränder, mehr Verdeckung
+         * bringt der Karte nichts, zeigt aber nur noch Wasser.
+         */
+        const val ZOOM_MIN = 1f
+        const val ZOOM_MAX = 1.35f
+
+        /** Ziel des Doppeltipps, erneutes Tippen zoomt wieder heraus. */
+        const val ZOOM_DOPPELTIPP = 1.25f
+
+        /** Behält den Zoombereich ein, auch wenn das Wischen danebenliegt. */
+        fun clampZoom(wert: Float): Float = wert.coerceIn(ZOOM_MIN, ZOOM_MAX)
+        private const val ARC_STEP = 0.06
+
+        private const val ANTARCTICA = "AQ"
+        private const val DEFAULT_CENTER_LON = 10.0
+        private const val DEFAULT_CENTER_LAT = 25.0
+        private const val TWO_PI = 2.0 * PI
+        private const val HALF_PI = PI / 2.0
+
+        /**
+         * Die Umrisse sind app-weit dieselben, deshalb werden sie einmal geladen
+         * und von allen Instanzen geteilt. Views, die noch warten, werden schwach
+         * gehalten und nach dem Laden zum Neuzeichnen angestoßen.
+         */
+        @Volatile
+        private var sharedCountries: List<CountryShapes.Country>? = null
+
+        @Volatile
+        private var sharedLoading = false
+
+        private val sharedLock = Any()
+
+        private val waiting = mutableListOf<WeakReference<RubbelkarteView>>()
+
+        private fun requestCountries(context: Context, view: RubbelkarteView) {
+            val ready = sharedCountries
+            if (ready != null) {
+                view.onCountriesLoaded(ready)
+                return
+            }
+            val appContext = context.applicationContext
+            synchronized(sharedLock) {
+                if (waiting.none { it.get() === view }) {
+                    waiting.add(WeakReference(view))
+                }
+                if (sharedLoading) return
+                sharedLoading = true
+            }
+            Thread {
+                val parsed = try {
+                    CountryShapes.load(appContext)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Länderumrisse konnten nicht geladen werden", e)
+                    null
+                }
+                val views = synchronized(sharedLock) {
+                    sharedLoading = false
+                    sharedCountries = parsed
+                    waiting.toList().also { waiting.clear() }
+                }
+                views.forEach { reference ->
+                    val target = reference.get() ?: return@forEach
+                    target.post { target.onCountriesLoaded(parsed ?: emptyList()) }
+                }
+            }.start()
+        }
+    }
+
+    /** Ein Land mit dem bereits gezeichneten Pfad. */
+    private class Shape(
+        val iso2: String,
+        val name: String,
+        val path: Path,
+        val bounds: RectF,
+        val visited: Boolean
+    )
+
+    /** Besuchter Flughafen als Punkt auf der Karte. */
+    private data class AirportPoint(val lat: Double, val lon: Double, val code: String)
+
+    private val density get() = resources.displayMetrics.density
+
+    private val isDarkTheme = (resources.configuration.uiMode and
+        Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+
+    private val oceanPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = if (isDarkTheme) Color.rgb(18, 28, 40) else Color.rgb(172, 202, 228)
+    }
+    private val unvisitedPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = if (isDarkTheme) Color.rgb(48, 60, 72) else Color.rgb(228, 231, 224)
+    }
+    private val visitedPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeJoin = Paint.Join.ROUND
+        strokeWidth = 0.7f * density
+    }
+    private val rimPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 1.2f * density
+    }
+    private val airportHaloPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
+    private val airportPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.BLACK }
+    private val namePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        isFakeBoldText = true
+        textSize = TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_SP, 14f, resources.displayMetrics
+        )
+    }
+    private val nameHaloPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeJoin = Paint.Join.ROUND
+        strokeCap = Paint.Cap.ROUND
+        strokeWidth = 2.4f * density
+        textSize = namePaint.textSize
+    }
+
+    private val frame = RectF()
+    private val clipPath = Path()
+
+    /** Nur zum Aufspüren des Landes unter dem Finger, siehe [landAt]. */
+    private val hitClip = Region()
+    private val hitRegion = Region()
+    private val scratchPath = Path()
+    private val runPath = Path()
+
+    /** Zielpuffer für [project], gehört dem Zeichen-Thread. */
+    private val projected = FloatArray(2)
+
+    /** Zielpuffer für den Aufbau-Thread, siehe [projectGlobe]. */
+    private val buildProjection = FloatArray(2)
+
+    /**
+     * Lage zweier Ringpunkte, je ein Puffer für den Aufbau-Thread und für den
+     * Zeichen-Thread. [projectGlobe] schreibt in [buildPoint] beziehungsweise
+     * [drawPoint]; beide Threads dürfen sich keinen Puffer teilen, sonst liest
+     * einer die halbe Rechnung des anderen.
+     */
+    private val buildPoint = DoubleArray(3)
+    private val drawPoint = DoubleArray(3)
+    private val pointA = DoubleArray(3)
+    private val pointB = DoubleArray(3)
+
+    @Volatile
+    private var shapes: List<Shape> = emptyList()
+
+    /**
+     * Land, dessen Name gerade eingeblendet wird, und wo der erscheint. Ohne
+     * Tippen steht auf der Karte keine Schrift.
+     */
+    @Volatile
+    private var tapped: Shape? = null
+    private var tapX = 0f
+    private var tapY = 0f
+
+    private val nameAusblenden = Runnable {
+        tapped = null
+        invalidate()
+    }
+
+    @Volatile
+    private var points: List<AirportPoint> = emptyList()
+
+    @Volatile
+    private var mapRect = RectF()
+
+    private var format = FORMAT_LANDSCAPE
+    private var visitedIso2: Set<String> = emptySet()
+    private var visitedAirports: List<String> = emptyList()
+    private var built = false
+    private var buildGeneration = 0
+    private var loadGeneration = 0
+
+    /**
+     * Drehung der Kugel durch Wischen in Radiant, addiert sich auf die
+     * automatisch gesetzte Mitte. Die Projektion dreht um die Achse durch den
+     * Blickpunkt, deshalb sind beide Werte unabhängig voneinander.
+     */
+    private var userLonRad = 0.0
+    private var userLatRad = 0.0
+
+    /**
+     * Versatz der Kugelmitte nach unten, damit sie in der Bildschirmmitte steht
+     * statt in der Mitte der View: die View beginnt ja unter der Überschrift.
+     */
+    @Volatile
+    private var centerShiftY = 0f
+
+    /** Lage der Kugel für den Zeichen-Thread, siehe [buildGlobe]. */
+    @Volatile
+    private var globeCenter = GeoMath.Globe(0.0, 0.0)
+
+    /** Laufender Aufbau, damit ein Wischen nicht je Bewegung einen Thread erzeugt. */
+    @Volatile
+    private var building = false
+
+    private val windowOffset = IntArray(2)
+    private var touchIndex = 0
+    private var touchX = 0f
+    private var touchY = 0f
+    private var touchSlop = 0f
+    private var draggedPx = 0f
+
+    /** Nach einem Zoomen ist der Rest der Geste kein Klick mehr. */
+    private var scaled = false
+
+    /**
+     * Zoomstufe der Kugel. Sie steckt nur im Radius, deshalb ist ein eigener
+     * Blickwinkel nötig: [GeoMath.Globe] kennt keine Vergrößerung, die
+     * Projektion bleibt orthografisch, nur der Ausschnitt wird größer.
+     */
+    @Volatile
+    private var zoom = ZOOM_MIN
+
+    private val zoomDetector = ScaleGestureDetector(
+        context,
+        object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+            override fun onScaleBegin(detector: ScaleGestureDetector): Boolean {
+                scaled = true
+                return true
+            }
+
+            override fun onScale(detector: ScaleGestureDetector): Boolean {
+                zoomBy(detector.scaleFactor)
+                return true
+            }
+        }
+    )
+
+    private val tipDetector = GestureDetector(
+        context,
+        object : GestureDetector.SimpleOnGestureListener() {
+            override fun onDown(e: MotionEvent): Boolean = true
+
+            override fun onDoubleTap(e: MotionEvent): Boolean {
+                toggleZoom()
+                return true
+            }
+        }
+    )
+
+    init {
+        visitedPaint.color = MaterialColors.getColor(
+            this, com.google.android.material.R.attr.colorPrimary
+        )
+        val outline = MaterialColors.getColor(
+            this, com.google.android.material.R.attr.colorOutlineVariant
+        )
+        borderPaint.color = outline
+        rimPaint.color = outline
+        val nameColor = MaterialColors.getColor(
+            this, com.google.android.material.R.attr.colorOnPrimary
+        )
+        namePaint.color = nameColor
+        // Der Halo muss die Gegenfarbe zur Schrift sein, sonst tut er nichts und
+        // verbreitert die Buchstaben nur. Er trennt den Namen auch dort vom
+        // Hintergrund, wo er über Wasser oder über den Kartenrand ragt. Über
+        // die Schrift entscheidet die Helligkeit, nicht die Tag-/Nachteinstellung:
+        // Braun, Türkis und Magenta haben helle Zielfarben mit dunkler Schrift,
+        // das Standardthema ist es umgekehrt.
+        nameHaloPaint.color = ColorUtils.setAlphaComponent(
+            if (ColorUtils.calculateLuminance(nameColor) > 0.5f) {
+                Color.rgb(12, 16, 24)
+            } else {
+                Color.rgb(244, 247, 252)
+            },
+            NAME_HALO_ALPHA
+        )
+        touchSlop = ViewConfiguration.get(context).scaledTouchSlop.toFloat()
+    }
+
+    /**
+     * Setzt Kartenformat und Besuch. [format] ist [FORMAT_LANDSCAPE] oder
+     * [FORMAT_PORTRAIT], [visited] enthält die besuchten Länder als ISO-2,
+     * [airports] die besuchten Flughäfen als IATA.
+     */
+    fun setContent(format: String, visited: Set<String>, airports: List<String>) {
+        if (this.format != format) {
+            this.format = format
+            // Die flache Karte kennt keinen Zoom, also beginnt der Globus
+            // nach jedem Wechsel wieder bei Normalgröße.
+            zoom = ZOOM_MIN
+            built = false
+            // Die Höhe folgt dem Format, invalidate() allein misst nicht neu.
+            requestLayout()
+        }
+        visitedIso2 = visited
+        visitedAirports = airports
+        requestCountries(context, this)
+        invalidate()
+    }
+
+    private fun onCountriesLoaded(list: List<CountryShapes.Country>) {
+        if (list.isEmpty()) {
+            invalidate()
+            return
+        }
+        val generation = ++loadGeneration
+        Thread {
+            val collected = collectAirportPoints(generation)
+            post {
+                if (generation != loadGeneration) return@post
+                points = collected
+                // Die Pfade hängen an Format, Größe und Besuch, also müssen sie
+                // nach jedem neuen Datensatz neu gebaut werden.
+                built = false
+                rebuildIfNeeded()
+                invalidate()
+            }
+        }.start()
+    }
+
+    /**
+     * Liest die Koordinaten der besuchten Flughäfen. Die Flughafendatei wird von
+     * [AirportData] selbst im Hintergrund geladen, deshalb läuft auch das hier
+     * außerhalb des UI-Threads.
+     */
+    private fun collectAirportPoints(generation: Int): List<AirportPoint> {
+        val appContext = context.applicationContext
+        val result = ArrayList<AirportPoint>(visitedAirports.size)
+        for (iata in visitedAirports) {
+            if (generation != loadGeneration) return result
+            val location = AirportData.location(appContext, iata) ?: continue
+            result.add(AirportPoint(location.lat, location.lon, iata))
+        }
+        return result
+    }
+
+    /**
+     * Die Karte bestimmt ihre Höhe selbst: die flache Karte ist 2:1 und damit
+     * breiter als hoch, der Globus braucht ein fast quadratisches Feld. So
+     * passt sich die Seite der Einstellung "Weltkartenformat" an, ohne dass das
+     * Layout zwei Varianten kennen muss.
+     */
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        val widthMode = MeasureSpec.getMode(widthMeasureSpec)
+        val width = if (widthMode == MeasureSpec.UNSPECIFIED) {
+            suggestedMinimumWidth
+        } else {
+            MeasureSpec.getSize(widthMeasureSpec)
+        }
+        val heightMode = MeasureSpec.getMode(heightMeasureSpec)
+        val maxHeight = if (heightMode == MeasureSpec.UNSPECIFIED) {
+            Int.MAX_VALUE
+        } else {
+            MeasureSpec.getSize(heightMeasureSpec)
+        }
+        val desired = if (format == FORMAT_PORTRAIT) {
+            width
+        } else {
+            (width / MAP_ASPECT).toInt()
+        }
+        val height = if (heightMode == MeasureSpec.EXACTLY) {
+            MeasureSpec.getSize(heightMeasureSpec)
+        } else {
+            desired.coerceAtMost(maxHeight)
+        }
+        setMeasuredDimension(width, height)
+    }
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        val radius = CORNER_RADIUS_DP * density
+        frame.set(0f, 0f, w.toFloat(), h.toFloat())
+        clipPath.reset()
+        clipPath.addRoundRect(frame, radius, radius, Path.Direction.CW)
+        built = false
+    }
+
+    override fun onDraw(canvas: Canvas) {
+        if (width <= 0 || height <= 0) return
+        val globe = format == FORMAT_PORTRAIT
+        if (globe) {
+            // Nur das Wasser ist blau, der Kasten um die Kugel verschwindet.
+            updateCenterShift()
+            val cx = globeCenterX()
+            val cy = globeCenterY()
+            val r = globeRadius()
+            clipPath.reset()
+            clipPath.addCircle(cx, cy, r, Path.Direction.CW)
+            canvas.drawCircle(cx, cy, r, oceanPaint)
+        } else {
+            val radius = CORNER_RADIUS_DP * density
+            canvas.drawRoundRect(frame, radius, radius, oceanPaint)
+        }
+
+        if (!built) {
+            if (sharedCountries == null) {
+                requestCountries(context, this)
+                return
+            }
+            rebuildIfNeeded()
+        }
+        val list = shapes
+        if (list.isEmpty()) return
+
+        canvas.save()
+        canvas.clipPath(clipPath)
+        for (shape in list) {
+            canvas.drawPath(shape.path, if (shape.visited) visitedPaint else unvisitedPaint)
+        }
+        for (shape in list) {
+            canvas.drawPath(shape.path, borderPaint)
+        }
+        drawAirports(canvas)
+        drawName(canvas)
+        canvas.restore()
+        if (globe) {
+            // Der Rand gehört zum Bild, nicht zum Wasser, deshalb ohne Beschneiden.
+            canvas.drawCircle(globeCenterX(), globeCenterY(), globeRadius(), rimPaint)
+        }
+    }
+
+    /**
+     * Rechnet den Versatz aus, um den die Kugel tiefer sitzen muss, damit sie in
+     * der Bildschirmmitte steht. Die halbe Höhe des Wurzelverlaufs ist die Mitte
+     * des Bildschirms, von der Position der View aus gesehen liegt sie um
+     * [centerShiftY] tiefer als die Viewmitte.
+     */
+    private fun updateCenterShift() {
+        val root = rootView
+        if (root.height <= 0) return
+        getLocationInWindow(windowOffset)
+        val shift = root.height / 2f - windowOffset[1] - height / 2f
+        if (abs(shift - centerShiftY) > 0.5f) {
+            centerShiftY = shift
+            built = false
+        }
+    }
+
+    /**
+     * Dreht die Kugel mit dem Finger, in beide Richtungen: waagerecht um die
+     * Hochachse, senkrecht um die Querachse. Die flache Karte bleibt stehen,
+     * dort gibt es nichts zu drehen, nur den Ländernamen zu erfahren.
+     *
+     * Der Weg wird 1:1 umgesetzt, bezogen auf die Kugelmitte: ein Fingerweg von
+     * einem Kugelradius entspricht einem Radiant. Am Äquator ist das genau
+     * richtig, in der Nähe der Pole wird die Bewegung durch die Kugelfläche
+     * gestaucht, so wie bei einem echten Globus auch. Weil der Radius den Zoom
+     * enthält, dreht eine herangezoomte Kugel unter dem Finger langsamer, das
+     * passt zu dem, was man sieht.
+     *
+     * Zoomen und Doppeltipp übergeben die Erkanner, sonst würde die zweite
+     * Hand das Drehen fortsetzen.
+     */
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        if (width <= 0 || height <= 0) return super.onTouchEvent(event)
+        val globe = format == FORMAT_PORTRAIT
+        if (globe) {
+            zoomDetector.onTouchEvent(event)
+            tipDetector.onTouchEvent(event)
+            if (zoomDetector.isInProgress) return true
+        }
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                touchIndex = 0
+                touchX = event.getX(0)
+                touchY = event.getY(0)
+                tapX = touchX
+                tapY = touchY
+                draggedPx = 0f
+                scaled = false
+                return true
+            }
+
+            // Ab dem zweiten Finger zoomt es, gedreht wird erst wieder, wenn
+            // wieder nur einer auf dem Bildschirm ist.
+            MotionEvent.ACTION_POINTER_DOWN -> return true
+
+            MotionEvent.ACTION_POINTER_UP -> {
+                // Ohne Sprung weiterdrehen: den Finger neu ansetzen, der noch
+                // auf dem Bildschirm ist, sonst schlägt der Weg bis zu seiner
+                // Position durch und die Kugel springt. Die übrigen Zeiger
+                // behalten ihren Index, der Folgeweg muss also den richtigen
+                // erwischen und nicht den abgehobenen.
+                for (i in 0 until event.pointerCount) {
+                    if (i == event.actionIndex) continue
+                    touchIndex = i
+                    touchX = event.getX(i)
+                    touchY = event.getY(i)
+                    break
+                }
+                draggedPx = 0f
+                return true
+            }
+
+            MotionEvent.ACTION_MOVE -> {
+                val x = event.getX(touchIndex)
+                val y = event.getY(touchIndex)
+                val dx = x - touchX
+                val dy = y - touchY
+                touchX = x
+                touchY = y
+                tapX = x
+                tapY = y
+                draggedPx += abs(dx) + abs(dy)
+                // Die flache Karte lässt sich nicht drehen, ein Wischen auf ihr
+                // bleibt folgenlos. Getippt wird in beiden Formaten.
+                if (globe && (dx != 0f || dy != 0f)) rotate(dx, dy)
+                return true
+            }
+
+            MotionEvent.ACTION_UP -> {
+                if (!scaled && draggedPx <= touchSlop) performClick()
+                return true
+            }
+
+            MotionEvent.ACTION_CANCEL -> return true
+        }
+        return super.onTouchEvent(event)
+    }
+
+    /** Vergrößert oder verkleinert die Kugel um [faktor]. */
+    private fun zoomBy(faktor: Float) {
+        if (format != FORMAT_PORTRAIT) return
+        val naechste = clampZoom(zoom * faktor)
+        if (abs(naechste - zoom) < 0.001f) return
+        zoom = naechste
+        // Die Pfade sind in Bildkoordinaten gebaut, ein neuer Radius braucht
+        // also denselben Neuaufbau wie eine Drehung.
+        built = false
+        rebuildIfNeeded()
+    }
+
+    /** Doppeltipp: einmal hinein, beim nächsten wieder heraus. */
+    private fun toggleZoom() {
+        zoomBy(if (zoom > ZOOM_MIN + 0.05f) ZOOM_MIN / zoom else ZOOM_DOPPELTIPP)
+    }
+
+    /**
+     * Fortgeschriebene Drehung aus dem Fingerweg. Bewegt wird der Blickpunkt
+     * selbst, die Mitte der besuchten Länder steckt schon in [userLonRad] und
+     * [userLatRad] und wandert mit.
+     */
+    private fun rotate(dx: Float, dy: Float) {
+        val radius = globeRadius()
+        if (radius <= 0f) return
+        val naechste = GeoMath.Globe(userLonRad, userLatRad).drag(dx, dy, radius)
+        userLonRad = naechste[0] % TWO_PI
+        if (userLonRad < 0.0) userLonRad += TWO_PI
+        userLatRad = naechste[1]
+        built = false
+        rebuildIfNeeded()
+    }
+
+    /**
+     * Ein Tippen ohne Wischen fragt das Land an. Für das Drehen und Zoomen ist
+     * [onTouchEvent] zuständig, hier landet nur der kurze Tipp.
+     */
+    override fun performClick(): Boolean {
+        super.performClick()
+        showNameAt(tapX, tapY)
+        return true
+    }
+
+    private fun drawAirports(canvas: Canvas) {
+        val dot = max(1.6f * density, min(width, height) * 0.006f)
+        for (point in points) {
+            val pos = project(point.lat, point.lon) ?: continue
+            // Schwarzer Punkt mit weißem Ring: der Ring trennt ihn vom Wasser,
+            // das im dunklen Design selbst fast schwarz ist.
+            canvas.drawCircle(pos[0], pos[1], dot * 2f, airportHaloPaint)
+            canvas.drawCircle(pos[0], pos[1], dot * 1.3f, airportPaint)
+        }
+    }
+
+    /**
+     * Blendet den Namen des angetippten Landes über der Tippmarke ein. Ohne
+     * Tippen bleibt die Karte schriftfrei, deshalb wird hier nichts geprüft und
+     * nichts reserviert.
+     */
+    private fun drawName(canvas: Canvas) {
+        val shape = tapped ?: return
+        val rand = NAME_RAND_DP * density
+        val metrics = namePaint.fontMetrics
+        val textHeight = metrics.descent - metrics.ascent
+        val textWidth = namePaint.measureText(shape.name)
+        // Über der Tippmarke, aber ganz auf der Karte. Der Rand gewinnt, wenn
+        // der Name breiter ist als die Karte selbst.
+        val x = (tapX - textWidth / 2f).coerceIn(rand, max(rand, width - textWidth - rand))
+        val y = (tapY - textHeight / 2f).coerceIn(
+            metrics.ascent + rand,
+            max(metrics.ascent + rand, height - metrics.descent - rand)
+        )
+        canvas.drawText(shape.name, x, y, nameHaloPaint)
+        canvas.drawText(shape.name, x, y, namePaint)
+    }
+
+    /**
+     * Das Land unter dem Punkt [x], [y]. Mehrere Kandidaten sind an der Grenze
+     * normal, deshalb gewinnt das zuletzt gezeichnete Land: die Zeichenreihenfolge
+     * [drawOrder] legt die besuchten Länder nach vorn, ein angetipptes Land
+     * schlägt also seinen unbesuchten Nachbarn.
+     */
+    private fun landAt(x: Float, y: Float): Shape? {
+        if (x < 0f || y < 0f || x > width || y > height) return null
+        val px = x.toInt()
+        val py = y.toInt()
+        hitClip.set(0, 0, width, height)
+        var treffer: Shape? = null
+        for (i in shapes.indices.reversed()) {
+            val shape = shapes[i]
+            // Die Hülle ist der grobe Filter, damit nur wenige Länder wirklich
+            // in eine Region umgerechnet werden müssen.
+            if (!shape.bounds.contains(x, y)) continue
+            hitRegion.setPath(shape.path, hitClip)
+            if (hitRegion.contains(px, py)) treffer = shape
+        }
+        return treffer
+    }
+
+    /** Blendet den Namen des Landes an der Tippmarke ein, sonst gar nichts. */
+    private fun showNameAt(x: Float, y: Float) {
+        val land = landAt(x, y)
+        if (land == null) {
+            // Wasser oder Rand: Ein Tipp dort nimmt einen stehenden Namen weg.
+            removeCallbacks(nameAusblenden)
+            tapped = null
+            invalidate()
+            return
+        }
+        tapped = land
+        removeCallbacks(nameAusblenden)
+        postDelayed(nameAusblenden, NAME_ANZEIGE_MS)
+        // Auch vorlesen: ohne das bliebe der Name nur für das Auge.
+        announceForAccessibility(land.name)
+        invalidate()
+    }
+
+    /**
+     * Baut die gezeichneten Pfade neu auf. Das passiert nur bei
+     * Größenänderung, Formatwechsel oder neuen Daten, nicht pro Bild.
+     */
+    private fun rebuildIfNeeded() {
+        val w = width
+        val h = height
+        if (w <= 0 || h <= 0 || built || building) return
+        val list = sharedCountries ?: return
+        built = true
+        building = true
+        val generation = ++buildGeneration
+        val formatSnapshot = format
+        val visitedSnapshot = visitedIso2
+        Thread {
+            val builtShapes = if (formatSnapshot == FORMAT_PORTRAIT) {
+                buildGlobe(w, h, list, visitedSnapshot, generation)
+            } else {
+                buildFlat(w, h, list, visitedSnapshot, generation)
+            }
+            post {
+                building = false
+                if (generation != buildGeneration) return@post
+                shapes = builtShapes
+                invalidate()
+            }
+        }.start()
+    }
+
+    private fun buildFlat(
+        w: Int,
+        h: Int,
+        list: List<CountryShapes.Country>,
+        visited: Set<String>,
+        generation: Int
+    ): List<Shape> {
+        val viewWidth = w.toFloat()
+        val viewHeight = h.toFloat()
+        val mapHeight = min(viewHeight, viewWidth / MAP_ASPECT)
+        val top = (viewHeight - mapHeight) / 2f
+        mapRect = RectF(0f, top, viewWidth, top + mapHeight)
+        val sx = viewWidth / (LON_MAX - LON_MIN)
+        val sy = mapHeight / (LAT_MAX - LAT_MIN)
+        val german = useGermanNames()
+        val result = ArrayList<Shape>(list.size)
+        for (country in list) {
+            if (generation != buildGeneration) return result
+            if (country.iso2 == ANTARCTICA) continue
+            val path = Path()
+            for (ring in country.rings) {
+                val count = ring.size / 2
+                if (count < 3) continue
+                scratchPath.reset()
+                for (i in 0 until count) {
+                    val x = ((ring[i * 2] - LON_MIN) * sx).toFloat()
+                    val y = ((LAT_MAX - ring[i * 2 + 1]) * sy + top).toFloat()
+                    if (i == 0) scratchPath.moveTo(x, y) else scratchPath.lineTo(x, y)
+                }
+                scratchPath.close()
+                path.addPath(scratchPath)
+            }
+            if (path.isEmpty) continue
+            result.add(
+                Shape(
+                    iso2 = country.iso2,
+                    name = if (german) country.nameDe else country.nameEn,
+                    path = path,
+                    bounds = RectF().apply { path.computeBounds(this, true) },
+                    visited = visited.contains(country.iso2)
+                )
+            )
+        }
+        return drawOrder(result)
+    }
+
+    /**
+     * Ordnet die Länder so, dass die besuchten zuletzt gezeichnet werden. Die
+     * Umrisse sind unabhängig voneinander vereinfacht und überlappen deshalb an
+     * den Küsten ein Stück; so kann ein unbesuchter Nachbar keinen Hauch von
+     * einem besuchten Land verdecken.
+     */
+    private fun drawOrder(shapes: List<Shape>): List<Shape> =
+        shapes.sortedBy { if (it.visited) 1 else 0 }
+
+    private fun buildGlobe(
+        w: Int,
+        h: Int,
+        list: List<CountryShapes.Country>,
+        visited: Set<String>,
+        generation: Int
+    ): List<Shape> {
+        val viewWidth = w.toFloat()
+        val viewHeight = h.toFloat()
+        val radius = globeRadius(viewWidth, viewHeight)
+        val cx = viewWidth / 2f
+        val cy = viewHeight / 2f + centerShiftY
+        mapRect = RectF(cx - radius, cy - radius, cx + radius, cy + radius)
+
+        val center = RubbelkarteStats.centerOf(list, visited)
+        val centerLon = normalizeLon(center?.first ?: DEFAULT_CENTER_LON)
+        val centerLat = (center?.second ?: DEFAULT_CENTER_LAT).coerceIn(-60.0, 70.0)
+        // Die Mitte der besuchten Länder plus die Drehung durch Wischen.
+        val lonRad = Math.toRadians(centerLon) + userLonRad
+        val latRad = (Math.toRadians(centerLat) + userLatRad).coerceIn(-HALF_PI, HALF_PI)
+        val globe = GeoMath.Globe(lonRad, latRad)
+        globeCenter = globe
+        val german = useGermanNames()
+        val result = ArrayList<Shape>(list.size)
+        for (country in list) {
+            if (generation != buildGeneration) return result
+            if (country.iso2 == ANTARCTICA) continue
+            val path = globeRings(country.rings, globe, cx, cy, radius) ?: continue
+            result.add(
+                Shape(
+                    iso2 = country.iso2,
+                    name = if (german) country.nameDe else country.nameEn,
+                    path = path,
+                    bounds = RectF().apply { path.computeBounds(this, true) },
+                    visited = visited.contains(country.iso2)
+                )
+            )
+        }
+        return drawOrder(result)
+    }
+
+    /**
+     * Wandelt die Ringe eines Landes in einen Pfad auf der Kugel um. Ringe, die
+     * vollständig auf der Rückseite liegen, fallen weg; die übrigen werden an
+     * den Horizontlinien abgeschnitten, damit die Kugel geschlossen wirkt.
+     */
+    private fun globeRings(
+        rings: List<FloatArray>,
+        center: GeoMath.Globe,
+        cx: Float,
+        cy: Float,
+        radius: Float
+    ): Path? {
+        val path = Path()
+        var any = false
+        for (ring in rings) {
+            val count = ring.size / 2
+            if (count < 3) continue
+            if (!anyVisible(ring, count, center)) continue
+            runPath.reset()
+            val crossings = ArrayList<Crossing>(4)
+            for (i in 0 until count) {
+                val j = (i + 1) % count
+                val lonA = ring[i * 2].toDouble()
+                val latA = ring[i * 2 + 1].toDouble()
+                val lonB = ring[j * 2].toDouble()
+                val latB = ring[j * 2 + 1].toDouble()
+                    val visA = isVisible(lonA, latA, center, pointA)
+                    val visB = isVisible(lonB, latB, center, pointB)
+                    if (visA == visB) continue
+                    val alpha = horizonAlpha(lonA, latA, lonB, latB, center)
+                crossings.add(
+                    Crossing(
+                        segment = i,
+                        entering = visB,
+                        alpha = alpha,
+                        x = (cx + cos(alpha) * radius).toFloat(),
+                        y = (cy - sin(alpha) * radius).toFloat()
+                    )
+                )
+            }
+
+            if (crossings.isEmpty()) {
+                for (i in 0 until count) {
+                    if (!projectGlobe(
+                            ring[i * 2 + 1].toDouble(), ring[i * 2].toDouble(),
+                            center, cx, cy, radius, buildPoint, buildProjection
+                        )
+                    ) {
+                        continue
+                    }
+                    if (i == 0) {
+                        runPath.moveTo(buildProjection[0], buildProjection[1])
+                    } else {
+                        runPath.lineTo(buildProjection[0], buildProjection[1])
+                    }
+                }
+                runPath.close()
+            } else {
+                var first = 0
+                while (first < crossings.size && !crossings[first].entering) first++
+                if (first >= crossings.size) continue
+                val total = crossings.size
+                for (k in 0 until total / 2) {
+                    val enter = crossings[(first + 2 * k) % total]
+                    val exit = crossings[(first + 2 * k + 1) % total]
+                    runPath.moveTo(enter.x, enter.y)
+                    var steps = exit.segment - enter.segment
+                    if (steps <= 0) steps += count
+                    if (steps > count) steps = count
+                    val start = enter.segment + 1
+                    for (s in 0 until steps) {
+                        val index = (start + s) % count
+                        if (!projectGlobe(
+                                ring[index * 2 + 1].toDouble(),
+                                ring[index * 2].toDouble(),
+                                center, cx, cy, radius, buildPoint, buildProjection
+                            )
+                        ) {
+                            continue
+                        }
+                        runPath.lineTo(buildProjection[0], buildProjection[1])
+                    }
+                    runPath.lineTo(exit.x, exit.y)
+                    appendHorizonArc(exit.alpha, enter.alpha, cx, cy, radius, runPath)
+                    runPath.close()
+                }
+            }
+            path.addPath(runPath)
+            any = true
+        }
+        return if (any) path else null
+    }
+
+    /** Übergang eines Ringsegments über den Horizont der Kugel. */
+    private class Crossing(
+        val segment: Int,
+        val entering: Boolean,
+        val alpha: Double,
+        val x: Float,
+        val y: Float
+    )
+
+    private fun anyVisible(ring: FloatArray, count: Int, center: GeoMath.Globe): Boolean {
+        for (i in 0 until count) {
+            if (isVisible(ring[i * 2].toDouble(), ring[i * 2 + 1].toDouble(), center, pointA)) {
+                return true
+            }
+        }
+        return false
+    }
+
+    private fun isVisible(lon: Double, lat: Double, center: GeoMath.Globe, out: DoubleArray): Boolean {
+        center.point(lat, lon, out)
+        return out[GeoMath.Globe.FRONT] > ZERO_EPS
+    }
+
+    /**
+     * Ort eines Punktes auf der Scheibe der Kugel. Liegt er auf der Rückseite,
+     * ist das Ergebnis ungültig und die Rückgabe false. [scratch] gehört dem
+     * aufrufenden Thread.
+     */
+    private fun projectGlobe(
+        lat: Double,
+        lon: Double,
+        center: GeoMath.Globe,
+        cx: Float,
+        cy: Float,
+        radius: Float,
+        scratch: DoubleArray,
+        out: FloatArray
+    ): Boolean {
+        center.point(lat, lon, scratch)
+        if (scratch[GeoMath.Globe.FRONT] <= ZERO_EPS) return false
+        out[0] = (cx + scratch[GeoMath.Globe.X] * radius).toFloat()
+        out[1] = (cy - scratch[GeoMath.Globe.Y] * radius).toFloat()
+        return true
+    }
+
+    /**
+     * Schnittpunkt eines Ringsegments mit dem Horizont der Kugel, als Winkel auf
+     * dem Randkreis.
+     */
+    private fun horizonAlpha(
+        lonA: Double, latA: Double,
+        lonB: Double, latB: Double,
+        center: GeoMath.Globe
+    ): Double = center.horizon(latA, lonA, latB, lonB, pointA, pointB)
+
+    private fun appendHorizonArc(
+        from: Double,
+        to: Double,
+        cx: Float,
+        cy: Float,
+        radius: Float,
+        out: Path
+    ) {
+        var delta = to - from
+        delta = ((delta + PI) % (2 * PI) + 2 * PI) % (2 * PI) - PI
+        if (abs(delta) < ZERO_EPS) return
+        val steps = min(64, max(2, ceil(abs(delta) / ARC_STEP).toInt()))
+        for (s in 1..steps) {
+            val a = from + delta * s / steps
+            out.lineTo((cx + cos(a) * radius).toFloat(), (cy - sin(a) * radius).toFloat())
+        }
+    }
+
+    /**
+     * Bildschirmposition eines Punktes im aktuell gewählten Format. Das
+     * Ergebnis landet in [projected] - der Zeichen-Thread liest es sofort aus,
+     * deshalb wird nichts allokiert. Aufbau und Zeichnen laufen in
+     * verschiedenen Threads, deshalb hat der Aufbau eigene Puffer.
+     */
+    private fun project(lat: Double, lon: Double): FloatArray? {
+        if (format == FORMAT_PORTRAIT) {
+            if (!projectGlobe(
+                    lat, lon, globeCenter, globeCenterX(), globeCenterY(), globeRadius(),
+                    drawPoint, projected
+                )
+            ) {
+                return null
+            }
+            return projected
+        }
+        if (lat < LAT_MIN || lat > LAT_MAX) return null
+        val rect = mapRect
+        if (rect.isEmpty) return null
+        val x = rect.left +
+                ((normalizeLon(lon) - LON_MIN) / (LON_MAX - LON_MIN) * rect.width()).toFloat()
+        val y = rect.top +
+                ((LAT_MAX - lat) / (LAT_MAX - LAT_MIN) * rect.height()).toFloat()
+        projected[0] = x
+        projected[1] = y
+        return projected
+    }
+
+    private fun globeCenterX(): Float = width / 2f
+
+    /** Mitte der Kugel, um [centerShiftY] tiefer als die Mitte der View. */
+    private fun globeCenterY(): Float = height / 2f + centerShiftY
+
+    private fun globeRadius(): Float = globeRadius(width.toFloat(), height.toFloat())
+
+    /**
+     * Radius der Kugel für eine View der Größe [w] mal [h]. Der Aufbau-Thread
+     * rechnet mit den Maßen, die er bekommen hat, der Zeichen-Thread mit den
+     * aktuellen, deshalb beide Wege über dieselbe Rechnung.
+     *
+     * Die kleinere Seite bestimmt den Radius: Im Hochformat ist die Karte
+     * quadratisch, im Querformat bleibt links und rechts nur die halbe
+     * Bildschirmhöhe - dort kann eine Kugel gar nicht bis zum Rand reichen.
+     */
+    private fun globeRadius(w: Float, h: Float): Float =
+        min(w, h) * GLOBE_FILL / 2f * zoom
+
+    /** Die App ist deutschsprachig, values-en liefert die englischen Namen. */
+    private fun useGermanNames(): Boolean {
+        val language = resources.configuration.locales[0].language
+        return language.isEmpty() || language == "de"
+    }
+
+    private fun normalizeLon(lon: Double): Double {
+        var value = lon
+        while (value < LON_MIN) value += 360.0
+        while (value > LON_MAX) value -= 360.0
+        return value
+    }
+}

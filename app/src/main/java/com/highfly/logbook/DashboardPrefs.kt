@@ -216,16 +216,16 @@ object DashboardPrefs {
             R.drawable.ic_moon
         ),
         Tile(
-            "discovery",
-            R.string.tile_discovery,
-            R.drawable.ic_star
+            "reisebuddy",
+            R.string.tile_reisebuddy,
+            R.drawable.ic_reisebuddy
         ),
     )
 
     val DEFAULT_ROWS = listOf(
         listOf("flights", "layover", "time"),
         listOf("airlines", "aircraftreg", "function"),
-        listOf("countries", "routes", "discovery"),
+        listOf("countries", "routes", "reisebuddy"),
         listOf("worldmap"),
         listOf("traveltype", "class"),
         listOf("distance"),
@@ -233,7 +233,7 @@ object DashboardPrefs {
     )
 
     private const val PREF_NAME = "dashboard_layout"
-    private const val KEY_TILES = "tiles_standard_v12"
+    private const val KEY_TILES = "tiles_standard_v13"
     private const val ROW_SEPARATOR = ";"
 
     private fun prefs(context: Context): SharedPreferences =

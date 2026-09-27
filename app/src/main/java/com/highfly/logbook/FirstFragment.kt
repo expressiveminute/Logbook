@@ -21,7 +21,6 @@ import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.color.MaterialColors
 import com.highfly.logbook.databinding.FragmentFirstBinding
-import java.time.LocalDate
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -121,20 +120,12 @@ class FirstFragment : Fragment() {
         Thread {
             val key = Settings.getDefaultPeriodKey(appContext)
             val timeUnitKey = Settings.getDefaultTimeUnitKey(appContext)
-            val allEntries = LogbookRepository.getEntries()
             val entries = DashboardStats.filterForPeriod(
-                allEntries,
+                LogbookRepository.getEntries(),
                 key
             )
             val time = DashboardStats.flightMinutes(entries)
-            // Braucht alle Eintraege, nicht die gefilterten: eine Strecke ist
-            // nur dann neu, wenn sie noch nie geflogen wurde. Gezaehlt wird
-            // immer das laufende Jahr, unabhaengig vom gewaehlten Zeitraum.
-            val discoveries = DashboardStats.discoveryCount(
-                allEntries,
-                LocalDate.now().year
-            )
-            val values = DashboardStats.values(appContext, entries, discoveries)
+            val values = DashboardStats.values(appContext, entries)
             val distance = DashboardStats.distanceDetails(appContext, entries)
             val co2 = Co2Calculator.details(entries)
 
@@ -507,8 +498,13 @@ class FirstFragment : Fragment() {
             id == "flights" -> {
                 findNavController().navigate(R.id.action_dashboard_to_flights_year)
             }
-            id == "discovery" -> {
-                findNavController().navigate(R.id.action_dashboard_to_discovery)
+            // Kachel ist schon da und reagiert, der Inhalt folgt noch.
+            id == "reisebuddy" -> {
+                Toast.makeText(
+                    requireContext(),
+                    R.string.reisebuddy_placeholder,
+                    Toast.LENGTH_SHORT
+                ).show()
             }
             ChartData.isBarChart(id) || ChartData.isPieChart(id) -> {
                 val bundle = Bundle().apply { putString("tileId", id) }

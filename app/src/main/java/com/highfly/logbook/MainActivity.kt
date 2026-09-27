@@ -75,7 +75,13 @@ class MainActivity : AppCompatActivity() {
         navController = navHostFragment.navController
 
         appBarConfiguration = AppBarConfiguration(
-            setOf(R.id.nav_dashboard, R.id.nav_entries, R.id.nav_profile)
+            setOf(
+                R.id.nav_dashboard,
+                R.id.nav_entries,
+                R.id.nav_discovery,
+                R.id.nav_rubbelkarte,
+                R.id.nav_profile
+            )
         )
         setupActionBarWithNavController(navController, appBarConfiguration)
         setupBottomNav(navController)
@@ -110,7 +116,11 @@ class MainActivity : AppCompatActivity() {
         binding.bottomNav.setTabs(
             listOf(
                 BottomTabBar.Tab(R.id.nav_entries, R.drawable.ic_entries, R.string.nav_entries),
+                BottomTabBar.Tab(R.id.nav_discovery, R.drawable.ic_star, R.string.nav_discovery),
                 BottomTabBar.Tab(R.id.nav_dashboard, R.drawable.ic_dashboard, R.string.nav_dashboard),
+                BottomTabBar.Tab(
+                    R.id.nav_rubbelkarte, R.drawable.ic_world_map, R.string.nav_rubbelkarte
+                ),
                 BottomTabBar.Tab(R.id.nav_profile, R.drawable.ic_profile, R.string.nav_profile),
             )
         )
@@ -154,6 +164,8 @@ class MainActivity : AppCompatActivity() {
     private fun isMenuTab(destinationId: Int?): Boolean =
         destinationId == R.id.nav_dashboard ||
                 destinationId == R.id.nav_entries ||
+                destinationId == R.id.nav_discovery ||
+                destinationId == R.id.nav_rubbelkarte ||
                 destinationId == R.id.nav_profile
 
     private fun updateTabSelection(destinationId: Int?) {

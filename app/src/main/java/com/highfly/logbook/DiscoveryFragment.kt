@@ -10,7 +10,6 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.fragment.app.Fragment
-import androidx.navigation.fragment.findNavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.highfly.logbook.databinding.FragmentDiscoveryBinding
 import java.time.LocalDate
@@ -59,7 +58,6 @@ class DiscoveryFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        binding.btnBack.setOnClickListener { findNavController().navigateUp() }
         binding.btnDiscoveryYear.setOnClickListener { showYearPicker() }
     }
 

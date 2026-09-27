@@ -17,6 +17,9 @@ object ChartData {
 
     data class Slice(val label: String, val value: Int, val colorRes: Int)
 
+    /** Layover-Eintrag als Angabe fuer die Kacheln ueber dem Diagramm. */
+    data class LayoverExtreme(val airport: String, val date: LocalDate)
+
     private data class TravelType(val resId: Int, val canonical: String, val aliases: List<String>)
 
     private data class ClassType(val resId: Int, val canonical: String, val aliases: List<String>)
@@ -122,6 +125,30 @@ object ChartData {
             Bar(label, count, subLabels[label])
         }
             .sortedWith(compareByDescending<Bar> { it.count }.thenBy { it.label })
+    }
+
+    /**
+     * Jüngster Layover-Eintrag der Liste: der Flughafen, der am kürzesten her
+     * ist. Ohne Layover `null`.
+     */
+    fun newestLayover(entries: List<LogbookEntry>): LayoverExtreme? =
+        layoverExtremum(entries, newest = true)
+
+    /**
+     * Ältester Layover-Eintrag der Liste: der Flughafen, der am längsten her
+     * ist. Ohne Layover `null`.
+     */
+    fun oldestLayover(entries: List<LogbookEntry>): LayoverExtreme? =
+        layoverExtremum(entries, newest = false)
+
+    private fun layoverExtremum(entries: List<LogbookEntry>, newest: Boolean): LayoverExtreme? {
+        val layovers = entries.filter { it.layover && it.toAirport.isNotBlank() }
+        val entry = if (newest) {
+            layovers.maxByOrNull { it.date }
+        } else {
+            layovers.minByOrNull { it.date }
+        } ?: return null
+        return LayoverExtreme(entry.toAirport.trim().uppercase(), entry.date)
     }
 
     fun airportBars(context: Context): List<Bar> =
@@ -325,22 +352,11 @@ object ChartData {
         return counts.entries.map { (continent, count) ->
             val colorIdx = Continents.ORDER.indexOf(continent).coerceAtLeast(0)
             Slice(
-                context.getString(continentRes(continent)),
+                context.getString(Continents.nameRes(continent)),
                 count,
                 colors[colorIdx]
             )
         }.sortedWith(compareByDescending<Slice> { it.value }.thenBy { it.label })
-    }
-
-    private fun continentRes(continent: String): Int = when (continent) {
-        Continents.EUROPE -> R.string.continent_europe
-        Continents.ASIA -> R.string.continent_asia
-        Continents.NORTH_AMERICA -> R.string.continent_north_america
-        Continents.SOUTH_AMERICA -> R.string.continent_south_america
-        Continents.AFRICA -> R.string.continent_africa
-        Continents.OCEANIA -> R.string.continent_oceania
-        Continents.ANTARCTICA -> R.string.continent_antarctica
-        else -> R.string.continent_unknown
     }
 
     fun periodFiltered(context: Context): List<LogbookEntry> =

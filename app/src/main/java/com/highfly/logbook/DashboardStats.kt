@@ -75,11 +75,6 @@ object DashboardStats {
      * alle Einträge ermittelt, welche Strecken es überhaupt neu gab, und
      * danach auf das Jahr gefiltert. Ein Filtern der Einträge vor der
      * Auswertung würde jeden Wiederholungsflug als Entdeckung zählen.
-     *
-     * Die Kachel zählt bewusst nur das laufende Jahr und nicht den gewählten
-     * Zeitraum: Die Discovery-Seite springt beim Öffnen ebenfalls auf das
-     * laufende Jahr, sonst zeigte die Kachel eine andere Zahl als die Seite,
-     * zu der sie führt.
      */
     fun discoveryCount(allEntries: List<LogbookEntry>, year: Int): Int =
         DiscoveryRoutes.firstFlownInYear(allEntries, year).size
@@ -121,15 +116,11 @@ object DashboardStats {
         formatFactor(value)
 
     /**
-     * Werte aller Kacheln. [entries] ist bereits auf die Periode gefiltert,
-     * [discoveries] nicht: eine Entdeckung lässt sich nur über alle Einträge
-     * bestimmen, siehe [discoveryCount]. Die Kachel "discovery" bleibt dabei
-     * immer auf das laufende Jahr bezogen, unabhängig von [entries].
+     * Werte aller Kacheln. [entries] ist bereits auf die Periode gefiltert.
      */
     fun values(
         context: Context,
-        entries: List<LogbookEntry>,
-        discoveries: Int
+        entries: List<LogbookEntry>
     ): Map<String, Value> {
         val flights = formatInt(context, entries.size)
         val distanceEntries = flyingEntries(entries)
@@ -161,7 +152,6 @@ object DashboardStats {
                     formatInt(context, (countries * 100.0 / WORLD_COUNTRIES).toInt()))),
             "earthorbits" to Value(formatFactor(earthOrbits), "×"),
             "moon" to Value(formatFactor(moonFlights), "×"),
-            "discovery" to Value(formatInt(context, discoveries), null),
         )
     }
 

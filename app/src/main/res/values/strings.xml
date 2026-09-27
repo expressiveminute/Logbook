@@ -27,7 +27,8 @@
     <string name="tile_function">Funktion</string>
     <string name="tile_earth_orbits">Erdumrundungen</string>
     <string name="tile_moon">Zum Mond</string>
-    <string name="tile_discovery">Discovery</string>
+    <string name="tile_reisebuddy">Reisebuddy</string>
+    <string name="reisebuddy_placeholder">Reisebuddy — folgt in Kürze</string>
     <string name="tile_co2">CO₂-Bilanz</string>
     <string name="co2_tonnes_unit">Tonnen</string>
     <string name="co2_emissions_label">CO₂-Emissionen</string>
@@ -67,7 +68,9 @@
     <string name="period_this_month">Dieser Monat</string>
     <string name="period_ytd">YTD</string>
     <string name="nav_entries">Einträge</string>
+    <string name="nav_discovery">Discovery</string>
     <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_rubbelkarte">Rubbelkarte</string>
     <string name="nav_profile">Einstellungen</string>
     <string name="settings_title">Einstellungen</string>
     <string name="settings_section_profile">Profil</string>
@@ -242,6 +245,8 @@
     <string name="filter_clear">Filter löschen</string>
     <string name="tile_detail_period">Zeitraum: %1$s</string>
     <string name="layover_last">Zuletzt: %1$s</string>
+    <string name="layover_extreme_newest">Letztes Layover</string>
+    <string name="layover_extreme_oldest">Ältestes Layover</string>
     <string name="chart_filter_all">Alle</string>
     <string name="chart_empty">Keine Daten für diesen Zeitraum.</string>
     <string name="world_map_loading">Weltkarte wird geladen…</string>
@@ -274,7 +279,22 @@
     <string name="discovery_map">Karte der Flugstrecke</string>
     <string name="discovery_map_desc">Kartenausschnitt der Flugstrecke %1$s – %2$s</string>
 
-    <!-- Import page -->
+    <!-- Rubbelkarte -->
+    <string name="rubbelkarte_subtitle">%1$d Länder · %2$d Kontinente · %3$d Flughäfen</string>
+    <string name="rubbelkarte_subtitle_empty">Noch keine Flüge vorhanden</string>
+    <string name="rubbelkarte_map_desc">Weltkarte mit %1$d besuchten Ländern</string>
+    <string name="rubbelkarte_empty">Sobald du einen Flug einträgst, färbt sich die Rubbelkarte.</string>
+    <string name="rubbelkarte_error">Länderumrisse konnten nicht geladen werden. Bitte die App neu installieren.</string>
+    <string name="rubbelkarte_countries">Länder von Hand abhaken</string>
+    <string name="rubbelkarte_continent_count">%1$d/%2$d</string>
+    <string name="rubbelkarte_continent_desc">%1$s: %2$d von %3$d Ländern besucht, %4$d Prozent</string>
+
+    <!-- Länderliste der Rubbelkarte -->
+    <string name="countries_title">Länder</string>
+    <string name="countries_subtitle">%1$d von %2$d Ländern abgehakt</string>
+    <string name="countries_flight">Angeflogen</string>
+    <string name="countries_error">Länder konnten nicht geladen werden. Bitte die App neu installieren.</string>
+<!-- Import page -->
     <string name="import_page_title">Import</string>
     <string name="import_step1_title">Schritt 1 · Importart wählen</string>
     <string name="import_mode_explain">Legt fest, was mit deinen bereits gespeicherten Einträgen passiert:</string>

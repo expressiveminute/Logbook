@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Kachel der Kontinentzeile im Querformat. Überschrift, Karte und
+         Kachelzeile müssen sich auf wenige dp Höhe teilen, darum ist die
+         Kachel hier kleiner. -->
+    <dimen name="continent_tile_size">96dp</dimen>
+    <dimen name="continent_tile_padding">6dp</dimen>
+    <dimen name="continent_tile_name">11sp</dimen>
+    <dimen name="continent_tile_count">12sp</dimen>
+    <dimen name="continent_tile_ring_text">12sp</dimen>
+    <dimen name="continent_row_padding_bottom">6dp</dimen>
+</resources>

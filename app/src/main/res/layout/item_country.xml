@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/item_country_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true"
+    android:gravity="center_vertical"
+    android:minHeight="56dp"
+    android:orientation="horizontal"
+    android:paddingHorizontal="20dp"
+    android:paddingVertical="4dp">
+
+    <TextView
+        android:id="@+id/tv_country_flag"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:importantForAccessibility="no"
+        android:textSize="22sp"
+        tools:text="🇩🇪" />
+
+    <TextView
+        android:id="@+id/tv_country_name"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+        tools:text="Deutschland" />
+
+    <ImageView
+        android:id="@+id/iv_country_flight"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_marginStart="8dp"
+        android:contentDescription="@string/countries_flight"
+        android:src="@drawable/ic_flight"
+        android:visibility="gone"
+        app:tint="?attr/colorPrimary"
+        tools:visibility="visible" />
+
+    <com.google.android.material.checkbox.MaterialCheckBox
+        android:id="@+id/cb_country"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="4dp"
+        android:minWidth="48dp"
+        android:minHeight="48dp" />
+</LinearLayout>

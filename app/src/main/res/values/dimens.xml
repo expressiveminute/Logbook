@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Eine Kontinent-Kachel der Rubbelkarte. Liegt das Gerät quer, ist der
+         Platz in der Höhe knapp: Kartenfläche und Kachelzeile teilen sich dann
+         eine kleine Resthöhe. values-land verkleinert deshalb die Kachel, damit
+         beides sichtbar bleibt. -->
+    <dimen name="continent_tile_size">120dp</dimen>
+    <dimen name="continent_tile_padding">10dp</dimen>
+    <dimen name="continent_tile_name">12sp</dimen>
+    <dimen name="continent_tile_count">14sp</dimen>
+    <dimen name="continent_tile_ring_text">16sp</dimen>
+    <dimen name="continent_row_padding_bottom">16dp</dimen>
+</resources>

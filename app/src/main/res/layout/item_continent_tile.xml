@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Eine Kontinent-Kachel der Rubbelkarte: Name, Ring mit dem Anteil der
+     besuchten Länder und darunter die absolute Zahl. -->
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="@dimen/continent_tile_size"
+    android:layout_height="@dimen/continent_tile_size"
+    android:layout_marginEnd="10dp"
+    app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="0dp"
+    app:strokeColor="?attr/colorOutlineVariant"
+    app:strokeWidth="1dp">
+
+    <!-- Der Ring füllt den Rest, deshalb hängt die Kachel an der Breite und
+         bleibt quadrätisch. -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="@dimen/continent_tile_padding">
+
+        <TextView
+            android:id="@+id/tv_continent_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:gravity="center_horizontal"
+            android:maxLines="1"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="@dimen/continent_tile_name"
+            android:textStyle="bold"
+            tools:text="Nordamerika" />
+
+        <com.highfly.logbook.ContinentProgressView
+            android:id="@+id/v_continent_progress"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="6dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/tv_continent_count"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:gravity="center_horizontal"
+            android:maxLines="1"
+            android:textColor="?attr/colorOnPrimaryContainer"
+            android:textSize="@dimen/continent_tile_count"
+            android:textStyle="bold"
+            tools:text="10/40" />
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>
