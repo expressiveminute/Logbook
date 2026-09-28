@@ -28,7 +28,6 @@
     <string name="tile_earth_orbits">Earth orbits</string>
     <string name="tile_moon">To the moon</string>
     <string name="tile_reisebuddy">Travel buddy</string>
-    <string name="reisebuddy_placeholder">Travel buddy — coming soon</string>
     <string name="tile_co2">CO₂ balance</string>
     <string name="co2_tonnes_unit">Tonnes</string>
     <string name="co2_emissions_label">CO₂ emissions</string>
@@ -95,15 +94,19 @@
     <string name="profile_avatar_own_photo">Own photo</string>
     <string name="profile_avatar_current">Selected: %1$s</string>
     <string name="profile_name_hint">Name</string>
-    <string name="profile_airline_label">Airline:</string>
+    <string name="profile_name_edit">Edit name</string>
+    <string name="profile_airline_label">Airline</string>
     <string name="profile_airline_hint">LH</string>
-    <string name="profile_preferred_class_label">Preferred working position travel class</string>
+    <string name="profile_preferred_class_label">Preferred working position</string>
     <string name="settings_section_themes">Themes</string>
     <string name="settings_section_customization">Customization</string>
     <string name="settings_expand">Expand section</string>
     <string name="settings_open">Open settings</string>
-    <string name="settings_dark_mode">Dark Mode</string>
-    <string name="settings_light_mode">Light Mode</string>
+    <string name="settings_role">Role</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_dark_mode">Dark</string>
+    <string name="settings_light_mode">Light</string>
+    <string name="settings_system_mode">System</string>
     <string name="settings_accent_color">Accent Color</string>
     <string name="settings_accent_brown">Brown</string>
     <string name="settings_accent_magenta">Magenta</string>
@@ -119,6 +122,8 @@
     <string name="settings_section_data">Data</string>
     <string name="data_export">Export</string>
     <string name="data_import">Import</string>
+    <string name="data_export_label">Export data</string>
+    <string name="data_import_label">Import data</string>
     <string name="export_title">Export data?</string>
     <string name="export_message">Do you want to export the data stored in the app as a CSV file?</string>
     <string name="export_confirm">Export</string>
@@ -133,6 +138,7 @@
     <string name="settings_section_development">Development</string>
     <string name="development_crash_log">Send crash log</string>
     <string name="development_crash_log_subtitle">Create a log file to send to the AI</string>
+    <string name="development_crash_log_action">Create log</string>
     <string name="crash_log_title">Create crash log?</string>
     <string name="crash_log_message">All errors and crashes that occurred in this app are exported as a log file. You can then hand the file to the AI.</string>
     <string name="crash_log_confirm">Create</string>
@@ -174,6 +180,7 @@
     <string name="flight_type_ground_transfer">Ground Transfer</string>
     <string name="class_economy">Economy</string>
     <string name="class_premium_economy">Premium Eco</string>
+    <string name="class_premium_economy_short">Premium</string>
     <string name="class_business">Business</string>
     <string name="class_first">First</string>
     <string name="class_jump">Jump</string>
@@ -204,6 +211,8 @@
     <string name="crew_function_purser_ii">Purser II</string>
     <string name="crew_function_purser_i">Purser I</string>
     <string name="crew_function_flight_attendant">Flight Attendant</string>
+    <string name="travel_buddy_label">Travel buddy</string>
+    <string name="travel_buddy_hint">Names, separated by comma</string>
     <string name="comment_label">Comment</string>
     <string name="comment_hint">Comment …</string>
     <string name="airport_departure_icon_desc">Departure</string>
@@ -285,12 +294,18 @@
     <string name="rubbelkarte_countries">Tick countries by hand</string>
     <string name="rubbelkarte_continent_count">%1$d/%2$d</string>
     <string name="rubbelkarte_continent_desc">%1$s: %2$d of %3$d countries visited, %4$d percent</string>
+    <string name="rubbelkarte_progress_label">%1$d of %2$d countries visited</string>
 
     <!-- Country list of the scratch map -->
     <string name="countries_title">Countries</string>
     <string name="countries_subtitle">%1$d of %2$d countries ticked</string>
     <string name="countries_flight">Flown to</string>
     <string name="countries_error">Countries could not be loaded. Please reinstall the app.</string>
+
+    <!-- Travel buddies: the evaluation behind the dashboard tile -->
+    <string name="travel_buddies_title">Travel buddies</string>
+    <string name="travel_buddies_subtitle">%1$d travel buddies on %2$d flights</string>
+    <string name="travel_buddies_empty">No travel buddy entered for any flight. The name goes under \"Optional\" when adding a flight.</string>
 <!-- Import page -->
     <string name="import_page_title">Import</string>
     <string name="import_step1_title">Step 1 · Choose import mode</string>

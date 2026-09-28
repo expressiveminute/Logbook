@@ -1209,6 +1209,56 @@
                 </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
 
+            <LinearLayout
+                android:id="@+id/travel_buddy_section"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:orientation="vertical">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/tile_travel_buddy"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    app:contentPaddingStart="16dp"
+                    app:contentPaddingEnd="14dp"
+                    app:contentPaddingTop="10dp"
+                    app:contentPaddingBottom="8dp"
+                    app:strokeWidth="1dp"
+                    app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:paddingStart="20dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/travel_buddy_label"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                            android:textColor="?attr/colorOnSurfaceVariant"
+                            android:textStyle="bold" />
+
+                        <EditText
+                            android:id="@+id/et_travel_buddy"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="@null"
+                            android:gravity="top"
+                            android:hint="@string/travel_buddy_hint"
+                            android:inputType="textCapWords|textMultiLine"
+                            android:minLines="1"
+                            android:maxLines="3"
+                            android:textSize="17sp"
+                            android:textColor="?attr/colorOnSurface" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

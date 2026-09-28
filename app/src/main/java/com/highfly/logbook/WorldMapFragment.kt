@@ -30,8 +30,29 @@ import kotlin.math.ln
 
 class WorldMapFragment : Fragment() {
 
-    private companion object {
-        const val TAG = "WorldMapFragment"
+    companion object {
+        private const val TAG = "WorldMapFragment"
+
+        /** Obergrenze der Kartenstufe, siehe [configureMap]. */
+        const val MAX_ZOOM = 10.0
+
+        /** Zoomstufen über der Standardansicht, mit denen die Karte aufgeht. */
+        const val START_ZOOM_STEPS = 2.0
+
+        /**
+         * Ab hier stehen die Hauptstädte auf der Karte, ab [GROESSTE_STADT_ZOOM]
+         * die jeweils grösste Stadt. Alles darunter bleibt weg.
+         */
+        const val HAUPTSTADT_ZOOM = 2.8
+        const val GROESSTE_STADT_ZOOM = 4.0
+
+        /**
+         * Stufe, mit der die Karte aufgeht: [START_ZOOM_STEPS] Stufen näher
+         * ran als die Standardansicht, aber nie über [MAX_ZOOM] hinaus.
+         */
+        @JvmStatic
+        fun startZoom(standardZoom: Double): Double =
+            (standardZoom + START_ZOOM_STEPS).coerceAtMost(MAX_ZOOM)
     }
 
     private var _binding: FragmentWorldMapBinding? = null
@@ -186,7 +207,7 @@ class WorldMapFragment : Fragment() {
             org.osmdroid.util.BoundingBox(85.05, 180.0, -85.05, -180.0)
         )
         mv.minZoomLevel = 1.0
-        mv.maxZoomLevel = 10.0
+        mv.maxZoomLevel = MAX_ZOOM
         mv.controller.setZoom(2.0)
         mv.controller.setCenter(GeoPoint(25.0, 0.0))
 
@@ -629,16 +650,18 @@ class WorldMapFragment : Fragment() {
 
     private fun standardZoom(mv: MapView): Double {
         val width = if (mv.width > 0) mv.width else resources.displayMetrics.widthPixels
-        return (ln(width.toDouble() / 256.0) / ln(2.0)).coerceIn(1.0, 10.0)
+        return (ln(width.toDouble() / 256.0) / ln(2.0)).coerceIn(1.0, MAX_ZOOM)
     }
 
     /**
-     * Sets the view the map opens with: one zoom step in from the standard
-     * world view (as if the plus button was tapped once) with Europe centered.
+     * Sets the view the map opens with: a few zoom steps in from the standard
+     * world view, with Europe centered. Far enough in that country names and
+     * capitals are already legible - the whole world in one screen is a
+     * preview, not a map to read.
      */
     private fun applyStartView(mv: MapView) {
         mv.minZoomLevel = standardZoom(mv)
-        mv.controller.setZoom((standardZoom(mv) + 1.0).coerceAtMost(10.0))
+        mv.controller.setZoom(startZoom(standardZoom(mv)))
         mv.controller.setCenter(GeoPoint(48.0, 12.0))
     }
 
@@ -705,11 +728,16 @@ class WorldMapFragment : Fragment() {
             // City dots only appear together with the city name, so that
             // zoomed-out views do not get cluttered with plain dots.
             cities.forEach { city ->
-                val minLabelZoom = if (city.isCapital) 3.5 else when (city.rank) {
-                    0 -> 4.5
-                    1 -> 5.5
-                    2 -> 6.0
-                    else -> 7.0
+                // Nur Hauptstaedte und die groessten Staedte. Darunter stehen
+                // in [MapCities] ueber 2900 Orte, die zusammen eine Wolke
+                // ergeben, aus der sich nichts mehr herausliest - die
+                // Einzelergebnisse stehen ohnehin in [CityPopupSheet].
+                val minLabelZoom = if (city.isCapital) {
+                    HAUPTSTADT_ZOOM
+                } else if (city.rank == 0) {
+                    GROESSTE_STADT_ZOOM
+                } else {
+                    return@forEach
                 }
                 if (zoom < minLabelZoom) return@forEach
 
@@ -736,13 +764,7 @@ class WorldMapFragment : Fragment() {
                     screenHeight = mapView.height.toFloat()
                 ) ?: return@forEach
 
-                val radius = when {
-                    city.isCapital -> 2.4f
-                    city.rank == 0 -> 2.5f
-                    city.rank == 1 -> 2.2f
-                    city.rank == 2 -> 2.0f
-                    else -> 1.7f
-                } * density
+                val radius = (if (city.isCapital) 2.4f else 2.5f) * density
                 canvas.drawCircle(sx, sy, radius, dot)
                 label.isUnderlineText = city.isCapital
                 canvas.drawText(displayName, placed[0], placed[1], label)

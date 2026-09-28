@@ -2,7 +2,9 @@ package com.highfly.logbook
 
 import android.content.Context
 import android.content.SharedPreferences
+import java.lang.ref.WeakReference
 import java.time.LocalDate
+import java.util.concurrent.CopyOnWriteArrayList
 
 object Settings {
 
@@ -15,6 +17,13 @@ object Settings {
     const val ACCENT_BROWN = "brown"
     const val ACCENT_MAGENTA = "magenta"
     const val ACCENT_TURQUOISE = "turquoise"
+
+    const val THEME_MODE_SYSTEM = "system"
+    const val THEME_MODE_LIGHT = "light"
+    const val THEME_MODE_DARK = "dark"
+
+    val THEME_MODE_OPTIONS =
+        listOf(THEME_MODE_SYSTEM, THEME_MODE_LIGHT, THEME_MODE_DARK)
 
     val ACCENT_OPTIONS = listOf(ACCENT_BROWN, ACCENT_MAGENTA, ACCENT_TURQUOISE)
 
@@ -41,7 +50,8 @@ object Settings {
     const val WORLD_MAP_PORTRAIT = "portrait"
 
     private const val PREF_NAME = "logbook_settings"
-    private const val KEY_DARK_MODE = "dark_mode"
+    private const val KEY_THEME_MODE = "theme_mode"
+    private const val KEY_LEGACY_DARK_MODE = "dark_mode"
     private const val KEY_DEFAULT_PERIOD = "default_period"
     private const val KEY_DEFAULT_TIME_UNIT = "default_time_unit"
     private const val KEY_ACCENT = "accent_color"
@@ -62,12 +72,32 @@ object Settings {
     private fun prefs(context: Context): SharedPreferences =
         context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
 
-    fun isDarkMode(context: Context): Boolean =
-        prefs(context).getBoolean(KEY_DARK_MODE, true)
-
-    fun setDarkMode(context: Context, value: Boolean) {
-        prefs(context).edit().putBoolean(KEY_DARK_MODE, value).apply()
+    /**
+     * Erscheinungsbild der App. [THEME_MODE_SYSTEM] übernimmt die Einstellung,
+     * die auf dem Handy gespeichert ist.
+     *
+     * Früher stand hier nur ein Ja/Nein-Wert im Schlüssel "dark_mode". Ist er
+     * noch gesetzt, weil die Wahl vor dem Umstauf getroffen wurde, gilt er
+     * weiter - so behält eine installierte App ihr Aussehen. Fehlt er, folgt
+     * eine frische Installation dem Handy.
+     */
+    fun getThemeMode(context: Context): String {
+        val prefs = prefs(context)
+        return when {
+            prefs.contains(KEY_THEME_MODE) -> normalizeThemeMode(prefs.getString(KEY_THEME_MODE, null))
+            prefs.contains(KEY_LEGACY_DARK_MODE) ->
+                if (prefs.getBoolean(KEY_LEGACY_DARK_MODE, true)) THEME_MODE_DARK else THEME_MODE_LIGHT
+            else -> THEME_MODE_SYSTEM
+        }
     }
+
+    fun setThemeMode(context: Context, value: String) {
+        require(value in THEME_MODE_OPTIONS)
+        prefs(context).edit().putString(KEY_THEME_MODE, value).apply()
+    }
+
+    private fun normalizeThemeMode(value: String?): String =
+        THEME_MODE_OPTIONS.firstOrNull { it == value } ?: THEME_MODE_SYSTEM
 
     fun getDefaultPeriodKey(context: Context): String =
         prefs(context).getString(KEY_DEFAULT_PERIOD, "all") ?: "all"
@@ -256,5 +286,41 @@ object Settings {
             .filter { it.length == 2 && it.all { c -> c in 'A'..'Z' } }
             .toSet()
         prefs(context).edit().putStringSet(KEY_MANUAL_COUNTRIES, codes).apply()
+        notifyManualCountriesChanged()
+    }
+
+    /**
+     * Meldet, dass sich die selbst abgehakten Länder geändert haben.
+     *
+     * Die Rubbelkarte und ihre Länderlisten zeigen alle dieselbe Liste an, und
+     * sie können gleichzeitig offen sein: die Länderliste eines Kontinents und
+     * die mit allen Ländern liegen beide auf dem Stapel. Damit ein Tipp in der
+     * einen sofort in der anderen sichtbar wird, hängen sich beide an diese
+     * Meldung, statt nur beim Wiedererscheinen neu zu laden.
+     *
+     * Die Zuhörer stehen in einer [WeakReference]-Liste: Eine Seite, die sich
+     * abgemeldet hat, darf nicht am Leben bleiben.
+     */
+    private val manualCountriesListeners =
+        CopyOnWriteArrayList<WeakReference<() -> Unit>>()
+
+    /**
+     * Meldet Änderungen der Länderliste an [listener], bis [removeListener]
+     * aufgerufen wird. Wird von einer Seite im [androidx.fragment.app.Fragment.onStart]
+     * angemeldet und im `onStop` wieder abgemeldet.
+     */
+    fun addManualCountriesListener(listener: () -> Unit) {
+        manualCountriesListeners.removeAll { it.get() == null }
+        manualCountriesListeners.add(WeakReference(listener))
+    }
+
+    fun removeManualCountriesListener(listener: () -> Unit) {
+        manualCountriesListeners.removeAll { it.get() == null || it.get() === listener }
+    }
+
+    private fun notifyManualCountriesChanged() {
+        for (reference in manualCountriesListeners) {
+            reference.get()?.invoke()
+        }
     }
 }

@@ -75,15 +75,19 @@ class EntriesFragment : Fragment(), ImeVisibilityAware {
     }
 
     /**
-     * Oeffnet sich die Tastatur, schrumpft der Bereich der Liste und der
-     * letzte Eintrag wird mittig abgeschnitten. Das sieht wie ein leeres
-     * Eingabefeld aus, also schieben wir die Liste so weit, dass die
-     * Unterkante genau an einer Kartengrenze liegt. doOnPreDraw statt post(),
-     * weil die Liste erst im nachfolgenden Layout ihre neue Hoehe bekommt.
+     * Oeffnet sich die Tastatur, verschwindet die Navigationsleiste und der
+     * Bereich der Liste wird kleiner. Der letzte Eintrag wird dabei mittig
+     * abgeschnitten. Das sieht wie ein leeres Eingabefeld aus, also schieben
+     * wir die Liste so weit, dass die Unterkante genau an einer Kartengrenze
+     * liegt. doOnPreDraw statt post(), weil die Liste erst im nachfolgenden
+     * Layout ihre neue Hoehe bekommt.
      */
     override fun onImeVisibilityChanged(visible: Boolean) {
         if (!visible) return
-        binding.entriesList.doOnPreDraw { alignListBottomToItemGap() }
+        // Die Tastaturanimation kann noch laufen, wenn die Seite schon gewechselt
+        // ist - dann gibt es keine Ansicht mehr, die geschoben werden könnte.
+        val list = _binding?.entriesList ?: return
+        list.doOnPreDraw { alignListBottomToItemGap() }
     }
 
     private fun alignListBottomToItemGap() {

@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Eine Kontinent-Kachel der Rubbelkarte: Name, Ring mit dem Anteil der
-     besuchten Länder und darunter die absolute Zahl. -->
+     besuchten Länder und darunter die absolute Zahl. Ein Tipp öffnet die
+     Länderliste dieses Kontinents, deshalb ist die Kachel selbst klickbar und
+     nicht nur ihre Beschriftung. -->
 <com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -8,6 +10,8 @@
     android:layout_width="@dimen/continent_tile_size"
     android:layout_height="@dimen/continent_tile_size"
     android:layout_marginEnd="10dp"
+    android:clickable="true"
+    android:focusable="true"
     app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
     app:cardCornerRadius="16dp"
     app:cardElevation="0dp"

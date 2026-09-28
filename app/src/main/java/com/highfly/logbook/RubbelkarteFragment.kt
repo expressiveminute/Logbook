@@ -6,10 +6,12 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
+import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.highfly.logbook.databinding.FragmentRubbelkarteBinding
 import com.highfly.logbook.databinding.ItemContinentTileBinding
+import java.text.NumberFormat
 
 /**
  * Rubbelkarte: Weltkugel mit allen Ländern, in die der Nutzer bereits geflogen
@@ -19,11 +21,16 @@ import com.highfly.logbook.databinding.ItemContinentTileBinding
  * Der Stift oben rechts öffnet die Länderliste, auf der sich Länder von Hand
  * abhaken lassen. Diese gehören genauso zur Karte wie die angeflogenen.
  *
+ * Über der Kugel steht ein Balken mit dem Gesamtstand: Wie viele Länder der
+ * Welt besucht sind, als Anteil von allen.
+ *
  * Unter der Karte steht eine Zeile Kontinent-Kacheln. Sie zeigt je Kontinent,
  * wie viele Länder besucht sind und wie viele es dort gibt - auch ohne jeden
  * Flug, denn die noch fehlenden Länder sind genauso interessant wie die
  * besuchten. Sie passen nicht alle nebeneinander und werden deshalb von
- * rechts nach links durchgestrichen.
+ * rechts nach links durchgestrichen. Ein Tipp auf eine Kachel öffnet die
+ * Länderliste dieses Kontinents, damit sich die fehlenden Länder dort abhaken
+ * lassen.
  *
  * Bewusst ohne Zurück-Button: Die Seite ist ein Tab der Navigationsleiste und
  * wird über den Tab oder die System-Zurück-Taste verlassen.
@@ -96,14 +103,15 @@ class RubbelkarteFragment : Fragment() {
             val shapes = CountryShapes.load(appContext)
             // Die Kacheln brauchen dieselbe Länderliste wie die Karte, sonst
             // wäre die Summe ihrer Nenner eine andere als die Zahl der Länder
-            // auf der Länderliste.
+            // auf der Länderliste. Dasselbe gilt für den Balken darüber.
             val tiles = shapes?.let { ContinentStats.build(it, marked.countries) }
+            val world = shapes?.let { WorldProgress.build(it, marked.countries) }
             view?.post {
                 if (generation != loadGeneration || _binding == null) return@post
-                if (tiles == null) {
+                if (tiles == null || world == null) {
                     renderUnavailable()
                 } else {
-                    render(marked, tiles)
+                    render(marked, tiles, world)
                 }
             }
         }.start()
@@ -115,13 +123,15 @@ class RubbelkarteFragment : Fragment() {
         binding.tvRubbelkarteEmpty.setText(R.string.rubbelkarte_error)
         binding.tvRubbelkarteEmpty.visibility = View.VISIBLE
         binding.rubbelkarte.visibility = View.GONE
-        // Ohne Länderliste gäbe es keine Nenner für die Kacheln.
+        // Ohne Länderliste gäbe es keine Nenner für Balken und Kacheln.
+        binding.rubbelkarteProgressRow.visibility = View.GONE
         binding.continentScroll.visibility = View.GONE
     }
 
     private fun render(
         summary: RubbelkarteStats.Summary,
-        tiles: List<ContinentStats.Progress>
+        tiles: List<ContinentStats.Progress>,
+        world: WorldProgress.Progress
     ) {
         binding.tvRubbelkarteSubtitle.text = if (summary.isEmpty) {
             getString(R.string.rubbelkarte_subtitle_empty)
@@ -147,9 +157,37 @@ class RubbelkarteFragment : Fragment() {
         binding.tvRubbelkarteEmpty.setText(R.string.rubbelkarte_empty)
         binding.tvRubbelkarteEmpty.visibility = if (hasFlights) View.GONE else View.VISIBLE
 
+        binding.rubbelkarteProgressRow.visibility = View.VISIBLE
+        bindWorldProgress(world)
         binding.continentScroll.visibility = View.VISIBLE
         bindTiles(tiles)
     }
+
+    /**
+     * Der Balken über der Kugel: der Anteil der besuchten Länder an allen, mit
+     * der absoluten Zahl links und der Prozentzahl rechts. Beide Zahlen
+     * stehen im Klartext in der Oberfläche, sie hängen deshalb nicht am
+     * Balken - Screenreader lesen die beiden Felder ohnehin der Reihe nach.
+     */
+    private fun bindWorldProgress(progress: WorldProgress.Progress) {
+        binding.tvRubbelkarteProgressLabel.text = getString(
+            R.string.rubbelkarte_progress_label, progress.visited, progress.total
+        )
+        binding.tvRubbelkarteProgressPercent.text = formatPercent(progress.fraction)
+        binding.progressRubbelkarteWorld.setProgressCompat(
+            (progress.fraction * PERCENT_MAX).toInt(), true
+        )
+    }
+
+    /**
+     * Prozentzahl in der Sprache der App: deutsch mit Leerzeichen vor dem
+     * Prozentzeichen, englisch ohne. Ohne Nachkommastellen, sonst stünde bei
+     * einem Land von zweihundertfünfzig "0,4 %" neben dem Balken.
+     */
+    private fun formatPercent(fraction: Float): String =
+        NumberFormat.getPercentInstance(resources.configuration.locales[0]).apply {
+            maximumFractionDigits = 0
+        }.format(fraction)
 
     /**
      * Füllt die Kachelzeile. Es sind höchstens sieben Kacheln, dafür genügt
@@ -184,6 +222,11 @@ class RubbelkarteFragment : Fragment() {
      * Eine Kachel: Name des Kontinents, Ring mit dem Anteil und darunter die
      * absolute Zahl. Der [View.setContentDescription] ersetzt die drei Texte
      * für Screenreader, die hochkant nebeneinander sonst unlesbar vorkämen.
+     *
+     * Ein Tipp auf die Kachel öffnet die Länderliste dieses Kontinents - dieselbe
+     * Seite wie hinter dem Stift, nur auf diesen Kontinent beschränkt. Der
+     * Klick hängt am Kachel-View und nicht an den Texten darin, weil die Kachel
+     * die auswechselbare Hülle ist und [bindTiles] sie weiterverwendet.
      */
     private fun bindTile(view: View, item: ContinentStats.Progress) {
         val name = getString(Continents.nameRes(item.continent))
@@ -199,10 +242,23 @@ class RubbelkarteFragment : Fragment() {
             item.total,
             item.percent
         )
+        view.setOnClickListener { openContinent(item.continent) }
+    }
+
+    private fun openContinent(continent: String) {
+        findNavController().navigate(
+            R.id.action_rubbelkarte_to_countries,
+            bundleOf(CountriesFragment.ARG_CONTINENT to continent)
+        )
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    private companion object {
+        /** [com.google.android.material.progressindicator.BaseProgressIndicator] zählt auf 100. */
+        const val PERCENT_MAX = 100
     }
 }

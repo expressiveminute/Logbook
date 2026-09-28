@@ -34,6 +34,7 @@ class LogbookDatabase(context: Context, name: String = DATABASE_NAME) :
                 $COL_FROM_COUNTRY TEXT,
                 $COL_TO_COUNTRY TEXT,
                 $COL_FUNCTION TEXT,
+                $COL_TRAVEL_BUDDY TEXT,
                 $COL_COMMENT TEXT
             )
             """.trimIndent()
@@ -54,6 +55,9 @@ class LogbookDatabase(context: Context, name: String = DATABASE_NAME) :
         }
         if (oldVersion < 5) {
             db.execSQL("ALTER TABLE $TABLE_ENTRIES ADD COLUMN $COL_FUNCTION TEXT")
+        }
+        if (oldVersion < 6) {
+            db.execSQL("ALTER TABLE $TABLE_ENTRIES ADD COLUMN $COL_TRAVEL_BUDDY TEXT")
         }
     }
 
@@ -90,11 +94,13 @@ class LogbookDatabase(context: Context, name: String = DATABASE_NAME) :
             val toCountryIdx = cursor.getColumnIndexOrThrow(COL_TO_COUNTRY)
             val commentIdx = cursor.getColumnIndexOrThrow(COL_COMMENT)
             val functionIdx = cursor.getColumnIndexOrThrow(COL_FUNCTION)
+            val travelBuddyIdx = cursor.getColumnIndexOrThrow(COL_TRAVEL_BUDDY)
             return cursor.toEntry(
                 idIdx, dateIdx, flightTypeIdx, classTypeIdx,
                 fromIdx, toIdx, airlineIdx, flightNumberIdx,
                 aircraftTypeIdx, registrationIdx, distanceIdx, minutesIdx,
-                layoverIdx, commentIdx, fromCountryIdx, toCountryIdx, functionIdx
+                layoverIdx, commentIdx, fromCountryIdx, toCountryIdx, functionIdx,
+                travelBuddyIdx
             )
         }
     }
@@ -154,13 +160,15 @@ class LogbookDatabase(context: Context, name: String = DATABASE_NAME) :
             val toCountryIdx = cursor.getColumnIndexOrThrow(COL_TO_COUNTRY)
             val commentIdx = cursor.getColumnIndexOrThrow(COL_COMMENT)
             val functionIdx = cursor.getColumnIndexOrThrow(COL_FUNCTION)
+            val travelBuddyIdx = cursor.getColumnIndexOrThrow(COL_TRAVEL_BUDDY)
 
             while (cursor.moveToNext()) {
                 val entry = cursor.toEntry(
                     idIdx, dateIdx, flightTypeIdx, classTypeIdx,
                     fromIdx, toIdx, airlineIdx, flightNumberIdx,
                     aircraftTypeIdx, registrationIdx, distanceIdx, minutesIdx,
-                    layoverIdx, commentIdx, fromCountryIdx, toCountryIdx, functionIdx
+                    layoverIdx, commentIdx, fromCountryIdx, toCountryIdx, functionIdx,
+                    travelBuddyIdx
                 )
                 if (entry != null) entries += entry
             }
@@ -185,7 +193,8 @@ class LogbookDatabase(context: Context, name: String = DATABASE_NAME) :
         commentIdx: Int,
         fromCountryIdx: Int,
         toCountryIdx: Int,
-        functionIdx: Int
+        functionIdx: Int,
+        travelBuddyIdx: Int
     ): LogbookEntry? {
         val date = try {
             LocalDate.parse(getString(dateIdx))
@@ -209,6 +218,7 @@ class LogbookDatabase(context: Context, name: String = DATABASE_NAME) :
             fromCountry = if (isNull(fromCountryIdx)) null else getString(fromCountryIdx),
             toCountry = if (isNull(toCountryIdx)) null else getString(toCountryIdx),
             function = if (isNull(functionIdx)) null else getString(functionIdx),
+            travelBuddy = if (isNull(travelBuddyIdx)) null else getString(travelBuddyIdx),
             comment = if (isNull(commentIdx)) null else getString(commentIdx)
         )
     }
@@ -235,12 +245,13 @@ class LogbookDatabase(context: Context, name: String = DATABASE_NAME) :
         put(COL_FROM_COUNTRY, entry.fromCountry)
         put(COL_TO_COUNTRY, entry.toCountry)
         put(COL_FUNCTION, entry.function)
+        put(COL_TRAVEL_BUDDY, entry.travelBuddy)
         put(COL_COMMENT, entry.comment)
     }
 
     companion object {
         const val DATABASE_NAME = "logbook.db"
-        const val DATABASE_VERSION = 5
+        const val DATABASE_VERSION = 6
 
         const val TABLE_ENTRIES = "entries"
         const val COL_ID = "_id"
@@ -259,6 +270,7 @@ class LogbookDatabase(context: Context, name: String = DATABASE_NAME) :
         const val COL_FROM_COUNTRY = "from_country"
         const val COL_TO_COUNTRY = "to_country"
         const val COL_FUNCTION = "function"
+        const val COL_TRAVEL_BUDDY = "travel_buddy"
         const val COL_COMMENT = "comment"
     }
 }

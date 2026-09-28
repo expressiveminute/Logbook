@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Eine Zeile der Reisebuddy-Liste: Name links, Balken für den Anteil an
+     den Flügen mit Buddy, absolute Zahl rechts. Der Balken ist die schnelle
+     Erfassung beim Überfliegen, die Zahl die genaue. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:minHeight="56dp"
+    android:orientation="horizontal"
+    android:paddingHorizontal="20dp"
+    android:paddingVertical="6dp">
+
+    <TextView
+        android:id="@+id/tv_travel_buddy_name"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+        tools:text="Anna Beispiel" />
+
+    <com.google.android.material.progressindicator.LinearProgressIndicator
+        android:id="@+id/progress_travel_buddy"
+        android:layout_width="72dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        app:trackCornerRadius="3dp"
+        app:trackThickness="6dp" />
+
+    <TextView
+        android:id="@+id/tv_travel_buddy_count"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:minWidth="24dp"
+        android:gravity="end"
+        android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        tools:text="7" />
+</LinearLayout>

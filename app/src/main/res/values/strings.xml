@@ -28,7 +28,6 @@
     <string name="tile_earth_orbits">Erdumrundungen</string>
     <string name="tile_moon">Zum Mond</string>
     <string name="tile_reisebuddy">Reisebuddy</string>
-    <string name="reisebuddy_placeholder">Reisebuddy — folgt in Kürze</string>
     <string name="tile_co2">CO₂-Bilanz</string>
     <string name="co2_tonnes_unit">Tonnen</string>
     <string name="co2_emissions_label">CO₂-Emissionen</string>
@@ -95,15 +94,19 @@
     <string name="profile_avatar_own_photo">Eigenes Foto</string>
     <string name="profile_avatar_current">Ausgewählt: %1$s</string>
     <string name="profile_name_hint">Name</string>
-    <string name="profile_airline_label">Fluggesellschaft:</string>
+    <string name="profile_name_edit">Name bearbeiten</string>
+    <string name="profile_airline_label">Fluggesellschaft</string>
     <string name="profile_airline_hint">LH</string>
-    <string name="profile_preferred_class_label">Bevorzugte Arbeitsposition Reiseklasse</string>
+    <string name="profile_preferred_class_label">Bevorzugte Arbeitsposition</string>
     <string name="settings_section_themes">Themes</string>
     <string name="settings_section_customization">Customization</string>
     <string name="settings_expand">Abschnitt ausklappen</string>
     <string name="settings_open">Einstellungen öffnen</string>
-    <string name="settings_dark_mode">Dunkelmodus</string>
-    <string name="settings_light_mode">Hellmodus</string>
+    <string name="settings_role">Rolle</string>
+    <string name="settings_appearance">Erscheinungsbild</string>
+    <string name="settings_dark_mode">Dunkel</string>
+    <string name="settings_light_mode">Hell</string>
+    <string name="settings_system_mode">System</string>
     <string name="settings_accent_color">Akzentfarbe</string>
     <string name="settings_accent_brown">Braun</string>
     <string name="settings_accent_magenta">Magenta</string>
@@ -119,6 +122,8 @@
     <string name="settings_section_data">Daten</string>
     <string name="data_export">Export</string>
     <string name="data_import">Import</string>
+    <string name="data_export_label">Daten exportieren</string>
+    <string name="data_import_label">Daten importieren</string>
     <string name="export_title">Daten exportieren?</string>
     <string name="export_message">Möchtest du die in der App gespeicherten Daten als CSV-Datei exportieren?</string>
     <string name="export_confirm">Exportieren</string>
@@ -133,6 +138,7 @@
     <string name="settings_section_development">Entwicklung</string>
     <string name="development_crash_log">Crash-Log senden</string>
     <string name="development_crash_log_subtitle">Protokoll erstellen und an die KI schicken</string>
+    <string name="development_crash_log_action">Log erstellen</string>
     <string name="crash_log_title">Crash-Log erstellen?</string>
     <string name="crash_log_message">Alle in dieser App aufgetretenen Fehler und Abstürze werden als Protokolldatei exportiert. Die Datei kannst du dann an die KI weitergeben.</string>
     <string name="crash_log_confirm">Erstellen</string>
@@ -174,6 +180,7 @@
     <string name="flight_type_ground_transfer">Ground Transfer</string>
     <string name="class_economy">Economy</string>
     <string name="class_premium_economy">Premium Eco</string>
+    <string name="class_premium_economy_short">Premium</string>
     <string name="class_business">Business</string>
     <string name="class_first">First</string>
     <string name="class_jump">Jump</string>
@@ -204,6 +211,8 @@
     <string name="crew_function_purser_ii">Purser II</string>
     <string name="crew_function_purser_i">Purser I</string>
     <string name="crew_function_flight_attendant">Flugbegleiter</string>
+    <string name="travel_buddy_label">Reisebuddy</string>
+    <string name="travel_buddy_hint">Namen, durch Komma getrennt</string>
     <string name="comment_label">Kommentar</string>
     <string name="comment_hint">Kommentar …</string>
     <string name="airport_departure_icon_desc">Abflug</string>
@@ -285,12 +294,18 @@
     <string name="rubbelkarte_countries">Länder von Hand abhaken</string>
     <string name="rubbelkarte_continent_count">%1$d/%2$d</string>
     <string name="rubbelkarte_continent_desc">%1$s: %2$d von %3$d Ländern besucht, %4$d Prozent</string>
+    <string name="rubbelkarte_progress_label">%1$d von %2$d Ländern besucht</string>
 
     <!-- Länderliste der Rubbelkarte -->
     <string name="countries_title">Länder</string>
     <string name="countries_subtitle">%1$d von %2$d Ländern abgehakt</string>
     <string name="countries_flight">Angeflogen</string>
     <string name="countries_error">Länder konnten nicht geladen werden. Bitte die App neu installieren.</string>
+
+    <!-- Reisebuddies: Auswertung der Kachel auf dem Dashboard -->
+    <string name="travel_buddies_title">Reisebuddies</string>
+    <string name="travel_buddies_subtitle">%1$d Reisebuddies auf %2$d Flügen</string>
+    <string name="travel_buddies_empty">Für keinen Flug einen Reisebuddy eingetragen. Der Name kommt unter \"Optional\" in den Flug.</string>
 <!-- Import page -->
     <string name="import_page_title">Import</string>
     <string name="import_step1_title">Schritt 1 · Importart wählen</string>

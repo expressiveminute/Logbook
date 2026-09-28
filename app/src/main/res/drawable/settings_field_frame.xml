@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Rahmen der Auswahlfelder in der rechten Spalte, in der Akzentfarbe.
+    Gezeichnet wird er vom Eingabefeld selbst und nicht vom TextInputLayout:
+    dessen Rahmen liegt unter dem Eingabefeld und wäre nicht zu sehen.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@android:color/transparent" />
+    <corners android:radius="12dp" />
+    <stroke
+        android:width="1dp"
+        android:color="?attr/colorPrimary" />
+</shape>

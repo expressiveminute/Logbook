@@ -498,13 +498,8 @@ class FirstFragment : Fragment() {
             id == "flights" -> {
                 findNavController().navigate(R.id.action_dashboard_to_flights_year)
             }
-            // Kachel ist schon da und reagiert, der Inhalt folgt noch.
             id == "reisebuddy" -> {
-                Toast.makeText(
-                    requireContext(),
-                    R.string.reisebuddy_placeholder,
-                    Toast.LENGTH_SHORT
-                ).show()
+                findNavController().navigate(R.id.action_dashboard_to_travel_buddies)
             }
             ChartData.isBarChart(id) || ChartData.isPieChart(id) -> {
                 val bundle = Bundle().apply { putString("tileId", id) }

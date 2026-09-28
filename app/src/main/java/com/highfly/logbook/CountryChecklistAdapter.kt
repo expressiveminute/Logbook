@@ -73,16 +73,24 @@ class CountryChecklistAdapter(
         fun bind(item: CountryChecklist.Item) {
             binding.tvCountryFlag.text = item.flag
             binding.tvCountryName.text = item.name
+            // Die Liste ist eine Arbeitsliste: Wer noch fehlt, steht kräftig da,
+            // wer erledigt ist, tritt zurück. Name und Flagge eines abgehakten
+            // Landes werden deshalb gedimmt - abgehakt und angeflogen heißen
+            // hier dasselbe, beides steht am Kästchen und am Flugzeugsymbol.
+            // Nur die beiden Texte werden gedimmt, das Kästchen muss seine
+            // Zustände weiterhin kräftig zeigen.
             binding.tvCountryName.setTextColor(
                 MaterialColors.getColor(
                     binding.root,
                     if (item.checked) {
-                        com.google.android.material.R.attr.colorOnSurface
-                    } else {
                         com.google.android.material.R.attr.colorOnSurfaceVariant
+                    } else {
+                        com.google.android.material.R.attr.colorOnSurface
                     }
                 )
             )
+            binding.tvCountryFlag.alpha =
+                if (item.checked) FLAG_ALPHA_CHECKED else FLAG_ALPHA_OPEN
             binding.ivCountryFlight.visibility =
                 if (item.fromFlight) View.VISIBLE else View.GONE
             // Die Kästchen der angeflogenen Länder sind gesetzt, aber gesperrt:
@@ -92,5 +100,17 @@ class CountryChecklistAdapter(
             binding.root.isClickable = item.toggleable
             binding.root.isFocusable = item.toggleable
         }
+    }
+
+    private companion object {
+        /** Deckkraft der Flagge bei einem noch offenen Land. */
+        const val FLAG_ALPHA_OPEN = 1f
+
+        /**
+         * Deckkraft der Flagge bei einem abgehakten Land. Nicht 0: Ein Emoji
+         * braucht etwas Deckkraft, sonst steht statt der Flagge nur ein
+         * Farbfleck an der Zeile.
+         */
+        const val FLAG_ALPHA_CHECKED = 0.4f
     }
 }

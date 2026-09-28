@@ -11,11 +11,14 @@ import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.RoundedBitmapDrawableFactory
 import androidx.core.view.isVisible
 import androidx.navigation.fragment.findNavController
@@ -63,6 +66,18 @@ class ProfileFragment : Fragment() {
                 Settings.setProfileName(requireContext(), s?.toString().orEmpty())
             }
         })
+        binding.profileNameInput.setOnEditorActionListener { _, actionId, _ ->
+            val done = actionId == EditorInfo.IME_ACTION_DONE ||
+                actionId == EditorInfo.IME_ACTION_UNSPECIFIED
+            if (done) {
+                updateNameMode()
+                true
+            } else {
+                false
+            }
+        }
+        binding.profileNameDisplay.setOnClickListener { showNameEditor() }
+        updateNameMode()
 
         binding.headerSectionProfile.setOnClickListener { openSection("profile") }
         binding.headerSectionCustomization.setOnClickListener { openSection("customization") }
@@ -73,6 +88,44 @@ class ProfileFragment : Fragment() {
     private fun openSection(sectionKey: String) {
         val bundle = Bundle().apply { putString("sectionKey", sectionKey) }
         findNavController().navigate(R.id.action_profile_to_settings_section, bundle)
+    }
+
+    /**
+     * Steht ein Name, ersetzt die mittige Ueberschrift das Eingabefeld samt
+     * Rahmen. Ist das Feld leer, bleibt es zum Eintippen stehen. Wird der
+     * Name auf der Einstellungsseite geaendert, holt [onResume] den
+     * aktuellen Stand nach.
+     */
+    private fun updateNameMode() {
+        val name = Settings.getProfileName(requireContext())
+        val hasName = name.isNotBlank()
+        if (hasName) {
+            binding.profileNameDisplay.text = name
+        } else if (!binding.profileNameInput.text.isNullOrEmpty()) {
+            binding.profileNameInput.setText("")
+        }
+        binding.profileNameDisplay.isVisible = hasName
+        binding.profileNameLayout.isVisible = !hasName
+        if (hasName) {
+            val imm = ContextCompat.getSystemService(
+                requireContext(), InputMethodManager::class.java
+            )
+            imm?.hideSoftInputFromWindow(binding.profileNameInput.windowToken, 0)
+        }
+    }
+
+    /** Klick auf den fertigen Namen: Feld zurueckholen und den Cursor setzen. */
+    private fun showNameEditor() {
+        binding.profileNameDisplay.isVisible = false
+        binding.profileNameLayout.isVisible = true
+        binding.profileNameInput.requestFocus()
+        val imm = ContextCompat.getSystemService(requireContext(), InputMethodManager::class.java)
+        imm?.showSoftInput(binding.profileNameInput, InputMethodManager.SHOW_IMPLICIT)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateNameMode()
     }
 
     private fun loadAvatarPreview() {

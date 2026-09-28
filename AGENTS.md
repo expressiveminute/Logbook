@@ -35,6 +35,25 @@ Release-APKs sind mit `*.apk`/`*.idsig` in `.gitignore` und werden nicht committ
 Update ("inkompatible Signatur"). Ein Wechsel auf `backups/logbook/logbook-release.keystore` wäre
 sinnvoller, ist aber nur als großer Versionssprung möglich.
 
+## Einstellungen – Aufbau nicht eigenmächtig ändern
+
+Jede Einstellung ist eine Zeile in `fragment_settings_section.xml`: **links** steht immer die
+Einstellung, **rechts** ihre Auswahl. Dafür gibt es Styles in `values/styles.xml`; neue Zeilen
+entstehen mit `SettingsRow` + `SettingsRowLabel` + `SettingsRowValue`, Auswahlkacheln mit
+`SettingsTile` + `SettingsTileLabel`, Aktionen (Export, Crash-Log) mit `SettingsActionButton`.
+Die Kacheln sind mit 40dp Höhe und 8–12sp so klein, dass mehrere Kacheln in eine Zeile passen.
+
+Weil alle Kacheln einer Zeile gleich breit sind, aber unterschiedlich lange Beschriftungen
+haben, gleicht `SettingsSectionFragment.fitTileLabels()` die Schriftgrösse einer Zeile nach dem
+ersten Layout an - ohne das schrumpft nur die längste Beschriftung und die Zeile wirkt unruhig.
+Für Felder mit eigener Beschriftung (Fluggesellschaft, Zeiträume) gehört `android:labelFor` der
+Zeilenbeschriftung auf das Feld.
+
+Das Erscheinungsbild hat drei Werte (`Settings.THEME_MODE_SYSTEM/LIGHT/DARK`) und wird in
+`MainActivity` über `AppCompatDelegate.setDefaultNightMode` gesetzt. `THEME_MODE_SYSTEM` folgt dem
+Handy. Vor dem Umstauf lag hier nur ein Ja/Nein-Wert im Schlüssel `dark_mode`; solange der
+Schlüssel gesetzt ist, hat er Vorrang, damit eine installierte App ihr Aussehen behält.
+
 ## Tastatur/Insets – nicht regressieren
 
 `MainActivity` verwaltet die Tastatur selbst, weil im Edge-to-Edge-Modus die Fenstergröße nicht
@@ -45,6 +64,9 @@ eine "Tastaturhöhe" in Fenstergröße, der Inhaltsbereich klappte auf 0 zusamme
 stand für die Dauer der Animation schwarz bzw. weiß im Hintergrund. `clampImeBottom()` darf nicht
 entfernt oder gelockert werden.
 
-Die Navigationsleiste (`bottom_nav`) wird **nicht** mehr wegen offener Tastatur ausgeblendet,
-sondern über die Tastaturhöhe angehoben – sonst ist auf der Seite *Einträge* kein Seitenwechsel
-möglich, während in das Suchfeld getippt wird.
+Die Navigationsleiste (`bottom_nav`) wird bei offener Tastatur **ausgeblendet** (`GONE`), der
+Inhaltsbereich bekommt dafür `imeBottom` als unteren Abstand. Über der Tastatur soll nichts
+stehen. Sie erscheint mit geschlossener Tastatur wieder an ihrem üblichen Platz über der
+Systemleiste. Das ist eine bewusste Umkehr der früheren Regel, die sie über die Tastaturhöhe
+angehoben hat, damit man auf der Seite *Einträge* während der Eingabe wechseln konnte – der
+Seitenwechsel muss jetzt bei geschlossener Tastatur erfolgen.

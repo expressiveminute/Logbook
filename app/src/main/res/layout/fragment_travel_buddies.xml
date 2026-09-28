@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="?android:attr/colorBackground"
-    tools:context=".CountriesFragment">
+    tools:context=".TravelBuddyFragment">
 
     <LinearLayout
         android:id="@+id/header"
@@ -18,7 +18,7 @@
         app:layout_constraintTop_toTopOf="parent">
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_countries_back"
+            android:id="@+id/btn_travel_buddy_back"
             style="?attr/materialIconButtonStyle"
             android:layout_width="48dp"
             android:layout_height="48dp"
@@ -36,25 +36,24 @@
             android:orientation="vertical">
 
             <TextView
-                android:id="@+id/tv_countries_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/countries_title"
+                android:text="@string/travel_buddies_title"
                 android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
                 android:textStyle="bold" />
 
             <TextView
-                android:id="@+id/tv_countries_subtitle"
+                android:id="@+id/tv_travel_buddy_subtitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                 android:textColor="?attr/colorOnSurfaceVariant"
-                tools:text="12 von 239 Ländern" />
+                tools:text="5 Reisebuddies auf 12 Flügen" />
         </LinearLayout>
     </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/countries_list"
+        android:id="@+id/travel_buddy_list"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:clipToPadding="false"
@@ -66,12 +65,12 @@
         app:layout_constraintTop_toBottomOf="@id/header" />
 
     <TextView
-        android:id="@+id/tv_countries_empty"
+        android:id="@+id/tv_travel_buddy_empty"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginHorizontal="32dp"
         android:gravity="center"
-        android:text="@string/countries_error"
+        android:text="@string/travel_buddies_empty"
         android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
         android:textColor="?attr/colorOnSurfaceVariant"
         android:visibility="gone"

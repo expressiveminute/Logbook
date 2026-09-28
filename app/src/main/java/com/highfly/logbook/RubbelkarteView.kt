@@ -34,10 +34,12 @@ import kotlin.math.sqrt
  * alle übrigen bleiben gedeckt.
  *
  * Die Kugel ist auf die besuchten Länder zentriert und lässt sich mit dem Finger
- * in jede Richtung drehen, per Zwei-Finger-Zoom und Doppeltipp zoomen. Sie füllt
- * ein fast quadratisches Feld aus und reicht links und rechts bis an den Rand der
- * Seite. Das Wasser endet am Rand der Kugel, darüber und darunter bleibt der
- * Hintergrund der Seite frei.
+ * in jede Richtung drehen, per Zwei-Finger-Zoom und Doppeltipp zoomen. Sie steht
+ * mittig im Bild zwischen dem Fortschrittsbalken oben und den Kontinent-Kacheln
+ * darunter und füllt ein fast quadratisches Feld aus. Im Ausgangszustand bleibt
+ * links und rechts ein kleiner Abstand zum Seitenrand, der beim Zoomen verschwindet
+ * und die Kugel so die ganze Bildschirmbreite nutzen lässt. Das Wasser endet am
+ * Rand der Kugel, darüber und darunter bleibt der Hintergrund der Seite frei.
  *
  * Die Umrisse werden einmalig im Hintergrund geladen, die gezeichneten Pfade
  * bei jeder Größenänderung und Drehung neu gebaut. [onDraw] zeichnet danach nur
@@ -56,17 +58,60 @@ class RubbelkarteView @JvmOverloads constructor(
         private const val LON_MAX = 180.0
 
         /**
-         * Anteil des Kartenrahmens, den die Kugel einnimmt. Sie reicht damit
-         * genau bis zum Seitenrand - ein Hauch mehr, weil eine exakt auf der
-         * Kante gezeichnete Kugel sonst einen hellen Saum von einem Pixel
-         * Breite stehen lässt. Der Rahmen der Seite schneidet den Rest ab.
+         * Freier Rand um die Kugel, als Anteil ihres Radius, und zwar nur im
+         * Ausgangszustand: Die Kugel reicht dann nicht bis an den Seitenrand, wo
+         * sie sonst mit einem hellen Saum von einem Pixel Breite kleben würde.
+         *
+         * Der Rand steckt nur im Radius, deshalb schrumpft er beim Zoomen von
+         * selbst und ist bei [ZOOM_RANDLOS] verschwunden - dann nutzt die Kugel
+         * die volle Bildschirmbreite. Vorher gab es hierfür das auf [ZOOM_MIN]
+         * abgestimmte [GLOBE_FILL] mit einem Hauch über 1, das genau den
+         * Saum vermeiden sollte und deshalb dauerhaft am Rand kleben blieb.
          */
-        private const val GLOBE_FILL = 1.005f
+        const val GLOBE_MARGIN = 0.04f
+
+        /**
+         * Zoomstufe, ab der die Kugel ohne seitlichen Abstand bis an den
+         * Bildschirmrand reicht. Muss innerhalb des Zoombereichs liegen, sonst
+         * wäre der Abstand gar nicht wegzubekommen.
+         */
+        val ZOOM_RANDLOS: Float get() = 1f / (1f - GLOBE_MARGIN)
 
         private const val ZERO_EPS = 1e-9
 
         /** Deckkraft des Halos hinter dem eingeblendeten Ländernamen. */
-        private const val NAME_HALO_ALPHA = 210
+        private const val NAME_HALO_ALPHA = 160
+
+        /**
+         * Deckkraft des Ländernamens nach einem Tipp. Er ist eine Angabe zum
+         * Bild, kein Beschriftungsschild: Er soll den Blick nicht vom Land
+         * weglenken, deshalb bleibt er unter der vollen Deckkraft.
+         */
+        private const val NAME_ALPHA = 185
+
+        /**
+         * Wie stark die bereits erledigten Länder zurücktreten, als Anteil
+         * Schwarz in ihrer Fläche.
+         *
+         * Ihre Farbe ist ein neutrales Grau, kein Farbton: Die Akzentfarbe zog
+         * den Blick auf sich, gleichgültig wie dunkel sie gemischt war, und ein
+         * kräftiger Farbton auf einer Karte wirkt immer wie eine Markierung.
+         *
+         * Das Grau ist nicht fest gewählt, sondern aus der Farbe des offenen
+         * Landes abgeleitet und dann um [VISITED_DIM] abgedunkelt. So ist es in
+         * beiden Designs dunkler als das offene Land - das ist im hellen Design
+         * fast weiss, im dunklen ein dunkles Schiefergrau - und der Abstand
+         * bleibt in beiden gleich.
+         *
+         * Über die Deckkraft der Fläche ging es nicht: Je geringer sie war, desto
+         * mehr schimmert das helle Wasser durch, und im hellen Design ist das
+         * Wasser fast so hell wie ein offenes Land.
+         *
+         * [VISITED_RAND_ALPHA] gehört dazu: Auf der dunklen Fläche stünde der
+         * ungedimmte Umriss als heller Saum darum und liefe dem Dämpfen zuwider.
+         */
+        private const val VISITED_DIM = 0.8f
+        private const val VISITED_RAND_ALPHA = 40
 
         /** Wie lange der Name eines angetippten Landes stehen bleibt. */
         private const val NAME_ANZEIGE_MS = 2600L
@@ -85,8 +130,52 @@ class RubbelkarteView @JvmOverloads constructor(
         /** Ziel des Doppeltipps, erneutes Tippen zoomt wieder heraus. */
         const val ZOOM_DOPPELTIPP = 1.25f
 
-        /** Behält den Zoombereich ein, auch wenn das Wischen danebenliegt. */
-        fun clampZoom(wert: Float): Float = wert.coerceIn(ZOOM_MIN, ZOOM_MAX)
+        /**
+         * Hält den Zoombereich ein, auch wenn das Wischen danebenliegt.
+         *
+         * Nicht-endliche Werte landen auf [ZOOM_MIN]: `coerceIn` liefert bei
+         * NaN oder ±Inf den Eingangswert zurück, und ein NaN-Zoom macht aus
+         * jeder weiteren Skalierung der Kugel undefinierte Koordinaten.
+         */
+        fun clampZoom(wert: Float): Float =
+            if (wert.isFinite()) wert.coerceIn(ZOOM_MIN, ZOOM_MAX) else ZOOM_MIN
+
+        /**
+         * Index eines Zeigers im Ereignis _nach_ einem `ACTION_POINTER_UP`.
+         *
+         * Android nummeriert die Zeiger pro Ereignis neu: was hinter dem
+         * abgehobenen Zeiger lag, rückt eine Position vor. Wer den Index aus
+         * dem `POINTER_UP` unverändert weiterverwendet, liest im nächsten
+         * Ereignis den falschen - bei zwei Fingern gar einen ungültigen -
+         * Zeiger.
+         */
+        fun folgeIndex(zeiger: Int, abgehoben: Int): Int =
+            zeiger - if (zeiger > abgehoben) 1 else 0
+
+        /**
+         * Weicht die Kugellage so weit von dem gezeichneten Bild ab, dass es
+         * neu gebaut werden muss? [lonAbstand] und [latAbstand] sind Winkel in
+         * Bogen, [pixelAbstand] die grösste Verschiebung von Mitte oder Radius
+         * in Pixel.
+         *
+         * Getrennt vom Messen, damit die Regel pruefbar ist: vor allem der
+         * Sprung ueber 360 Grad darf keinen Aufbau ausloesen, obwohl die Zahlen
+         * weit auseinanderliegen - es ist derselbe Blickpunkt, nur von der
+         * anderen Seite her gerechnet.
+         */
+        @JvmStatic
+        fun weichtAb(lonAbstand: Double, latAbstand: Double, pixelAbstand: Float): Boolean {
+            // NaN vergleicht mit jedem Wert false und wuerde durchrutschen.
+            if (!lonAbstand.isFinite() || !latAbstand.isFinite()) return true
+            if (!pixelAbstand.isFinite()) return true
+            val lon = abs(lonAbstand).coerceAtMost(TWO_PI)
+            val lat = abs(latAbstand)
+            // 1e-4 Bogen sind auf einer Kugel von 600px Radius gut ein
+            // Hundertstel Pixel: darunter faellt der Unterschied nicht auf.
+            val gedreht = min(lon, TWO_PI - lon) + lat > 1e-4
+            return gedreht || pixelAbstand > 0.5f
+        }
+
         private const val ARC_STEP = 0.06
 
         private const val ANTARCTICA = "AQ"
@@ -156,6 +245,22 @@ class RubbelkarteView @JvmOverloads constructor(
     /** Besuchter Flughafen als Punkt auf der Karte. */
     private data class AirportPoint(val lat: Double, val lon: Double, val code: String)
 
+    /**
+     * Lage und Größe der Kugel, aus der **ein** Bild besteht: Blickpunkt,
+     * Mittelpunkt und Radius.
+     *
+     * Wichtig ist, dass Land und Flughafenpunkte aus demselben Zustand
+     * gezeichnet werden. Rechnet jedes für sich mit dem, was gerade neu ist,
+     * laufen die Punkte während einer Drehung sichtbar neben dem Land her -
+     * der Aufbau braucht einen eigenen Thread, bis die neuen Pfade fertig sind.
+     */
+    private class GlobeState(
+        val globe: GeoMath.Globe,
+        val cx: Float,
+        val cy: Float,
+        val radius: Float
+    )
+
     private val density get() = resources.displayMetrics.density
 
     private val isDarkTheme = (resources.configuration.uiMode and
@@ -168,6 +273,13 @@ class RubbelkarteView @JvmOverloads constructor(
         color = if (isDarkTheme) Color.rgb(48, 60, 72) else Color.rgb(228, 231, 224)
     }
     private val visitedPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+    /** Umriss der erledigten Länder, gegenüber dem der offenen abgeschwächt. */
+    private val visitedBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeJoin = Paint.Join.ROUND
+        strokeWidth = 0.7f * density
+    }
     private val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeJoin = Paint.Join.ROUND
@@ -258,9 +370,13 @@ class RubbelkarteView @JvmOverloads constructor(
     @Volatile
     private var centerShiftY = 0f
 
-    /** Lage der Kugel für den Zeichen-Thread, siehe [buildGlobe]. */
+    /**
+     * Zustand, aus dem das gerade gezeichnete Bild stammt, siehe [GlobeState].
+     * Null, solange die erste Kugel noch im Aufbau ist; dann zeichnet [onDraw]
+     * ersatzweise [liveState], weil es ohnehin noch kein Land zu zeigen gibt.
+     */
     @Volatile
-    private var globeCenter = GeoMath.Globe(0.0, 0.0)
+    private var drawnState: GlobeState? = null
 
     /** Laufender Aufbau, damit ein Wischen nicht je Bewegung einen Thread erzeugt. */
     @Volatile
@@ -312,18 +428,25 @@ class RubbelkarteView @JvmOverloads constructor(
     )
 
     init {
-        visitedPaint.color = MaterialColors.getColor(
-            this, com.google.android.material.R.attr.colorPrimary
+        // Die erledigten Länder bekommen kein Grau aus dem Theme, sondern das
+        // offene Land selbst, abgedunkelt: Das offene Land ist im hellen Design
+        // fast weiss und im dunklen ein dunkles Schiefergrau, ein festes Grau
+        // wäre in einem der beiden Designs entweder zu hell oder unsichtbar.
+        visitedPaint.color = ColorUtils.blendARGB(
+            unvisitedPaint.color, Color.BLACK, VISITED_DIM
         )
         val outline = MaterialColors.getColor(
             this, com.google.android.material.R.attr.colorOutlineVariant
         )
         borderPaint.color = outline
+        visitedBorderPaint.color = outline
+        visitedBorderPaint.alpha = VISITED_RAND_ALPHA
         rimPaint.color = outline
         val nameColor = MaterialColors.getColor(
             this, com.google.android.material.R.attr.colorOnPrimary
         )
         namePaint.color = nameColor
+        namePaint.alpha = NAME_ALPHA
         // Der Halo muss die Gegenfarbe zur Schrift sein, sonst tut er nichts und
         // verbreitert die Buchstaben nur. Er trennt den Namen auch dort vom
         // Hintergrund, wo er über Wasser oder über den Kartenrand ragt. Über
@@ -422,13 +545,6 @@ class RubbelkarteView @JvmOverloads constructor(
         if (width <= 0 || height <= 0) return
         // Nur das Wasser ist blau, der Kasten um die Kugel verschwindet.
         updateCenterShift()
-        val cx = globeCenterX()
-        val cy = globeCenterY()
-        val r = globeRadius()
-        clipPath.reset()
-        clipPath.addCircle(cx, cy, r, Path.Direction.CW)
-        canvas.drawCircle(cx, cy, r, oceanPaint)
-
         if (!built) {
             if (sharedCountries == null) {
                 requestCountries(context, this)
@@ -437,6 +553,12 @@ class RubbelkarteView @JvmOverloads constructor(
             rebuildIfNeeded()
         }
         val list = shapes
+        // Solange es kein Land gibt, gibt es auch keinen gezeichneten Zustand:
+        // Dann zählt die aktuelle Lage, das Bild ist dann nur das blaue Wasser.
+        val state = drawnState ?: liveState() ?: return
+        clipPath.reset()
+        clipPath.addCircle(state.cx, state.cy, state.radius, Path.Direction.CW)
+        canvas.drawCircle(state.cx, state.cy, state.radius, oceanPaint)
         if (list.isEmpty()) return
 
         canvas.save()
@@ -445,13 +567,39 @@ class RubbelkarteView @JvmOverloads constructor(
             canvas.drawPath(shape.path, if (shape.visited) visitedPaint else unvisitedPaint)
         }
         for (shape in list) {
-            canvas.drawPath(shape.path, borderPaint)
+            // Der Umriss der erledigten Länder ist mitgedimmt - auf der
+            // dunklen Fläche stünde er sonst als heller Saum darum.
+            canvas.drawPath(
+                shape.path, if (shape.visited) visitedBorderPaint else borderPaint
+            )
         }
         drawAirports(canvas)
         drawName(canvas)
         canvas.restore()
         // Der Rand gehört zum Bild, nicht zum Wasser, deshalb ohne Beschneiden.
-        canvas.drawCircle(globeCenterX(), globeCenterY(), globeRadius(), rimPaint)
+        canvas.drawCircle(state.cx, state.cy, state.radius, rimPaint)
+    }
+
+    /**
+     * Lage der Kugel, wie sie der Nutzer gerade will. Nur auf dem Hauptthread
+     * aufrufen: gelesen werden [width], [height], [centerShiftY], [zoom] und
+     * die beiden Wischwinkel, und der Aufbau-Thread darf davon nichts
+     * mitlesen - sonst baut er Pfade zu einem Zustand, den es nie gab.
+     */
+    private fun liveState(): GlobeState? {
+        if (width <= 0 || height <= 0) return null
+        val cx = width / 2f
+        val cy = height / 2f + centerShiftY
+        val radius = globeRadius(width.toFloat(), height.toFloat())
+        val list = sharedCountries
+        // Ohne Länder gibt es keine Mitte der besuchten Länder, dann zählt die
+        // Vorgabe - so fehlt der Aufbau nicht an einer leeren Kugel.
+        val center = list?.let { RubbelkarteStats.centerOf(it, visitedIso2) }
+        val centerLon = normalizeLon(center?.first ?: DEFAULT_CENTER_LON)
+        val centerLat = (center?.second ?: DEFAULT_CENTER_LAT).coerceIn(-60.0, 70.0)
+        val lonRad = Math.toRadians(centerLon) + userLonRad
+        val latRad = (Math.toRadians(centerLat) + userLatRad).coerceIn(-HALF_PI, HALF_PI)
+        return GlobeState(GeoMath.Globe(lonRad, latRad), cx, cy, radius)
     }
 
     /**
@@ -459,6 +607,12 @@ class RubbelkarteView @JvmOverloads constructor(
      * der Bildschirmmitte steht. Die halbe Höhe des Wurzelverlaufs ist die Mitte
      * des Bildschirms, von der Position der View aus gesehen liegt sie um
      * [centerShiftY] tiefer als die Viewmitte.
+     *
+     * Die Mitte der View ist die Mitte des Raums zwischen Fortschrittsbalken und
+     * Kachelzeile, die Bildschirmmitte liegt ein Stück darunter, weil unten noch
+     * die Kacheln und die Navigationsleiste Platz brauchen. Beides liegt dicht
+     * beieinander - wichtig ist nur, dass der Versatz die Kugel nicht aus ihrem
+     * Feld schiebt.
      */
     private fun updateCenterShift() {
         val root = rootView
@@ -509,12 +663,17 @@ class RubbelkarteView @JvmOverloads constructor(
             MotionEvent.ACTION_POINTER_UP -> {
                 // Ohne Sprung weiterdrehen: den Finger neu ansetzen, der noch
                 // auf dem Bildschirm ist, sonst schlägt der Weg bis zu seiner
-                // Position durch und die Kugel springt. Die übrigen Zeiger
-                // behalten ihren Index, der Folgeweg muss also den richtigen
-                // erwischen und nicht den abgehobenen.
+                // Position durch und die Kugel springt.
+                //
+                // Achtung Index: Die Zeiger werden ab dem Folgeereignis neu
+                // durchnummeriert, alle hinter dem abgehobenen rücken eine
+                // Position vor. Der Index aus diesem Ereignis gilt also nicht
+                // mehr im nächsten - der alte Zeiger wird dort zu einem
+                // falschen, im schlimmsten Fall ungültigen Zeiger, und das
+                // Drehen endet im Absturz.
                 for (i in 0 until event.pointerCount) {
                     if (i == event.actionIndex) continue
-                    touchIndex = i
+                    touchIndex = folgeIndex(i, event.actionIndex)
                     touchX = event.getX(i)
                     touchY = event.getY(i)
                     break
@@ -524,8 +683,12 @@ class RubbelkarteView @JvmOverloads constructor(
             }
 
             MotionEvent.ACTION_MOVE -> {
-                val x = event.getX(touchIndex)
-                val y = event.getY(touchIndex)
+                // Sicherheitsnetz: Ein Index ausserhalb des Ereignisses waere
+                // ungueltig, getX/getY liefern dann je nach Geraet Mist oder
+                // eine IllegalArgumentException. Also immer festklemmen.
+                val index = touchIndex.coerceIn(0, event.pointerCount - 1)
+                val x = event.getX(index)
+                val y = event.getY(index)
                 val dx = x - touchX
                 val dy = y - touchY
                 touchX = x
@@ -668,23 +831,69 @@ class RubbelkarteView @JvmOverloads constructor(
      * Größenänderung, Drehung oder neuen Daten, nicht pro Bild.
      */
     private fun rebuildIfNeeded() {
-        val w = width
-        val h = height
-        if (w <= 0 || h <= 0 || built || building) return
+        if (width <= 0 || height <= 0 || built || building) return
         val list = sharedCountries ?: return
+        val state = liveState() ?: return
         built = true
         building = true
         val generation = ++buildGeneration
         val visitedSnapshot = visitedIso2
         Thread {
-            val builtShapes = buildGlobe(w, h, list, visitedSnapshot, generation)
+            // Ein Fehler in buildGlobe darf die App nicht mitnehmen: Auf dem
+            // Thread laeuft nichts vom UncaughtExceptionHandler des
+            // Hauptthreads, aber eine Exception beendet trotzdem den Prozess
+            // - und ohne finally bliebe building dauerhaft true, sodass die
+            // Kugel gar nichts mehr neu aufbaut.
+            val builtShapes = try {
+                buildGlobe(list, visitedSnapshot, state, generation)
+            } catch (e: RuntimeException) {
+                Log.e(TAG, "Kugel konnte nicht neu aufgebaut werden", e)
+                null
+            }
             post {
                 building = false
                 if (generation != buildGeneration) return@post
+                if (builtShapes == null) {
+                    // Alte Kugel stehen lassen und bewusst nicht sofort neu
+                    // versuchen - sonst spannt der Fehler pro Bild einen
+                    // neuen Thread auf. built=true markiert den Aufbau als
+                    // erledigt; die naechste Drehung oder Zoom setzt ihn
+                    // wieder auf false und versucht es erneut.
+                    invalidate()
+                    return@post
+                }
+                // Land und Punkte kommen im selben Zug um: [drawnState] ist
+                // genau der Zustand, aus dem [builtShapes] gebaut wurde. Erst
+                // danach darf gezeichnet werden, sonst stehen die Punkte
+                // waehrend des Drehens neben dem Land.
                 shapes = builtShapes
+                drawnState = state
                 invalidate()
+                // Waehrend des Aufbaus ist der Finger weitergewandert. Ohne
+                // diesen Auftrag bliebe die Kugel auf dem Stand des Aufbaus
+                // stehen, bis der naechste Fingerimpuls kommt - das war der
+                // Verspaetungseffekt beim Drehen.
+                built = false
+                if (needsRebuild(state)) rebuildIfNeeded()
             }
         }.start()
+    }
+
+    /**
+     * Ob seit dem Zustand [state] die Wunschlage der Kugel weitergelaufen ist.
+     * Ohne Land ist nichts zu tun, das Wasser zeichnet [onDraw] ohnehin aus
+     * [liveState].
+     */
+    private fun needsRebuild(state: GlobeState): Boolean {
+        if (sharedCountries == null || shapes.isEmpty()) return false
+        val live = liveState() ?: return false
+        val pixel = max(abs(live.cx - state.cx), abs(live.cy - state.cy)) +
+            abs(live.radius - state.radius)
+        return weichtAb(
+            live.globe.centerLon - state.globe.centerLon,
+            live.globe.centerLat - state.globe.centerLat,
+            pixel
+        )
     }
 
     /**
@@ -696,27 +905,22 @@ class RubbelkarteView @JvmOverloads constructor(
     private fun drawOrder(shapes: List<Shape>): List<Shape> =
         shapes.sortedBy { if (it.visited) 1 else 0 }
 
+    /**
+     * Rechnet alle Länder in Bildkoordinaten um. Der Aufbau laeuft auf einem
+     * eigenen Thread und liest deshalb **nichts** aus der View: Lage und Radius
+     * kommen fertig als [state] mit, sonst entstuende ein Bild, das zu keiner
+     * Kugel gehoert, die der Nutzer je gesehen hat.
+     */
     private fun buildGlobe(
-        w: Int,
-        h: Int,
         list: List<CountryShapes.Country>,
         visited: Set<String>,
+        state: GlobeState,
         generation: Int
     ): List<Shape> {
-        val viewWidth = w.toFloat()
-        val viewHeight = h.toFloat()
-        val radius = globeRadius(viewWidth, viewHeight)
-        val cx = viewWidth / 2f
-        val cy = viewHeight / 2f + centerShiftY
-
-        val center = RubbelkarteStats.centerOf(list, visited)
-        val centerLon = normalizeLon(center?.first ?: DEFAULT_CENTER_LON)
-        val centerLat = (center?.second ?: DEFAULT_CENTER_LAT).coerceIn(-60.0, 70.0)
-        // Die Mitte der besuchten Länder plus die Drehung durch Wischen.
-        val lonRad = Math.toRadians(centerLon) + userLonRad
-        val latRad = (Math.toRadians(centerLat) + userLatRad).coerceIn(-HALF_PI, HALF_PI)
-        val globe = GeoMath.Globe(lonRad, latRad)
-        globeCenter = globe
+        val globe = state.globe
+        val cx = state.cx
+        val cy = state.cy
+        val radius = state.radius
         val german = useGermanNames()
         val result = ArrayList<Shape>(list.size)
         for (country in list) {
@@ -766,7 +970,11 @@ class RubbelkarteView @JvmOverloads constructor(
                     val visB = isVisible(lonB, latB, center, pointB)
                     if (visA == visB) continue
                     val alpha = horizonAlpha(lonA, latA, lonB, latB, center)
-                crossings.add(
+                    // cos/sin von NaN ergeben NaN, und ein NaN in moveTo/lineTo
+                    // landet ungeprueft im nativen Path. Also lieber die
+                    // Schnittstelle weglassen als den Pfad zu vergiften.
+                    if (!alpha.isFinite()) continue
+                    crossings.add(
                     Crossing(
                         segment = i,
                         entering = visB,
@@ -868,7 +1076,9 @@ class RubbelkarteView @JvmOverloads constructor(
         out: FloatArray
     ): Boolean {
         center.point(lat, lon, scratch)
-        if (scratch[GeoMath.Globe.FRONT] <= ZERO_EPS) return false
+        // Nicht `> ZERO_EPS`: ein NaN ist im Vergleich mit jedem Wert
+        // false und wuerde durchrutschen.
+        if (!(scratch[GeoMath.Globe.FRONT] > ZERO_EPS)) return false
         out[0] = (cx + scratch[GeoMath.Globe.X] * radius).toFloat()
         out[1] = (cy - scratch[GeoMath.Globe.Y] * radius).toFloat()
         return true
@@ -906,12 +1116,17 @@ class RubbelkarteView @JvmOverloads constructor(
      * Bildschirmposition eines Punktes auf der Kugel. Liegt er auf der Rückseite,
      * ist das Ergebnis ungültig und die Rückgabe null. Das Ergebnis landet in
      * [projected] - der Zeichen-Thread liest es sofort aus, deshalb wird nichts
-     * allokiert. Aufbau und Zeichnen laufen in verschiedenen Threads, deshalb hat
-     * der Aufbau eigene Puffer.
+     * allokiert.
+     *
+     * Gerechnet wird mit [drawnState], also mit dem Zustand, aus dem auch das
+     * Land daneben gezeichnet wurde. Das ist der ganze Unterschied zu einer
+     * frischen Rechnung: Ein Aufbau braucht einen Thread, die Punkte warten
+     * solange auf das Land und nicht umgekehrt.
      */
-    private fun project(lat: Double, lon: Double): FloatArray? =
-        if (projectGlobe(
-                lat, lon, globeCenter, globeCenterX(), globeCenterY(), globeRadius(),
+    private fun project(lat: Double, lon: Double): FloatArray? {
+        val state = drawnState ?: return null
+        return if (projectGlobe(
+                lat, lon, state.globe, state.cx, state.cy, state.radius,
                 drawPoint, projected
             )
         ) {
@@ -919,11 +1134,7 @@ class RubbelkarteView @JvmOverloads constructor(
         } else {
             null
         }
-
-    private fun globeCenterX(): Float = width / 2f
-
-    /** Mitte der Kugel, um [centerShiftY] tiefer als die Mitte der View. */
-    private fun globeCenterY(): Float = height / 2f + centerShiftY
+    }
 
     private fun globeRadius(): Float = globeRadius(width.toFloat(), height.toFloat())
 
@@ -935,9 +1146,13 @@ class RubbelkarteView @JvmOverloads constructor(
      * Die kleinere Seite bestimmt den Radius: Im Hochformat ist die Karte
      * quadratisch, im Querformat bleibt links und rechts nur die halbe
      * Bildschirmhöhe - dort kann eine Kugel gar nicht bis zum Rand reichen.
+     *
+     * [GLOBE_MARGIN] ist herausgerechnet und steckt deshalb nur im Ausgangsmaß:
+     * Je weiter hereingezoomt wird, desto mehr davon ist wieder da, bis die
+     * Kugel die ganze Breite nutzt.
      */
     private fun globeRadius(w: Float, h: Float): Float =
-        min(w, h) * GLOBE_FILL / 2f * zoom
+        min(w, h) * (1f - GLOBE_MARGIN) / 2f * zoom
 
     /** Die App ist deutschsprachig, values-en liefert die englischen Namen. */
     private fun useGermanNames(): Boolean {

@@ -25,6 +25,9 @@
         <action
             android:id="@+id/action_dashboard_to_time_detail"
             app:destination="@id/nav_time_detail" />
+        <action
+            android:id="@+id/action_dashboard_to_travel_buddies"
+            app:destination="@id/nav_travel_buddies" />
     </fragment>
 
     <fragment
@@ -55,7 +58,15 @@
     <fragment
         android:id="@+id/nav_countries"
         android:name="com.highfly.logbook.CountriesFragment"
-        tools:layout="@layout/fragment_countries" />
+        tools:layout="@layout/fragment_countries">
+
+        <!-- Leer zeigt alle Länder der Welt, gesetzt nur die eines Kontinents:
+             Die Kacheln der Rubbelkarte öffnen dieselbe Seite gefiltert. -->
+        <argument
+            android:name="continent"
+            app:argType="string"
+            android:defaultValue="" />
+    </fragment>
 
     <fragment
         android:id="@+id/nav_profile"
@@ -153,4 +164,9 @@
         android:id="@+id/nav_time_detail"
         android:name="com.highfly.logbook.TimeDetailFragment"
         tools:layout="@layout/fragment_time_detail" />
+
+    <fragment
+        android:id="@+id/nav_travel_buddies"
+        android:name="com.highfly.logbook.TravelBuddyFragment"
+        tools:layout="@layout/fragment_travel_buddies" />
 </navigation>

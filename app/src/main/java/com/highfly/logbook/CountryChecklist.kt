@@ -40,13 +40,18 @@ object CountryChecklist {
      * @param manualIso2 selbst abgehakte Länder als ISO-2
      * @param german deutsche statt englischer Namen
      * @param collator Sortierung in der Sprache der App
+     * @param continent beschränkt die Liste auf diesen Kontinent, siehe
+     *   [Continents]. Leer oder unbekannt zeigt die ganze Welt - das ist die
+     *   Länderliste hinter dem Stift, die Kacheln der Rubbelkarte blenden auf
+     *   denselben Wegen einen Kontinent heraus.
      */
     fun build(
         countries: List<CountryShapes.Country>,
         flightIso2: Collection<String>,
         manualIso2: Collection<String>,
         german: Boolean,
-        collator: Collator
+        collator: Collator,
+        continent: String? = null
     ): List<Item> {
         val fromFlight = flightIso2.mapNotNull { iso2Of(it) }.toSet()
         val manual = manualIso2.mapNotNull { iso2Of(it) }.toSet()
@@ -63,7 +68,18 @@ object CountryChecklist {
                 )
             }
             .filterNotNull()
+            .filter { item -> belongsTo(item.iso2, continent) }
             .sortedWith(compareBy(collator) { it.name })
+    }
+
+    /**
+     * Gehört das Land zum gesuchten Kontinent? Ohne [continent] passt jedes
+     * Land, ein unbekannter Name ebenso - sonst stünde auf der Seite nichts,
+     * was sich erklären ließe.
+     */
+    fun belongsTo(iso2: String, continent: String?): Boolean {
+        val wanted = continent?.trim()?.takeIf { it.isNotEmpty() } ?: return true
+        return Continents.continentOf(iso2) == wanted
     }
 
     /** Anzahl der abgehakten Länder, für die Zusammenfassung über der Liste. */

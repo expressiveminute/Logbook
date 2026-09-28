@@ -45,7 +45,11 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         AppCompatDelegate.setDefaultNightMode(
-            if (Settings.isDarkMode(this)) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
+            when (Settings.getThemeMode(this)) {
+                Settings.THEME_MODE_DARK -> AppCompatDelegate.MODE_NIGHT_YES
+                Settings.THEME_MODE_LIGHT -> AppCompatDelegate.MODE_NIGHT_NO
+                else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+            }
         )
         setTheme(Settings.accentThemeResId(this))
         super.onCreate(savedInstanceState)
@@ -62,8 +66,11 @@ class MainActivity : AppCompatActivity() {
             navBarRight = navigationBars.right
             navBarBottom = navigationBars.bottom
             imeBottom = clampImeBottom(insets.getInsets(WindowInsetsCompat.Type.ime()).bottom)
-            updateHeaderAndContent()
+            // Reihenfolge wichtig: Erst die Sichtbarkeit, dann das Layout. Sonst
+            // zeichnet die Navigationsleiste im ersten Frame ueber der bereits
+            // offenen Tastatur.
             updateImeVisibility(insets.isVisible(WindowInsetsCompat.Type.ime()))
+            updateHeaderAndContent()
             WindowInsetsCompat.CONSUMED
         }
         setupImeAnimation()
@@ -187,17 +194,22 @@ class MainActivity : AppCompatActivity() {
         binding.btnEditTiles.visibility = if (showHeader) View.VISIBLE else View.GONE
         binding.appBar.setPadding(navBarLeft, if (showHeader) statusBarTop else 0, navBarRight, 0)
         val navVisible = !isAddEntry && !isWorldMap && !isImport
-        binding.bottomNav.visibility = if (navVisible) View.VISIBLE else View.GONE
+        // Über der Tastatur soll nichts stehen: Solange sie offen ist, bekommt
+        // der Inhalt ihren Platz und die Navigationsleiste verschwindet ganz.
+        // Sie taucht genau dort wieder auf, wo sie sonst auch steht - direkt
+        // über der Systemleiste.
+        val navSichtbar = navVisible && !imeVisible
+        binding.bottomNav.visibility = if (navSichtbar) View.VISIBLE else View.GONE
         binding.bottomNav.updatePadding(
             left = navBarLeft,
             right = navBarRight,
-            bottom = navBarBottom + if (navVisible) imeBottom else 0
+            bottom = navBarBottom
         )
         binding.contentHost.updatePadding(
             top = if (showHeader) 0 else statusBarTop,
             left = if (showHeader) 0 else navBarLeft,
             right = if (showHeader) 0 else navBarRight,
-            bottom = if (navVisible) 0 else imeBottom
+            bottom = if (navSichtbar) 0 else imeBottom
         )
     }
 
@@ -240,10 +252,9 @@ class MainActivity : AppCompatActivity() {
         if (visible == imeVisible) return
         imeVisible = visible
         updateHeaderAndContent()
-        val current = supportFragmentManager
-            .findFragmentById(R.id.nav_host_fragment_content_main)
-            ?.childFragmentManager
-            ?.primaryNavigationFragment
+        val host = supportFragmentManager
+            .findFragmentById(R.id.nav_host_fragment_content_main) ?: return
+        val current = host.childFragmentManager.primaryNavigationFragment ?: return
         (current as? ImeVisibilityAware)?.onImeVisibilityChanged(visible)
     }
 

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Grundgerüst der Einstellungen: eine Zeile besteht immer aus der
+        Einstellung links und ihrer Auswahl rechts. Die folgenden Styles
+        halten beide Spalten gleich breit, damit die Auswahl über alle
+        Zeilen einer Seite auf derselben Stelle beginnt.
+    -->
+    <style name="SettingsRow" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:baselineAligned">false</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:orientation">horizontal</item>
+    </style>
+
+    <style name="SettingsRowLabel" parent="">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:maxLines">2</item>
+        <item name="android:textAppearance">?attr/textAppearanceBodyMedium</item>
+    </style>
+
+    <style name="SettingsRowValue" parent="">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginStart">12dp</item>
+        <item name="android:layout_weight">1.5</item>
+        <item name="android:baselineAligned">false</item>
+        <item name="android:gravity">end|center_vertical</item>
+        <item name="android:orientation">horizontal</item>
+    </style>
+
+    <!-- Auswahlkachel: bewusst flach, damit mehrere Kacheln in eine Zeile passen. -->
+    <style name="SettingsTile" parent="">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">40dp</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+        <item name="android:foreground">?attr/selectableItemBackground</item>
+        <item name="cardCornerRadius">12dp</item>
+        <item name="cardElevation">0dp</item>
+        <item name="strokeWidth">1dp</item>
+    </style>
+
+    <style name="SettingsTileLabel" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:autoSizeMaxTextSize">12sp</item>
+        <item name="android:autoSizeMinTextSize">8sp</item>
+        <item name="android:autoSizeStepGranularity">1sp</item>
+        <item name="android:autoSizeTextType">uniform</item>
+        <item name="android:gravity">center</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:textAppearance">?attr/textAppearanceLabelLarge</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!--
+        Auswahlfeld in der rechten Spalte. Der Rahmen wird nicht vom
+        TextInputLayout gezeichnet, sondern vom Eingabefeld selbst
+        (settings_field_frame): Der Rahmen des TextInputLayout liegt unter
+        dem Eingabefeld und waere sonst nicht zu sehen. Die Breite des
+        Rahmens steht deshalb auf 0.
+    -->
+    <style name="SettingsTextField" parent="Widget.Material3.TextInputLayout.OutlinedBox">
+        <item name="boxCornerRadiusBottomEnd">12dp</item>
+        <item name="boxCornerRadiusBottomStart">12dp</item>
+        <item name="boxCornerRadiusTopEnd">12dp</item>
+        <item name="boxCornerRadiusTopStart">12dp</item>
+        <item name="boxStrokeWidth">0dp</item>
+        <item name="boxStrokeWidthFocused">0dp</item>
+    </style>
+
+    <style name="SettingsTextField.EditText" parent="">
+        <item name="android:background">@drawable/settings_field_frame</item>
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:minHeight">40dp</item>
+        <item name="android:paddingTop">0dp</item>
+        <item name="android:paddingBottom">0dp</item>
+    </style>
+
+    <!-- Knopf für Aktionen wie Export oder Crash-Log, rechts in der Zeile. -->
+    <style name="SettingsActionButton" parent="Widget.Material3.Button.TonalButton">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">40dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:paddingStart">20dp</item>
+        <item name="android:paddingEnd">20dp</item>
+        <item name="android:textAppearance">?attr/textAppearanceLabelLarge</item>
+        <item name="cornerRadius">12dp</item>
+    </style>
+</resources>

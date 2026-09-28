@@ -207,4 +207,35 @@ class SaveFlowLogicTest {
             normalized.toSet()
         )
     }
+
+    @Test
+    fun eintragOhneReiseklasseLaesstSichSpeichernUndLesen() {
+        // Die Reiseklasse ist freiwillig: Ein Eintrag ohne sie muss durch den
+        // Weg in die Datenbank und wieder heraus, ohne dass etwas verloren geht
+        // und ohne dass ein leeres Feld als Klassenname auftaucht.
+        val ohneKlasse = LogbookEntry(
+            date = LocalDate.of(2026, 9, 7),
+            flightType = "On Duty",
+            classType = null,
+            fromAirport = "MUC",
+            toAirport = "BOS",
+            airline = "LH",
+            flightNumber = "401"
+        )
+        val csv = LogbookCsv.toCsv(listOf(ohneKlasse))
+        assertEquals(1, LogbookCsv.fromCsv(csv).size)
+        val zurueck = LogbookCsv.fromCsv(csv).single()
+        assertNull(zurueck.classType)
+        assertEquals("On Duty", zurueck.flightType)
+        // Die Liste zeigt stattdessen nichts an, und die Auswertung zählt den
+        // Eintrag keiner Reiseklasse zu.
+        assertEquals("", zurueck.classType.orEmpty())
+        assertNull(ChartData.normalizeClassType(zurueck.classType))
+        assertEquals(
+            0,
+            listOf("Economy", "Premium Eco", "Business", "First", "Jump").count {
+                ChartData.normalizeClassType(zurueck.classType) == it
+            }
+        )
+    }
 }

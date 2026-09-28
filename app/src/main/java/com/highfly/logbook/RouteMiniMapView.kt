@@ -6,14 +6,18 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.Rect
 import android.graphics.RectF
+import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.util.Log
 import android.util.TypedValue
 import android.view.View
+import androidx.core.content.ContextCompat
 import com.google.android.material.color.MaterialColors
 import org.json.JSONObject
 import java.lang.ref.WeakReference
+import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.max
@@ -33,7 +37,8 @@ class RouteMiniMapView @JvmOverloads constructor(
     attrs: AttributeSet? = null
 ) : View(context, attrs) {
 
-    private companion object {
+    /** Öffentlich, damit [planeRotation] und [mitte] ohne Android testbar sind. */
+    companion object {
         const val TAG = "RouteMiniMapView"
         const val LAND_ASSET = "world_land.json"
 
@@ -55,6 +60,33 @@ class RouteMiniMapView @JvmOverloads constructor(
 
         /** Sichtbarer Anteil des Kartenausschnitts, auf dem Grenzen gelten. */
         const val BORDER_VIEW_PADDING = 0.15
+
+        /** Kantenlänge des Flugzeugsymbols auf der Strecke. */
+        const val PLANE_SIZE_DP = 16f
+
+        /** Ring um das Flugzeugsymbol, damit es sich von der Strecke abhebt. */
+        const val PLANE_HALO_FACTOR = 1.45f
+
+        /**
+         * Drehwinkel in Grad für ein nach Norden zeigendes Flugzeugsymbol, das
+         * in Fahrtrichtung [(dx), (dy)] zeigen soll. [dx] und [dy] sind
+         * Bildschirmkoordinaten, [dy] also nach unten positiv.
+         *
+         * Das Symbol zeigt nach oben, wird also um den Winkel gedreht, um den
+         * seine Nase von "oben" auf die Fahrtrichtung zeigt: Der Winkel zwischen
+         * (0, -1) und (dx, dy) ist genau `atan2(dx, -dy)`.
+         */
+        fun planeRotation(dx: Float, dy: Float): Float {
+            if (dx == 0f && dy == 0f) return 0f
+            return Math.toDegrees(atan2(dx.toDouble(), -dy.toDouble())).toFloat()
+        }
+
+        /**
+         * Punktindex in der Mitte einer Strecke aus [count] Punkten. Der Wert
+         * zeigt immer auf einen echten Punkt, ist also [ARC_POINTS] / 2 bei
+         * gleichmäßig verteilten Stützstellen.
+         */
+        fun mitte(count: Int): Int = count / 2
 
         /** Höchstzahl beschrifteter Städte je Kartenausschnitt. */
         const val CITY_LABEL_COUNT = 3
@@ -179,6 +211,15 @@ class RouteMiniMapView @JvmOverloads constructor(
     private val routePath = Path()
     private val borderPath = Path()
     private val badgeCollision = LabelCollision()
+    private val planeBounds = Rect()
+
+    /** Flugzeugsymbol auf der Strecke, umkreist von einem hellen Ring. */
+    private val plane by lazy {
+        ContextCompat.getDrawable(context, R.drawable.ic_flight)?.mutate()
+    }
+    private val planeHalo by lazy {
+        ContextCompat.getDrawable(context, R.drawable.ic_flight)?.mutate()
+    }
 
     /** Stadt mit entrolltem Längengrad, passend zur Kartenzentrale. */
     private class PlacedCity(val xLon: Double, val city: MapCity)
@@ -204,6 +245,8 @@ class RouteMiniMapView @JvmOverloads constructor(
             this, com.google.android.material.R.attr.colorOnPrimary
         )
         labelBgPaint.color = routePaint.color
+        plane?.setTint(routePaint.color)
+        planeHalo?.setTint(routeHaloPaint.color)
     }
 
     /**
@@ -257,6 +300,7 @@ class RouteMiniMapView @JvmOverloads constructor(
         drawBorders(canvas, projection)
         drawCities(canvas, projection, startRect, endRect)
         drawRoute(canvas, points, projection)
+        drawPlane(canvas, points, projection)
         drawBadges(canvas, points, projection, startRect, endRect)
         canvas.restore()
     }
@@ -407,6 +451,59 @@ class RouteMiniMapView @JvmOverloads constructor(
         }
         canvas.drawPath(routePath, routeHaloPaint)
         canvas.drawPath(routePath, routePaint)
+    }
+
+    /**
+     * Setzt ein Flugzeugsymbol auf die Mitte der Strecke, das in Fahrtrichtung
+     * zeigt: Von MUC nach BOS ist es nach rechts gedreht, auf dem Rückweg nach
+     * links.
+     *
+     * Die Richtung kommt aus der Tangente der Strecke an der Mittelstelle, also
+     * aus den Bildschirmkoordinaten des Stützpunkts davor und danach. Ein
+     * Abflug und Ziel an derselben Stelle liefern nur zwei Stützstellen und
+     * damit keine Tangente - dann bleibt die Strecke ohne Symbol.
+     */
+    private fun drawPlane(canvas: Canvas, points: FloatArray, projection: Projection) {
+        val drawable = plane ?: return
+        val count = points.size / 2
+        if (count < 3) return
+        val mitte = mitte(count)
+
+        val x = projection.x(points[mitte * 2].toDouble())
+        val y = projection.y(points[mitte * 2 + 1].toDouble())
+        val dx = projection.x(points[(mitte + 1) * 2].toDouble()) - projection.x(
+            points[(mitte - 1) * 2].toDouble()
+        )
+        val dy = projection.y(points[(mitte + 1) * 2 + 1].toDouble()) - projection.y(
+            points[(mitte - 1) * 2 + 1].toDouble()
+        )
+        if (dx == 0f && dy == 0f) return
+
+        val size = PLANE_SIZE_DP * density
+        val rotation = planeRotation(dx, dy)
+        planeHalo?.let { drawSymbol(canvas, it, x, y, size * PLANE_HALO_FACTOR, rotation) }
+        drawSymbol(canvas, drawable, x, y, size, rotation)
+    }
+
+    /** Zeichnet [drawable] quadratisch um ([x], [y]) herum, um [rotation] gedreht. */
+    private fun drawSymbol(
+        canvas: Canvas,
+        drawable: Drawable,
+        x: Float,
+        y: Float,
+        size: Float,
+        rotation: Float
+    ) {
+        val half = size / 2f
+        canvas.save()
+        canvas.rotate(rotation, x, y)
+        planeBounds.set(
+            (x - half).toInt(), (y - half).toInt(),
+            (x + half).toInt(), (y + half).toInt()
+        )
+        drawable.bounds = planeBounds
+        drawable.draw(canvas)
+        canvas.restore()
     }
 
     /**

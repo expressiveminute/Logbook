@@ -170,4 +170,81 @@ class CountryChecklistTest {
         assertTrue(island.checked)
         assertFalse(island.fromFlight)
     }
+
+    @Test
+    fun build_zeigtNurDieLaenderDesGewaehltenKontinents() {
+        // Weg von der Kontinent-Kachel zur Länderliste: Der Filter darf die
+        // übrigen Kontinente nicht mitnehmen.
+        val items = CountryChecklist.build(
+            countries = listOf(
+                country("DE", "Deutschland", "Germany"),
+                country("FR", "Frankreich", "France"),
+                country("US", "Vereinigte Staaten", "United States"),
+                country("JP", "Japan", "Japan")
+            ),
+            flightIso2 = setOf("DE"),
+            manualIso2 = emptySet(),
+            german = true,
+            collator = collator,
+            continent = Continents.EUROPE
+        )
+        assertEquals(listOf("DE", "FR"), items.map { it.iso2 })
+        // Der Zustand bleibt derselbe wie in der Liste aller Länder: Deutschland
+        // ist angeflogen und deshalb abgehakt, Japan hätte es auch.
+        assertTrue(items.first { it.iso2 == "DE" }.checked)
+        assertFalse(items.first { it.iso2 == "FR" }.checked)
+    }
+
+    @Test
+    fun build_ohneKontinentZeigtDieGanzeWelt() {
+        val laender = listOf(
+            country("DE", "Deutschland", "Germany"),
+            country("US", "Vereinigte Staaten", "United States")
+        )
+        val ganzWelt = CountryChecklist.build(laender, emptySet(), emptySet(), true, collator)
+        val ohneAngabe = CountryChecklist.build(
+            laender, emptySet(), emptySet(), true, collator, continent = null
+        )
+        val leereAngabe = CountryChecklist.build(
+            laender, emptySet(), emptySet(), true, collator, continent = "   "
+        )
+        assertEquals(listOf("DE", "US"), ganzWelt.map { it.iso2 })
+        assertEquals(ganzWelt, ohneAngabe)
+        assertEquals(ganzWelt, leereAngabe)
+    }
+
+    @Test
+    fun build_unbekannterKontinentZeigtNichts() {
+        // Lieber eine leere Seite als stillschweigend die ganze Welt - sonst
+        // wüsste der Nutzer nicht, warum die Kachel nicht zu ihrer Liste führt.
+        val items = CountryChecklist.build(
+            countries = listOf(country("DE", "Deutschland", "Germany")),
+            flightIso2 = emptySet(),
+            manualIso2 = emptySet(),
+            german = true,
+            collator = collator,
+            continent = Continents.UNKNOWN
+        )
+        assertTrue(items.isEmpty())
+    }
+
+    @Test
+    fun build_haeltDieZaehlerDerKachelnEin() {
+        // Die Kachel zeigt 3 von 54 in Europa, die Liste auf der Seite dazu
+        // muss dieselben Zahlen ergeben.
+        val asset = File("src/main/assets/${CountryShapes.ASSET}")
+        val laender = CountryShapes.parse(asset.readBytes())
+        val items = CountryChecklist.build(
+            countries = laender,
+            flightIso2 = setOf("DE", "FR", "IT"),
+            manualIso2 = emptySet(),
+            german = true,
+            collator = collator,
+            continent = Continents.EUROPE
+        )
+        val kachel = ContinentStats.build(laender, setOf("DE", "FR", "IT"))
+            .first { it.continent == Continents.EUROPE }
+        assertEquals(kachel.total, items.size)
+        assertEquals(kachel.visited, CountryChecklist.checkedCount(items))
+    }
 }

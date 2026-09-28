@@ -4,10 +4,17 @@ import java.time.LocalDate
 
 object LogbookCsv {
 
+    /**
+     * Spalten der CSV-Datei in fester Reihenfolge. Neue Spalten kommen
+     * hinten an: [fromCsv] liest sie ueber [List.getOrNull], sodael aeltere
+     * Dateien ohne die Spalte weiterhin gelesen werden und nur dort null
+     * bekommen.
+     */
     private val HEADER = listOf(
         "date", "flightType", "classType", "fromAirport", "toAirport",
         "airline", "flightNumber", "aircraftType", "registration",
-        "distanceKm", "flightMinutes", "layover", "comment", "function"
+        "distanceKm", "flightMinutes", "layover", "comment", "function",
+        "travelBuddy"
     )
 
     fun toCsv(entries: List<LogbookEntry>): String = buildString {
@@ -28,7 +35,8 @@ object LogbookCsv {
                     entry.flightMinutes?.toString().orEmpty(),
                     if (entry.layover) "1" else "0",
                     entry.comment.orEmpty(),
-                    entry.function.orEmpty()
+                    entry.function.orEmpty(),
+                    entry.travelBuddy.orEmpty()
                 ).joinToString(",") { escape(it) }
             )
         }
@@ -63,7 +71,8 @@ object LogbookCsv {
                 flightMinutes = fields.getOrNull(10)?.toIntOrNull(),
                 layover = fields.getOrNull(11) == "1",
                 comment = fields.getOrNull(12)?.nullIfBlank(),
-                function = fields.getOrNull(13)?.nullIfBlank()
+                function = fields.getOrNull(13)?.nullIfBlank(),
+                travelBuddy = fields.getOrNull(14)?.nullIfBlank()
             )
         }
         return entries

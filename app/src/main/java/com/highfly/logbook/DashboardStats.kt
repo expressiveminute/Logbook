@@ -134,6 +134,9 @@ object DashboardStats {
         val aircraftTypes = nonBlankCount(entries) { it.aircraftType }
         val countries = (entries.mapNotNull { it.toCountry }
             .filter { it.isNotBlank() }).distinct().size
+        // Die Kachel zählt die verschiedenen Buddies, nicht die Flüge: wer
+        // fünfmal mit derselben Person flog, ist ein Reisebuddy.
+        val buddies = TravelBuddyStats.build(entries).size
         val earthOrbits = distanceKm / earthCircumferenceKm
         val moonFlights = distanceKm / moonDistanceKm
 
@@ -150,6 +153,7 @@ object DashboardStats {
             "countries" to Value(formatInt(context, countries),
                 String.format(Locale.GERMANY, "(%s%%)",
                     formatInt(context, (countries * 100.0 / WORLD_COUNTRIES).toInt()))),
+            "reisebuddy" to Value(formatInt(context, buddies), null),
             "earthorbits" to Value(formatFactor(earthOrbits), "×"),
             "moon" to Value(formatFactor(moonFlights), "×"),
         )
@@ -162,6 +166,7 @@ object DashboardStats {
         "aircraftreg" -> nonBlankCount(entries) { it.aircraftType }
         "countries" -> (entries.mapNotNull { it.toCountry }
             .filter { it.isNotBlank() }).distinct().size
+        "reisebuddy" -> TravelBuddyStats.build(entries).size
         else -> -1
     }
 

@@ -66,6 +66,30 @@
                     android:inputType="textPersonName"
                     android:maxLines="1" />
             </com.google.android.material.textfield.TextInputLayout>
+
+            <!--
+                Sobald ein Name dasteht, zeigt diese Zeile ihn mittig an und
+                das Eingabefeld mit seinem Rahmen ist weg. Ein Klick hier holt
+                das Eingabefeld zurueck.
+            -->
+            <TextView
+                android:id="@+id/profile_name_display"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:clickable="true"
+                android:contentDescription="@string/profile_name_edit"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                android:gravity="center"
+                android:minHeight="48dp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:textAppearance="@style/TextAppearance.Material3.TitleLarge"
+                android:textStyle="bold"
+                android:visibility="gone"
+                tools:text="Joe Hardi"
+                tools:visibility="visible" />
         </LinearLayout>
 
         <!-- Profil -->

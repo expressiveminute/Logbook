@@ -297,6 +297,25 @@ class AddEntryFragment : Fragment() {
         refreshVisibility()
     }
 
+    /**
+     * Tippt man auf die schon gewählte Reiseklasse, ist sie wieder abgewählt:
+     * Die Reiseklasse ist freiwillig, und ein Versehen soll sich nicht durch die
+     * ganze Formularbedienung ziehen.
+     */
+    private fun toggleClass(index: Int) {
+        if (selectedClassIndex == index) clearClass() else selectClass(index)
+    }
+
+    private fun clearClass() {
+        selectedClassIndex = null
+        val highlight = binding.classHighlight
+        highlight.animate().cancel()
+        highlight.visibility = View.GONE
+        highlight.background = null
+        updateClassLabels(classLabels(), null)
+        refreshVisibility()
+    }
+
     private fun classTiles() = listOf(
         binding.tileClassEconomy,
         binding.tileClassPremiumEconomy,
@@ -315,9 +334,12 @@ class AddEntryFragment : Fragment() {
 
     private fun setupClassTiles() {
         configureHighlight(binding.classGroupFrame, binding.classHighlight, classTiles())
+        // Ohne Reiseklasse gibt es nichts zu markieren, deshalb startet der
+        // Rahmen ausgeblendet und bekommt erst beim Tippen eine Farbe.
+        binding.classHighlight.visibility = View.GONE
 
         classTiles().forEachIndexed { index, tile ->
-            tile.setOnClickListener { selectClass(index) }
+            tile.setOnClickListener { toggleClass(index) }
         }
         updateClassLabels(classLabels(), null)
     }
@@ -387,13 +409,15 @@ class AddEntryFragment : Fragment() {
         binding.etRegistration.setText(entry.registration)
 
         binding.etFunction.setText(entry.function)
+        binding.etTravelBuddy.setText(entry.travelBuddy)
         binding.etComment.setText(entry.comment)
 
         val hasOptional = listOf(
             entry.aircraftType,
             entry.registration,
             entry.comment,
-            entry.function
+            entry.function,
+            entry.travelBuddy
         ).any { !it.isNullOrBlank() }
         if (hasOptional) toggleOptionalBody(expanded = true)
         validateAirport(entry.fromAirport, binding.etAirportFrom, binding.ivAirportCheckFrom)
@@ -845,9 +869,15 @@ class AddEntryFragment : Fragment() {
         refreshVisibility()
     }
 
+    /**
+     * Blendet die Abschnitte des Formulars. Pflicht ist nur die Reiseart in der
+     * ersten Zeile, alles Weitere folgt daraus: Sobald eine Reiseart gewählt
+     * ist, erscheinen die Reiseklassen und mit ihnen die Felder für
+     * Fluggesellschaft, Flugnummer und Datum. Eine Reiseklasse muss nicht
+     * gewählt werden.
+     */
     private fun refreshVisibility() {
         val hasType = selectedFlightTypeIndex != null
-        val hasClass = selectedClassIndex != null
         val airline = binding.etAirline.text?.toString()?.trim().orEmpty()
         val flightNumber = binding.etFlightNumber.text?.toString()?.trim().orEmpty()
         val date = try {
@@ -873,9 +903,9 @@ class AddEntryFragment : Fragment() {
         } else true
 
         binding.classSection.visibility = if (hasType) View.VISIBLE else View.GONE
-        binding.detailsSection.visibility = if (hasType && hasClass) View.VISIBLE else View.GONE
+        binding.detailsSection.visibility = if (hasType) View.VISIBLE else View.GONE
 
-        val revealAirports = hasType && hasClass &&
+        val revealAirports = hasType &&
             airline.isNotEmpty() && flightNumber.isNotEmpty() && date
         binding.airportSection.visibility = if (revealAirports) View.VISIBLE else View.GONE
         binding.optionalSection.visibility = if (revealAirports) View.VISIBLE else View.GONE
@@ -888,7 +918,7 @@ class AddEntryFragment : Fragment() {
         binding.tvDistanceUnit.visibility = if (distance.isNotEmpty()) View.VISIBLE else View.GONE
         binding.tvFlightTimeMin.visibility = if (flightTime.isNotEmpty()) View.VISIBLE else View.GONE
 
-        val allRequired = hasType && hasClass && airline.isNotEmpty() && flightNumber.isNotEmpty() &&
+        val allRequired = hasType && airline.isNotEmpty() && flightNumber.isNotEmpty() &&
             date && returnDate && from.isNotEmpty() && to.isNotEmpty() &&
             distance.isNotEmpty() && flightTime.isNotEmpty()
 
@@ -944,8 +974,9 @@ class AddEntryFragment : Fragment() {
     private fun saveFlight() {
         val missingLabels = mutableListOf<String>()
 
+        // Die Reiseart ist die einzige Pflichtangabe. Ohne Reiseklasse wird der
+        // Eintrag ohne gespeichert, das Feld ist in der Datenbank auch nullable.
         if (selectedFlightTypeIndex == null) missingLabels += getString(R.string.flight_type_label)
-        if (selectedClassIndex == null) missingLabels += getString(R.string.class_label)
 
         val airline = binding.etAirline.text?.toString()?.trim().orEmpty()
         val flightNumber = binding.etFlightNumber.text?.toString()?.trim().orEmpty()
@@ -1004,6 +1035,9 @@ class AddEntryFragment : Fragment() {
         val comment = (if (returnActive) binding.etHinflugComment else binding.etComment)
             .text?.toString()?.trim()?.ifEmpty { null }
         val function = binding.etFunction.text?.toString()?.trim()?.ifEmpty { null }
+        // Mehrere Namen durch Komma in einem Feld: der Nutzer schreibt sie so
+        // hin, wie er sie kennt, TravelBuddyStats zerlegt den Text.
+        val travelBuddy = binding.etTravelBuddy.text?.toString()?.trim()?.ifEmpty { null }
 
         val entry = LogbookEntry(
             id = editingEntryId.takeIf { it >= 0 },
@@ -1022,6 +1056,7 @@ class AddEntryFragment : Fragment() {
             fromCountry = AirportData.country(requireContext(), from),
             toCountry = AirportData.country(requireContext(), to),
             function = function,
+            travelBuddy = travelBuddy,
             comment = comment
         )
         if (editingEntryId >= 0) {
@@ -1048,6 +1083,7 @@ class AddEntryFragment : Fragment() {
                 fromCountry = entry.toCountry,
                 toCountry = entry.fromCountry,
                 function = entry.function,
+                travelBuddy = entry.travelBuddy,
                 comment = binding.etRueckflugComment.text?.toString()?.trim()?.ifEmpty { null }
             )
             LogbookRepository.addEntry(returnEntry)

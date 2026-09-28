@@ -19,5 +19,11 @@ data class LogbookEntry(
     val fromCountry: String? = null,
     val toCountry: String? = null,
     val function: String? = null,
+    /**
+     * Mitgeflogene Reisebuddies als Freitext, mehrere Namen durch Komma
+     * getrennt. Freitext und keine Liste, weil der Nutzer die Namen so
+     * schreibt, wie er sie kennt; [TravelBuddyStats] zerlegt den Text.
+     */
+    val travelBuddy: String? = null,
     val comment: String? = null
 )

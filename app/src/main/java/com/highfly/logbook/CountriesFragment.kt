@@ -19,6 +19,10 @@ import java.util.Locale
  * Flugzeugsymbol, lassen sich aber nicht abwählen - sie stehen wegen der
  * Einträge auf der Karte. Alle anderen Länder kann der Nutzer selbst abhaken;
  * sie erscheinen dann ebenfalls auf der Karte.
+ *
+ * Mit dem Argument [ARG_CONTINENT] zeigt die Seite nur die Länder eines
+ * Kontinents und trägt dessen Namen als Überschrift. Das ist der Weg von den
+ * Kontinent-Kacheln unter der Rubbelkarte - dieselbe Liste, nur gefiltert.
  */
 class CountriesFragment : Fragment() {
 
@@ -27,6 +31,14 @@ class CountriesFragment : Fragment() {
 
     private lateinit var adapter: CountryChecklistAdapter
     private var loadGeneration = 0
+
+    /**
+     * Kontinent als Schlüssel aus [Continents], oder null für die ganze Welt.
+     * Aus den Argumenten gelesen, weil das Fragment auch nach einer
+     * Zustandswiederherstellung ohne Navigation neu aufgebaut werden kann.
+     */
+    private val continent: String?
+        get() = arguments?.getString(ARG_CONTINENT)?.trim()?.takeIf { it.isNotEmpty() }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -44,11 +56,48 @@ class CountriesFragment : Fragment() {
         adapter.onCheckedCountChanged = ::showCount
         binding.countriesList.adapter = adapter
         binding.countriesList.itemAnimator?.changeDuration = 0
+        // Ohne Filter steht "Länder" über der Liste, mit Filter der Kontinent.
+        binding.tvCountriesTitle.setText(
+            continent?.let { Continents.nameRes(it) } ?: R.string.countries_title
+        )
     }
 
     override fun onResume() {
         super.onResume()
         load()
+    }
+
+    /**
+     * Die Länderliste hängt sich an die Meldung über Änderungen an. Ein Tipp
+     * in der anderen Liste - dem Kontinent hier oder der mit allen Ländern -
+     * soll hier ohne Umweg über das Zurückkommen sichtbar werden.
+     *
+     * Angemeldet wird im [onStart] und abgemeldet im [onStop], solange die Seite
+     * wirklich sichtbar ist: [Settings.addManualCountriesListener] hält die Seite
+     * nur schwach, trotzdem soll sie im Hintergrund nichts mehr laden.
+     */
+    private val onManualCountriesChanged: () -> Unit = { if (isAdded && !ownChange) load() }
+
+    /**
+     * Steht, während diese Seite selbst etwas abgehakt hat. Sie trägt den
+     * Tipp mit [CountryChecklistAdapter.replace] selbst ein und darf sich dafür
+     * nicht zusätzlich die ganze Liste neu laden - das würde die Liste springen
+     * lassen und jeden Tipp spürbar machen. Die Meldung selbst ist synchron,
+     * die Sperre ist also zuverlässig weg, bevor [toggle] endet.
+     */
+    private var ownChange = false
+
+    override fun onStart() {
+        super.onStart()
+        Settings.addManualCountriesListener(onManualCountriesChanged)
+    }
+
+    override fun onStop() {
+        Settings.removeManualCountriesListener(onManualCountriesChanged)
+        // Läuft noch ein Ladevorgang, kommt sein Ergebnis nicht mehr in eine
+        // Seite, die niemand mehr sieht.
+        loadGeneration++
+        super.onStop()
     }
 
     /**
@@ -60,6 +109,7 @@ class CountriesFragment : Fragment() {
         val generation = ++loadGeneration
         val appContext = requireContext().applicationContext
         val locale = resources.configuration.locales[0]
+        val continent = continent
 
         Thread {
             val shapes = CountryShapes.load(appContext)
@@ -72,7 +122,8 @@ class CountriesFragment : Fragment() {
                     flightIso2 = flightIso2,
                     manualIso2 = Settings.getManualCountries(appContext),
                     german = useGermanNames(locale),
-                    collator = Collator.getInstance(locale)
+                    collator = Collator.getInstance(locale),
+                    continent = continent
                 )
             }
             view?.post {
@@ -88,7 +139,8 @@ class CountriesFragment : Fragment() {
         binding.tvCountriesEmpty.visibility = if (hasCountries) View.GONE else View.VISIBLE
         adapter.submit(items.orEmpty())
         // Ohne Länder steht unter der Überschrift nichts, "0 von 0 Ländern"
-        // wäre nur eine Fehlermeldung in Zahlensprache.
+        // wäre nur eine Fehlermeldung in Zahlensprache. Ein Kontinent ganz ohne
+        // gelistete Länder ist ebenfalls möglich, dann bleibt die Liste leer.
         if (!hasCountries) binding.tvCountriesSubtitle.text = ""
     }
 
@@ -107,7 +159,12 @@ class CountriesFragment : Fragment() {
         val context = requireContext().applicationContext
         val manual = Settings.getManualCountries(context)
         val updated = if (item.checked) manual - item.iso2 else manual + item.iso2
-        Settings.setManualCountries(context, updated)
+        ownChange = true
+        try {
+            Settings.setManualCountries(context, updated)
+        } finally {
+            ownChange = false
+        }
         adapter.replace(item.copy(checked = !item.checked))
     }
 
@@ -119,5 +176,10 @@ class CountriesFragment : Fragment() {
         super.onDestroyView()
         loadGeneration++
         _binding = null
+    }
+
+    companion object {
+        /** Name des Navigationsarguments, siehe `nav_graph.xml`. */
+        const val ARG_CONTINENT = "continent"
     }
 }
