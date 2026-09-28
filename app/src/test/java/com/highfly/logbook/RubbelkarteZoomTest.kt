@@ -17,11 +17,15 @@ class RubbelkarteZoomTest {
     fun zuschlagenStopsAmOberenAnschlag() {
         // Ein Finger auseinandergespreizt meldet viele Schritte hintereinander,
         // jeder einzelne darf die Kugel nicht weiter hinaus schieben.
-        assertEquals(1.35f, RubbelkarteView.clampZoom(2.5f), 0f)
+        assertEquals(
+            RubbelkarteView.ZOOM_MAX,
+            RubbelkarteView.clampZoom(RubbelkarteView.ZOOM_MAX + 1f),
+            0f
+        )
         var zoom = 1f
         repeat(200) { zoom = RubbelkarteView.clampZoom(zoom * 1.1f) }
 
-        assertEquals(1.35f, zoom, 1e-6f)
+        assertEquals(RubbelkarteView.ZOOM_MAX, zoom, 1e-6f)
     }
 
     @Test
@@ -166,5 +170,119 @@ class RubbelkarteZoomTest {
         assertEquals(true, RubbelkarteView.weichtAb(0.0, Double.NaN, 0f))
         assertEquals(true, RubbelkarteView.weichtAb(Double.POSITIVE_INFINITY, 0.0, 0f))
         assertEquals(true, RubbelkarteView.weichtAb(0.0, 0.0, Float.NaN))
+    }
+
+    @Test
+    fun beschriftungenBrauchenZoomUndLiegenAufDerKugel() {
+        // Ohne genug Zoom gibt es keine Beschriftung, sonst stünde der Name
+        // eines Landes in Schriftgroesse ueber einem Kontinent, in dem man
+        // gerade nichts erkennt.
+        assertEquals(true, RubbelkarteView.ZOOM_LABELS > RubbelkarteView.ZOOM_MIN)
+        assertEquals(true, RubbelkarteView.ZOOM_STAEDTE > RubbelkarteView.ZOOM_LABELS)
+        // Sonst waeren die Städte unerreichbar: Der obere Anschlag muess-te
+        // ueber beiden Schwellen liegen.
+        assertEquals(true, RubbelkarteView.ZOOM_MAX > RubbelkarteView.ZOOM_STAEDTE)
+        // Der Doppeltipp soll wenigstens die Ländernamen erreichen, sonst
+        // waere die Geste bis zu den Städten der einzige Weg dorthin.
+        assertEquals(
+            true,
+            RubbelkarteView.ZOOM_DOPPELTIPP >= RubbelkarteView.ZOOM_LABELS
+        )
+    }
+
+    @Test
+    fun zuBreiterNamePasstNichtInsLand() {
+        // Ein Land, das schmaler ist als sein eigener Name, bekommt keinen.
+        // Sonst stünde der Name ueber den Kartenrand hinaus.
+        assertEquals(
+            null,
+            RubbelkarteView.labelRechteck(
+                textBreite = 200f,
+                textHoehe = 14f,
+                ankerX = 500f,
+                ankerY = 500f,
+                landBreite = 120f,
+                landHoehe = 300f,
+                rand = 3f
+            )
+        )
+    }
+
+    @Test
+    fun zuHohesLandPasstNicht() {
+        // Ein sehr flaches Land, etwa eine Insel im Meer, kann keinen Namen
+        // tragen, egal wie breit es ist.
+        assertEquals(
+            null,
+            RubbelkarteView.labelRechteck(
+                textBreite = 60f,
+                textHoehe = 14f,
+                ankerX = 500f,
+                ankerY = 500f,
+                landBreite = 300f,
+                landHoehe = 10f,
+                rand = 3f
+            )
+        )
+    }
+
+    @Test
+    fun passenderNameLiegtMittigAufDemAnker() {
+        val rect = RubbelkarteView.labelRechteck(
+            textBreite = 60f,
+            textHoehe = 14f,
+            ankerX = 500f,
+            ankerY = 500f,
+            landBreite = 300f,
+            landHoehe = 200f,
+            rand = 3f
+        )
+        assertEquals(470f, rect!![0], 0.01f)
+        assertEquals(493f, rect[1], 0.01f)
+        assertEquals(530f, rect[2], 0.01f)
+        assertEquals(507f, rect[3], 0.01f)
+        // Der Anker ist die Mitte: Genau dort liegt der Name, was bei einem
+        // langen Land wie Chile den Unterschied zwischen Landmitte und
+        // Ankerpunkt ausmacht.
+        assertEquals(500f, (rect[0] + rect[2]) / 2f, 0.01f)
+        assertEquals(500f, (rect[1] + rect[3]) / 2f, 0.01f)
+    }
+
+    @Test
+    fun randUmDenNameBleibtAmRandDesLandes() {
+        // Genau auf der Grenze: Der Name passt ohne Rand, mit Rand nicht mehr.
+        // Diese eine dp entscheidet darueber, ob der Name gesetzt wird.
+        val ohneRand = RubbelkarteView.labelRechteck(
+            textBreite = 60f, textHoehe = 14f, ankerX = 50f, ankerY = 50f,
+            landBreite = 60f, landHoehe = 40f, rand = 0f
+        )
+        assertEquals(true, ohneRand != null)
+        assertEquals(
+            null,
+            RubbelkarteView.labelRechteck(
+                textBreite = 60f, textHoehe = 14f, ankerX = 50f, ankerY = 50f,
+                landBreite = 60f, landHoehe = 40f, rand = 1f
+            )
+        )
+    }
+
+    @Test
+    fun leereTextmasseErgibtKeinenNamen() {
+        // Ein leerer Name (etwa weil die Sprache einen Namen nicht fuehrt)
+        // darf keine Nullbreite erzeugen, die als passend gewertet wuerde.
+        assertEquals(
+            null,
+            RubbelkarteView.labelRechteck(
+                textBreite = 0f, textHoehe = 14f, ankerX = 50f, ankerY = 50f,
+                landBreite = 300f, landHoehe = 200f, rand = 3f
+            )
+        )
+        assertEquals(
+            null,
+            RubbelkarteView.labelRechteck(
+                textBreite = 60f, textHoehe = 0f, ankerX = 50f, ankerY = 50f,
+                landBreite = 300f, landHoehe = 200f, rand = 3f
+            )
+        )
     }
 }

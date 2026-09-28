@@ -80,55 +80,121 @@ class RubbelkarteView @JvmOverloads constructor(
         private const val ZERO_EPS = 1e-9
 
         /** Deckkraft des Halos hinter dem eingeblendeten Ländernamen. */
-        private const val NAME_HALO_ALPHA = 160
+        private const val NAME_HALO_ALPHA = 210
 
         /**
-         * Deckkraft des Ländernamens nach einem Tipp. Er ist eine Angabe zum
-         * Bild, kein Beschriftungsschild: Er soll den Blick nicht vom Land
-         * weglenken, deshalb bleibt er unter der vollen Deckkraft.
+         * Deckkraft der bereits erledigten Länder. Sie werden mit der
+         * Akzentfarbe gezeichnet, damit sie sich von den offenen Ländern
+         * abheben; mit dieser Deckkraft treten sie zurück und die offenen
+         * Länder fallen mehr auf. Die Konturlinien bleiben ungedimmt.
          */
-        private const val NAME_ALPHA = 185
-
-        /**
-         * Wie stark die bereits erledigten Länder zurücktreten, als Anteil
-         * Schwarz in ihrer Fläche.
-         *
-         * Ihre Farbe ist ein neutrales Grau, kein Farbton: Die Akzentfarbe zog
-         * den Blick auf sich, gleichgültig wie dunkel sie gemischt war, und ein
-         * kräftiger Farbton auf einer Karte wirkt immer wie eine Markierung.
-         *
-         * Das Grau ist nicht fest gewählt, sondern aus der Farbe des offenen
-         * Landes abgeleitet und dann um [VISITED_DIM] abgedunkelt. So ist es in
-         * beiden Designs dunkler als das offene Land - das ist im hellen Design
-         * fast weiss, im dunklen ein dunkles Schiefergrau - und der Abstand
-         * bleibt in beiden gleich.
-         *
-         * Über die Deckkraft der Fläche ging es nicht: Je geringer sie war, desto
-         * mehr schimmert das helle Wasser durch, und im hellen Design ist das
-         * Wasser fast so hell wie ein offenes Land.
-         *
-         * [VISITED_RAND_ALPHA] gehört dazu: Auf der dunklen Fläche stünde der
-         * ungedimmte Umriss als heller Saum darum und liefe dem Dämpfen zuwider.
-         */
-        private const val VISITED_DIM = 0.8f
-        private const val VISITED_RAND_ALPHA = 40
+        private const val VISITED_ALPHA = 140
 
         /** Wie lange der Name eines angetippten Landes stehen bleibt. */
         private const val NAME_ANZEIGE_MS = 2600L
+
+        /**
+         * Radius der Punkte auf der Kugel, einmal als Anteil der kleineren
+         * Bildschirmseite und einmal als Untergrenze in dp. Der Anteil gilt bei
+         * einem Telefon im Hochformat, die dp-Grenze fängt sehr kleine Karten
+         * ab, auf denen der Punkt sonst ganz verschwände.
+         *
+         * Bewusst klein gewählt: Der Punkt muss auf der ganzen Kugel sichtbar
+         * sein, ohne die Länder zu überdecken, und dicht beieinander liegende
+         * Punkte sollen als einzelne Marken lesbar bleiben.
+         */
+        private const val PUNKT_ANTEIL = 0.0032f
+        private const val PUNKT_MIN_DP = 1.0f
+
+        /** Weisser Ring um den Punkt, als Vielfaches von [PUNKT_ANTEIL]. */
+        private const val PUNKT_RING = 2f
+
+        /** Schwarzer Punkt selbst, als Vielfaches von [PUNKT_ANTEIL]. */
+        private const val PUNKT_INNEN = 1.3f
 
         /** Abstand des Namens vom Rand der Karte. */
         private const val NAME_RAND_DP = 8f
 
         /**
-         * Zoombereich der Kugel. [ZOOM_MAX] ist bewusst klein gewählt: bei
-         * 1,35 ragt der Kugelrand bereits über die Seitenränder, mehr Verdeckung
-         * bringt der Karte nichts, zeigt aber nur noch Wasser.
+         * Zoombereich der Kugel.
+         *
+         * Der obere Anschlag liegt bewusst weit draussen. Die Kugel ist eine
+         * Weltkugel: Bei [ZOOM_MIN] sieht man Kontinente, und erst wenn ein Land
+         * gross genug auf dem Bildschirm steht, lohnt sich sein Name, erst wenn
+         * man weit genug hineinzoomt, sind einzelne Städte mehr als ein Punkt.
+         * Ohne dieses Zoombereich wären beide Beschriftungen unerreichbar.
          */
         const val ZOOM_MIN = 1f
-        const val ZOOM_MAX = 1.35f
+        const val ZOOM_MAX = 4f
+
+        /**
+         * Ab dieser Zoomstufe bekommen die Länder ihren Namen, aber nur wo er
+         * ohne Probleme in das Land passt, siehe [labelRechteck].
+         */
+        const val ZOOM_LABELS = 1.8f
+
+        /**
+         * Ab dieser Zoomstufe kommen die Städte dazu. Bewusst deutlich über
+         * [ZOOM_LABELS]: Hauptstadt und zwei, drei weitere Städte eines Landes
+         * stehen erst dann weit genug auseinander, um lesbar zu bleiben.
+         */
+        const val ZOOM_STAEDTE = 2.8f
 
         /** Ziel des Doppeltipps, erneutes Tippen zoomt wieder heraus. */
-        const val ZOOM_DOPPELTIPP = 1.25f
+        const val ZOOM_DOPPELTIPP = 1.8f
+
+        /**
+         * Freier Rand zwischen Ländername und Küste in dp. Ohne ihn klebt der
+         * Name an der Grenze und wirkt eher angeschnitten als gesetzt.
+         */
+        const val LABEL_RAND_DP = 3f
+
+        /** Schriftgrössen der Beschriftungen auf der Kugel. */
+        private const val LABEL_TEXT_SP = 11f
+        private const val STADT_TEXT_SP = 8.5f
+
+        /**
+         * Höchstzahl der beschrifteten Städte auf der ganzen Kugel. Zusammen
+         * mit [STADT_PRO_LAND] ist das die Bremse gegen eine zu volle Karte:
+         * Wer einen ganzen Kontinent vor sich hat, soll nicht zwanzig
+         * Stadtnamen gleichzeitig lesen müssen.
+         */
+        private const val STADT_MAX = 12
+
+        /**
+         * Städte je Land: eine Hauptstadt und so viele weitere grosse Städte,
+         * wie hier Platz vorgesehen sind.
+         */
+        private const val STADT_PRO_LAND = 3
+
+        /**
+         * Ab diesem Rang gilt eine Stadt als gross genug für eine Beschriftung,
+         * wenn sie keine Hauptstadt ist. Rang 0 ist die grösste Stadt des Landes,
+         * 1 die zweitgrösste.
+         */
+        private const val STADT_RANG = 1
+
+        /**
+         * Kleinste Kantenlänge eines Landes in dp, ab der es überhaupt Städte
+         * bekommt. Darunter ist ein Land nur ein Fleck, und der Name seiner
+         * Hauptstadt stünde eher daneben als darin.
+         */
+        private const val STADT_MIN_LAND_DP = 28f
+
+        /** Abstand zwischen Punkt und Städtename in dp. */
+        private const val STADT_ABSTAND_DP = 2.5f
+
+        /** Radius des Punktes vor einem Städtenamen in dp. */
+        private const val STADT_PUNKT_DP = 1.5f
+
+        /**
+         * Zeilen, auf denen ein Städtename sitzen darf: erst neben seinem Punkt,
+         * dann eine halbe Texthöhe darüber, dann eine halbe darunter. Zwei
+         * Ausweichversuche reichen, weil die Ländernamen wenig Platz lassen;
+         * ein dritter würde einen Namen nur so weit von seinem Punkt wegschieben,
+         * dass er niemandem mehr zugehört.
+         */
+        private val STADT_AUSWEICH = floatArrayOf(0f, -1.6f, 1.6f)
 
         /**
          * Hält den Zoombereich ein, auch wenn das Wischen danebenliegt.
@@ -139,6 +205,39 @@ class RubbelkarteView @JvmOverloads constructor(
          */
         fun clampZoom(wert: Float): Float =
             if (wert.isFinite()) wert.coerceIn(ZOOM_MIN, ZOOM_MAX) else ZOOM_MIN
+
+        /**
+         * Rechteck, in dem der Name eines Landes stehen müsste, oder `null`,
+         * wenn er so gross ist, dass er in das Land auch an günstigster Stelle
+         * nicht passt.
+         *
+         * Der Anker ist der vom Land selbst benannte Punkt
+         * (`CountryShapes.Country.labelLat`/`labelLon`), nicht der Mittelpunkt der
+         * Hülle: Bei einem langen Land wie Chile liegt die Mitte weit draussen
+         * im Pazifik, der Anker dagegen im Land.
+         *
+         * Bewusst ohne `RectF` und ohne `Region`, damit die Regel im
+         * Unit-Test nachvollziehbar bleibt. Die Prüfung, ob das Rechteck
+         * tatsächlich im Landumriss liegt, braucht dagegen den aufgelösten Pfad
+         * und passiert deshalb erst beim Aufbau, siehe [passtInLand].
+         */
+        @JvmStatic
+        fun labelRechteck(
+            textBreite: Float,
+            textHoehe: Float,
+            ankerX: Float,
+            ankerY: Float,
+            landBreite: Float,
+            landHoehe: Float,
+            rand: Float
+        ): FloatArray? {
+            if (textBreite <= 0f || textHoehe <= 0f) return null
+            if (textBreite + 2f * rand > landBreite) return null
+            if (textHoehe + 2f * rand > landHoehe) return null
+            val links = ankerX - textBreite / 2f
+            val oben = ankerY - textHoehe / 2f
+            return floatArrayOf(links, oben, links + textBreite, oben + textHoehe)
+        }
 
         /**
          * Index eines Zeigers im Ereignis _nach_ einem `ACTION_POINTER_UP`.
@@ -239,7 +338,34 @@ class RubbelkarteView @JvmOverloads constructor(
         val name: String,
         val path: Path,
         val bounds: RectF,
-        val visited: Boolean
+        val visited: Boolean,
+        /**
+         * Rechteck für den Ländernamen als `[links, oben, rechts, unten]`,
+         * gesetzt nur wenn er ohne Überstand in das Land passt. `null` heisst
+         * "kein Name": Ob einer gesetzt wird, entscheidet der Aufbau, nicht das
+         * Zeichnen, weil dafür der Landumriss aufgelöst werden muss.
+         */
+        val label: FloatArray?,
+
+        /**
+         * Beschriftete Städte dieses Landes, siehe [fuelleStaedte].
+         *
+         * Steht als `var` und nicht als Konstruktorargument: Die Städte zu einem
+         * Land ergeben sich erst, wenn alle Länder aufgebaut sind, weil man
+         * dafür in die Umrisse der Nachbarn sehen muss. Sonst müsste jeder der
+         * rund 200 Länderpfade zweimal gebaut werden.
+         */
+        var staedte: List<Stadt> = emptyList()
+    ) {
+        val hatLabel: Boolean get() = label != null
+    }
+
+    /** Stadt auf der Kugel mit vorbereitetem Namen und Position. */
+    private class Stadt(
+        val name: String,
+        val x: Float,
+        val y: Float,
+        val hauptstadt: Boolean
     )
 
     /** Besuchter Flughafen als Punkt auf der Karte. */
@@ -258,7 +384,15 @@ class RubbelkarteView @JvmOverloads constructor(
         val globe: GeoMath.Globe,
         val cx: Float,
         val cy: Float,
-        val radius: Float
+        val radius: Float,
+        /**
+         * Grösse der Zeichenfläche. Steht hier, weil [baueLabel] einen Namen
+         * auch davon abhängt, ob er ganz auf dem Bildschirm liegt: Bei
+         * [ZOOM_MAX] reicht die Kugel weit über den Rand hinaus, und ein Name
+         * dicht an der Kante wäre abgeschnitten.
+         */
+        val viewBreite: Float,
+        val viewHoehe: Float
     )
 
     private val density get() = resources.displayMetrics.density
@@ -273,13 +407,6 @@ class RubbelkarteView @JvmOverloads constructor(
         color = if (isDarkTheme) Color.rgb(48, 60, 72) else Color.rgb(228, 231, 224)
     }
     private val visitedPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-
-    /** Umriss der erledigten Länder, gegenüber dem der offenen abgeschwächt. */
-    private val visitedBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.STROKE
-        strokeJoin = Paint.Join.ROUND
-        strokeWidth = 0.7f * density
-    }
     private val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeJoin = Paint.Join.ROUND
@@ -305,12 +432,70 @@ class RubbelkarteView @JvmOverloads constructor(
         textSize = namePaint.textSize
     }
 
+    /**
+     * Farbträger der Beschriftungen. Eigene Paints, weil [namePaint] für den
+     * viel grösseren Namen an der Tippmarke zuständig ist und beim Aufbau
+     * gemessen wird - und weil der Aufbau-Thread nicht an einen Paint darf,
+     * den der Zeichen-Thread gerade benutzt.
+     */
+    private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        isFakeBoldText = true
+        textSize = sp(LABEL_TEXT_SP)
+    }
+    private val labelHaloPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeJoin = Paint.Join.ROUND
+        strokeCap = Paint.Cap.ROUND
+        strokeWidth = 2f * density
+        textSize = labelPaint.textSize
+    }
+    private val stadtPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        textSize = sp(STADT_TEXT_SP)
+    }
+
+    /** Wie [stadtPaint], aber fett - damit die Hauptstadt hervortritt. */
+    private val stadtFettPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        isFakeBoldText = true
+        textSize = sp(STADT_TEXT_SP)
+    }
+    private val stadtHaloPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeJoin = Paint.Join.ROUND
+        strokeCap = Paint.Cap.ROUND
+        strokeWidth = 2f * density
+        textSize = stadtPaint.textSize
+    }
+
+    /** Punkt vor einem Städtenamen, mit Halo in der Farbe des Textes. */
+    private val stadtPunktPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val stadtPunktHaloPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 2f * density
+    }
+
+    /** Farbe des Halos hinter den Beschriftungen, siehe [nameHaloPaint]. */
+    private var labelHaloColor = Color.TRANSPARENT
+
+    private fun sp(wert: Float): Float = TypedValue.applyDimension(
+        TypedValue.COMPLEX_UNIT_SP, wert, resources.displayMetrics
+    )
+
     private val clipPath = Path()
 
     /** Nur zum Aufspüren des Landes unter dem Finger, siehe [landAt]. */
     private val hitClip = Region()
     private val hitRegion = Region()
     private val runPath = Path()
+
+    /**
+     * Zum Prüfen von Namen und Städten gegen den Landumriss, gehören dem
+     * Aufbau-Thread. Eigene Regionen, weil [hitClip]/[hitRegion] dem
+     * Zeichen-Thread gehören und unter dem Finger stehen: Ein Aufbau, der
+     * während eines Tippens die Region überschreibt, liest dort plötzlich das
+     * Land unter dem Finger - oder gar keins.
+     */
+    private val labelClip = Region()
+    private val labelRegion = Region()
 
     /** Zielpuffer für [project], gehört dem Zeichen-Thread. */
     private val projected = FloatArray(2)
@@ -428,32 +613,26 @@ class RubbelkarteView @JvmOverloads constructor(
     )
 
     init {
-        // Die erledigten Länder bekommen kein Grau aus dem Theme, sondern das
-        // offene Land selbst, abgedunkelt: Das offene Land ist im hellen Design
-        // fast weiss und im dunklen ein dunkles Schiefergrau, ein festes Grau
-        // wäre in einem der beiden Designs entweder zu hell oder unsichtbar.
-        visitedPaint.color = ColorUtils.blendARGB(
-            unvisitedPaint.color, Color.BLACK, VISITED_DIM
+        visitedPaint.color = MaterialColors.getColor(
+            this, com.google.android.material.R.attr.colorPrimary
         )
+        visitedPaint.alpha = VISITED_ALPHA
         val outline = MaterialColors.getColor(
             this, com.google.android.material.R.attr.colorOutlineVariant
         )
         borderPaint.color = outline
-        visitedBorderPaint.color = outline
-        visitedBorderPaint.alpha = VISITED_RAND_ALPHA
         rimPaint.color = outline
         val nameColor = MaterialColors.getColor(
             this, com.google.android.material.R.attr.colorOnPrimary
         )
         namePaint.color = nameColor
-        namePaint.alpha = NAME_ALPHA
         // Der Halo muss die Gegenfarbe zur Schrift sein, sonst tut er nichts und
         // verbreitert die Buchstaben nur. Er trennt den Namen auch dort vom
         // Hintergrund, wo er über Wasser oder über den Kartenrand ragt. Über
         // die Schrift entscheidet die Helligkeit, nicht die Tag-/Nachteinstellung:
         // Braun, Türkis und Magenta haben helle Zielfarben mit dunkler Schrift,
         // das Standardthema ist es umgekehrt.
-        nameHaloPaint.color = ColorUtils.setAlphaComponent(
+        labelHaloColor = ColorUtils.setAlphaComponent(
             if (ColorUtils.calculateLuminance(nameColor) > 0.5f) {
                 Color.rgb(12, 16, 24)
             } else {
@@ -461,6 +640,14 @@ class RubbelkarteView @JvmOverloads constructor(
             },
             NAME_HALO_ALPHA
         )
+        nameHaloPaint.color = labelHaloColor
+        labelPaint.color = nameColor
+        labelHaloPaint.color = labelHaloColor
+        stadtPaint.color = nameColor
+        stadtFettPaint.color = nameColor
+        stadtHaloPaint.color = labelHaloColor
+        stadtPunktPaint.color = nameColor
+        stadtPunktHaloPaint.color = labelHaloColor
         touchSlop = ViewConfiguration.get(context).scaledTouchSlop.toFloat()
     }
 
@@ -567,12 +754,9 @@ class RubbelkarteView @JvmOverloads constructor(
             canvas.drawPath(shape.path, if (shape.visited) visitedPaint else unvisitedPaint)
         }
         for (shape in list) {
-            // Der Umriss der erledigten Länder ist mitgedimmt - auf der
-            // dunklen Fläche stünde er sonst als heller Saum darum.
-            canvas.drawPath(
-                shape.path, if (shape.visited) visitedBorderPaint else borderPaint
-            )
+            canvas.drawPath(shape.path, borderPaint)
         }
+        drawBeschriftung(canvas)
         drawAirports(canvas)
         drawName(canvas)
         canvas.restore()
@@ -599,7 +783,14 @@ class RubbelkarteView @JvmOverloads constructor(
         val centerLat = (center?.second ?: DEFAULT_CENTER_LAT).coerceIn(-60.0, 70.0)
         val lonRad = Math.toRadians(centerLon) + userLonRad
         val latRad = (Math.toRadians(centerLat) + userLatRad).coerceIn(-HALF_PI, HALF_PI)
-        return GlobeState(GeoMath.Globe(lonRad, latRad), cx, cy, radius)
+        return GlobeState(
+            globe = GeoMath.Globe(lonRad, latRad),
+            cx = cx,
+            cy = cy,
+            radius = radius,
+            viewBreite = width.toFloat(),
+            viewHoehe = height.toFloat()
+        )
     }
 
     /**
@@ -753,20 +944,90 @@ class RubbelkarteView @JvmOverloads constructor(
     }
 
     private fun drawAirports(canvas: Canvas) {
-        val dot = max(1.6f * density, min(width, height) * 0.006f)
+        val dot = max(PUNKT_MIN_DP * density, min(width, height) * PUNKT_ANTEIL)
         for (point in points) {
             val pos = project(point.lat, point.lon) ?: continue
             // Schwarzer Punkt mit weißem Ring: der Ring trennt ihn vom Wasser,
             // das im dunklen Design selbst fast schwarz ist.
-            canvas.drawCircle(pos[0], pos[1], dot * 2f, airportHaloPaint)
-            canvas.drawCircle(pos[0], pos[1], dot * 1.3f, airportPaint)
+            canvas.drawCircle(pos[0], pos[1], dot * PUNKT_RING, airportHaloPaint)
+            canvas.drawCircle(pos[0], pos[1], dot * PUNKT_INNEN, airportPaint)
         }
     }
 
     /**
+     * Zeichnet die Ländernamen und darunter die Städte.
+     *
+     * Die Länder kommen zuerst und unbedingt: Ihr Name ist der grösste Text auf
+     * der Karte und der Grund, warum man hereingezoomt hat. Ein Städtename, der
+     * damit kollidiert, weicht aus oder fällt weg - andersherum wäre es der
+     * Ländername, der verschwindet, und die Karte verlöre ihre Orientierung.
+     *
+     * Das Rechteck des Ländernamens steht schon im [Shape]: Dort wurde es
+     * gegen den Landumriss geprüft und damit zugleich gegen den Kartenrand. Hier
+     * wird nur noch der Mittelpunkt zur Grundlinie gemacht, weil `drawText` an
+     * der Grundlinie zeichnet, das Rechteck aber mittig um den Text liegt.
+     */
+    private fun drawBeschriftung(canvas: Canvas) {
+        if (zoom < ZOOM_LABELS) return
+        val belegt = ArrayList<FloatArray>(16)
+        for (shape in shapes) {
+            val label = shape.label ?: continue
+            val grundlinie = (label[1] + label[3]) / 2f - grundlinienVersatz(labelPaint)
+            canvas.drawText(shape.name, label[0], grundlinie, labelHaloPaint)
+            canvas.drawText(shape.name, label[0], grundlinie, labelPaint)
+            belegt.add(label)
+        }
+        if (zoom < ZOOM_STAEDTE) return
+        val metrics = stadtPaint.fontMetrics
+        val textHoehe = metrics.descent - metrics.ascent
+        val abstand = STADT_ABSTAND_DP * density
+        val punktRadius = STADT_PUNKT_DP * density
+        for (shape in shapes) {
+            for (stadt in shape.staedte) {
+                // Die Hauptstadt wird fett gesetzt: Sie ist der Anker, an dem
+                // man ein Land auf der Kugel wiedererkennt.
+                val textPaint = if (stadt.hauptstadt) stadtFettPaint else stadtPaint
+                val textBreite = textPaint.measureText(stadt.name)
+                // Der Punkt gehört mit zur Beschriftung: Ein Name, der auf einen
+                // Punkt zeigt, ist ohne den Zusammenhang einem anderen Land
+                // zuzuordnen.
+                for (versatz in STADT_AUSWEICH) {
+                    val y = stadt.y + versatz * textHoehe
+                    val rect = floatArrayOf(
+                        stadt.x - punktRadius - 1f,
+                        y - textHoehe / 2f - abstand / 2f,
+                        stadt.x + abstand + textBreite,
+                        y + textHoehe / 2f + abstand / 2f
+                    )
+                    if (belegt.any { ueberlappt(it, rect) }) continue
+                    belegt.add(rect)
+                    val grundlinie = y - grundlinienVersatz(stadtPaint)
+                    canvas.drawText(stadt.name, stadt.x + abstand, grundlinie, stadtHaloPaint)
+                    canvas.drawText(stadt.name, stadt.x + abstand, grundlinie, textPaint)
+                    // Der Punkt bekommt denselben Halo wie der Text, sonst stünde
+                    // ein winziger Punkt ohne Anschluss an seinem Namen.
+                    canvas.drawCircle(stadt.x, stadt.y, punktRadius, stadtPunktHaloPaint)
+                    canvas.drawCircle(stadt.x, stadt.y, punktRadius, stadtPunktPaint)
+                    break
+                }
+            }
+        }
+    }
+
+    /** Versatz der Grundlinie zur Mitte des Textes. */
+    private fun grundlinienVersatz(paint: Paint): Float {
+        val metrics = paint.fontMetrics
+        return (metrics.ascent + metrics.descent) / 2f
+    }
+
+    /** Überschneiden sich zwei Beschriftungsrechtecke? */
+    private fun ueberlappt(a: FloatArray, b: FloatArray): Boolean =
+        a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3]
+
+    /**
      * Blendet den Namen des angetippten Landes über der Tippmarke ein. Ohne
-     * Tippen bleibt die Karte schriftfrei, deshalb wird hier nichts geprüft und
-     * nichts reserviert.
+     * Tippen bleibt die Karte an dieser Stelle schriftfrei, deshalb wird hier
+     * nichts geprüft und nichts reserviert.
      */
     private fun drawName(canvas: Canvas) {
         val shape = tapped ?: return
@@ -838,6 +1099,10 @@ class RubbelkarteView @JvmOverloads constructor(
         building = true
         val generation = ++buildGeneration
         val visitedSnapshot = visitedIso2
+        // Der Aufbau-Thread liest nichts aus der View. Für die Städte braucht er
+        // aber einen Context zum Lesen des Assets, also wandert der
+        // Anwendungskontext mit - nicht die View, an die die View hängt.
+        val appContext = context.applicationContext
         Thread {
             // Ein Fehler in buildGlobe darf die App nicht mitnehmen: Auf dem
             // Thread laeuft nichts vom UncaughtExceptionHandler des
@@ -845,7 +1110,7 @@ class RubbelkarteView @JvmOverloads constructor(
             // - und ohne finally bliebe building dauerhaft true, sodass die
             // Kugel gar nichts mehr neu aufbaut.
             val builtShapes = try {
-                buildGlobe(list, visitedSnapshot, state, generation)
+                buildGlobe(list, visitedSnapshot, state, generation, zoom, appContext)
             } catch (e: RuntimeException) {
                 Log.e(TAG, "Kugel konnte nicht neu aufgebaut werden", e)
                 null
@@ -909,35 +1174,265 @@ class RubbelkarteView @JvmOverloads constructor(
      * Rechnet alle Länder in Bildkoordinaten um. Der Aufbau laeuft auf einem
      * eigenen Thread und liest deshalb **nichts** aus der View: Lage und Radius
      * kommen fertig als [state] mit, sonst entstuende ein Bild, das zu keiner
-     * Kugel gehoert, die der Nutzer je gesehen hat.
+     * Kugel gehoert, die der Nutzer je gesehen hat. Dasselbe gilt für [zoom]:
+     * Ob ein Name gesetzt wird, hängt an der Zoomstufe, und die muss zu dem
+     * Zustand gehören, aus dem die Pfade gerechnet sind.
      */
     private fun buildGlobe(
         list: List<CountryShapes.Country>,
         visited: Set<String>,
         state: GlobeState,
-        generation: Int
+        generation: Int,
+        zoom: Float,
+        appContext: Context
     ): List<Shape> {
         val globe = state.globe
         val cx = state.cx
         val cy = state.cy
         val radius = state.radius
         val german = useGermanNames()
+        // Gemessen wird mit einem eigenen Paint, nicht mit dem zum Zeichnen:
+        // Der Aufbau läuft neben dem Zeichen-Thread, und zwei Threads an einem
+        // Paint sind nur unkritisch, solange keiner davon etwas einträgt.
+        val messPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            isFakeBoldText = true
+            textSize = sp(LABEL_TEXT_SP)
+        }
+        val rand = LABEL_RAND_DP * density
+        val mitNamen = zoom >= ZOOM_LABELS
         val result = ArrayList<Shape>(list.size)
         for (country in list) {
             if (generation != buildGeneration) return result
             if (country.iso2 == ANTARCTICA) continue
             val path = globeRings(country.rings, globe, cx, cy, radius) ?: continue
+            val bounds = RectF().apply { path.computeBounds(this, true) }
+            val name = if (german) country.nameDe else country.nameEn
+            val label = if (mitNamen) {
+                baueLabel(country, name, path, bounds, messPaint, rand, state)
+            } else {
+                null
+            }
             result.add(
                 Shape(
                     iso2 = country.iso2,
-                    name = if (german) country.nameDe else country.nameEn,
+                    name = name,
                     path = path,
-                    bounds = RectF().apply { path.computeBounds(this, true) },
-                    visited = visited.contains(country.iso2)
+                    bounds = bounds,
+                    visited = visited.contains(country.iso2),
+                    label = label
                 )
             )
         }
-        return drawOrder(result)
+        val geordnet = drawOrder(result)
+        if (zoom >= ZOOM_STAEDTE) {
+            fuelleStaedte(geordnet, globe, cx, cy, radius, german, appContext)
+        }
+        return geordnet
+    }
+
+    /**
+     * Lage eines Ländernamens auf der Scheibe, oder `null`, wenn er nicht
+     * sauber in das Land passt und deshalb gar nicht erst gesetzt wird.
+     *
+     * Geprüft wird von der billigsten zur genausten Stufe: Der Name muss erst
+     * überhaupt in die Hülle des Landes passen, dann ganz auf der Kugel und auf
+     * dem Bildschirm liegen, und erst dann wird der Landumriss aufgelöst. So
+     * greift die teure Regionsrechnung nur für Länder, die überhaupt in Frage
+     * kommen.
+     */
+    private fun baueLabel(
+        country: CountryShapes.Country,
+        name: String,
+        path: Path,
+        bounds: RectF,
+        messPaint: Paint,
+        rand: Float,
+        state: GlobeState
+    ): FloatArray? {
+        val cx = state.cx
+        val cy = state.cy
+        val radius = state.radius
+        val metrics = messPaint.fontMetrics
+        val breite = messPaint.measureText(name)
+        val hoehe = metrics.descent - metrics.ascent
+        if (!projectGlobe(
+                country.labelLat, country.labelLon, state.globe, cx, cy, radius,
+                buildPoint, buildProjection
+            )
+        ) {
+            return null
+        }
+        val rect = labelRechteck(
+            textBreite = breite,
+            textHoehe = hoehe,
+            ankerX = buildProjection[0],
+            ankerY = buildProjection[1],
+            landBreite = bounds.width(),
+            landHoehe = bounds.height(),
+            rand = rand
+        ) ?: return null
+        // Ein Name, der über den Kugelrand oder den Bildschirmrand ragt, sähe
+        // aus wie abgeschnitten. Beides wird hier geprüft, denn die beiden
+        // Ränder fallen bei hohem Zoom auseinander: Die Kugel ist dann viel
+        // grösser als der Bildschirm.
+        if (rect[0] < 0f || rect[1] < 0f ||
+            rect[2] > state.viewBreite || rect[3] > state.viewHoehe
+        ) {
+            return null
+        }
+        for (ecke in 0 until 4) {
+            val x = if (ecke and 1 == 0) rect[0] else rect[2]
+            val y = if (ecke < 2) rect[1] else rect[3]
+            val dx = x - cx
+            val dy = y - cy
+            if (dx * dx + dy * dy > radius * radius) return null
+        }
+        if (!passtInLand(path, bounds, rect)) return null
+        return rect
+    }
+
+    /**
+     * Baut die Region eines Landes auf. Gibt false zurück, wenn aus dem Pfad
+     * keine Region wird, etwa weil er leer ist.
+     */
+    private fun regionFor(path: Path, bounds: RectF): Boolean {
+        labelClip.set(
+            bounds.left.toInt() - 1,
+            bounds.top.toInt() - 1,
+            bounds.right.toInt() + 1,
+            bounds.bottom.toInt() + 1
+        )
+        return labelRegion.setPath(path, labelClip)
+    }
+
+    /**
+     * Liegt das Rechteck vollständig im Land?
+     *
+     * Geprüft werden die vier Ecken, die Mitten der vier Seiten und der
+     * Mittelpunkt, nicht nur die Ecken: Bei einem stark eingebuchteten Land wie
+     * der Schweiz oder Vietnam würde ein Rechteck durch die Bucht der Küste
+     * ragen und trotzdem alle vier Ecken im Land haben.
+     */
+    private fun passtInLand(path: Path, bounds: RectF, rect: FloatArray): Boolean {
+        if (!regionFor(path, bounds)) return false
+        val links = rect[0].toInt()
+        val rechts = rect[2].toInt()
+        val oben = rect[1].toInt()
+        val unten = rect[3].toInt()
+        val mitteX = (links + rechts) / 2
+        val mitteY = (oben + unten) / 2
+        return labelRegion.contains(links, oben) &&
+            labelRegion.contains(rechts, oben) &&
+            labelRegion.contains(links, unten) &&
+            labelRegion.contains(rechts, unten) &&
+            labelRegion.contains(links, mitteY) &&
+            labelRegion.contains(rechts, mitteY) &&
+            labelRegion.contains(mitteX, oben) &&
+            labelRegion.contains(mitteX, unten) &&
+            labelRegion.contains(mitteX, mitteY)
+    }
+
+    /**
+     * Sucht zu jedem sichtbaren Land seine Hauptstadt und bis zu
+     * [STADT_PRO_LAND] weitere grosse Städte.
+     *
+     * Die Zuordnung entsteht aus der Lage: Ein Ort gehört zu dem Land, dessen
+     * aufgelöster Umriss ihn enthält. `cities.json` führt kein Land mit sich, und
+     * eine Tabelle aus dieser Quelle zu pflegen wäre eine zweite Wahrheit, die
+     * irgendwann auseinanderläuft.
+     *
+     * Städte sind [STADT_MAX] Stück auf der ganzen Kugel, nicht je Land: Bei
+     * Zoomstufe [ZOOM_STAEDTE] ist zwar nur ein Fleck der Welt sichtbar, aber ein
+     * Blick von oben aufs Baltikum zeigt sonst sieben Städte auf einmal.
+     *
+     * Die Länder kommen in der Zeichenreihenfolge [drawOrder] durch, also die
+     * besuchten zuerst. Das ist Absicht: Wer die Karneerfüllung von Ländern
+     * ansieht, will deren Hauptstädte lesen, nicht die von Nachbarn, die
+     * zufällig im selben Ausschnitt liegen.
+     */
+    private fun fuelleStaedte(
+        shapes: List<Shape>,
+        globe: GeoMath.Globe,
+        cx: Float,
+        cy: Float,
+        radius: Float,
+        german: Boolean,
+        appContext: Context
+    ) {
+        val kandidaten = MapCities.load(appContext)
+            .filter { it.isCapital || it.rank <= STADT_RANG }
+            .sortedBy { it.importance() }
+        if (kandidaten.isEmpty()) return
+        val kleinsteLaenge = STADT_MIN_LAND_DP * density
+        var budget = STADT_MAX
+        // Ein Ort an einer Küste liegt in den Regionen zweier Nachbarländer.
+        // Wer ihn zuerst bekommen hat, behält ihn.
+        val vergeben = HashSet<Int>(kandidaten.size)
+        for (shape in shapes) {
+            if (budget <= 0) break
+            if (shape.bounds.width() < kleinsteLaenge ||
+                shape.bounds.height() < kleinsteLaenge
+            ) {
+                continue
+            }
+            if (!regionFor(shape.path, shape.bounds)) continue
+            var hauptstadt: Stadt? = null
+            var hauptstadtIndex = -1
+            val weitere = ArrayList<Stadt>(STADT_PRO_LAND)
+            val weitereIndizes = ArrayList<Int>(STADT_PRO_LAND)
+            for (i in kandidaten.indices) {
+                if (vergeben.contains(i)) continue
+                val city = kandidaten[i]
+                if (!projectGlobe(
+                        city.lat, city.lon, globe, cx, cy, radius, buildPoint, buildProjection
+                    )
+                ) {
+                    continue
+                }
+                if (!labelRegion.contains(
+                        buildProjection[0].toInt(), buildProjection[1].toInt()
+                    )
+                ) {
+                    continue
+                }
+                val stadt = Stadt(
+                    name = if (german) city.deName else city.enName,
+                    x = buildProjection[0],
+                    y = buildProjection[1],
+                    hauptstadt = city.isCapital
+                )
+                if (city.isCapital && hauptstadt == null) {
+                    hauptstadt = stadt
+                    hauptstadtIndex = i
+                } else if (weitere.size < STADT_PRO_LAND) {
+                    weitere.add(stadt)
+                    weitereIndizes.add(i)
+                } else {
+                    continue
+                }
+                if (hauptstadt != null && weitere.size >= STADT_PRO_LAND) break
+            }
+            // Die Hauptstadt zuerst, und insgesamt so viele, wie das Land noch
+            // übrig hat: Bei knappem Budget fallen die weiteren Städte weg, die
+            // Hauptstadt bleibt. Erst danach gilt eine Stadt als vergeben -
+            // sonst würde eine nicht gezeichnete Stadt den Platz ihres Landes
+            // blockieren und am Ende gar nicht mehr beschriftet.
+            val gewaehlt = ArrayList<Stadt>(STADT_PRO_LAND + 1)
+            val genommen = ArrayList<Int>(STADT_PRO_LAND + 1)
+            if (hauptstadt != null) {
+                gewaehlt.add(hauptstadt)
+                genommen.add(hauptstadtIndex)
+            }
+            for (k in weitere.indices) {
+                if (gewaehlt.size >= budget) break
+                gewaehlt.add(weitere[k])
+                genommen.add(weitereIndizes[k])
+            }
+            if (gewaehlt.isEmpty()) continue
+            budget -= gewaehlt.size
+            vergeben.addAll(genommen)
+            shape.staedte = gewaehlt
+        }
     }
 
     /**

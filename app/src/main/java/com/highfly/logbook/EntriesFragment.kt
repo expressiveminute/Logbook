@@ -99,7 +99,10 @@ class EntriesFragment : Fragment(), ImeVisibilityAware {
         if (lastVisible == RecyclerView.NO_POSITION) return
         val lastView = layoutManager.findViewByPosition(lastVisible) ?: return
         if (lastView.bottom <= list.height - list.paddingBottom) return
-        val target = if (lastVisible < adapter.itemCount - 1) lastVisible + 1 else lastVisible
+        // Wir wollen an einer Kartengrenze ausrichten, nicht an einer
+        // Monatsüberschrift, deshalb suchen wir die nächste Kachel.
+        val nextItem = adapter.nextItemPositionAfter(lastVisible)
+        val target = if (nextItem >= 0) nextItem else lastVisible
         layoutManager.scrollToPositionWithOffset(target, list.height)
     }
 
@@ -193,7 +196,10 @@ class EntriesFragment : Fragment(), ImeVisibilityAware {
         val pendingScroll = scrollToEntryId
         if (pendingScroll != null) {
             scrollToEntryId = null
-            val target = visible.indexOfFirst { it.id == pendingScroll }
+            // Die Adapterposition holen wir aus dem Adapter, weil zwischen den
+            // Kacheln Monatsüberschriften stehen und die Indexe der Kacheln
+            // dadurch nicht mit denen der gefilterten Liste übereinstimmen.
+            val target = adapter.positionOfEntry(pendingScroll)
             if (target >= 0) {
                 binding.entriesList.post {
                     val layoutManager =

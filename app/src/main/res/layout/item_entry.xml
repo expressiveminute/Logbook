@@ -166,12 +166,27 @@
                 app:layout_constraintTop_toBottomOf="@id/item_barrier_top"
                 app:layout_constraintBaseline_toBaselineOf="@id/item_flight_no" />
 
+            <!-- Reisebuddy, nur sichtbar wenn einer hinterlegt ist. Steht rechts
+                 unter dem Datum und ueber der Reiseklasse und schliesst die
+                 rechte Spalte der Kachel. -->
+            <ImageView
+                android:id="@+id/iv_travel_buddy"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:contentDescription="@string/entry_travel_buddy_desc"
+                android:src="@drawable/ic_reisebuddy"
+                android:visibility="gone"
+                app:tint="?attr/colorOnSurfaceVariant"
+                app:layout_constraintBottom_toBottomOf="@id/item_flight_no"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="@id/item_flight_no" />
+
             <androidx.constraintlayout.widget.Barrier
                 android:id="@+id/item_barrier_middle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 app:barrierDirection="bottom"
-                app:constraint_referenced_ids="item_flight_no,item_flight_type" />
+                app:constraint_referenced_ids="item_flight_no,item_flight_type,iv_travel_buddy" />
 
             <!-- Zeile 3: Flugmuster und Registrierung links, Reiseklasse
                  rechts unten. -->

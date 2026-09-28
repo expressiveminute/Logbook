@@ -160,7 +160,8 @@ class RouteMiniMapView @JvmOverloads constructor(
         strokeWidth = 1f * density
         color = if (isDarkTheme) Color.rgb(75, 90, 102) else Color.rgb(150, 160, 152)
     }
-    private val routeHaloPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    /** Heller Ring, der nur noch das Flugzeugsymbol vom Untergrund abhebt. */
+    private val haloPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeWidth = 4.5f * density
         strokeCap = Paint.Cap.ROUND
@@ -238,7 +239,7 @@ class RouteMiniMapView @JvmOverloads constructor(
         routePaint.color = MaterialColors.getColor(
             this, com.google.android.material.R.attr.colorPrimary
         )
-        routeHaloPaint.color = Color.argb(90, 255, 255, 255)
+        haloPaint.color = Color.argb(90, 255, 255, 255)
         airportPaint.color = routePaint.color
         airportHaloPaint.color = Color.WHITE
         labelPaint.color = MaterialColors.getColor(
@@ -246,7 +247,7 @@ class RouteMiniMapView @JvmOverloads constructor(
         )
         labelBgPaint.color = routePaint.color
         plane?.setTint(routePaint.color)
-        planeHalo?.setTint(routeHaloPaint.color)
+        planeHalo?.setTint(haloPaint.color)
     }
 
     /**
@@ -449,7 +450,8 @@ class RouteMiniMapView @JvmOverloads constructor(
             val y = projection.y(points[i + 1].toDouble())
             if (i == 0) routePath.moveTo(x, y) else routePath.lineTo(x, y)
         }
-        canvas.drawPath(routePath, routeHaloPaint)
+        // Nur der Akzentstrich. Ein heller Halo darunter legte sich als weisse
+        // Abstufung neben die Strecke, die wie eine zweite Linie aussah.
         canvas.drawPath(routePath, routePaint)
     }
 

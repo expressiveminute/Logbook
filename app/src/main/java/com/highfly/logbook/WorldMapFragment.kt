@@ -355,6 +355,12 @@ class WorldMapFragment : Fragment() {
         val filtered = if (selected == null) allRoutes else
             allRoutes.filter { it.from == selected || it.to == selected }
 
+        // Flughäfen, die vom angeklickten Flughafen aus angeflogen wurden. Nur
+        // die werden hervorgehoben: eine Strecke, die im angeklickten Flughafen
+        // endet, ist keine Verbindung von ihm aus.
+        val reached = if (selected == null) emptySet() else
+            filtered.filterTo(mutableSetOf()) { it.from == selected }.map { it.to }.toSet()
+
         filtered.forEach { route ->
             val polyline = Polyline().apply {
                 setPoints(route.points)
@@ -370,7 +376,9 @@ class WorldMapFragment : Fragment() {
             AirportOverlay(
                 airports,
                 routeColor,
+                labelColor,
                 selected,
+                reached,
                 onAirportTapped = { onAirportTap(it) }
             )
         )
@@ -773,10 +781,21 @@ class WorldMapFragment : Fragment() {
         }
     }
 
+    /**
+     * Die Flughäfen als Badges mit dem IATA-Code.
+     *
+     * Ist ein Flughafen angeklickt, teilt sich die Darstellung in zwei Gruppen:
+     * Die von ihm aus angeflogenen Flughäfen stehen in Akzentfarbe und werden
+     * betont gezeichnet, alle anderen treten zurück. Die betonten Badges kommen
+     * zuletzt, damit sie auch dann noch lesbar sind, wenn die Karte an der
+     * Stelle schon voller Badges hat.
+     */
     private class AirportOverlay(
         private val airports: Map<String, GeoPoint>,
         private val dotColor: Int,
+        private val mutedColor: Int,
         private val selectedIata: String?,
+        private val reached: Set<String>,
         private val onAirportTapped: (String) -> Unit
     ) : Overlay() {
 
@@ -810,23 +829,58 @@ class WorldMapFragment : Fragment() {
         override fun draw(canvas: Canvas, mapView: MapView, shadow: Boolean) {
             if (shadow) return
             if (airports.isEmpty()) return
+
+            // Ohne Auswahl bleibt alles in Akzentfarbe, wie es vorher war. Erst
+            // mit Auswahl trennt sich die Karte in betonte und zurücktretende
+            // Flughäfen.
+            if (selectedIata == null) {
+                drawBadges(canvas, mapView, airports.keys, dotColor, bold = false)
+                return
+            }
+
+            val highlighted = airports.keys.filter { it in reached }
+            val muted = airports.keys.filter { it != selectedIata && it !in reached }
+
+            // Die zurücktretenden Badges zuerst, danach die betonten. Weil die
+            // Kacheln ueberlappen, bleiben die wichtigen nur so lesbar, wenn sie
+            // als letzte gezeichnet werden.
+            drawBadges(canvas, mapView, muted, mutedColor, bold = false)
+            drawBadges(canvas, mapView, highlighted, dotColor, bold = true)
+            drawBadges(canvas, mapView, listOfNotNull(selectedIata), dotColor, bold = true)
+        }
+
+        /**
+         * Zeichnet die Badges einer Gruppe. [bold] betont die Gruppe mit einem
+         * dickeren Ring, damit die Ziele vom angeklickten Flughafen auch dann
+         * auffallen, wenn ringsum weitere Badges liegen.
+         */
+        private fun drawBadges(
+            canvas: Canvas,
+            mapView: MapView,
+            iatas: Collection<String>,
+            badgeColor: Int,
+            bold: Boolean
+        ) {
+            if (iatas.isEmpty()) return
             val density = mapView.context.resources.displayMetrics.density
 
             val label = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = readableOn(dotColor)
+                color = readableOn(badgeColor)
                 textSize = 8.5f * density
-                isFakeBoldText = true
+                isFakeBoldText = bold
             }
             val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = dotColor
+                color = badgeColor
+                alpha = if (bold) 255 else 200
             }
             val ring = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = Color.WHITE
                 style = Paint.Style.STROKE
                 strokeWidth = 1.5f * density
+                alpha = if (bold) 255 else 170
             }
             val highlight = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = dotColor
+                color = badgeColor
                 style = Paint.Style.STROKE
                 strokeWidth = 2f * density
             }
@@ -836,7 +890,8 @@ class WorldMapFragment : Fragment() {
             val padX = 3f * density
             val padY = 1.5f * density
 
-            airports.forEach { (iata, point) ->
+            iatas.forEach { iata ->
+                val point = airports[iata] ?: return@forEach
                 val px = mapView.projection.toPixels(point, null)
                 val sx = px.x.toFloat()
                 val sy = px.y.toFloat()

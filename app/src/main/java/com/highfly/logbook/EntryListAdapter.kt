@@ -12,20 +12,37 @@ import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.highfly.logbook.databinding.ItemEntryBinding
+import com.highfly.logbook.databinding.ItemEntryMonthBinding
+import java.time.YearMonth
+import java.time.format.TextStyle
+import java.util.Locale
 
 /**
  * RecyclerView adapter for the entries list. View holders are recycled, so the
  * swipe-reveal state is tracked per entry id and restored/reset in onBind to
  * avoid stale translations on recycled rows.
+ *
+ * The list is grouped by month: every month gets one header row with month and
+ * year, all cards of that month follow underneath it.
  */
 class EntryListAdapter(
     private val context: Context,
     private val onClickEdit: (LogbookEntry) -> Unit,
     private val onClickDelete: (LogbookEntry) -> Unit,
-) : RecyclerView.Adapter<EntryListAdapter.ViewHolder>() {
+) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+
+    /**
+     * Eine Zeile der Liste: entweder eine Monatsüberschrift oder eine Kachel.
+     */
+    private sealed interface Row {
+        data class MonthHeader(val month: YearMonth) : Row
+        data class Item(val entry: LogbookEntry) : Row
+    }
 
     var entries: List<LogbookEntry> = emptyList()
     var schemeColors: List<Int> = emptyList()
+
+    private var rows: List<Row> = emptyList()
 
     private val touchSlop by lazy { ViewConfiguration.get(context).scaledTouchSlop.toFloat() }
     private val revealWidth by lazy {
@@ -63,22 +80,88 @@ class EntryListAdapter(
 
     fun submit(list: List<LogbookEntry>) {
         entries = list
+        rows = buildRows(list)
         notifyDataSetChanged()
+    }
+
+    /**
+     * Baut die Zeilen der Liste: vor der ersten Kachel eines Monats steht eine
+     * Überschrift, alle Kacheln desselben Monats folgen direkt darunter. Die
+     * Einträge kommen bereits absteigend nach Datum, deshalb genügt es, die
+     * Monate in dieser Reihenfolge der Reihe nach zu durchlaufen.
+     */
+    private fun buildRows(list: List<LogbookEntry>): List<Row> {
+        val result = mutableListOf<Row>()
+        var lastMonth: YearMonth? = null
+        for (entry in list) {
+            val month = YearMonth.from(entry.date)
+            if (month != lastMonth) {
+                result += Row.MonthHeader(month)
+                lastMonth = month
+            }
+            result += Row.Item(entry)
+        }
+        return result
+    }
+
+    /** Position der Kachel mit dieser Id, oder -1 wenn nicht in der Liste. */
+    fun positionOfEntry(entryId: Long?): Int {
+        if (entryId == null) return -1
+        return rows.indexOfFirst { it is Row.Item && it.entry.id == entryId }
+    }
+
+    /**
+     * Nächste Zeile nach [position], die eine Kachel ist. Überschriften werden
+     * übersprungen, damit z. B. das Ausrichten der Listenunterkante an einer
+     * Kartengrenze nicht an einer Monatsüberschrift hängen bleibt.
+     */
+    fun nextItemPositionAfter(position: Int): Int {
+        for (index in position + 1 until rows.size) {
+            if (rows[index] is Row.Item) return index
+        }
+        return -1
     }
 
     private val currentlyOpenId: Long?
         get() = openEntryId.get().takeIf { it != Long.MIN_VALUE }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val binding = ItemEntryBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        return ViewHolder(binding)
+    override fun getItemViewType(position: Int): Int = when (rows[position]) {
+        is Row.MonthHeader -> TYPE_MONTH
+        is Row.Item -> TYPE_ENTRY
     }
 
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(entries[position])
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+        val inflater = LayoutInflater.from(parent.context)
+        return if (viewType == TYPE_MONTH) {
+            MonthViewHolder(ItemEntryMonthBinding.inflate(inflater, parent, false))
+        } else {
+            ViewHolder(ItemEntryBinding.inflate(inflater, parent, false))
+        }
     }
 
-    override fun getItemCount(): Int = entries.size
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+        when (val row = rows[position]) {
+            is Row.MonthHeader -> (holder as MonthViewHolder).bind(row.month)
+            is Row.Item -> (holder as ViewHolder).bind(row.entry)
+        }
+    }
+
+    override fun getItemCount(): Int = rows.size
+
+    /**
+     * Zeigt den Monat mit Jahr, rechtsbündig über der ersten Kachel des Monats.
+     */
+    inner class MonthViewHolder(
+        private val binding: ItemEntryMonthBinding
+    ) : RecyclerView.ViewHolder(binding.root) {
+        fun bind(month: YearMonth) {
+            binding.tvEntryMonth.text = context.getString(
+                R.string.entries_month,
+                month.month.getDisplayName(TextStyle.FULL, Locale.getDefault()),
+                month.year,
+            )
+        }
+    }
 
     private fun holderForId(id: Long): ViewHolder? {
         val rv = recyclerView ?: return null
@@ -217,6 +300,17 @@ class EntryListAdapter(
 
         item.itemFlightType.text = entry.flightType.orEmpty()
 
+        // Das Reisebuddy-Icon erscheint nur bei einem Eintrag mit hinterlegtem
+        // Buddy. Der Name steht in der Description, damit Talkback ihn vorliest.
+        val buddy = entry.travelBuddy?.takeIf { it.isNotBlank() }
+        if (buddy == null) {
+            item.ivTravelBuddy.visibility = View.GONE
+        } else {
+            item.ivTravelBuddy.visibility = View.VISIBLE
+            item.ivTravelBuddy.contentDescription =
+                context.getString(R.string.entry_travel_buddy_desc, buddy)
+        }
+
         item.itemClass.text = entry.classType.orEmpty()
         val classIndex = classColorIndex(entry.classType)
         if (classIndex != null && classIndex < schemeColors.size) {
@@ -248,6 +342,9 @@ class EntryListAdapter(
     }
 
     companion object {
+        private const val TYPE_MONTH = 0
+        private const val TYPE_ENTRY = 1
+
         val dateFormatter: java.time.format.DateTimeFormatter =
             java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy")
     }

@@ -237,7 +237,9 @@
     <string name="entries_search_hint">Suchen</string>
     <string name="entries_no_results">Keine Einträge gefunden</string>
     <string name="entries_filter_desc">Filter</string>
+    <string name="entries_month">%1$s %2$d</string>
     <string name="entry_airline_logo">Airline-Logo</string>
+    <string name="entry_travel_buddy_desc">Reisebuddies: %1$s</string>
     <string name="filter_title">Filter</string>
     <string name="filter_travel_type">Reiseart</string>
     <string name="filter_class_type">Reiseklasse</string>
