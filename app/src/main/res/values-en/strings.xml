@@ -27,7 +27,7 @@
     <string name="tile_function">Function</string>
     <string name="tile_earth_orbits">Earth orbits</string>
     <string name="tile_moon">To the moon</string>
-    <string name="tile_reisebuddy">Travel buddy</string>
+    <string name="tile_reisebuddy">Travel buddies</string>
     <string name="tile_co2">CO₂ balance</string>
     <string name="co2_tonnes_unit">Tonnes</string>
     <string name="co2_emissions_label">CO₂ emissions</string>
@@ -212,7 +212,8 @@
     <string name="crew_function_purser_i">Purser I</string>
     <string name="crew_function_flight_attendant">Flight Attendant</string>
     <string name="travel_buddy_label">Travel buddy</string>
-    <string name="travel_buddy_hint">Names, separated by comma</string>
+    <string name="travel_buddy_hint">Type a name and press Enter</string>
+    <string name="buddy_chip_desc">Travel buddy %1$s, tap to remove</string>
     <string name="comment_label">Comment</string>
     <string name="comment_hint">Comment …</string>
     <string name="airport_departure_icon_desc">Departure</string>
@@ -345,4 +346,9 @@
     <string name="settings_version_label">Version %1$s</string>
     <string name="settings_made_with_prefix">Made with</string>
     <string name="settings_made_with_suffix">by expressiveminute</string>
+
+<!-- Layover detail page -->
+    <string name="layover_timeline_title">Timeline</string>
+    <string name="layover_timeline_empty">No layovers in this period.</string>
+    <string name="layover_map_desc">Map of %1$s with airport %2$s</string>
 </resources>

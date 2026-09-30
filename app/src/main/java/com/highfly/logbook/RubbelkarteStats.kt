@@ -4,7 +4,8 @@ package com.highfly.logbook
  * Auswertung der eingetragenen Flüge für die Rubbelkarte: Welche Länder sind
  * besucht, welche Flughäfen wurden angeflogen und wie viele Kontinente sind
  * damit abgedeckt. Die Länder, die der Nutzer auf der Länderliste selbst
- * abgehakt hat, kommen über [Summary.plusCountries] dazu.
+ * abgehakt hat, kommen über [Summary.plusCountries] dazu, die abgewählten
+ * fallen über [Summary.minusCountries] wieder heraus.
  *
  * Bewusst ohne Android-Abhängigkeiten, damit die Zuordnung im Test ohne
  * Asset- und Datenbankzugriff geprüft werden kann. Die Auflösung eines
@@ -38,6 +39,21 @@ object RubbelkarteStats {
                 .distinct()
                 .sorted()
             return copy(countries = merged, continents = continentsOf(merged))
+        }
+
+        /**
+         * Nimmt die Länder aus [excluded] aus der Karte - das sind die Länder,
+         * die der Nutzer auf der Länderliste abgewählt hat. Sie gelten nicht
+         * mehr als besucht, obwohl ihre Flugeinträge weiterhin bestehen.
+         * Flughäfen und Flugzahl bleiben unberührt, denn sie stammen
+         * ausschliesslich aus den Einträgen.
+         */
+        fun minusCountries(excluded: Collection<String>): Summary {
+            if (excluded.isEmpty()) return this
+            val removed = excluded.mapNotNull { normalizeOrNull(it) }.toSet()
+            val reduced = countries.filterNot { removed.contains(it) }
+            if (reduced.size == countries.size) return this
+            return copy(countries = reduced, continents = continentsOf(reduced))
         }
     }
 

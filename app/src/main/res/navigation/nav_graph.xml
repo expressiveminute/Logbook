@@ -122,6 +122,21 @@
             android:name="tileId"
             app:argType="string"
             android:defaultValue="flights" />
+
+        <action
+            android:id="@+id/action_tile_detail_to_layover_detail"
+            app:destination="@id/nav_layover_detail" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_layover_detail"
+        android:name="com.highfly.logbook.LayoverDetailFragment"
+        tools:layout="@layout/fragment_layover_detail">
+
+        <argument
+            android:name="code"
+            app:argType="string"
+            android:defaultValue="" />
     </fragment>
 
     <fragment

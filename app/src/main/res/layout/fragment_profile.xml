@@ -232,7 +232,7 @@
                 android:gravity="center"
                 android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                 android:textColor="?attr/colorOnSurfaceVariant"
-                tools:text="Version 0.0.2" />
+                tools:text="Version 0.0.8" />
 
             <LinearLayout
                 android:layout_width="wrap_content"

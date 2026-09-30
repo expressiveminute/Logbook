@@ -12,6 +12,7 @@ import android.text.style.ForegroundColorSpan
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.view.animation.OvershootInterpolator
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
@@ -28,6 +29,7 @@ import androidx.navigation.fragment.findNavController
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.highfly.logbook.databinding.FragmentAddEntryBinding
+import com.highfly.logbook.databinding.ItemBuddyChipBinding
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -46,6 +48,12 @@ class AddEntryFragment : Fragment() {
 
     private var editingEntryId: Long = -1L
     private var returnActive = false
+
+    /**
+     * Soft-Input-Modus des Fensters, bevor das Formular ihn fuer die Dauer der
+     * Bearbeitung versteckt. Wird in onDestroyView wiederhergestellt.
+     */
+    private var previousSoftInputMode = 0
 
     /**
      * Wird true, sobald der Speichern-Button im aktuellen Bearbeitungsdurchgang
@@ -70,6 +78,17 @@ class AddEntryFragment : Fragment() {
 
         editingEntryId = requireArguments().getLong("entryId", -1L)
 
+        // Beim Bearbeiten steht der Fokus sofort im Feld "Fluggesellschaft" und
+        // wuerde aus eigener Kraft die Tastatur oeffnen. Deshalb ist die
+        // Tastatur beim Oeffnen der Seite versteckt - sie erscheint erst
+        // wieder, wenn der Nutzer aktiv in ein Feld tippt.
+        val window = requireActivity().window
+        previousSoftInputMode = window.attributes.softInputMode
+        window.setSoftInputMode(
+            WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN or
+                WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+        )
+
         binding.btnBack.setOnClickListener {
             confirmDiscard()
         }
@@ -88,6 +107,7 @@ class AddEntryFragment : Fragment() {
         updateReturnUi()
         setupProgressiveReveal()
         setupOptionalSection()
+        setupTravelBuddyChips()
         setupSaveAndDiscard()
 
         updateLayoverVisibility()
@@ -409,7 +429,9 @@ class AddEntryFragment : Fragment() {
         binding.etRegistration.setText(entry.registration)
 
         binding.etFunction.setText(entry.function)
-        binding.etTravelBuddy.setText(entry.travelBuddy)
+        for (name in TravelBuddyStats.parse(entry.travelBuddy)) {
+            addTravelBuddyChip(name)
+        }
         binding.etComment.setText(entry.comment)
 
         val hasOptional = listOf(
@@ -818,6 +840,63 @@ class AddEntryFragment : Fragment() {
         imm.hideSoftInputFromWindow(binding.root.windowToken, 0)
     }
 
+    /**
+     * Reisebuddies werden Eingabe-für-Eingabe gesammelt: Ein Name wird getippt,
+     * mit Enter bestätigt und erscheint als Chip mit grünem Haken. Ein neuer
+     * Name beginnt im Feld dahinter, die Tastatur bleibt dabei geöffnet.
+     */
+    private fun setupTravelBuddyChips() {
+        binding.etTravelBuddy.addTextChangedListener(object : TextWatcher {
+            private var isCommitting = false
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable) {
+                if (isCommitting) return
+                val newline = s.indexOf('\n')
+                if (newline < 0) return
+                isCommitting = true
+                val name = s.substring(0, newline).trim()
+                // Nur der Name vor dem Zeilenumbruch wird übernommen, der Rest
+                // bleibt im Feld stehen (z. B. beim Einfügen mehrerer Namen).
+                s.delete(0, newline + 1)
+                isCommitting = false
+                if (name.isNotEmpty()) addTravelBuddyChip(name)
+            }
+        })
+    }
+
+    private fun addTravelBuddyChip(name: String) {
+        val chip = ItemBuddyChipBinding.inflate(layoutInflater).root
+        chip.text = name
+        chip.contentDescription = getString(R.string.buddy_chip_desc, name)
+        chip.setOnClickListener { removeTravelBuddyChip(chip) }
+        chip.alpha = 0f
+        chip.animate().alpha(1f).setDuration(180).start()
+        binding.buddyChips.addView(chip)
+        binding.buddyChips.visibility = View.VISIBLE
+    }
+
+    private fun removeTravelBuddyChip(chip: View) {
+        binding.buddyChips.removeView(chip)
+        binding.buddyChips.visibility =
+            if (binding.buddyChips.childCount == 0) View.GONE else View.VISIBLE
+    }
+
+    /**
+     * Sammelt die bestätigten Chips und den noch nicht mit Enter bestätigten
+     * Resttext im Feld. Die Namen werden kommagetrennt gespeichert und in
+     * [TravelBuddyStats] wieder zerlegt.
+     */
+    private fun collectedTravelBuddyNames(): List<String> {
+        val names = mutableListOf<String>()
+        for (i in 0 until binding.buddyChips.childCount) {
+            val text = (binding.buddyChips.getChildAt(i) as TextView).text.toString().trim()
+            if (text.isNotEmpty()) names += text
+        }
+        val typed = binding.etTravelBuddy.text?.toString().orEmpty()
+        return TravelBuddyStats.parse(names.joinToString("\n") + "\n" + typed)
+    }
+
     private fun setupReturnToggle() {
         binding.tvAddReturn.setOnClickListener { activateReturn() }
         binding.btnRemoveReturn.setOnClickListener { deactivateReturn() }
@@ -1035,9 +1114,11 @@ class AddEntryFragment : Fragment() {
         val comment = (if (returnActive) binding.etHinflugComment else binding.etComment)
             .text?.toString()?.trim()?.ifEmpty { null }
         val function = binding.etFunction.text?.toString()?.trim()?.ifEmpty { null }
-        // Mehrere Namen durch Komma in einem Feld: der Nutzer schreibt sie so
-        // hin, wie er sie kennt, TravelBuddyStats zerlegt den Text.
-        val travelBuddy = binding.etTravelBuddy.text?.toString()?.trim()?.ifEmpty { null }
+        // Reisebuddies werden im Formular als Chips gesammelt und hier als
+        // kommagetrennte Liste gespeichert; TravelBuddyStats zerlegt sie später.
+        val travelBuddy = collectedTravelBuddyNames()
+            .joinToString(", ")
+            .ifEmpty { null }
 
         val entry = LogbookEntry(
             id = editingEntryId.takeIf { it >= 0 },
@@ -1205,6 +1286,7 @@ class AddEntryFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        activity?.window?.setSoftInputMode(previousSoftInputMode)
         _binding = null
     }
 }

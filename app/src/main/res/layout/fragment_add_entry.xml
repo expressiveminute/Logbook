@@ -1243,6 +1243,13 @@
                             android:textColor="?attr/colorOnSurfaceVariant"
                             android:textStyle="bold" />
 
+                        <com.highfly.logbook.FlowLayout
+                            android:id="@+id/buddy_chips"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:paddingBottom="4dp"
+                            android:visibility="gone" />
+
                         <EditText
                             android:id="@+id/et_travel_buddy"
                             android:layout_width="match_parent"

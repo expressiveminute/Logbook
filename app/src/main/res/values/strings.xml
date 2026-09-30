@@ -27,7 +27,7 @@
     <string name="tile_function">Funktion</string>
     <string name="tile_earth_orbits">Erdumrundungen</string>
     <string name="tile_moon">Zum Mond</string>
-    <string name="tile_reisebuddy">Reisebuddy</string>
+    <string name="tile_reisebuddy">Reisebuddies</string>
     <string name="tile_co2">CO₂-Bilanz</string>
     <string name="co2_tonnes_unit">Tonnen</string>
     <string name="co2_emissions_label">CO₂-Emissionen</string>
@@ -212,7 +212,8 @@
     <string name="crew_function_purser_i">Purser I</string>
     <string name="crew_function_flight_attendant">Flugbegleiter</string>
     <string name="travel_buddy_label">Reisebuddy</string>
-    <string name="travel_buddy_hint">Namen, durch Komma getrennt</string>
+    <string name="travel_buddy_hint">Name eingeben, mit Enter bestätigen</string>
+    <string name="buddy_chip_desc">Reisebuddy %1$s, tippen zum Entfernen</string>
     <string name="comment_label">Kommentar</string>
     <string name="comment_hint">Kommentar …</string>
     <string name="airport_departure_icon_desc">Abflug</string>
@@ -345,4 +346,9 @@
     <string name="settings_version_label">Version %1$s</string>
     <string name="settings_made_with_prefix">Made with</string>
     <string name="settings_made_with_suffix">by expressiveminute</string>
+
+<!-- Layover-Detailseite -->
+    <string name="layover_timeline_title">Verlauf</string>
+    <string name="layover_timeline_empty">Keine Layover in diesem Zeitraum.</string>
+    <string name="layover_map_desc">Karte von %1$s mit Flughafen %2$s</string>
 </resources>

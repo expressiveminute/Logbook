@@ -19,7 +19,9 @@ import java.text.NumberFormat
  * Finger drehen und zoomen.
  *
  * Der Stift oben rechts öffnet die Länderliste, auf der sich Länder von Hand
- * abhaken lassen. Diese gehören genauso zur Karte wie die angeflogenen.
+ * abhaken lassen. Diese gehören genauso zur Karte wie die angeflogenen;
+ * angeflogene Länder lassen sich dort auch abwählen und fallen dann aus
+ * Zählung und Färbung heraus.
  *
  * Über der Kugel steht ein Balken mit dem Gesamtstand: Wie viele Länder der
  * Welt besucht sind, als Anteil von allen.
@@ -95,8 +97,12 @@ class RubbelkarteFragment : Fragment() {
                 AirportData.country(appContext, iata)
             }
             // Länder, die auf der Länderliste von Hand abgehakt wurden, gehören
-            // genauso auf die Karte wie die angeflogenen.
-            val marked = summary.plusCountries(Settings.getManualCountries(appContext))
+            // genauso auf die Karte wie die angeflogenen; abgewählte fallen
+            // wieder heraus. Nur der gezählte Stand hängt daran, die Einträge
+            // und damit auch die Flughafenpunkte bleiben unberührt.
+            val marked = summary
+                .plusCountries(Settings.getManualCountries(appContext))
+                .minusCountries(Settings.getHiddenCountries(appContext))
             // Fehlt das Asset oder ist es unlesbar, bleibt die Karte leer. Das
             // ist im Bild nicht von einer noch leeren Karte zu unterscheiden,
             // deshalb wird der Fehler hier ausgewiesen.
@@ -111,7 +117,10 @@ class RubbelkarteFragment : Fragment() {
                 if (tiles == null || world == null) {
                     renderUnavailable()
                 } else {
-                    render(marked, tiles, world)
+                    render(
+                        marked, tiles, world,
+                        hasFlights = summary.flightsCount > 0 || summary.airports.isNotEmpty()
+                    )
                 }
             }
         }.start()
@@ -131,9 +140,10 @@ class RubbelkarteFragment : Fragment() {
     private fun render(
         summary: RubbelkarteStats.Summary,
         tiles: List<ContinentStats.Progress>,
-        world: WorldProgress.Progress
+        world: WorldProgress.Progress,
+        hasFlights: Boolean
     ) {
-        binding.tvRubbelkarteSubtitle.text = if (summary.isEmpty) {
+        binding.tvRubbelkarteSubtitle.text = if (summary.isEmpty && !hasFlights) {
             getString(R.string.rubbelkarte_subtitle_empty)
         } else {
             getString(
@@ -152,10 +162,10 @@ class RubbelkarteFragment : Fragment() {
         binding.rubbelkarte.contentDescription =
             getString(R.string.rubbelkarte_map_desc, summary.countries.size)
 
-        val hasFlights = !summary.isEmpty
         binding.rubbelkarte.visibility = View.VISIBLE
         binding.tvRubbelkarteEmpty.setText(R.string.rubbelkarte_empty)
-        binding.tvRubbelkarteEmpty.visibility = if (hasFlights) View.GONE else View.VISIBLE
+        binding.tvRubbelkarteEmpty.visibility =
+            if (!hasFlights && summary.isEmpty) View.VISIBLE else View.GONE
 
         binding.rubbelkarteProgressRow.visibility = View.VISIBLE
         bindWorldProgress(world)

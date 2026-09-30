@@ -2,6 +2,9 @@
 <resources>
     <color name="white">#FFFFFFFF</color>
 
+    <!-- Grüner Haken hinter einem per Enter angenommenen Reisebuddy -->
+    <color name="buddy_check">#FF2E7D32</color>
+
     <color name="class_economy_bg">#FF4C6E48</color>
     <color name="class_premium_economy_bg">#FF2C5744</color>
     <color name="class_business_bg">#FF47616C</color>

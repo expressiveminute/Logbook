@@ -64,9 +64,6 @@ class RouteMiniMapView @JvmOverloads constructor(
         /** Kantenlänge des Flugzeugsymbols auf der Strecke. */
         const val PLANE_SIZE_DP = 16f
 
-        /** Ring um das Flugzeugsymbol, damit es sich von der Strecke abhebt. */
-        const val PLANE_HALO_FACTOR = 1.45f
-
         /**
          * Drehwinkel in Grad für ein nach Norden zeigendes Flugzeugsymbol, das
          * in Fahrtrichtung [(dx), (dy)] zeigen soll. [dx] und [dy] sind
@@ -160,13 +157,6 @@ class RouteMiniMapView @JvmOverloads constructor(
         strokeWidth = 1f * density
         color = if (isDarkTheme) Color.rgb(75, 90, 102) else Color.rgb(150, 160, 152)
     }
-    /** Heller Ring, der nur noch das Flugzeugsymbol vom Untergrund abhebt. */
-    private val haloPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.STROKE
-        strokeWidth = 4.5f * density
-        strokeCap = Paint.Cap.ROUND
-        strokeJoin = Paint.Join.ROUND
-    }
     private val routePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeWidth = 2f * density
@@ -214,11 +204,8 @@ class RouteMiniMapView @JvmOverloads constructor(
     private val badgeCollision = LabelCollision()
     private val planeBounds = Rect()
 
-    /** Flugzeugsymbol auf der Strecke, umkreist von einem hellen Ring. */
+    /** Flugzeugsymbol auf der Strecke, in Akzentfarbe. */
     private val plane by lazy {
-        ContextCompat.getDrawable(context, R.drawable.ic_flight)?.mutate()
-    }
-    private val planeHalo by lazy {
         ContextCompat.getDrawable(context, R.drawable.ic_flight)?.mutate()
     }
 
@@ -239,7 +226,6 @@ class RouteMiniMapView @JvmOverloads constructor(
         routePaint.color = MaterialColors.getColor(
             this, com.google.android.material.R.attr.colorPrimary
         )
-        haloPaint.color = Color.argb(90, 255, 255, 255)
         airportPaint.color = routePaint.color
         airportHaloPaint.color = Color.WHITE
         labelPaint.color = MaterialColors.getColor(
@@ -247,7 +233,6 @@ class RouteMiniMapView @JvmOverloads constructor(
         )
         labelBgPaint.color = routePaint.color
         plane?.setTint(routePaint.color)
-        planeHalo?.setTint(haloPaint.color)
     }
 
     /**
@@ -483,7 +468,6 @@ class RouteMiniMapView @JvmOverloads constructor(
 
         val size = PLANE_SIZE_DP * density
         val rotation = planeRotation(dx, dy)
-        planeHalo?.let { drawSymbol(canvas, it, x, y, size * PLANE_HALO_FACTOR, rotation) }
         drawSymbol(canvas, drawable, x, y, size, rotation)
     }
 

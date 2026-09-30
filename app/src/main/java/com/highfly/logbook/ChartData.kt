@@ -165,6 +165,18 @@ object ChartData {
             .groupBy { it.toAirport.trim().uppercase() }
             .map { (airport, layovers) -> airport to layovers.maxOf { it.date } }
 
+    /**
+     * Layover-Einträge eines Flughafens für den Zeitstrahl der Detailseite:
+     * nur Einträge mit Layover-Kennzeichnung, chronologisch von alt nach neu.
+     * Der Code wird wie beim Erfassen normalisiert (trimmen, grossschreiben).
+     */
+    fun layoverHistory(entries: List<LogbookEntry>, airport: String): List<LogbookEntry> {
+        val target = airport.trim().uppercase()
+        return entries.filter {
+            it.layover && it.toAirport.trim().uppercase() == target
+        }.sortedBy { it.date }
+    }
+
     fun airportBars(context: Context): List<Bar> =
         periodFiltered(context)
             .flatMap { listOf(it.fromAirport, it.toAirport) }

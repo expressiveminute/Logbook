@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
+import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.highfly.logbook.databinding.FragmentTileDetailBinding
@@ -62,13 +63,26 @@ class TileDetailFragment : Fragment() {
                 renderAircraftRegistrations()
             }
             ChartData.isBarChart(tileId) -> {
+                val bars = ChartData.barChart(requireContext(), tileId)
                 if (tileId == "countries") {
                     renderContinents()
                 }
                 if (tileId == "layover") {
                     renderLayoverExtremes()
+                    // Klick auf Medaille, Code oder Balken öffnet die
+                    // Detailseite des Ziel-Flughafens.
+                    binding.barChart.setOnItemClickListener { index ->
+                        val code = bars.getOrNull(index)?.label
+                            ?.trim()?.uppercase()
+                        if (!code.isNullOrBlank()) {
+                            findNavController().navigate(
+                                R.id.action_tile_detail_to_layover_detail,
+                                bundleOf(LayoverDetailFragment.ARG_AIRPORT_CODE to code)
+                            )
+                        }
+                    }
                 }
-                renderBars(ChartData.barChart(requireContext(), tileId))
+                renderBars(bars)
             }
             else -> {
                 binding.tvEmpty.visibility = View.VISIBLE

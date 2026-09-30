@@ -170,6 +170,43 @@ class RubbelkarteStatsTest {
         assertTrue(summary.plusCountries(listOf("DE")).isEmpty.not())
     }
 
+    @Test
+    fun minusCountries_nimmtAbgewaehlteLaenderHeraus() {
+        val summary = RubbelkarteStats.summarize(listOf(entry("FRA", "JFK"))) { known[it] }
+            .plusCountries(listOf("IS"))
+        val reduced = summary.minusCountries(listOf("DE"))
+        assertEquals(listOf("IS", "US"), reduced.countries)
+        // Die Kontinente folgen dem verbleibenden Stand.
+        assertEquals(
+            listOf(Continents.EUROPE, Continents.NORTH_AMERICA),
+            reduced.continents
+        )
+        // Flughäfen und Flugzahl stammen aus den Einträgen und bleiben.
+        assertEquals(summary.airports, reduced.airports)
+        assertEquals(summary.flightsCount, reduced.flightsCount)
+    }
+
+    @Test
+    fun minusCountries_kannDieKarteLeeren() {
+        val summary = RubbelkarteStats.summarize(listOf(entry("FRA", "JFK"))) { known[it] }
+        val reduced = summary.minusCountries(listOf("DE", "US"))
+        assertTrue(reduced.isEmpty)
+        assertEquals(emptyList<String>(), reduced.countries)
+    }
+
+    @Test
+    fun minusCountries_verlangtZweiStelligeLaender() {
+        val summary = RubbelkarteStats.summarize(listOf(entry("FRA", "JFK"))) { known[it] }
+        val reduced = summary.minusCountries(listOf("Island", "X", "DE"))
+        assertEquals(listOf("US"), reduced.countries)
+    }
+
+    @Test
+    fun minusCountries_ohneAbwahlLiefertDieselbeAuswertung() {
+        val summary = RubbelkarteStats.summarize(listOf(entry("FRA", "JFK"))) { known[it] }
+        assertEquals(summary, summary.minusCountries(emptyList()))
+    }
+
     private fun shape(iso2: String, lat: Double, lon: Double, latSpan: Double) =
         CountryShapes.Country(
             iso2 = iso2,

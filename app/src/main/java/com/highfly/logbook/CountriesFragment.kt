@@ -16,9 +16,10 @@ import java.util.Locale
  * Checkliste von oben nach unten, Flagge, Name und Kästchen.
  *
  * Angeflogene Länder sind abgehakt und tragen links neben dem Kästchen ein
- * Flugzeugsymbol, lassen sich aber nicht abwählen - sie stehen wegen der
- * Einträge auf der Karte. Alle anderen Länder kann der Nutzer selbst abhaken;
- * sie erscheinen dann ebenfalls auf der Karte.
+ * Flugzeugsymbol. Sie lassen sich abwählen: Dann stehen sie wie unangeflogene
+ * Länder da, behalten aber ihr Flugzeugsymbol, und zählen nicht mehr auf der
+ * Karte - bis sie wieder angehakt oder erneut angeflogen werden. Alle anderen
+ * Länder kann der Nutzer selbst abhaken; sie erscheinen dann auf der Karte.
  *
  * Mit dem Argument [ARG_CONTINENT] zeigt die Seite nur die Länder eines
  * Kontinents und trägt dessen Namen als Überschrift. Das ist der Weg von den
@@ -123,7 +124,8 @@ class CountriesFragment : Fragment() {
                     manualIso2 = Settings.getManualCountries(appContext),
                     german = useGermanNames(locale),
                     collator = Collator.getInstance(locale),
-                    continent = continent
+                    continent = continent,
+                    hiddenIso2 = Settings.getHiddenCountries(appContext)
                 )
             }
             view?.post {
@@ -150,18 +152,33 @@ class CountriesFragment : Fragment() {
     }
 
     /**
-     * Ein selbst abgehaktes Land wird gespeichert und in der Liste sofort
-     * umgeschaltet. Die Karte liest die Liste erst wieder beim Öffnen der
-     * Rubbelkarte, deshalb ist hier keine weitere Nachricht nötig.
+     * Ein Tipp auf ein Land speichert den neuen Zustand und schaltet die Zeile
+     * sofort um. Ein angeflogenes Land wandert dabei in die [Settings.getHiddenCountries]-
+     * Liste, wenn es abgewählt wird, und wieder heraus, wenn es angehakt wird -
+     * der Flugeintrag selbst bleibt unberührt. Die Karte liest die Liste erst
+     * wieder beim Öffnen der Rubbelkarte, deshalb ist hier keine weitere
+     * Nachricht nötig.
      */
     private fun toggle(item: CountryChecklist.Item) {
-        if (!item.toggleable) return
         val context = requireContext().applicationContext
-        val manual = Settings.getManualCountries(context)
-        val updated = if (item.checked) manual - item.iso2 else manual + item.iso2
+        val manual = Settings.getManualCountries(context).toMutableSet()
+        val hidden = Settings.getHiddenCountries(context).toMutableSet()
+        if (item.checked) {
+            if (item.fromFlight) {
+                hidden.add(item.iso2)
+            } else {
+                manual.remove(item.iso2)
+            }
+        } else {
+            hidden.remove(item.iso2)
+            if (!item.fromFlight) {
+                manual.add(item.iso2)
+            }
+        }
         ownChange = true
         try {
-            Settings.setManualCountries(context, updated)
+            Settings.setManualCountries(context, manual)
+            Settings.setHiddenCountries(context, hidden)
         } finally {
             ownChange = false
         }

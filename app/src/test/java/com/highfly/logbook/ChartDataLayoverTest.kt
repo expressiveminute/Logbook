@@ -143,4 +143,59 @@ class ChartDataLayoverTest {
         assertNull(ChartData.newestLayover(emptyList()))
         assertNull(ChartData.oldestLayover(emptyList()))
     }
+
+    @Test
+    fun layoverHistory_ordersOldestFirst() {
+        val entries = listOf(
+            entry("JFK", LocalDate.of(2026, 3, 12)),
+            entry("JFK", LocalDate.of(2021, 6, 11)),
+            entry("JFK", LocalDate.of(2023, 5, 17))
+        )
+
+        val history = ChartData.layoverHistory(entries, "JFK")
+
+        assertEquals(
+            listOf(
+                LocalDate.of(2021, 6, 11),
+                LocalDate.of(2023, 5, 17),
+                LocalDate.of(2026, 3, 12)
+            ),
+            history.map { it.date }
+        )
+    }
+
+    @Test
+    fun layoverHistory_ignoresOtherAirportsAndFlightsWithoutLayover() {
+        val entries = listOf(
+            entry("JFK", LocalDate.of(2021, 6, 11)),
+            entry("JFK", LocalDate.of(2020, 1, 1), layover = false),
+            entry("DXB", LocalDate.of(2024, 11, 13)),
+            entry("", LocalDate.of(2019, 5, 5))
+        )
+
+        assertEquals(
+            listOf(LocalDate.of(2021, 6, 11)),
+            ChartData.layoverHistory(entries, "JFK").map { it.date }
+        )
+    }
+
+    @Test
+    fun layoverHistory_normalizesTheAirportCode() {
+        val entries = listOf(
+            entry(" jfk ", LocalDate.of(2021, 6, 11)),
+            entry("JFK", LocalDate.of(2021, 6, 11))
+        )
+
+        assertEquals(2, ChartData.layoverHistory(entries, "jfk").size)
+        assertEquals(2, ChartData.layoverHistory(entries, "JFK").size)
+    }
+
+    @Test
+    fun layoverHistory_unknownAirportAndEmptyListAreEmpty() {
+        assertEquals(emptyList<LogbookEntry>(), ChartData.layoverHistory(emptyList(), "JFK"))
+        assertEquals(
+            emptyList<LogbookEntry>(),
+            ChartData.layoverHistory(listOf(entry("SFO", LocalDate.of(2018, 1, 5))), "JFK")
+        )
+    }
 }

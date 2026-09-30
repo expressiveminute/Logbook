@@ -68,6 +68,7 @@ object Settings {
     private const val KEY_DISCOVERY_YEAR = "discovery_year"
     private const val KEY_COMPACT_TEXT = "compact_text"
     private const val KEY_MANUAL_COUNTRIES = "manual_countries"
+    private const val KEY_HIDDEN_COUNTRIES = "hidden_countries"
 
     private fun prefs(context: Context): SharedPreferences =
         context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
@@ -286,6 +287,27 @@ object Settings {
             .filter { it.length == 2 && it.all { c -> c in 'A'..'Z' } }
             .toSet()
         prefs(context).edit().putStringSet(KEY_MANUAL_COUNTRIES, codes).apply()
+        notifyManualCountriesChanged()
+    }
+
+    /**
+     * Länder, die der Nutzer auf der Länderliste abgewählt hat, als ISO-2.
+     * Sie stammen aus Flugeinträgen, erscheinen aber deshalb nicht mehr auf
+     * der Rubbelkarte und zählen auch nicht mehr mit - bis der Nutzer sie
+     * wieder anhakt oder sie erneut anfliegt. Die Flughafenpunkte und das
+     * Flugzeugsymbol auf der Länderliste bleiben davon unberührt.
+     */
+    fun getHiddenCountries(context: Context): Set<String> =
+        prefs(context).getStringSet(KEY_HIDDEN_COUNTRIES, null)
+            ?.map { it.trim().uppercase() }
+            ?.toSet()
+            .orEmpty()
+
+    fun setHiddenCountries(context: Context, value: Set<String>) {
+        val codes = value.map { it.trim().uppercase() }
+            .filter { it.length == 2 && it.all { c -> c in 'A'..'Z' } }
+            .toSet()
+        prefs(context).edit().putStringSet(KEY_HIDDEN_COUNTRIES, codes).apply()
         notifyManualCountriesChanged()
     }
 

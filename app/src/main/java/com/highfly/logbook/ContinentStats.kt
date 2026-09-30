@@ -41,8 +41,10 @@ object ContinentStats {
 
     /**
      * Zählt die besuchten Länder je Kontinent. Geliefert wird nur, was es in
-     * [countries] überhaupt gibt, in der Reihenfolge von [Continents.ORDER] -
-     * die Kachelzeile soll sich beim Blättern nicht verschieben.
+     * [countries] überhaupt gibt, absteigend nach der Zahl der Länder: Der
+     * Kontinent mit den meisten Ländern steht links, die kleineren folgen nach
+     * rechts. Bei gleicher Anzahl zählt [Continents.ORDER] als Reihenfolge,
+     * damit die Kachelzeile sich beim Blättern nicht verschiebt.
      *
      * @param countries Länder der App, siehe [CountryShapes]
      * @param visited besuchte Länder als ISO-2
@@ -73,6 +75,7 @@ object ContinentStats {
             // übersprungen.
             val anzahl = gesamt[continent] ?: return@mapNotNull null
             Progress(continent, besuchtZahl[continent] ?: 0, anzahl)
-        }
+        }.sortedWith(compareByDescending<Progress> { it.total }
+            .thenBy { Continents.ORDER.indexOf(it.continent) })
     }
 }

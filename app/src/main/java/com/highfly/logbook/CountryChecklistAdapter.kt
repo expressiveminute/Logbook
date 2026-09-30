@@ -76,10 +76,9 @@ class CountryChecklistAdapter(
             binding.tvCountryName.text = item.name
             // Die Liste ist eine Arbeitsliste: Wer noch fehlt, steht kräftig da,
             // wer erledigt ist, tritt deutlich zurück. Name und Flagge eines
-            // abgehakten Landes werden deshalb gedimmt - abgehakt und angeflogen
-            // heißen hier dasselbe, beides steht am Kästchen und am
-            // Flugzeugsymbol. Nur die beiden Texte werden gedimmt, das Kästchen
-            // muss seine Zustände weiterhin kräftig zeigen.
+            // abgehakten Landes werden deshalb gedimmt. Ein abgewähltes Land
+            // steht wie ein offenes da - nur das Flugzeugsymbol bleibt stehen,
+            // damit der Flug im Logbuch nicht in Vergessenheit gerät.
             //
             // Der Name wird nicht nur auf eine andere Farbe umgestellt, sondern
             // zusätzlich mit [NAME_ALPHA_CHECKED] gedimmt. Die gedämpfte Variante
@@ -102,12 +101,7 @@ class CountryChecklistAdapter(
                 if (item.checked) FLAG_ALPHA_CHECKED else FLAG_ALPHA_OPEN
             binding.ivCountryFlight.visibility =
                 if (item.fromFlight) View.VISIBLE else View.GONE
-            // Die Kästchen der angeflogenen Länder sind gesetzt, aber gesperrt:
-            // Der Eintrag, der sie begründet, kann jederzeit gelöscht werden.
             binding.cbCountry.isChecked = item.checked
-            binding.cbCountry.isEnabled = item.toggleable
-            binding.root.isClickable = item.toggleable
-            binding.root.isFocusable = item.toggleable
         }
     }
 

@@ -81,7 +81,7 @@ class CountryChecklistTest {
     }
 
     @Test
-    fun build_erlaubtKeinAbwaehlenDerAngeflogenenLaender() {
+    fun build_laesstAngeflogeneLaenderAbwaehlen() {
         val items = CountryChecklist.build(
             countries = listOf(
                 country("US", "Vereinigte Staaten", "United States"),
@@ -90,15 +90,33 @@ class CountryChecklistTest {
             flightIso2 = setOf("US"),
             manualIso2 = emptySet(),
             german = true,
-            collator = collator
+            collator = collator,
+            hiddenIso2 = setOf("US")
         )
         val usa = items.first { it.iso2 == "US" }
         val japan = items.first { it.iso2 == "JP" }
-        assertTrue(usa.checked)
+        // Die USA sind angeflogen, aber abgewählt: ab ohne Haken, das
+        // Flugzeugsymbol steht trotzdem. Japan ist von Hand abhakbar.
         assertTrue(usa.fromFlight)
-        assertFalse(usa.toggleable)
+        assertFalse(usa.checked)
         assertFalse(japan.checked)
-        assertTrue(japan.toggleable)
+        assertFalse(japan.fromFlight)
+        assertEquals(0, CountryChecklist.checkedCount(items))
+    }
+
+    @Test
+    fun build_angeflogenesAbgewaehltesLandBehaeltSeinSymbol() {
+        val items = CountryChecklist.build(
+            countries = listOf(country("DE", "Deutschland", "Germany")),
+            flightIso2 = setOf("DE"),
+            manualIso2 = emptySet(),
+            german = true,
+            collator = collator,
+            hiddenIso2 = setOf("DE")
+        )
+        val deutschland = items.single()
+        assertTrue(deutschland.fromFlight)
+        assertFalse(deutschland.checked)
     }
 
     @Test
@@ -112,9 +130,8 @@ class CountryChecklistTest {
         )
         val frankreich = items.single()
         assertTrue(frankreich.checked)
-        // Selbst abgehakt bleibt abwählbar, im Gegensatz zu den angeflogenen.
+        // Selbst abgehakt bleibt abwählbar, wie auch die angeflogenen Länder.
         assertFalse(frankreich.fromFlight)
-        assertTrue(frankreich.toggleable)
         assertEquals(1, CountryChecklist.checkedCount(items))
     }
 

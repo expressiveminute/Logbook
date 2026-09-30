@@ -47,6 +47,23 @@ class ContinentStatsTest {
     }
 
     @Test
+    fun build_sortiertDenKontinentMitDenMeistenLaendernNachVorn() {
+        // Europa (3), Asien (2), Nordamerika (1): Die Kachelzeile beginnt mit
+        // dem größten Kontinent links, die kleineren folgen nach rechts.
+        val progress = build(
+            listOf("CN", "DE", "US", "FR", "IT", "JP"),
+            emptyList()
+        )
+        assertEquals(
+            listOf(
+                Continents.EUROPE, Continents.ASIA, Continents.NORTH_AMERICA
+            ),
+            progress.map { it.continent }
+        )
+        assertEquals(listOf(3, 2, 1), progress.map { it.total })
+    }
+
+    @Test
     fun build_liefertNurKontinenteMitLaendern() {
         // Afrika fehlt in der Liste, deshalb darf es auch keine Kachel geben -
         // sonst stünde dort 0 von 0 und die Kachelzeile verschöbe sich beim
