@@ -45,6 +45,18 @@ object TravelBuddyStats {
             .distinctBy { it.lowercase() }
 
     /**
+     * Trifft der Filter [filter] den Reisebuddy eines Eintrags? Wie bei den
+     * anderen Feldern eine Teilangabe, aber je Name: "Anna" trifft auch einen
+     * Flug, auf dem "Anna, Ben" steht, und ein Filter, der über den Trenner
+     * hinaus passt, kann nicht zufällig treffen.
+     */
+    fun matches(raw: String?, filter: String): Boolean {
+        val wanted = filter.trim()
+        if (wanted.isEmpty()) return true
+        return parse(raw).any { it.lowercase().contains(wanted.lowercase()) }
+    }
+
+    /**
      * Zählt die Flüge je Reisebuddy, absteigend nach Zahl. Bei gleicher Zahl
      * gewinnt der zuletzt geflogene Buddy, danach entscheidet [collator] über
      * die Reihenfolge - die Liste soll in jeder Sprache aufsteigend lesen.

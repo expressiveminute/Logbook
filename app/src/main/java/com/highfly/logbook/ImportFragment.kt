@@ -553,7 +553,7 @@ class ImportFragment : Fragment() {
         }
         ImportSession.reset()
         Toast.makeText(requireContext(), R.string.import_implement_done, Toast.LENGTH_SHORT).show()
-        DashboardEvents.onPeriodChanged?.invoke()
+        DashboardEvents.onFilterChanged?.invoke()
         findNavController().navigateUp()
     }
 

@@ -11,8 +11,10 @@ import android.view.ViewConfiguration
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.color.MaterialColors
 import com.highfly.logbook.databinding.ItemEntryBinding
 import com.highfly.logbook.databinding.ItemEntryMonthBinding
+import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.TextStyle
 import java.util.Locale
@@ -23,7 +25,10 @@ import java.util.Locale
  * avoid stale translations on recycled rows.
  *
  * The list is grouped by month: every month gets one header row with month and
- * year, all cards of that month follow underneath it.
+ * year, all cards of that month follow underneath it. Geplante Flüge mit einem
+ * Datum in der Zukunft stehen ganz oben unter einer "Upcoming"-Überschrift,
+ * ihre Kacheln sind dabei sichtbar ausgegraut, damit sie sich von den
+ * geflogenen Einträgen unterscheiden.
  */
 class EntryListAdapter(
     private val context: Context,
@@ -32,11 +37,13 @@ class EntryListAdapter(
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     /**
-     * Eine Zeile der Liste: entweder eine Monatsüberschrift oder eine Kachel.
+     * Eine Zeile der Liste: entweder eine Monatsüberschrift, die
+     * "Upcoming"-Überschrift über den geplanten Flügen oder eine Kachel.
      */
     private sealed interface Row {
         data class MonthHeader(val month: YearMonth) : Row
-        data class Item(val entry: LogbookEntry) : Row
+        object UpcomingHeader : Row
+        data class Item(val entry: LogbookEntry, val upcoming: Boolean) : Row
     }
 
     var entries: List<LogbookEntry> = emptyList()
@@ -64,6 +71,30 @@ class EntryListAdapter(
             )
         )
     }
+
+    /**
+     * Logos geplanter Flüge: Graustufen statt Originalfarben. Passt den Filter
+     * dem dunklen Theme an, damit ein dunkles Logo dort nicht in der Kachel
+     * verschwindet - derselbe Trick wie beim [darkLogoFilter], nur zusätzlich
+     * entsättigt. Graustufen statt schlichter Helligkeit, weil die Logos ohne
+     * ihre Farben neutraler wirken als mit einem nur verblassten Original.
+     */
+    private val grayLogoFilter by lazy {
+        val gray = ColorMatrix().apply { setSaturation(0f) }
+        if (isDarkMode) {
+            gray.postConcat(
+                ColorMatrix(
+                    floatArrayOf(
+                        1.5f, 0f, 0f, 0f, 45f,
+                        0f, 1.5f, 0f, 0f, 45f,
+                        0f, 0f, 1.5f, 0f, 45f,
+                        0f, 0f, 0f, 1f, 0f,
+                    )
+                )
+            )
+        }
+        ColorMatrixColorFilter(gray)
+    }
     private val openEntryId = java.util.concurrent.atomic.AtomicLong(Long.MIN_VALUE)
 
     private var recyclerView: RecyclerView? = null
@@ -85,21 +116,35 @@ class EntryListAdapter(
     }
 
     /**
-     * Baut die Zeilen der Liste: vor der ersten Kachel eines Monats steht eine
-     * Überschrift, alle Kacheln desselben Monats folgen direkt darunter. Die
-     * Einträge kommen bereits absteigend nach Datum, deshalb genügt es, die
-     * Monate in dieser Reihenfolge der Reihe nach zu durchlaufen.
+     * Baut die Zeilen der Liste: Ein Flug mit Datum in der Zukunft ist ein
+     * geplanter Flug und steht ganz oben unter der "Upcoming"-Überschrift,
+     * ohne eigene Monatsüberschrift. Alles bis einschliesslich heute wird wie
+     * bisher nach Monaten gruppiert: vor der ersten Kachel eines Monats steht
+     * eine Überschrift, alle Kacheln desselben Monats folgen direkt darunter.
+     * Die Einträge kommen bereits absteigend nach Datum, deshalb genügt es,
+     * die Monate in dieser Reihenfolge der Reihe nach zu durchlaufen.
      */
     private fun buildRows(list: List<LogbookEntry>): List<Row> {
         val result = mutableListOf<Row>()
         var lastMonth: YearMonth? = null
+        var upcomingStarted = false
+        val today = LocalDate.now()
         for (entry in list) {
-            val month = YearMonth.from(entry.date)
-            if (month != lastMonth) {
-                result += Row.MonthHeader(month)
-                lastMonth = month
+            val upcoming = UpcomingEntries.isUpcoming(entry, today)
+            when {
+                upcoming && !upcomingStarted -> {
+                    result += Row.UpcomingHeader
+                    upcomingStarted = true
+                }
+                !upcoming -> {
+                    val month = YearMonth.from(entry.date)
+                    if (month != lastMonth) {
+                        result += Row.MonthHeader(month)
+                        lastMonth = month
+                    }
+                }
             }
-            result += Row.Item(entry)
+            result += Row.Item(entry, upcoming)
         }
         return result
     }
@@ -126,7 +171,7 @@ class EntryListAdapter(
         get() = openEntryId.get().takeIf { it != Long.MIN_VALUE }
 
     override fun getItemViewType(position: Int): Int = when (rows[position]) {
-        is Row.MonthHeader -> TYPE_MONTH
+        is Row.MonthHeader, is Row.UpcomingHeader -> TYPE_MONTH
         is Row.Item -> TYPE_ENTRY
     }
 
@@ -142,24 +187,39 @@ class EntryListAdapter(
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (val row = rows[position]) {
             is Row.MonthHeader -> (holder as MonthViewHolder).bind(row.month)
-            is Row.Item -> (holder as ViewHolder).bind(row.entry)
+            is Row.UpcomingHeader -> (holder as MonthViewHolder).bindUpcoming()
+            is Row.Item -> (holder as ViewHolder).bind(row.entry, row.upcoming)
         }
     }
 
     override fun getItemCount(): Int = rows.size
 
     /**
-     * Zeigt den Monat mit Jahr, rechtsbündig über der ersten Kachel des Monats.
+     * Zeigt eine Gruppenüberschrift: rechtsbündig über der ersten Kachel der
+     * Gruppe. Bei den geflogenen Einträgen ist das der Monat mit Jahr, über den
+     * geplanten Flügen steht stattdessen "Upcoming".
      */
     inner class MonthViewHolder(
         private val binding: ItemEntryMonthBinding
     ) : RecyclerView.ViewHolder(binding.root) {
         fun bind(month: YearMonth) {
+            binding.tvEntryMonth.setTextColor(
+                MaterialColors.getColor(
+                    binding.tvEntryMonth,
+                    com.google.android.material.R.attr.colorPrimary,
+                )
+            )
             binding.tvEntryMonth.text = context.getString(
                 R.string.entries_month,
                 month.month.getDisplayName(TextStyle.FULL, Locale.getDefault()),
                 month.year,
             )
+        }
+
+        fun bindUpcoming() {
+            binding.tvEntryMonth.setText(R.string.entries_upcoming)
+            // Gleiche Signalfarbe wie das "i" neben der Dashboard-Filterzeile.
+            binding.tvEntryMonth.setTextColor(ContextCompat.getColor(context, R.color.upcoming_blue))
         }
     }
 
@@ -259,29 +319,49 @@ class EntryListAdapter(
             }
         }
 
-        fun bind(newEntry: LogbookEntry) {
+        fun bind(newEntry: LogbookEntry, upcoming: Boolean) {
             entry = newEntry
-            populate(this, newEntry)
+            populate(this, newEntry, upcoming)
             val isOpen = currentlyOpenId == newEntry.id
             binding.itemCard.translationX = if (isOpen) revealWidth else 0f
         }
     }
 
-    private fun populate(holder: ViewHolder, newEntry: LogbookEntry) {
+    private fun populate(holder: ViewHolder, newEntry: LogbookEntry, upcoming: Boolean) {
         val item = holder.binding
         val entry = newEntry
+
+        // Geplante Flüge (Datum in der Zukunft) stehen ausgegraut: Logo und all
+        // ihre Zeilen in einem gedämpften Grauton, damit die Gruppe "Upcoming"
+        // sich auf den ersten Blick von den geflogenen Einträgen abhebt. Die
+        // Graustufe löst das Theme auf, damit sie in beiden Themes (hell und
+        // dunkel) gleich gut ablesbar ist.
+        val grayTone = MaterialColors.getColor(
+            item.itemRoute, com.google.android.material.R.attr.colorOnSurfaceVariant
+        )
 
         val flightNo = listOfNotNull(
             entry.airline?.takeIf { it.isNotBlank() },
             entry.flightNumber?.takeIf { it.isNotBlank() },
         ).joinToString(" ")
         item.itemFlightNo.text = flightNo
+        item.itemFlightNo.setTextColor(
+            if (upcoming) grayTone else MaterialColors.getColor(
+                item.itemFlightNo, com.google.android.material.R.attr.colorOnSurface
+            )
+        )
 
         val airlineCode = entry.airline?.takeIf { it.isNotBlank() }
         val livery = airlineCode?.let { AirlineCatalog.loadLogo(context, it) }
         if (livery != null) {
             item.ivAirlineLivery.setImageBitmap(livery)
-            item.ivAirlineLivery.colorFilter = if (isDarkMode) darkLogoFilter else null
+            item.ivAirlineLivery.colorFilter = if (upcoming) {
+                grayLogoFilter
+            } else if (isDarkMode) {
+                darkLogoFilter
+            } else {
+                null
+            }
             item.ivAirlineLivery.visibility = View.VISIBLE
         } else {
             item.ivAirlineLivery.setImageBitmap(null)
@@ -289,16 +369,28 @@ class EntryListAdapter(
         }
 
         item.itemDate.text = EntryListAdapter.dateFormatter.format(entry.date)
+        item.itemDate.setTextColor(if (upcoming) grayTone else MaterialColors.getColor(
+            item.itemDate, com.google.android.material.R.attr.colorOnSurface
+        ))
 
         item.itemRoute.text = "${entry.fromAirport} → ${entry.toAirport}"
+        item.itemRoute.setTextColor(if (upcoming) grayTone else MaterialColors.getColor(
+            item.itemRoute, com.google.android.material.R.attr.colorPrimary
+        ))
 
         val meta = listOfNotNull(
             entry.aircraftType?.takeIf { it.isNotBlank() },
             entry.registration?.takeIf { it.isNotBlank() },
         )
         item.itemTypeMeta.text = meta.joinToString(" · ")
+        item.itemTypeMeta.setTextColor(if (upcoming) grayTone else MaterialColors.getColor(
+            item.itemTypeMeta, com.google.android.material.R.attr.colorOnSurfaceVariant
+        ))
 
         item.itemFlightType.text = entry.flightType.orEmpty()
+        item.itemFlightType.setTextColor(if (upcoming) grayTone else MaterialColors.getColor(
+            item.itemFlightType, com.google.android.material.R.attr.colorOnSurfaceVariant
+        ))
 
         // Das Reisebuddy-Icon erscheint nur bei einem Eintrag mit hinterlegtem
         // Buddy. Der Name steht in der Description, damit Talkback ihn vorliest.
@@ -313,11 +405,16 @@ class EntryListAdapter(
 
         item.itemClass.text = entry.classType.orEmpty()
         val classIndex = classColorIndex(entry.classType)
-        if (classIndex != null && classIndex < schemeColors.size) {
-            item.itemClass.setTextColor(
-                ContextCompat.getColor(context, schemeColors[classIndex])
-            )
-        }
+        item.itemClass.setTextColor(
+            when {
+                upcoming -> grayTone
+                classIndex != null && classIndex < schemeColors.size ->
+                    ContextCompat.getColor(context, schemeColors[classIndex])
+                else -> MaterialColors.getColor(
+                    item.itemClass, com.google.android.material.R.attr.colorOnSurfaceVariant
+                )
+            }
+        )
 
         val comment = entry.comment?.takeIf { it.isNotBlank() }
         if (comment == null) {
@@ -325,6 +422,9 @@ class EntryListAdapter(
         } else {
             item.itemComment.visibility = View.VISIBLE
             item.itemComment.text = comment
+            item.itemComment.setTextColor(if (upcoming) grayTone else MaterialColors.getColor(
+                item.itemComment, com.google.android.material.R.attr.colorOnSurfaceVariant
+            ))
         }
     }
 

@@ -1,15 +1,20 @@
 package com.highfly.logbook
 
 import android.os.Bundle
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.os.bundleOf
+import androidx.core.view.doOnLayout
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.highfly.logbook.databinding.FragmentTileDetailBinding
 import java.time.format.DateTimeFormatter
+import kotlin.math.floor
+import kotlin.math.min
 import kotlin.math.roundToInt
 
 class TileDetailFragment : Fragment() {
@@ -72,14 +77,7 @@ class TileDetailFragment : Fragment() {
                     // Klick auf Medaille, Code oder Balken öffnet die
                     // Detailseite des Ziel-Flughafens.
                     binding.barChart.setOnItemClickListener { index ->
-                        val code = bars.getOrNull(index)?.label
-                            ?.trim()?.uppercase()
-                        if (!code.isNullOrBlank()) {
-                            findNavController().navigate(
-                                R.id.action_tile_detail_to_layover_detail,
-                                bundleOf(LayoverDetailFragment.ARG_AIRPORT_CODE to code)
-                            )
-                        }
+                        openLayoverDetail(bars.getOrNull(index)?.label)
                     }
                 }
                 renderBars(bars)
@@ -109,16 +107,83 @@ class TileDetailFragment : Fragment() {
      * Letztes und ältestes Layover des Zeitraums als zwei Kacheln ueber dem
      * Balkendiagramm. Ohne Layover im Zeitraum bleiben beide Kacheln
      * ausgeblendet, dann zeigt das Diagramm allein seinen Leertext.
+     *
+     * Beide Kacheln sind anklickbar und oeffnen dieselbe Detailseite wie ein
+     * Klick auf den Code im Balkendiagramm darunter.
      */
     private fun renderLayoverExtremes() {
         val entries = ChartData.periodFiltered(requireContext())
         val newest = ChartData.newestLayover(entries) ?: return
         val oldest = ChartData.oldestLayover(entries) ?: return
+        val newestDate = newest.date.format(DATE_LABEL_FORMAT)
+        val oldestDate = oldest.date.format(DATE_LABEL_FORMAT)
         binding.tvLayoverNewest.text = newest.airport
-        binding.tvLayoverNewestDate.text = newest.date.format(DATE_LABEL_FORMAT)
+        binding.tvLayoverNewestDate.text = newestDate
         binding.tvLayoverOldest.text = oldest.airport
-        binding.tvLayoverOldestDate.text = oldest.date.format(DATE_LABEL_FORMAT)
+        binding.tvLayoverOldestDate.text = oldestDate
         binding.layoverExtremes.visibility = View.VISIBLE
+        // Die Kacheln nennen Flughafen und Datum für Talkback, sonst blieben die
+        // Kinder stumm, weil die Kachel selbst den Namen trägt.
+        binding.cardLayoverNewest.contentDescription = getString(
+            R.string.layover_extreme_newest_desc, newest.airport, newestDate
+        )
+        binding.cardLayoverOldest.contentDescription = getString(
+            R.string.layover_extreme_oldest_desc, oldest.airport, oldestDate
+        )
+        binding.cardLayoverNewest.setOnClickListener {
+            openLayoverDetail(newest.airport)
+        }
+        binding.cardLayoverOldest.setOnClickListener {
+            openLayoverDetail(oldest.airport)
+        }
+        fitLayoverTileCodes()
+    }
+
+    /**
+     * Beide Kacheln zeigen ihren Code in derselben Schriftgrösse.
+     *
+     * Die Kacheln sind gleich breit, ihre Codes aber nicht gleich lang. Ohne
+     * diese Angleichung müsste nur der längere Code schrumpfen und die Kacheln
+     * unterschieden sich schon im Wortbild. Gesucht ist deshalb die grösste
+     * Grösse, in der beide Codes nebeneinander passen. Das Zuschlagen auf die
+     * gemessene Breite braucht den ersten Layout-Durchlauf.
+     */
+    private fun fitLayoverTileCodes() {
+        binding.layoverExtremes.doOnLayout {
+            fitSharedCodeSize(binding.tvLayoverNewest, binding.tvLayoverOldest)
+        }
+    }
+
+    private fun fitSharedCodeSize(vararg codes: TextView) {
+        // Pixel je sp: so wandelt TextView seine Schriftgrösse in Pixel, und
+        // damit lässt sich die gemessene Breite wieder in sp zurückrechnen.
+        val pixelPerSp = resources.displayMetrics.density *
+            resources.configuration.fontScale
+        var needed = Float.MAX_VALUE
+        codes.forEach { code ->
+            val available = code.width - code.paddingLeft - code.paddingRight
+            val measured = code.paint.measureText(code.text, 0, code.text.length)
+            if (available <= 0 || measured <= 0f) return@forEach
+            needed = min(needed, code.textSize * available / measured)
+        }
+        if (needed == Float.MAX_VALUE) return
+        val sizeSp = floor(needed / pixelPerSp).toInt()
+            .coerceIn(LAYOVER_CODE_MIN_SP, LAYOVER_CODE_MAX_SP)
+        codes.forEach { code ->
+            code.setAutoSizeTextTypeUniformWithConfiguration(
+                LAYOVER_CODE_MIN_SP, sizeSp, 1, TypedValue.COMPLEX_UNIT_SP
+            )
+        }
+    }
+
+    /** Detailseite eines Layover-Flughafens, wie sie ein Klick im Diagramm öffnet. */
+    private fun openLayoverDetail(label: String?) {
+        val code = label?.trim()?.uppercase()
+        if (code.isNullOrBlank()) return
+        findNavController().navigate(
+            R.id.action_tile_detail_to_layover_detail,
+            bundleOf(LayoverDetailFragment.ARG_AIRPORT_CODE to code)
+        )
     }
 
     private fun renderRoutes() {
@@ -205,6 +270,10 @@ class TileDetailFragment : Fragment() {
     private companion object {
         /** Anteil der Bildschirmhoehe, den die Diagrammflaeche einnimmt. */
         const val COLUMN_CHART_HEIGHT_FACTOR = 0.33f
+
+        /** Grenzen der gemeinsamen Schriftgrösse der beiden Code-Kacheln. */
+        const val LAYOVER_CODE_MIN_SP = 14
+        const val LAYOVER_CODE_MAX_SP = 28
 
         val DATE_LABEL_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
     }

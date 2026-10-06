@@ -97,13 +97,13 @@ class FirstFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        DashboardEvents.onPeriodChanged = { refresh() }
+        DashboardEvents.onFilterChanged = { refresh() }
         refresh()
     }
 
     override fun onPause() {
         super.onPause()
-        DashboardEvents.onPeriodChanged = null
+        DashboardEvents.onFilterChanged = null
     }
 
     override fun onDestroyView() {
@@ -119,11 +119,21 @@ class FirstFragment : Fragment() {
         val appContext = requireContext().applicationContext
         Thread {
             val key = Settings.getDefaultPeriodKey(appContext)
+            val typeKey = Settings.getFlightTypeFilterKey(appContext)
             val timeUnitKey = Settings.getDefaultTimeUnitKey(appContext)
+            // Beide Filter der Zeile oben wirken auf jede Kachel: Erst die
+            // Flugart, dann der Zeitraum - beide schraenken die Menge nur ein.
             val entries = DashboardStats.filterForPeriod(
-                LogbookRepository.getEntries(),
+                FlightTypeOptions.filter(LogbookRepository.getFlownEntries(), typeKey),
                 key
             )
+            // Geplante Fluege zaehlen in keiner Kachel mit. Sie werden nur
+            // gemeldet, damit das "i" in der Filterzeile sie erklaeren kann,
+            // und tauchen mit ihrem Datum in den Auswertungen auf.
+            val upcoming = DashboardStats.filterForPeriod(
+                FlightTypeOptions.filter(LogbookRepository.getUpcomingEntries(), typeKey),
+                key
+            ).size
             val time = DashboardStats.flightMinutes(entries)
             val values = DashboardStats.values(appContext, entries)
             val distance = DashboardStats.distanceDetails(appContext, entries)
@@ -134,6 +144,7 @@ class FirstFragment : Fragment() {
                 binding.dashboardProgress.visibility = View.GONE
                 timeMinutes = time
                 timeUnit = TimeUnitOptions.unit(timeUnitKey)
+                DashboardEvents.onUpcomingCountChanged?.invoke(upcoming)
                 renderGrid(
                     DashboardPrefs.readRows(binding.root.context),
                     binding.gridTiles,
@@ -218,7 +229,6 @@ class FirstFragment : Fragment() {
 
                 val pieView = tileContainer.findViewById<PieChartView>(R.id.tile_pie_chart)
                 val worldmapPreview = tileContainer.findViewById<WorldMapPreviewView>(R.id.tile_worldmap_preview)
-
                 if (isDistance) {
                     populateDistanceTile(tileContainer, distance)
                 } else if (isCo2) {
@@ -521,5 +531,7 @@ class FirstFragment : Fragment() {
     private companion object {
         /** Obergrenze fuer die Schrift-Skalierung der Kachelhöhen. */
         const val MAX_TILE_FONT_SCALE = 1.4f
+
+        /** Platz, den der Hinweis auf geplante Fluege rechts beansprucht. */
     }
 }

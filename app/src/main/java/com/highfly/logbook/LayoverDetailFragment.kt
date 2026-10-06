@@ -13,9 +13,10 @@ import java.util.Locale
 
 /**
  * Detailseite zu einem Layover-Ziel: zentrierter Kopfbereich (Code, Name,
- * Stadt und Land), Länderauszug mit Flughafen-Marker und ein chronologischer
- * Zeitstrahl aller Layover an diesem Flughafen. Der Zeitraum entspricht der
- * Kachel, von der aus die Seite geöffnet wurde.
+ * Stadt und Land mit Flagge), Länderauszug mit Flughafen-Marker, darunter die
+ * Auswertung der im Layover verbrachten Zeit und ein Zeitstrahl aller Layover
+ * an diesem Flughafen, der jüngste oben. Der Zeitraum entspricht der Kachel,
+ * von der aus die Seite geöffnet wurde.
  */
 class LayoverDetailFragment : Fragment() {
 
@@ -58,10 +59,15 @@ class LayoverDetailFragment : Fragment() {
 
         renderHeader()
         renderMap()
+        renderLayoverTime()
         renderTimeline()
     }
 
-    /** Code und Flagge zentriert, darunter Name und "Stadt, Land". */
+    /**
+     * Code mittig, darunter der Name, darunter "Stadt, Land" mit der Flagge
+     * dahinter. Die Flagge steht nicht neben dem Code: neben dem Code wirkt
+     * sie wie eine zweite Beschriftung, in der Ortszeile gehört sie zum Land.
+     */
     private fun renderHeader() {
         binding.tvAirportCode.text = code
         val info = AirportNames.get(requireContext(), code)
@@ -70,18 +76,17 @@ class LayoverDetailFragment : Fragment() {
             binding.tvAirportName.visibility = View.VISIBLE
             binding.tvAirportName.text = info.name
         }
-        if (iso != null && iso.isNotBlank()) {
-            if (binding.tvAirportFlag.visibility != View.VISIBLE) {
-                binding.tvAirportFlag.visibility = View.VISIBLE
-            }
-            binding.tvAirportFlag.text = AirportData.flagEmoji(iso)
-        }
-        val countryName = iso?.let { countryName(it) }
-        val locationText = listOfNotNull(info?.city, countryName)
-            .joinToString(", ")
-        if (locationText.isNotBlank()) {
+        val location = listOfNotNull(
+            info?.city?.takeIf { it.isNotBlank() },
+            iso?.takeIf { it.isNotBlank() }?.let { countryName(it) }
+        ).joinToString(", ")
+        val line = listOfNotNull(
+            location.takeIf { it.isNotBlank() },
+            iso?.takeIf { it.isNotBlank() }?.let { AirportData.flagEmoji(it) }
+        ).joinToString(" ")
+        if (line.isNotBlank()) {
             binding.tvAirportCityCountry.visibility = View.VISIBLE
-            binding.tvAirportCityCountry.text = locationText
+            binding.tvAirportCityCountry.text = line
         }
     }
 
@@ -114,9 +119,94 @@ class LayoverDetailFragment : Fragment() {
         )
     }
 
-    /** Zeitstrahl: alle Layover des Zeitraums an diesem Flughafen, alt nach neu. */
+    /**
+     * Auswertung der Layover-Zeit unter der Karte: die Summe der Längen aus
+     * "Neuer Flug" steht über einer Leiste, die mit dieser Zeit füllt. Die
+     * Einheit richtet sich nach der Zeit: unter einem Tag zählt die Leiste in
+     * Tagen, darüber in Wochen, Monaten, Quartalen und Jahren.
+     *
+     * Ohne erfasste Längen steht dort eine leere Leiste mit 0 h - das ist
+     * eine Angabe ("nichts eingetragen"), kein Fehler.
+     */
+    private fun renderLayoverTime() {
+        val hours = ChartData.layoverHoursTotal(
+            ChartData.periodFiltered(requireContext()),
+            code
+        )
+        binding.layoverTimeContainer.visibility = View.VISIBLE
+        binding.tvLayoverTime.text = breakdownText(hours)
+        binding.layoverTimeBar.setLayoverHours(hours, stepLabel(hours))
+    }
+
+    /**
+     * Beschriftung des Skalenendes, also die Einheit, in der gerade gezählt
+     * wird: 30 Stunden stehen als "1 Woche" an der Leiste, 400 Stunden als
+     * "1 Quartal". Erst wenn das Jahr überzogen ist, zählt die Leiste in
+     * ganzen Jahren, weil eine längere Strecke dann mehr als ein Jahr umfasst.
+     */
+    private fun stepLabel(hours: Int): String {
+        val units = LayoverTimeScale.scaleUnits(hours)
+        return when (LayoverTimeScale.stepIndex(hours)) {
+            0 -> getString(R.string.layover_time_step_day)
+            1 -> getString(R.string.layover_time_step_week)
+            2 -> getString(R.string.layover_time_step_month)
+            3 -> getString(R.string.layover_time_step_quarter)
+            else -> resources.getQuantityString(
+                R.plurals.layover_time_step_year, units, units
+            )
+        }
+    }
+
+    /**
+     * Dauer über der Leiste: die verbrachte Zeit in jeder Einheit als
+     * Gesamtwert, getrennt durch Punkte - 2 Wochen, 6 Tage und 19 Stunden
+     * stehen als "499 h · 20,8 Tage · 3,0 Wochen". Stunden stehen ganz-
+     * zahlig, alle anderen Einheiten mit einer Nachkommastelle. Gezeigt wird
+     * nur, was die Leiste auch zeigt: die größte Einheit bleibt eine Stufe
+     * unter dem Skalenende.
+     */
+    private fun breakdownText(hours: Int): String {
+        val totals = LayoverTimeScale.totals(hours)
+        val step = LayoverTimeScale.stepIndex(hours)
+        val parts = buildList {
+            add(getString(R.string.layover_time_unit_hours, number(totals.hours)))
+            if (step >= 1) {
+                add(part(R.plurals.layover_time_unit_days, totals.days))
+            }
+            if (step >= 2) {
+                add(part(R.plurals.layover_time_unit_weeks, totals.weeks))
+            }
+            if (step >= 3) {
+                add(part(R.plurals.layover_time_unit_months, totals.months))
+            }
+            if (step >= 4) {
+                add(part(R.plurals.layover_time_unit_quarters, totals.quarters))
+            }
+        }
+        return parts.joinToString(BREAKDOWN_SEPARATOR)
+    }
+
+    /** Ganzzahl mit Tausendertrennzeichen, wie überall sonst in der App. */
+    private fun number(value: Int): String =
+        String.format(Locale.GERMANY, "%,d", value)
+
+    /** Einheiten-Teil mit einer Nachkommastelle und passendem Singular/Plural. */
+    private fun part(resId: Int, value: Double): String =
+        resources.getQuantityString(
+            resId, if (value == 1.0) 1 else 2, decimal(value)
+        )
+
+    private fun decimal(value: Double): String =
+        LayoverTimeScale.oneDecimal(value, Locale.getDefault())
+
+    /**
+     * Zeitstrahl: alle Layover des Zeitraums an diesem Flughafen, der jüngste
+     * oben und der am längsten her zurückliegende unten. Neben dem Datum steht
+     * die Flugroute, mittig daneben der Punkt, rechts davon der Reisebuddy,
+     * falls beim Eintrag einer hinterlegt ist.
+     */
     private fun renderTimeline() {
-        val entries = ChartData.layoverHistory(
+        val entries = ChartData.layoverHistoryNewestFirst(
             ChartData.periodFiltered(requireContext()),
             code
         )
@@ -124,13 +214,14 @@ class LayoverDetailFragment : Fragment() {
             binding.tvEmpty.visibility = View.VISIBLE
             return
         }
-        binding.tvTimelineTitle.visibility = View.VISIBLE
         binding.timelineRoot.visibility = View.VISIBLE
         entries.forEachIndexed { index, entry ->
             val row = ItemLayoverTimelineBinding.inflate(
                 layoutInflater, binding.layoverTimeline, false
             )
             row.tvDate.text = entry.date.format(DATE_LABEL_FORMAT)
+            row.timelineDot.text =
+                entry.flightMinutes?.let { durationHours(it) }.orEmpty()
             row.tvRoute.text = getString(
                 R.string.import_review_summary_route,
                 entry.fromAirport.uppercase(),
@@ -142,11 +233,48 @@ class LayoverDetailFragment : Fragment() {
                 row.tvMeta.visibility = View.VISIBLE
                 row.tvMeta.text = number
             }
+            val buddy = entry.travelBuddy?.takeIf { it.isNotBlank() }
+            if (buddy != null) {
+                row.ivBuddy.visibility = View.VISIBLE
+                row.tvBuddy.visibility = View.VISIBLE
+                row.tvBuddy.text = buddy
+            }
             if (index == entries.lastIndex) {
                 (row.root.layoutParams as? ViewGroup.MarginLayoutParams)?.bottomMargin = 0
             }
             binding.layoverTimeline.addView(row.root)
         }
+        binding.timelineRoot.post {
+            if (_binding != null) alignTimelineLine()
+        }
+    }
+
+    /**
+     * Umlaufdauer eines Eintrags in ganzen Stunden, kaufmännisch gerundet:
+     * aus 425 Minuten werden "7 h". Erst ab 31 Restminuten zählt die Stunde
+     * hoch, sonst stünde für einen kurzen Hopser "0 h" im Punkt.
+     */
+    private fun durationHours(minutes: Int): String =
+        "${(minutes + 30) / 60} h"
+
+    /**
+     * Die senkrechte Linie des Zeitstrahls verbindet nur die Punkte: Sie
+     * beginnt auf halber Höhe der obersten Zeile und endet auf halber Höhe der
+     * untersten. Von selbst spannte sie sich über die ganze Liste und stünde an
+     * beiden Enden ein Stück ins Leere. Die Zeilenhöhen kennt man erst nach
+     * dem Layout.
+     */
+    private fun alignTimelineLine() {
+        val rows = binding.layoverTimeline
+        val first = rows.getChildAt(0) ?: return
+        val last = rows.getChildAt(rows.childCount - 1)
+        val start = first.height / 2
+        val end = rows.height - last.height / 2
+        val params = binding.timelineLine.layoutParams as? ViewGroup.MarginLayoutParams
+            ?: return
+        params.height = (end - start).coerceAtLeast(0)
+        params.topMargin = start
+        binding.timelineLine.layoutParams = params
     }
 
     override fun onResume() {
@@ -168,6 +296,9 @@ class LayoverDetailFragment : Fragment() {
     companion object {
         /** Name des Navigationsarguments, siehe `nav_graph.xml`. */
         const val ARG_AIRPORT_CODE = "code"
+
+        /** Trenner zwischen den Teilen der Dauerangabe über der Leiste. */
+        const val BREAKDOWN_SEPARATOR = " · "
 
         val DATE_LABEL_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
     }

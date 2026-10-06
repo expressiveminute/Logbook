@@ -34,7 +34,7 @@ class FlightsMonthsFragment : Fragment() {
         }
         binding.tvMonthTitle.text = "${getString(R.string.flights_months_title)} $year"
 
-        val entries = LogbookRepository.getEntries().filter { it.date.year == year }
+        val entries = LogbookRepository.getFlownEntries().filter { it.date.year == year }
         val counts = IntArray(Month.values().size)
         entries.forEach { counts[it.date.monthValue - 1]++ }
 

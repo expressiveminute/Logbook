@@ -31,6 +31,7 @@ class LogbookDatabase(context: Context, name: String = DATABASE_NAME) :
                 $COL_DISTANCE_KM INTEGER,
                 $COL_FLIGHT_MINUTES INTEGER,
                 $COL_LAYOVER INTEGER,
+                $COL_LAYOVER_HOURS INTEGER,
                 $COL_FROM_COUNTRY TEXT,
                 $COL_TO_COUNTRY TEXT,
                 $COL_FUNCTION TEXT,
@@ -58,6 +59,9 @@ class LogbookDatabase(context: Context, name: String = DATABASE_NAME) :
         }
         if (oldVersion < 6) {
             db.execSQL("ALTER TABLE $TABLE_ENTRIES ADD COLUMN $COL_TRAVEL_BUDDY TEXT")
+        }
+        if (oldVersion < 7) {
+            db.execSQL("ALTER TABLE $TABLE_ENTRIES ADD COLUMN $COL_LAYOVER_HOURS INTEGER")
         }
     }
 
@@ -90,6 +94,7 @@ class LogbookDatabase(context: Context, name: String = DATABASE_NAME) :
             val distanceIdx = cursor.getColumnIndexOrThrow(COL_DISTANCE_KM)
             val minutesIdx = cursor.getColumnIndexOrThrow(COL_FLIGHT_MINUTES)
             val layoverIdx = cursor.getColumnIndexOrThrow(COL_LAYOVER)
+            val layoverHoursIdx = cursor.getColumnIndexOrThrow(COL_LAYOVER_HOURS)
             val fromCountryIdx = cursor.getColumnIndexOrThrow(COL_FROM_COUNTRY)
             val toCountryIdx = cursor.getColumnIndexOrThrow(COL_TO_COUNTRY)
             val commentIdx = cursor.getColumnIndexOrThrow(COL_COMMENT)
@@ -99,7 +104,8 @@ class LogbookDatabase(context: Context, name: String = DATABASE_NAME) :
                 idIdx, dateIdx, flightTypeIdx, classTypeIdx,
                 fromIdx, toIdx, airlineIdx, flightNumberIdx,
                 aircraftTypeIdx, registrationIdx, distanceIdx, minutesIdx,
-                layoverIdx, commentIdx, fromCountryIdx, toCountryIdx, functionIdx,
+                layoverIdx, layoverHoursIdx, commentIdx,
+                fromCountryIdx, toCountryIdx, functionIdx,
                 travelBuddyIdx
             )
         }
@@ -156,6 +162,7 @@ class LogbookDatabase(context: Context, name: String = DATABASE_NAME) :
             val distanceIdx = cursor.getColumnIndexOrThrow(COL_DISTANCE_KM)
             val minutesIdx = cursor.getColumnIndexOrThrow(COL_FLIGHT_MINUTES)
             val layoverIdx = cursor.getColumnIndexOrThrow(COL_LAYOVER)
+            val layoverHoursIdx = cursor.getColumnIndexOrThrow(COL_LAYOVER_HOURS)
             val fromCountryIdx = cursor.getColumnIndexOrThrow(COL_FROM_COUNTRY)
             val toCountryIdx = cursor.getColumnIndexOrThrow(COL_TO_COUNTRY)
             val commentIdx = cursor.getColumnIndexOrThrow(COL_COMMENT)
@@ -167,7 +174,8 @@ class LogbookDatabase(context: Context, name: String = DATABASE_NAME) :
                     idIdx, dateIdx, flightTypeIdx, classTypeIdx,
                     fromIdx, toIdx, airlineIdx, flightNumberIdx,
                     aircraftTypeIdx, registrationIdx, distanceIdx, minutesIdx,
-                    layoverIdx, commentIdx, fromCountryIdx, toCountryIdx, functionIdx,
+                    layoverIdx, layoverHoursIdx, commentIdx,
+                fromCountryIdx, toCountryIdx, functionIdx,
                     travelBuddyIdx
                 )
                 if (entry != null) entries += entry
@@ -190,6 +198,7 @@ class LogbookDatabase(context: Context, name: String = DATABASE_NAME) :
         distanceIdx: Int,
         minutesIdx: Int,
         layoverIdx: Int,
+        layoverHoursIdx: Int,
         commentIdx: Int,
         fromCountryIdx: Int,
         toCountryIdx: Int,
@@ -215,6 +224,7 @@ class LogbookDatabase(context: Context, name: String = DATABASE_NAME) :
             distanceKm = if (isNull(distanceIdx)) null else getInt(distanceIdx),
             flightMinutes = if (isNull(minutesIdx)) null else getInt(minutesIdx),
             layover = getInt(layoverIdx) != 0,
+            layoverHours = if (isNull(layoverHoursIdx)) null else getInt(layoverHoursIdx),
             fromCountry = if (isNull(fromCountryIdx)) null else getString(fromCountryIdx),
             toCountry = if (isNull(toCountryIdx)) null else getString(toCountryIdx),
             function = if (isNull(functionIdx)) null else getString(functionIdx),
@@ -242,6 +252,7 @@ class LogbookDatabase(context: Context, name: String = DATABASE_NAME) :
         put(COL_DISTANCE_KM, entry.distanceKm)
         put(COL_FLIGHT_MINUTES, entry.flightMinutes)
         put(COL_LAYOVER, if (entry.layover) 1 else 0)
+        put(COL_LAYOVER_HOURS, entry.layoverHours)
         put(COL_FROM_COUNTRY, entry.fromCountry)
         put(COL_TO_COUNTRY, entry.toCountry)
         put(COL_FUNCTION, entry.function)
@@ -251,7 +262,7 @@ class LogbookDatabase(context: Context, name: String = DATABASE_NAME) :
 
     companion object {
         const val DATABASE_NAME = "logbook.db"
-        const val DATABASE_VERSION = 6
+        const val DATABASE_VERSION = 7
 
         const val TABLE_ENTRIES = "entries"
         const val COL_ID = "_id"
@@ -267,6 +278,7 @@ class LogbookDatabase(context: Context, name: String = DATABASE_NAME) :
         const val COL_DISTANCE_KM = "distance_km"
         const val COL_FLIGHT_MINUTES = "flight_minutes"
         const val COL_LAYOVER = "layover"
+        const val COL_LAYOVER_HOURS = "layover_hours"
         const val COL_FROM_COUNTRY = "from_country"
         const val COL_TO_COUNTRY = "to_country"
         const val COL_FUNCTION = "function"

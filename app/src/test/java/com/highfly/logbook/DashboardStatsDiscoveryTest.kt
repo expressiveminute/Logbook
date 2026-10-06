@@ -50,7 +50,7 @@ class DashboardStatsDiscoveryTest {
     }
 
     @Test
-    fun discoveryCount_roundTripWithinSevenDaysCountsAsOne() {
+    fun discoveryCount_roundTripWithinThirtyDaysCountsAsOne() {
         val entries = listOf(
             entry(LocalDate.of(2026, 3, 12), from = "MUC", to = "DEN"),
             entry(LocalDate.of(2026, 3, 15), from = "DEN", to = "MUC")

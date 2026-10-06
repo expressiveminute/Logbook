@@ -85,10 +85,12 @@ class WorldMapFragment : Fragment() {
         val flightType: String = "",
         val classType: String = "",
         val aircraftType: String = "",
-        val layover: String = ""
+        val layover: String = "",
+        val travelBuddy: String = ""
     ) {
         fun isActive(): Boolean =
-            listOf(flightType, classType, aircraftType, layover).any { it.isNotBlank() }
+            listOf(flightType, classType, aircraftType, layover, travelBuddy)
+                .any { it.isNotBlank() }
 
         fun matches(entry: LogbookEntry): Boolean {
             if (flightType.isNotBlank() &&
@@ -102,6 +104,7 @@ class WorldMapFragment : Fragment() {
             ) return false
             if (layover == "yes" && !entry.layover) return false
             if (layover == "no" && entry.layover) return false
+            if (!TravelBuddyStats.matches(entry.travelBuddy, travelBuddy)) return false
             return true
         }
     }
@@ -240,7 +243,7 @@ class WorldMapFragment : Fragment() {
 
                 val airports = linkedMapOf<String, GeoPoint>()
                 val routeCounts = linkedMapOf<Pair<String, String>, Int>()
-                val entries = LogbookRepository.getEntries()
+                val entries = LogbookRepository.getFlownEntries()
 
                 for (entry in entries) {
                     val fromIata = entry.fromAirport.uppercase()
@@ -352,21 +355,21 @@ class WorldMapFragment : Fragment() {
         )
 
         val selected = selectedIata
-        val filtered = if (selected == null) allRoutes else
-            allRoutes.filter { it.from == selected || it.to == selected }
-
-        // Flughäfen, die vom angeklickten Flughafen aus angeflogen wurden. Nur
-        // die werden hervorgehoben: eine Strecke, die im angeklickten Flughafen
-        // endet, ist keine Verbindung von ihm aus.
-        val reached = if (selected == null) emptySet() else
-            filtered.filterTo(mutableSetOf()) { it.from == selected }.map { it.to }.toSet()
+        // MapSelection entscheidet, welche Verbindungen zur Auswahl gehoeren und
+        // welche Flughäfen damit verbunden sind - fuer Abfluege und Ankuenfte
+        // gleichermassen, siehe dort.
+        val filtered = allRoutes.filter { MapSelection.touches(it.from to it.to, selected) }
+        val reached = MapSelection.connected(allRoutes.map { it.from to it.to }, selected)
 
         filtered.forEach { route ->
             val polyline = Polyline().apply {
                 setPoints(route.points)
                 outlinePaint.color = routeColor
-                outlinePaint.strokeWidth = 1.0f * density
-                outlinePaint.alpha = 230
+                // Ohne Auswahl alle gleich stark. Mit Auswahl treten die
+                // Strecken des Flughafens hervor, der Rest tritt zurück.
+                val highlighted = selected == null
+                outlinePaint.strokeWidth = (if (highlighted) 1.8f else 1.0f) * density
+                outlinePaint.alpha = if (highlighted) 255 else 130
                 outlinePaint.style = Paint.Style.STROKE
             }
             mv.overlays.add(polyline)
@@ -471,6 +474,7 @@ class WorldMapFragment : Fragment() {
         val filterClass = sheetView.findViewById<AutoCompleteTextView>(R.id.filter_class)
         val filterAircraftType = sheetView.findViewById<AutoCompleteTextView>(R.id.filter_aircraft_type)
         val filterLayover = sheetView.findViewById<AutoCompleteTextView>(R.id.filter_layover)
+        val filterTravelBuddy = sheetView.findViewById<AutoCompleteTextView>(R.id.filter_travel_buddy)
         val filterCityLanguage = sheetView.findViewById<AutoCompleteTextView>(R.id.filter_city_language)
 
         filterTravelType.setAdapter(
@@ -506,11 +510,16 @@ class WorldMapFragment : Fragment() {
                 getString(R.string.world_map_city_language_de)
             )
         )
+        // Die Vorschlaege kommen aus den Reisebuddies der Eintraege, nicht aus
+        // dem Freitextfeld: Ein Eintrag traegt mehrere Namen, die Liste zeigt
+        // jeden davon einzeln.
+        filterTravelBuddy.setAdapter(buddyAdapter())
 
         highlightFilterValue(filterTravelType)
         highlightFilterValue(filterClass)
         highlightFilterValue(filterAircraftType)
         highlightFilterValue(filterLayover)
+        highlightFilterValue(filterTravelBuddy)
         // The city language always holds a label; only a non-default choice
         // counts as a value the user actively picked.
         highlightFilterValue(filterCityLanguage) {
@@ -525,6 +534,7 @@ class WorldMapFragment : Fragment() {
             "no" -> getString(R.string.world_map_filter_layover_no)
             else -> ""
         }, false)
+        filterTravelBuddy.setText(activeMapFilter.travelBuddy, false)
         filterCityLanguage.setText(cityLanguageLabel(), false)
 
         val dialog = BottomSheetDialog(requireContext())
@@ -547,7 +557,8 @@ class WorldMapFragment : Fragment() {
                     getString(R.string.world_map_filter_layover_yes) -> "yes"
                     getString(R.string.world_map_filter_layover_no) -> "no"
                     else -> ""
-                }
+                },
+                travelBuddy = filterTravelBuddy.text?.toString()?.trim().orEmpty()
             )
             Settings.setCityLabelLanguage(
                 requireContext(),
@@ -620,6 +631,15 @@ class WorldMapFragment : Fragment() {
             .mapNotNull(value)
             .filter { it.isNotBlank() }
             .distinct()
+            .sortedWith(String.CASE_INSENSITIVE_ORDER)
+        return ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, values)
+    }
+
+    /** Die Reisebuddies der Eintraege als Vorschlaege, jeder Name einmal. */
+    private fun buddyAdapter(): ArrayAdapter<String> {
+        val values = entriesData
+            .flatMap { TravelBuddyStats.parse(it.travelBuddy) }
+            .distinctBy { it.lowercase() }
             .sortedWith(String.CASE_INSENSITIVE_ORDER)
         return ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, values)
     }

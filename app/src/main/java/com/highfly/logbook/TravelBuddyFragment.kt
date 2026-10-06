@@ -59,7 +59,7 @@ class TravelBuddyFragment : Fragment() {
 
         Thread {
             val entries = DashboardStats.filterForPeriod(
-                LogbookRepository.getEntries(), periodKey
+                LogbookRepository.getFlownEntries(), periodKey
             )
             val buddies = TravelBuddyStats.build(entries, java.text.Collator.getInstance(locale))
             val flights = TravelBuddyStats.flightsWithBuddy(entries)

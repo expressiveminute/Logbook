@@ -1,26 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- Zeile des Layover-Zeitstrahls. Der Punkt steht mittig zur Zeile, also auf
+     Höhe der Flugroute und nicht neben dem Datum. Die Umlaufdauer des Eintrags
+     steht in ganzen Stunden im Punkt. Das Icon des Reisebuddies steht mittig
+     auf der Bildschirmbreite, der Name rechts dahinter. -->
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="16dp"
-    android:orientation="horizontal">
+    android:layout_marginBottom="16dp">
 
-    <ImageView
+    <TextView
         android:id="@+id/timeline_dot"
-        android:layout_width="20dp"
-        android:layout_height="20dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="12dp"
-        android:contentDescription="@null"
-        android:importantForAccessibility="no"
-        android:src="@drawable/ic_timeline_dot"
-        app:tint="?attr/colorPrimary" />
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginStart="6dp"
+        android:background="@drawable/bg_timeline_dot"
+        android:gravity="center"
+        android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
+        android:textColor="?attr/colorOnPrimary"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="7 h" />
 
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="8dp"
+        app:layout_goneMarginEnd="16dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/iv_buddy"
+        app:layout_constraintStart_toEndOf="@id/timeline_dot"
+        app:layout_constraintTop_toTopOf="parent"
         android:orientation="vertical">
 
         <TextView
@@ -47,4 +61,41 @@
             android:textColor="?attr/colorOnSurfaceVariant"
             android:visibility="gone" />
     </LinearLayout>
-</LinearLayout>
+
+    <!-- Reisebuddy, nur sichtbar wenn beim Eintrag einer hinterlegt ist. Das Icon
+         steht mittig auf der Bildschirmbreite, der Name rechts dahinter. Steht
+         kein Buddy drin, bleibt die Mitte frei und der Textblock darf bis zum
+         Rand reichen (layout_goneMarginEnd). -->
+    <ImageView
+        android:id="@+id/iv_buddy"
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:contentDescription="@null"
+        android:importantForAccessibility="no"
+        android:src="@drawable/ic_reisebuddy"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:tint="?attr/colorOnSurfaceVariant"
+        tools:visibility="visible" />
+
+    <TextView
+        android:id="@+id/tv_buddy"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="4dp"
+        android:layout_marginEnd="16dp"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/iv_buddy"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="Sina" />
+</androidx.constraintlayout.widget.ConstraintLayout>

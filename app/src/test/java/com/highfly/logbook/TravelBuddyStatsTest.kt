@@ -1,7 +1,9 @@
 package com.highfly.logbook
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.text.Collator
 import java.time.LocalDate
@@ -157,6 +159,25 @@ class TravelBuddyStatsTest {
     }
 
     @Test
+    fun geplanteFluegeMitBuddyZaehlenErstAbIhremTag() {
+        // Der Fall aus der Praxis: Zwei Flüge (LH726 am 24.10., LH727 am
+        // 25.10.) mit Buddy, beide noch in der Zukunft. Die Kachel zeigt sie
+        // nicht, weil geplante Fluege in keiner Auswertung mitzaehlen - das
+        // ist der Schnitt aus [UpcomingEntries], nicht der Buddy.
+        val heute = LocalDate.of(2026, 10, 4)
+        val entries = listOf(
+            entry(LocalDate.of(2026, 10, 24), "Anna"),
+            entry(LocalDate.of(2026, 10, 25), "Anna")
+        )
+
+        val geflogen = UpcomingEntries.flown(entries, heute)
+
+        assertEquals(0, TravelBuddyStats.build(geflogen).size)
+        // Der Buddy selbst ist gespeichert und wird am Tag des Fluges gezaehlt.
+        assertEquals(2, TravelBuddyStats.build(UpcomingEntries.flown(entries, LocalDate.of(2026, 10, 25))).first().flights)
+    }
+
+    @Test
     fun tileCount_zaehltVerschiedeneBuddiesNichtDieFluge() {
         val entries = listOf(
             entry("Anna"),
@@ -172,6 +193,28 @@ class TravelBuddyStatsTest {
         val original = entry("Anna, Bob")
         val zurueck = LogbookCsv.fromCsv(LogbookCsv.toCsv(listOf(original))).single()
         assertEquals("Anna, Bob", zurueck.travelBuddy)
+    }
+
+    @Test
+    fun matches_trifftDenNamenInEinemEintrag() {
+        assertTrue(TravelBuddyStats.matches("Anna, Bob", "Anna"))
+        assertTrue(TravelBuddyStats.matches("Anna, Bob", "bob"))
+        assertTrue(TravelBuddyStats.matches("Anna", "ann"))
+        assertFalse(TravelBuddyStats.matches("Anna, Bob", "Clara"))
+        assertFalse(TravelBuddyStats.matches(null, "Anna"))
+    }
+
+    @Test
+    fun matches_ohneFilterTrifftJedenEintrag() {
+        assertTrue(TravelBuddyStats.matches("Anna", ""))
+        assertTrue(TravelBuddyStats.matches("Anna", "   "))
+        assertTrue(TravelBuddyStats.matches(null, ""))
+    }
+
+    @Test
+    fun matches_passtNichtUeberDenTrennerHinweg() {
+        // "Bob" steht im zweiten Namen, "ann, b" waere kein Name.
+        assertFalse(TravelBuddyStats.matches("Anna, Bob", "a, b"))
     }
 
     /** Eine Datei ohne die Spalte bleibt lesbar, das Feld kommt leer heraus. */

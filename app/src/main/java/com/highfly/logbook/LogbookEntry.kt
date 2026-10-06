@@ -16,6 +16,11 @@ data class LogbookEntry(
     val distanceKm: Int? = null,
     val flightMinutes: Int? = null,
     val layover: Boolean = false,
+    /**
+     * Wie lange der Layover gedauert hat, in Stunden. Gehoert zu [layover] und
+     * ist nur gesetzt, wenn der Nutzer die Angabe gemacht hat.
+     */
+    val layoverHours: Int? = null,
     val fromCountry: String? = null,
     val toCountry: String? = null,
     val function: String? = null,

@@ -31,7 +31,7 @@ class FlightsYearFragment : Fragment() {
             findNavController().navigateUp()
         }
 
-        val entries = LogbookRepository.getEntries()
+        val entries = LogbookRepository.getFlownEntries()
         val countsByYear = entries.groupingBy { it.date.year }.eachCount()
         val years = countsByYear.entries
             .sortedWith(

@@ -24,6 +24,7 @@ class SaveFlowLogicTest {
         distanceKm = 6195,
         flightMinutes = 455,
         layover = true,
+        layoverHours = 26,
         comment = "Kommando, \"Sonderflug\", Frankfurt -> JFK\nnächste Zeile"
     )
 
@@ -46,6 +47,7 @@ class SaveFlowLogicTest {
         assertEquals(entry.distanceKm, e.distanceKm)
         assertEquals(entry.flightMinutes, e.flightMinutes)
         assertEquals(entry.layover, e.layover)
+        assertEquals(entry.layoverHours, e.layoverHours)
         assertEquals(entry.comment, e.comment)
     }
 
@@ -76,6 +78,7 @@ class SaveFlowLogicTest {
         assertNull(e.distanceKm)
         assertNull(e.flightMinutes)
         assertEquals(false, e.layover)
+        assertNull(e.layoverHours)
         assertNull(e.comment)
     }
 

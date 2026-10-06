@@ -10,8 +10,15 @@ class ChartDataLayoverTest {
     private fun entry(
         to: String,
         date: LocalDate,
-        layover: Boolean = true
-    ) = LogbookEntry(date = date, fromAirport = "FRA", toAirport = to, layover = layover)
+        layover: Boolean = true,
+        layoverHours: Int? = null
+    ) = LogbookEntry(
+        date = date,
+        fromAirport = "FRA",
+        toAirport = to,
+        layover = layover,
+        layoverHours = layoverHours
+    )
 
     @Test
     fun newestLayover_picksTheMostRecentOne() {
@@ -197,5 +204,94 @@ class ChartDataLayoverTest {
             emptyList<LogbookEntry>(),
             ChartData.layoverHistory(listOf(entry("SFO", LocalDate.of(2018, 1, 5))), "JFK")
         )
+    }
+
+    @Test
+    fun layoverHistoryNewestFirst_putsTheMostRecentLayoverOnTop() {
+        val entries = listOf(
+            entry("JFK", LocalDate.of(2021, 6, 11)),
+            entry("JFK", LocalDate.of(2026, 3, 12)),
+            entry("JFK", LocalDate.of(2023, 5, 17))
+        )
+
+        val history = ChartData.layoverHistoryNewestFirst(entries, "JFK")
+
+        assertEquals(
+            listOf(
+                LocalDate.of(2026, 3, 12),
+                LocalDate.of(2023, 5, 17),
+                LocalDate.of(2021, 6, 11)
+            ),
+            history.map { it.date }
+        )
+    }
+
+    @Test
+    fun layoverHistoryNewestFirst_ignoresOtherAirportsAndFlightsWithoutLayover() {
+        val entries = listOf(
+            entry("JFK", LocalDate.of(2021, 6, 11)),
+            entry("JFK", LocalDate.of(2026, 3, 12), layover = false),
+            entry("DXB", LocalDate.of(2026, 3, 12))
+        )
+
+        assertEquals(
+            listOf(LocalDate.of(2021, 6, 11)),
+            ChartData.layoverHistoryNewestFirst(entries, "JFK").map { it.date }
+        )
+    }
+
+    @Test
+    fun layoverHoursTotal_sumsTheLengthsOfTheLayovers() {
+        val entries = listOf(
+            entry("JFK", LocalDate.of(2021, 6, 11), layoverHours = 48),
+            entry("JFK", LocalDate.of(2023, 5, 17), layoverHours = 24),
+            entry("JFK", LocalDate.of(2026, 3, 12), layoverHours = 96)
+        )
+
+        assertEquals(168, ChartData.layoverHoursTotal(entries, "JFK"))
+    }
+
+    @Test
+    fun layoverHoursTotal_countsEntriesWithoutLengthAsZero() {
+        // Ohne Angabe ist die Zeit nicht erfasst, nicht etwa null Stunden -
+        // das Ergebnis ändert sich dadurch nicht.
+        val entries = listOf(
+            entry("JFK", LocalDate.of(2021, 6, 11), layoverHours = 48),
+            entry("JFK", LocalDate.of(2023, 5, 17))
+        )
+
+        assertEquals(48, ChartData.layoverHoursTotal(entries, "JFK"))
+    }
+
+    @Test
+    fun layoverHoursTotal_ignoresOtherAirportsAndFlightsWithoutLayover() {
+        val entries = listOf(
+            entry("JFK", LocalDate.of(2021, 6, 11), layoverHours = 48),
+            entry("DXB", LocalDate.of(2024, 11, 13), layoverHours = 72),
+            entry("JFK", LocalDate.of(2025, 1, 5), layover = false, layoverHours = 72)
+        )
+
+        assertEquals(48, ChartData.layoverHoursTotal(entries, "JFK"))
+    }
+
+    @Test
+    fun layoverHoursTotal_normalizesTheAirportCode() {
+        val entries = listOf(
+            entry(" jfk ", LocalDate.of(2021, 6, 11), layoverHours = 48),
+            entry("JFK", LocalDate.of(2023, 5, 17), layoverHours = 24)
+        )
+
+        assertEquals(72, ChartData.layoverHoursTotal(entries, "jfk"))
+        assertEquals(72, ChartData.layoverHoursTotal(entries, "JFK"))
+    }
+
+    @Test
+    fun layoverHoursTotal_withoutLayoversIsZero() {
+        val entries = listOf(
+            entry("JFK", LocalDate.of(2021, 6, 11), layover = false, layoverHours = 48)
+        )
+
+        assertEquals(0, ChartData.layoverHoursTotal(entries, "JFK"))
+        assertEquals(0, ChartData.layoverHoursTotal(emptyList(), "JFK"))
     }
 }

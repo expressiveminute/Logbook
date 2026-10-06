@@ -33,11 +33,17 @@
 
                 <TextView
                     android:id="@+id/tv_discovery_date"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:autoSizeMaxTextSize="12sp"
+                    android:autoSizeMinTextSize="8sp"
+                    android:autoSizeStepGranularity="1sp"
+                    android:autoSizeTextType="uniform"
+                    android:ellipsize="end"
+                    android:maxLines="1"
                     android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                     android:textColor="?attr/colorOnSurfaceVariant"
-                    tools:text="12.03.2026" />
+                    tools:text="12.03.2026 · 19.03.2026" />
 
                 <TextView
                     android:id="@+id/tv_discovery_aircraft"

@@ -291,7 +291,7 @@
                 android:id="@+id/class_section"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="24dp"
                 android:orientation="vertical"
                 android:visibility="gone"
                 tools:visibility="visible">
@@ -467,88 +467,153 @@
                 android:orientation="horizontal">
 
                 <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/tile_airline"
+                    android:id="@+id/tile_flight"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
+                    android:layout_height="match_parent"
                     android:layout_weight="1"
+                    android:clipChildren="false"
+                    android:clipToPadding="false"
                     app:cardCornerRadius="16dp"
                     app:cardElevation="0dp"
-                    app:contentPaddingStart="16dp"
-                    app:contentPaddingEnd="14dp"
-                    app:contentPaddingTop="10dp"
-                    app:contentPaddingBottom="8dp"
-                    app:strokeWidth="1dp"
+                    app:cardBackgroundColor="@android:color/transparent"
+                    app:contentPaddingStart="0dp"
+                    app:contentPaddingEnd="0dp"
+                    app:contentPaddingBottom="0dp"
+                    app:contentPaddingTop="12dp"
+                    app:strokeWidth="0dp"
                     app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full">
 
-                    <LinearLayout
+                    <!-- Die Karte liefert nur den Radius, Rahmen und Fläche
+                         zeichnet die InputTile selbst: Die Karte zeichnet ihren
+                         Strich erst nach den Kindern, die Beschriftung könnte
+                         ihn sonst nicht unterbrechen. Der obere Innenabstand ist
+                         der Platz, den die Beschriftung über der Kachel braucht.
+                         Ohne ihn und ohne clipChildren würde sie abgeschnitten,
+                         weil eine ViewGroup ihre Kinder auf ihren eigenen
+                         Innenabstand und ihren Rand beschneidet. Die Fläche der
+                         Karte ist deshalb durchsichtig, sonst stünde der leere
+                         Streifen über der Kachel sichtbar hervor. Die
+                         Mindesthöhe hält die Kachel in beiden Zuständen gleich. -->
+                    <com.highfly.logbook.InputTile
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:paddingStart="20dp">
+                        android:layout_height="match_parent"
+                        android:minHeight="52dp"
+                        android:paddingStart="20dp"
+                        android:paddingEnd="4dp">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/airline_label"
-                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-                            android:textColor="?attr/colorOnSurfaceVariant"
-                                android:textStyle="bold" />
-
-                        <EditText
-                            android:id="@+id/et_airline"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:background="@null"
-                            android:hint="@string/airline_hint"
-                            android:inputType="text"
+                            android:gravity="center_vertical"
+                            android:labelFor="@id/et_flight_combined"
                             android:maxLines="1"
-                            android:maxLength="2"
-                            android:textSize="17sp"
-                            android:textColor="?attr/colorOnSurface" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/tile_flight_number"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginStart="8dp"
-                    app:cardCornerRadius="16dp"
-                    app:cardElevation="0dp"
-                    app:contentPaddingStart="16dp"
-                    app:contentPaddingEnd="14dp"
-                    app:contentPaddingTop="10dp"
-                    app:contentPaddingBottom="8dp"
-                    app:strokeWidth="1dp"
-                    app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:paddingStart="20dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
                             android:text="@string/flight_number_label"
                             android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                             android:textColor="?attr/colorOnSurfaceVariant"
-                                android:textStyle="bold" />
+                            android:textStyle="bold" />
 
                         <EditText
-                            android:id="@+id/et_flight_number"
+                            android:id="@+id/et_flight_combined"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:background="@null"
-                            android:hint="@string/flight_number_hint"
-                            android:inputType="number"
+                            android:gravity="center_vertical"
+                            android:hint="@string/flight_combined_hint"
+                            android:inputType="textCapCharacters"
                             android:maxLines="1"
                             android:textSize="17sp"
                             android:textColor="?attr/colorOnSurface" />
-                    </LinearLayout>
+                    </com.highfly.logbook.InputTile>
                 </com.google.android.material.card.MaterialCardView>
+
+                <LinearLayout
+                    android:id="@+id/return_section"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:orientation="vertical">
+
+                    <!-- Der Knopf fuellt die ganze Spaltenhoehe, damit er genauso gross
+                     anzutippen ist wie die Kachel daneben. Sein Text steht
+                     mittig, aber mit demselben oberen Innenabstand wie die
+                     Karten contentPaddingTop: Der gibt oben Platz fuer die
+                     Beschriftung, die beim Tippen ueber die Kachel ragt, und
+                     schiebt deren Mitte dadurch um die Haelfte nach unten. Ohne
+                     diesen Innenabstand stuende "- Rueckflug -" genau so weit
+                     oben wie die Kachel daneben zu hoch. -->
+                    <TextView
+                        android:id="@+id/tv_add_return"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="?attr/selectableItemBackground"
+                        android:gravity="center"
+                        android:paddingTop="12dp"
+                        android:text="@string/return_flight_add"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                        android:textColor="?attr/colorPrimary"
+                        android:textStyle="bold" />
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/tile_flight_return"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:visibility="gone"
+                        android:clipChildren="false"
+                        android:clipToPadding="false"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="@android:color/transparent"
+                        app:contentPaddingStart="0dp"
+                        app:contentPaddingEnd="0dp"
+                        app:contentPaddingBottom="0dp"
+                        app:contentPaddingTop="12dp"
+                        app:strokeWidth="0dp"
+                        app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full">
+
+                        <com.highfly.logbook.InputTile
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:minHeight="52dp"
+                            android:paddingStart="20dp"
+                            android:paddingEnd="36dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/return_flight_label"
+                                android:labelFor="@id/et_rueckflug_flight"
+                                android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:textStyle="bold" />
+
+                            <EditText
+                                android:id="@+id/et_rueckflug_flight"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:background="@null"
+                                android:hint="@string/flight_combined_hint"
+                                android:inputType="textCapCharacters"
+                                android:maxLines="1"
+                                android:textColor="?attr/colorOnSurface"
+                                android:textSize="17sp" />
+
+                            <!-- Das X liegt mittig ueber der Kachel, damit es die
+                                 Hoehe nicht mitbestimmt: Die Kachel bleibt so
+                                 gleich hoch wie das Kästchen des Hinflugs. -->
+
+                            <ImageButton
+                                android:id="@+id/btn_remove_return"
+                                android:layout_width="40dp"
+                                android:layout_height="40dp"
+                                android:layout_gravity="end|center_vertical"
+                                android:background="?attr/selectableItemBackgroundBorderless"
+                                android:contentDescription="@string/return_remove_desc"
+                                android:padding="8dp"
+                                android:src="@drawable/ic_close" />
+                        </com.highfly.logbook.InputTile>
+                    </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
             </LinearLayout>
 
 
@@ -558,136 +623,101 @@
                 android:layout_marginTop="8dp"
                 android:orientation="horizontal">
 
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/tile_date"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                app:contentPaddingStart="16dp"
-                app:contentPaddingEnd="14dp"
-                app:contentPaddingTop="10dp"
-                app:contentPaddingBottom="8dp"
-                app:strokeWidth="1dp"
-                app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full">
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/tile_date"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:clipChildren="false"
+                    android:clipToPadding="false"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="@android:color/transparent"
+                    app:contentPaddingStart="0dp"
+                    app:contentPaddingEnd="0dp"
+                    app:contentPaddingBottom="0dp"
+                    app:contentPaddingTop="12dp"
+                    app:strokeWidth="0dp"
+                    app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full">
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:paddingStart="20dp">
-
-                    <TextView
-                        android:id="@+id/tv_date_label"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/date_label"
-                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-                        android:textColor="?attr/colorOnSurfaceVariant"
-                                android:textStyle="bold" />
-
-                    <EditText
-                        android:id="@+id/et_date"
+                    <com.highfly.logbook.InputTile
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:background="@null"
-                        android:cursorVisible="false"
-                        android:focusable="false"
-                        android:hint="@string/date_hint"
-                        android:inputType="text"
-                        android:maxLines="1"
-                        android:textSize="17sp"
-                        android:textColor="?attr/colorOnSurface" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+                        android:layout_height="match_parent"
+                        android:minHeight="52dp"
+                        android:paddingStart="20dp"
+                        android:paddingEnd="4dp">
 
-                <LinearLayout
-                    android:id="@+id/return_section"
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/date_label"
+                            android:labelFor="@id/et_date"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                            android:textColor="?attr/colorOnSurfaceVariant"
+                            android:textStyle="bold" />
+
+                        <EditText
+                            android:id="@+id/et_date"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="@null"
+                            android:cursorVisible="false"
+                            android:focusable="false"
+                            android:inputType="text"
+                            android:maxLines="1"
+                            android:textSize="17sp"
+                            android:textColor="?attr/colorOnSurface" />
+                    </com.highfly.logbook.InputTile>
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/tile_date_return"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_marginStart="8dp"
                     android:layout_weight="1"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
+                    android:visibility="gone"
+                    android:clipChildren="false"
+                    android:clipToPadding="false"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="@android:color/transparent"
+                    app:contentPaddingStart="0dp"
+                    app:contentPaddingEnd="0dp"
+                    app:contentPaddingBottom="0dp"
+                    app:contentPaddingTop="12dp"
+                    app:strokeWidth="0dp"
+                    app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full">
 
-                    <TextView
-                        android:id="@+id/tv_add_return"
+                    <com.highfly.logbook.InputTile
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center"
-                        android:paddingTop="12dp"
-                        android:paddingBottom="12dp"
-                        android:text="@string/return_flight_add"
-                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
-                        android:textColor="?attr/colorPrimary"
-                        android:textStyle="bold" />
+                        android:layout_height="match_parent"
+                        android:minHeight="52dp"
+                        android:paddingStart="20dp"
+                        android:paddingEnd="4dp">
 
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/tile_date_return"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:visibility="gone"
-                        app:cardCornerRadius="16dp"
-                        app:cardElevation="0dp"
-                        app:contentPaddingStart="16dp"
-                        app:contentPaddingEnd="6dp"
-                        app:contentPaddingTop="10dp"
-                        app:contentPaddingBottom="8dp"
-                        app:strokeWidth="1dp"
-                        app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/return_flight_label"
+                            android:labelFor="@id/et_date_return"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                            android:textColor="?attr/colorOnSurfaceVariant"
+                            android:textStyle="bold" />
 
-                        <LinearLayout
+                        <EditText
+                            android:id="@+id/et_date_return"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal">
-
-                            <LinearLayout
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:orientation="vertical"
-                                android:paddingStart="20dp">
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="@string/return_flight_label"
-                                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-                                    android:textColor="?attr/colorOnSurfaceVariant"
-                                    android:textStyle="bold" />
-
-                                <EditText
-                                    android:id="@+id/et_date_return"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:background="@null"
-                                    android:cursorVisible="false"
-                                    android:focusable="false"
-                                    android:hint="@string/date_hint"
-                                    android:inputType="text"
-                                    android:maxLines="1"
-                                    android:textSize="17sp"
-                                    android:textColor="?attr/colorOnSurface" />
-                            </LinearLayout>
-
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/btn_remove_return"
-                                style="?attr/materialIconButtonStyle"
-                                android:layout_width="40dp"
-                                android:layout_height="40dp"
-                                app:backgroundTint="@android:color/transparent"
-                                app:contentDescription="@string/return_remove_desc"
-                                app:icon="@drawable/ic_close"
-                                app:iconSize="20dp"
-                                app:iconTint="?attr/colorOnSurfaceVariant" />
-                        </LinearLayout>
-</com.google.android.material.card.MaterialCardView>
-                </LinearLayout>
-            </LinearLayout>
+                            android:background="@null"
+                            android:cursorVisible="false"
+                            android:focusable="false"
+                            android:inputType="text"
+                            android:maxLines="1"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textSize="17sp" />
+                    </com.highfly.logbook.InputTile>
+                </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
 
             <FrameLayout
@@ -709,51 +739,57 @@
                     <com.google.android.material.card.MaterialCardView
                         android:id="@+id/tile_airport_departure"
                         android:layout_width="0dp"
-                        android:layout_height="0dp"
-                        app:layout_constraintBottom_toBottomOf="parent"
-                        app:layout_constraintEnd_toStartOf="@id/tile_airport_arrival"
+                        android:layout_height="wrap_content"
+                        android:clipChildren="false"
+                        android:clipToPadding="false"
+                        app:layout_constraintEnd_toStartOf="@id/airport_arrows"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toTopOf="parent"
                         app:cardCornerRadius="16dp"
                         app:cardElevation="0dp"
-                        app:contentPaddingStart="16dp"
-                        app:contentPaddingEnd="14dp"
-                        app:contentPaddingTop="10dp"
-                        app:contentPaddingBottom="8dp"
-                        app:strokeWidth="1dp"
+                        app:cardBackgroundColor="@android:color/transparent"
+                        app:contentPaddingStart="0dp"
+                        app:contentPaddingEnd="0dp"
+                        app:contentPaddingBottom="12dp"
+                        app:contentPaddingTop="12dp"
+                        app:strokeWidth="0dp"
                         app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full">
 
-<FrameLayout
+                        <!-- Abflug und Ankunft sind als einzelne Kästchen
+                             ausgefüllt, damit sie sich vom übrigen Formular
+                             abheben. Der Rahmen bleibt wie bisher farblos, der
+                             graue Grund trägt den Code gut lesbar. -->
+                        <com.highfly.logbook.InputTile
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content">
+                            android:layout_height="wrap_content"
+                            android:minHeight="72dp"
+                            android:background="@drawable/bg_input_tile_filled"
+                            android:paddingStart="28dp"
+                            android:paddingEnd="28dp">
 
-                            <LinearLayout
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/airport_departure_label"
+                                android:labelFor="@id/et_airport_from"
+                                android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:textStyle="bold" />
+
+                            <EditText
+                                android:id="@+id/et_airport_from"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:orientation="vertical"
-                                android:paddingStart="20dp"
-                                android:paddingEnd="36dp">
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="@string/airport_departure_label"
-                                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-                                    android:textColor="?attr/colorOnSurfaceVariant"
-                                    android:textStyle="bold" />
-
-                                <EditText
-                                    android:id="@+id/et_airport_from"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:background="@null"
-                                    android:hint="MUC"
-                                    android:inputType="textCapCharacters"
-                                    android:maxLength="3"
-                                    android:maxLines="1"
-                                    android:textSize="17sp"
-                                    android:textColor="?attr/colorOnSurface" />
-                            </LinearLayout>
+                                android:background="@null"
+                                android:gravity="center"
+                                android:hint="@string/airport_departure_label"
+                                android:includeFontPadding="false"
+                                android:inputType="textCapCharacters"
+                                android:maxLength="3"
+                                android:maxLines="1"
+                                android:textSize="34sp"
+                                android:textStyle="bold"
+                                android:textColor="?attr/colorOnSurface" />
 
                             <ImageView
                                 android:id="@+id/iv_airport_check_from"
@@ -764,75 +800,124 @@
                                 android:src="@drawable/ic_airport_check"
                                 android:visibility="gone" />
 
-                            <TextView
-                                android:id="@+id/tv_country_flag_from"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_gravity="end|center_vertical"
-                                android:layout_marginEnd="10dp"
-                                android:textSize="18sp"
-                                android:visibility="gone" />
-                        </FrameLayout>
+                        </com.highfly.logbook.InputTile>
                     </com.google.android.material.card.MaterialCardView>
+
+                    <!-- Der Pfeil steht fuer die Flugrichtung. Er ist mittig
+                         zwischen den Kacheln ausgerichtet, und zwar an der Hoehe
+                         der Abflugkachel: Die behaelt ihre eigene Hoehe, waehrend
+                         die Ankunftskarte durch das Layover-Kaestchen unter
+                         ihrem Feld wachsen kann. Beide Karten haben denselben
+                         Innenabstand oben und unten, deshalb trifft die Mitte
+                         der Karte genau die Mitte des sichtbaren Kachelrahmens.
+                         Ohne Rueckflug steht nur der Hinflug nach rechts, mit
+                         Rueckflug rueckt er nach oben und darunter kommt der
+                         Rueckflug nach links. -->
+                    <LinearLayout
+                        android:id="@+id/airport_arrows"
+                        android:layout_width="32dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_marginEnd="8dp"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        app:layout_constraintBottom_toBottomOf="@id/tile_airport_departure"
+                        app:layout_constraintEnd_toStartOf="@id/tile_airport_arrival"
+                        app:layout_constraintStart_toEndOf="@id/tile_airport_departure"
+                        app:layout_constraintTop_toTopOf="parent">
+
+                        <ImageView
+                            android:id="@+id/iv_route_out"
+                            android:layout_width="26dp"
+                            android:layout_height="26dp"
+                            android:importantForAccessibility="no"
+                            android:src="@drawable/ic_arrow_route"
+                            app:tint="?attr/colorPrimary" />
+
+                        <ImageView
+                            android:id="@+id/iv_route_back"
+                            android:layout_width="26dp"
+                            android:layout_height="26dp"
+                            android:importantForAccessibility="no"
+                            android:scaleX="-1"
+                            android:src="@drawable/ic_arrow_route"
+                            app:tint="?attr/colorPrimary"
+                            android:visibility="gone" />
+                    </LinearLayout>
 
                     <com.google.android.material.card.MaterialCardView
                         android:id="@+id/tile_airport_arrival"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
+                        android:clipChildren="false"
+                        android:clipToPadding="false"
                         app:layout_constraintEnd_toEndOf="parent"
-                        app:layout_constraintStart_toEndOf="@id/tile_airport_departure"
+                        app:layout_constraintStart_toEndOf="@id/airport_arrows"
                         app:layout_constraintTop_toTopOf="parent"
                         app:cardCornerRadius="16dp"
                         app:cardElevation="0dp"
-                        app:contentPaddingStart="16dp"
-                        app:contentPaddingEnd="14dp"
-                        app:contentPaddingTop="10dp"
-                        app:contentPaddingBottom="8dp"
-                        app:strokeWidth="1dp"
+                        app:cardBackgroundColor="@android:color/transparent"
+                        app:contentPaddingStart="0dp"
+                        app:contentPaddingEnd="0dp"
+                        app:contentPaddingBottom="12dp"
+                        app:contentPaddingTop="12dp"
+                        app:strokeWidth="0dp"
                         app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full">
 
-<FrameLayout
+                        <!-- Das Layover-Kaestchen steht unter der Kachel und nicht in ihr: Waere es
+                             Teil des Werts, wuerde es die Kachel verhaeltnismaessig
+                             hoch machen und den Code aus der Mitte schieben, waehrend
+                             der Code des Abflugs mittig bliebe - die beiden Codes
+                             stuenden dann auf unterschiedlicher Hoehe. Die Karte
+                             selbst ist durchsichtig und ohne Strich, das sichtbare
+                             Rahmenzeichen zeichnet die Kachel, deshalb faellt die
+                             unterschiedliche Kartenhoehe nicht auf. Mittig unter
+                             dem Feld, nicht bündig an seinem Rand: Es gehoert zum
+                             Ankunftsfeld und soll darunter stehen wie das Feld
+                             selbst in der Kachel. clipChildren, weil die Gruppe
+                             sonst die Beschriftung der Kachel abschneidet: Sie
+                             steht in der Kerze zur Hälfte über dem Kachelrand,
+                             und nur die Kachel selbst darf ihre Kinder über
+                             ihren Rand hinaus zeichnen. -->
+                        <LinearLayout
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content">
+                            android:layout_height="wrap_content"
+                            android:clipChildren="false"
+                            android:clipToPadding="false"
+                            android:gravity="center_horizontal"
+                            android:orientation="vertical">
 
-                            <LinearLayout
+                        <com.highfly.logbook.InputTile
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:minHeight="72dp"
+                            android:background="@drawable/bg_input_tile_filled"
+                            android:paddingStart="28dp"
+                            android:paddingEnd="28dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/airport_arrival_label"
+                                android:labelFor="@id/et_airport_to"
+                                android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:textStyle="bold" />
+
+                            <EditText
+                                android:id="@+id/et_airport_to"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:orientation="vertical"
-                                android:paddingStart="20dp"
-                                android:paddingEnd="36dp">
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="@string/airport_arrival_label"
-                                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-                                    android:textColor="?attr/colorOnSurfaceVariant"
-                                    android:textStyle="bold" />
-
-                                <EditText
-                                    android:id="@+id/et_airport_to"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:background="@null"
-                                    android:hint="BOS"
-                                    android:inputType="textCapCharacters"
-                                    android:maxLength="3"
-                                    android:maxLines="1"
-                                    android:textSize="17sp"
-                                    android:textColor="?attr/colorOnSurface" />
-
-                                <com.google.android.material.checkbox.MaterialCheckBox
-                                    android:id="@+id/cb_layover"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginStart="-8dp"
-                                    android:text="@string/layover_label"
-                                    android:minWidth="0dp"
-                                    android:paddingEnd="4dp"
-                                    android:visibility="gone" />
-                            </LinearLayout>
+                                android:background="@null"
+                                android:gravity="center"
+                                android:hint="@string/airport_arrival_label"
+                                android:includeFontPadding="false"
+                                android:inputType="textCapCharacters"
+                                android:maxLength="3"
+                                android:maxLines="1"
+                                android:textSize="34sp"
+                                android:textStyle="bold"
+                                android:textColor="?attr/colorOnSurface" />
 
                             <ImageView
                                 android:id="@+id/iv_airport_check_to"
@@ -843,15 +928,17 @@
                                 android:src="@drawable/ic_airport_check"
                                 android:visibility="gone" />
 
-                            <TextView
-                                android:id="@+id/tv_country_flag_to"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_gravity="end|center_vertical"
-                                android:layout_marginEnd="10dp"
-                                android:textSize="18sp"
-                                android:visibility="gone" />
-                        </FrameLayout>
+                        </com.highfly.logbook.InputTile>
+
+                        <com.google.android.material.checkbox.MaterialCheckBox
+                            android:id="@+id/cb_layover"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/layover_label"
+                            android:minWidth="0dp"
+                            android:paddingEnd="4dp"
+                            android:visibility="gone" />
+                        </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
                     </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -864,27 +951,32 @@
                         <com.google.android.material.card.MaterialCardView
                             android:id="@+id/tile_distance"
                             android:layout_width="0dp"
-                            android:layout_height="wrap_content"
+                            android:layout_height="match_parent"
                             android:layout_weight="1"
+                            android:clipChildren="false"
+                            android:clipToPadding="false"
                             app:cardCornerRadius="16dp"
                             app:cardElevation="0dp"
-                            app:contentPaddingStart="16dp"
-                            app:contentPaddingEnd="14dp"
-                            app:contentPaddingTop="10dp"
-                            app:contentPaddingBottom="8dp"
-                            app:strokeWidth="1dp"
+                            app:cardBackgroundColor="@android:color/transparent"
+                            app:contentPaddingStart="0dp"
+                            app:contentPaddingEnd="0dp"
+                            app:contentPaddingBottom="0dp"
+                            app:contentPaddingTop="12dp"
+                            app:strokeWidth="0dp"
                             app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full">
 
-                            <LinearLayout
+                            <com.highfly.logbook.InputTile
                                 android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:orientation="vertical"
-                                android:paddingStart="20dp">
+                                android:layout_height="match_parent"
+                                android:minHeight="52dp"
+                                android:paddingStart="20dp"
+                                android:paddingEnd="4dp">
 
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="@string/flight_distance_label"
+                                    android:labelFor="@id/et_distance"
                                     android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                                     android:textColor="?attr/colorOnSurfaceVariant"
                                     android:textStyle="bold" />
@@ -892,6 +984,7 @@
                                 <LinearLayout
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
+                                    android:gravity="center_vertical"
                                     android:orientation="horizontal">
 
                                     <EditText
@@ -917,35 +1010,39 @@
                                         android:textSize="14sp"
                                         android:visibility="gone" />
                                 </LinearLayout>
-                            </LinearLayout>
+                            </com.highfly.logbook.InputTile>
                         </com.google.android.material.card.MaterialCardView>
 
                         <com.google.android.material.card.MaterialCardView
                             android:id="@+id/tile_flight_time"
                             android:layout_width="0dp"
-                            android:layout_height="wrap_content"
+                            android:layout_height="match_parent"
                             android:layout_weight="1"
                             android:layout_marginStart="8dp"
+                            android:clipChildren="false"
+                            android:clipToPadding="false"
                             app:cardCornerRadius="16dp"
                             app:cardElevation="0dp"
-                            app:contentPaddingStart="16dp"
-                            app:contentPaddingEnd="14dp"
-                            app:contentPaddingTop="10dp"
-                            app:contentPaddingBottom="8dp"
-                            app:strokeWidth="1dp"
+                            app:cardBackgroundColor="@android:color/transparent"
+                            app:contentPaddingStart="0dp"
+                            app:contentPaddingEnd="0dp"
+                            app:contentPaddingBottom="0dp"
+                            app:contentPaddingTop="12dp"
+                            app:strokeWidth="0dp"
                             app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full">
 
-                            <LinearLayout
+                            <com.highfly.logbook.InputTile
                                 android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:orientation="vertical"
+                                android:layout_height="match_parent"
+                                android:minHeight="52dp"
                                 android:paddingStart="20dp"
-                                android:paddingEnd="14dp">
+                                android:paddingEnd="4dp">
 
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="@string/flight_time_label"
+                                    android:labelFor="@id/et_flight_time"
                                     android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                                     android:textColor="?attr/colorOnSurfaceVariant"
                                     android:textStyle="bold" />
@@ -985,24 +1082,28 @@
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
                                         android:gravity="center"
-                                        android:paddingStart="6dp"
-                                        android:paddingEnd="6dp"
+                                        android:paddingHorizontal="8dp"
                                         android:text="="
                                         android:textColor="?attr/colorOnSurfaceVariant"
                                         android:textSize="17sp"
                                         android:visibility="gone" />
 
+                                    <!-- Die Stunde steht hinter dem Gleichheitszeichen
+                                         und nicht am rechten Rand der Kachel: Der Wert
+                                         und seine Einheit bilden einen Block, wie in
+                                         der Kachel der Flugdistanz daneben. Sonst
+                                         stuende das Gleiche aussen und die beiden
+                                         Kacheln waeren nicht gleich aufgebaut. -->
                                     <TextView
                                         android:id="@+id/tv_flight_time_hours"
-                                        android:layout_width="0dp"
+                                        android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
-                                        android:layout_weight="1"
-                                        android:gravity="end"
+                                        android:gravity="center"
                                         android:textColor="?attr/colorOnSurfaceVariant"
                                         android:textSize="14sp"
                                         android:visibility="gone" />
                                 </LinearLayout>
-                            </LinearLayout>
+                            </com.highfly.logbook.InputTile>
                         </com.google.android.material.card.MaterialCardView>
                     </LinearLayout>
                 </LinearLayout>
@@ -1079,27 +1180,32 @@
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/tile_aircraft_type"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
+                    android:layout_height="match_parent"
                     android:layout_weight="1"
+                    android:clipChildren="false"
+                    android:clipToPadding="false"
                     app:cardCornerRadius="16dp"
                     app:cardElevation="0dp"
-                    app:contentPaddingStart="16dp"
-                    app:contentPaddingEnd="14dp"
-                    app:contentPaddingTop="10dp"
-                    app:contentPaddingBottom="8dp"
-                    app:strokeWidth="1dp"
+                    app:cardBackgroundColor="@android:color/transparent"
+                    app:contentPaddingStart="0dp"
+                    app:contentPaddingEnd="0dp"
+                    app:contentPaddingBottom="0dp"
+                    app:contentPaddingTop="12dp"
+                    app:strokeWidth="0dp"
                     app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full">
 
-                    <LinearLayout
+                    <com.highfly.logbook.InputTile
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:paddingStart="20dp">
+                        android:layout_height="match_parent"
+                        android:minHeight="52dp"
+                        android:paddingStart="20dp"
+                        android:paddingEnd="4dp">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/aircraft_type_label"
+                            android:labelFor="@id/et_aircraft_type"
                             android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                             android:textColor="?attr/colorOnSurfaceVariant"
                                 android:textStyle="bold" />
@@ -1114,34 +1220,39 @@
                             android:maxLines="1"
                             android:textSize="17sp"
                             android:textColor="?attr/colorOnSurface" />
-                    </LinearLayout>
+                    </com.highfly.logbook.InputTile>
                 </com.google.android.material.card.MaterialCardView>
 
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/tile_registration"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
+                    android:layout_height="match_parent"
                     android:layout_weight="1"
                     android:layout_marginStart="8dp"
+                    android:clipChildren="false"
+                    android:clipToPadding="false"
                     app:cardCornerRadius="16dp"
                     app:cardElevation="0dp"
-                    app:contentPaddingStart="16dp"
-                    app:contentPaddingEnd="14dp"
-                    app:contentPaddingTop="10dp"
-                    app:contentPaddingBottom="8dp"
-                    app:strokeWidth="1dp"
+                    app:cardBackgroundColor="@android:color/transparent"
+                    app:contentPaddingStart="0dp"
+                    app:contentPaddingEnd="0dp"
+                    app:contentPaddingBottom="0dp"
+                    app:contentPaddingTop="12dp"
+                    app:strokeWidth="0dp"
                     app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full">
 
-                    <LinearLayout
+                    <com.highfly.logbook.InputTile
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:paddingStart="20dp">
+                        android:layout_height="match_parent"
+                        android:minHeight="52dp"
+                        android:paddingStart="20dp"
+                        android:paddingEnd="4dp">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/registration_label"
+                            android:labelFor="@id/et_registration"
                             android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                             android:textColor="?attr/colorOnSurfaceVariant"
                                 android:textStyle="bold" />
@@ -1156,7 +1267,7 @@
                             android:maxLines="1"
                             android:textSize="17sp"
                             android:textColor="?attr/colorOnSurface" />
-                    </LinearLayout>
+                    </com.highfly.logbook.InputTile>
                 </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
 
@@ -1172,25 +1283,30 @@
                     android:id="@+id/tile_function"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:clipChildren="false"
+                    android:clipToPadding="false"
                     app:cardCornerRadius="16dp"
                     app:cardElevation="0dp"
-                    app:contentPaddingStart="16dp"
-                    app:contentPaddingEnd="14dp"
-                    app:contentPaddingTop="10dp"
-                    app:contentPaddingBottom="8dp"
-                    app:strokeWidth="1dp"
+                    app:cardBackgroundColor="@android:color/transparent"
+                    app:contentPaddingStart="0dp"
+                    app:contentPaddingEnd="0dp"
+                    app:contentPaddingBottom="0dp"
+                    app:contentPaddingTop="12dp"
+                    app:strokeWidth="0dp"
                     app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full">
 
-                    <LinearLayout
+                    <com.highfly.logbook.InputTile
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:paddingStart="20dp">
+                        android:layout_height="match_parent"
+                        android:minHeight="52dp"
+                        android:paddingStart="20dp"
+                        android:paddingEnd="4dp">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/function_label"
+                            android:labelFor="@id/et_function"
                             android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                             android:textColor="?attr/colorOnSurfaceVariant"
                             android:textStyle="bold" />
@@ -1205,7 +1321,7 @@
                             android:maxLines="1"
                             android:textSize="17sp"
                             android:textColor="?attr/colorOnSurface" />
-                    </LinearLayout>
+                    </com.highfly.logbook.InputTile>
                 </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
 
@@ -1220,86 +1336,182 @@
                     android:id="@+id/tile_travel_buddy"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:clipChildren="false"
+                    android:clipToPadding="false"
                     app:cardCornerRadius="16dp"
                     app:cardElevation="0dp"
-                    app:contentPaddingStart="16dp"
-                    app:contentPaddingEnd="14dp"
-                    app:contentPaddingTop="10dp"
-                    app:contentPaddingBottom="8dp"
-                    app:strokeWidth="1dp"
+                    app:cardBackgroundColor="@android:color/transparent"
+                    app:contentPaddingStart="0dp"
+                    app:contentPaddingEnd="0dp"
+                    app:contentPaddingBottom="0dp"
+                    app:contentPaddingTop="12dp"
+                    app:strokeWidth="0dp"
                     app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full">
 
-                    <LinearLayout
+                    <com.highfly.logbook.InputTile
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:paddingStart="20dp">
+                        android:layout_height="match_parent"
+                        android:minHeight="52dp"
+                        android:paddingStart="20dp"
+                        android:paddingEnd="4dp">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/travel_buddy_label"
+                            android:labelFor="@id/et_travel_buddy"
                             android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                             android:textColor="?attr/colorOnSurfaceVariant"
                             android:textStyle="bold" />
 
-                        <com.highfly.logbook.FlowLayout
-                            android:id="@+id/buddy_chips"
+                        <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:paddingBottom="4dp"
-                            android:visibility="gone" />
+                            android:orientation="vertical">
+
+                        <com.highfly.logbook.FlowLayout
+                                android:id="@+id/buddy_chips"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:paddingBottom="4dp"
+                                android:visibility="gone" />
 
                         <EditText
-                            android:id="@+id/et_travel_buddy"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:background="@null"
-                            android:gravity="top"
-                            android:hint="@string/travel_buddy_hint"
-                            android:inputType="textCapWords|textMultiLine"
-                            android:minLines="1"
-                            android:maxLines="3"
-                            android:textSize="17sp"
-                            android:textColor="?attr/colorOnSurface" />
-                    </LinearLayout>
+                                android:id="@+id/et_travel_buddy"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:background="@null"
+                                android:gravity="top"
+                                android:hint="@string/travel_buddy_hint"
+                                android:inputType="textCapWords|textMultiLine"
+                                android:minLines="1"
+                                android:maxLines="3"
+                                android:textSize="17sp"
+                                android:textColor="?attr/colorOnSurface" />
+                        </LinearLayout>
+                    </com.highfly.logbook.InputTile>
                 </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
 
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:id="@+id/layover_hours_section"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:text="@string/comment_label"
-                android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
-                android:textStyle="bold" />
+                android:layout_marginTop="8dp"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/tile_layover_hours"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:clipChildren="false"
+                    android:clipToPadding="false"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="@android:color/transparent"
+                    app:contentPaddingStart="0dp"
+                    app:contentPaddingEnd="0dp"
+                    app:contentPaddingBottom="0dp"
+                    app:contentPaddingTop="12dp"
+                    app:strokeWidth="0dp"
+                    app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full">
+
+                    <com.highfly.logbook.InputTile
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:minHeight="52dp"
+                        android:paddingStart="20dp"
+                        android:paddingEnd="4dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/layover_hours_label"
+                            android:labelFor="@id/et_layover_hours"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                            android:textColor="?attr/colorOnSurfaceVariant"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+
+                            <EditText
+                                android:id="@+id/et_layover_hours"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:background="@null"
+                                android:hint="@string/layover_hours_hint"
+                                android:inputType="number"
+                                android:maxLength="3"
+                                android:maxLines="1"
+                                android:minEms="1"
+                                android:textColor="?attr/colorOnSurface"
+                                android:textSize="17sp" />
+
+                            <TextView
+                                android:id="@+id/tv_layover_hours_unit"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:gravity="center"
+                                android:paddingStart="8dp"
+                                android:text="@string/layover_hours_hint"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:textSize="14sp"
+                                android:visibility="gone" />
+                        </LinearLayout>
+                    </com.highfly.logbook.InputTile>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
 
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/tile_comment"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
+                android:clipChildren="false"
+                android:clipToPadding="false"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
-                app:contentPaddingStart="16dp"
-                app:contentPaddingEnd="14dp"
-                app:contentPaddingTop="10dp"
-                app:contentPaddingBottom="8dp"
-                app:strokeWidth="1dp">
+                app:cardBackgroundColor="@android:color/transparent"
+                app:contentPaddingStart="0dp"
+                app:contentPaddingEnd="0dp"
+                app:contentPaddingBottom="0dp"
+                app:contentPaddingTop="12dp"
+                app:strokeWidth="0dp"
+                app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full">
 
-                <EditText
-                    android:id="@+id/et_comment"
+                <com.highfly.logbook.InputTile
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="@null"
-                    android:gravity="top"
-                    android:hint="@string/comment_hint"
-                    android:inputType="textMultiLine"
-                    android:layout_marginStart="20dp"
-                    android:minLines="3"
-                    android:textSize="16sp"
-                    android:textColor="?attr/colorOnSurface" />
-</com.google.android.material.card.MaterialCardView>
+                    android:layout_height="match_parent"
+                    android:minHeight="52dp"
+                    android:paddingStart="20dp"
+                    android:paddingEnd="4dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/comment_label"
+                        android:labelFor="@id/et_comment"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textStyle="bold" />
+
+                    <EditText
+                        android:id="@+id/et_comment"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@null"
+                        android:gravity="top"
+                        android:hint="@string/comment_hint"
+                        android:inputType="textMultiLine"
+                        android:minLines="3"
+                        android:textSize="17sp"
+                        android:textColor="?attr/colorOnSurface" />
+                </com.highfly.logbook.InputTile>
+            </com.google.android.material.card.MaterialCardView>
                     </LinearLayout>
 
                     <LinearLayout
@@ -1307,8 +1519,17 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:orientation="horizontal"
+                    android:orientation="vertical"
                     android:visibility="gone">
+
+                    <!-- Beide Spalten teilen sich eine Zeile. Die Kommentare stehen
+                         darunter, sonst wuerde ihre Zeile als drittes Kind die volle
+                         Breite des Blocks belegen und die Spalten auf Breite 0
+                         zusammenschieben. -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -1319,7 +1540,6 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="4dp"
                             android:text="@string/hinflight_label"
                             android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
                             android:textStyle="bold" />
@@ -1329,25 +1549,30 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
+                            android:clipChildren="false"
+                            android:clipToPadding="false"
                             app:cardCornerRadius="16dp"
                             app:cardElevation="0dp"
-                            app:contentPaddingStart="16dp"
-                            app:contentPaddingEnd="14dp"
-                            app:contentPaddingTop="10dp"
-                            app:contentPaddingBottom="8dp"
-                            app:strokeWidth="1dp"
+                            app:cardBackgroundColor="@android:color/transparent"
+                            app:contentPaddingStart="0dp"
+                            app:contentPaddingEnd="0dp"
+                            app:contentPaddingBottom="0dp"
+                            app:contentPaddingTop="12dp"
+                            app:strokeWidth="0dp"
                             app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full">
 
-                            <LinearLayout
+                            <com.highfly.logbook.InputTile
                                 android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:orientation="vertical"
-                                android:paddingStart="20dp">
+                                android:layout_height="match_parent"
+                                android:minHeight="52dp"
+                                android:paddingStart="20dp"
+                                android:paddingEnd="4dp">
 
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="@string/aircraft_type_label"
+                                    android:labelFor="@id/et_hinflug_aircraft"
                                     android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                                     android:textColor="?attr/colorOnSurfaceVariant"
                                     android:textStyle="bold" />
@@ -1362,7 +1587,7 @@
                                     android:maxLines="1"
                                     android:textSize="17sp"
                                     android:textColor="?attr/colorOnSurface" />
-                            </LinearLayout>
+                            </com.highfly.logbook.InputTile>
                         </com.google.android.material.card.MaterialCardView>
 
                         <com.google.android.material.card.MaterialCardView
@@ -1370,25 +1595,30 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
+                            android:clipChildren="false"
+                            android:clipToPadding="false"
                             app:cardCornerRadius="16dp"
                             app:cardElevation="0dp"
-                            app:contentPaddingStart="16dp"
-                            app:contentPaddingEnd="14dp"
-                            app:contentPaddingTop="10dp"
-                            app:contentPaddingBottom="8dp"
-                            app:strokeWidth="1dp"
+                            app:cardBackgroundColor="@android:color/transparent"
+                            app:contentPaddingStart="0dp"
+                            app:contentPaddingEnd="0dp"
+                            app:contentPaddingBottom="0dp"
+                            app:contentPaddingTop="12dp"
+                            app:strokeWidth="0dp"
                             app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full">
 
-                            <LinearLayout
+                            <com.highfly.logbook.InputTile
                                 android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:orientation="vertical"
-                                android:paddingStart="20dp">
+                                android:layout_height="match_parent"
+                                android:minHeight="52dp"
+                                android:paddingStart="20dp"
+                                android:paddingEnd="4dp">
 
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="@string/registration_label"
+                                    android:labelFor="@id/et_hinflug_registration"
                                     android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                                     android:textColor="?attr/colorOnSurfaceVariant"
                                     android:textStyle="bold" />
@@ -1403,43 +1633,181 @@
                                     android:maxLines="1"
                                     android:textSize="17sp"
                                     android:textColor="?attr/colorOnSurface" />
-                            </LinearLayout>
+                            </com.highfly.logbook.InputTile>
                         </com.google.android.material.card.MaterialCardView>
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="4dp"
-                            android:layout_marginTop="16dp"
-                            android:text="@string/comment_label"
-                            android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
-                            android:textStyle="bold" />
-
                         <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/tile_hinflug_comment"
+                            android:id="@+id/tile_hinflug_function"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
+                            android:visibility="gone"
+                            android:clipChildren="false"
+                            android:clipToPadding="false"
                             app:cardCornerRadius="16dp"
                             app:cardElevation="0dp"
-                            app:contentPaddingStart="16dp"
-                            app:contentPaddingEnd="14dp"
-                            app:contentPaddingTop="10dp"
-                            app:contentPaddingBottom="8dp"
-                            app:strokeWidth="1dp">
+                            app:cardBackgroundColor="@android:color/transparent"
+                            app:contentPaddingStart="0dp"
+                            app:contentPaddingEnd="0dp"
+                            app:contentPaddingBottom="0dp"
+                            app:contentPaddingTop="12dp"
+                            app:strokeWidth="0dp"
+                            app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full">
 
-                            <EditText
-                                android:id="@+id/et_hinflug_comment"
+                            <com.highfly.logbook.InputTile
                                 android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="20dp"
-                                android:background="@null"
-                                android:gravity="top"
-                                android:hint="@string/comment_hint"
-                                android:inputType="textMultiLine"
-                                android:minLines="3"
-                                android:textSize="16sp"
-                                android:textColor="?attr/colorOnSurface" />
+                                android:layout_height="match_parent"
+                                android:minHeight="52dp"
+                                android:paddingStart="20dp"
+                                android:paddingEnd="4dp">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/function_label"
+                                    android:labelFor="@id/et_hinflug_function"
+                                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                    android:textColor="?attr/colorOnSurfaceVariant"
+                                    android:textStyle="bold" />
+
+                                <EditText
+                                    android:id="@+id/et_hinflug_function"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:background="@null"
+                                    android:hint="@string/function_hint"
+                                    android:inputType="textCapWords"
+                                    android:maxLines="1"
+                                    android:textSize="17sp"
+                                    android:textColor="?attr/colorOnSurface" />
+                            </com.highfly.logbook.InputTile>
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/tile_hinflug_travel_buddy"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:clipChildren="false"
+                            android:clipToPadding="false"
+                            app:cardCornerRadius="16dp"
+                            app:cardElevation="0dp"
+                            app:cardBackgroundColor="@android:color/transparent"
+                            app:contentPaddingStart="0dp"
+                            app:contentPaddingEnd="0dp"
+                            app:contentPaddingBottom="0dp"
+                            app:contentPaddingTop="12dp"
+                            app:strokeWidth="0dp"
+                            app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full">
+
+                            <com.highfly.logbook.InputTile
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:minHeight="52dp"
+                                android:paddingStart="20dp"
+                                android:paddingEnd="4dp">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/travel_buddy_label"
+                                    android:labelFor="@id/et_hinflug_travel_buddy"
+                                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                    android:textColor="?attr/colorOnSurfaceVariant"
+                                    android:textStyle="bold" />
+
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="vertical">
+
+                                <com.highfly.logbook.FlowLayout
+                                        android:id="@+id/buddy_chips_hinflug"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:paddingBottom="4dp"
+                                        android:visibility="gone" />
+
+                                <EditText
+                                        android:id="@+id/et_hinflug_travel_buddy"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:background="@null"
+                                        android:gravity="top"
+                                        android:hint="@string/travel_buddy_hint"
+                                        android:inputType="textCapWords|textMultiLine"
+                                        android:maxLines="3"
+                                        android:minLines="1"
+                                        android:textColor="?attr/colorOnSurface"
+                                        android:textSize="17sp" />
+                                </LinearLayout>
+                            </com.highfly.logbook.InputTile>
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/tile_hinflug_layover_hours"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:visibility="gone"
+                            android:clipChildren="false"
+                            android:clipToPadding="false"
+                            app:cardCornerRadius="16dp"
+                            app:cardElevation="0dp"
+                            app:cardBackgroundColor="@android:color/transparent"
+                            app:contentPaddingStart="0dp"
+                            app:contentPaddingEnd="0dp"
+                            app:contentPaddingBottom="0dp"
+                            app:contentPaddingTop="12dp"
+                            app:strokeWidth="0dp"
+                            app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full">
+
+                            <com.highfly.logbook.InputTile
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:minHeight="52dp"
+                                android:paddingStart="20dp"
+                                android:paddingEnd="4dp">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/layover_hours_label"
+                                    android:labelFor="@id/et_hinflug_layover_hours"
+                                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                    android:textColor="?attr/colorOnSurfaceVariant"
+                                    android:textStyle="bold" />
+
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="horizontal">
+
+                                    <EditText
+                                        android:id="@+id/et_hinflug_layover_hours"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:background="@null"
+                                        android:hint="@string/layover_hours_hint"
+                                        android:inputType="number"
+                                        android:maxLength="3"
+                                        android:maxLines="1"
+                                        android:minEms="1"
+                                        android:textColor="?attr/colorOnSurface"
+                                        android:textSize="17sp" />
+
+                                    <TextView
+                                        android:id="@+id/tv_hinflug_layover_hours_unit"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:gravity="center"
+                                        android:paddingStart="8dp"
+                                        android:text="@string/layover_hours_hint"
+                                        android:textColor="?attr/colorOnSurfaceVariant"
+                                        android:textSize="14sp"
+                                        android:visibility="gone" />
+                                </LinearLayout>
+                            </com.highfly.logbook.InputTile>
                         </com.google.android.material.card.MaterialCardView>
                     </LinearLayout>
 
@@ -1453,7 +1821,6 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="4dp"
                             android:text="@string/return_flight_label"
                             android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
                             android:textStyle="bold" />
@@ -1463,25 +1830,30 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
+                            android:clipChildren="false"
+                            android:clipToPadding="false"
                             app:cardCornerRadius="16dp"
                             app:cardElevation="0dp"
-                            app:contentPaddingStart="16dp"
-                            app:contentPaddingEnd="14dp"
-                            app:contentPaddingTop="10dp"
-                            app:contentPaddingBottom="8dp"
-                            app:strokeWidth="1dp"
+                            app:cardBackgroundColor="@android:color/transparent"
+                            app:contentPaddingStart="0dp"
+                            app:contentPaddingEnd="0dp"
+                            app:contentPaddingBottom="0dp"
+                            app:contentPaddingTop="12dp"
+                            app:strokeWidth="0dp"
                             app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full">
 
-                            <LinearLayout
+                            <com.highfly.logbook.InputTile
                                 android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:orientation="vertical"
-                                android:paddingStart="20dp">
+                                android:layout_height="match_parent"
+                                android:minHeight="52dp"
+                                android:paddingStart="20dp"
+                                android:paddingEnd="4dp">
 
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="@string/aircraft_type_label"
+                                    android:labelFor="@id/et_rueckflug_aircraft"
                                     android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                                     android:textColor="?attr/colorOnSurfaceVariant"
                                     android:textStyle="bold" />
@@ -1496,7 +1868,7 @@
                                     android:maxLines="1"
                                     android:textSize="17sp"
                                     android:textColor="?attr/colorOnSurface" />
-                            </LinearLayout>
+                            </com.highfly.logbook.InputTile>
                         </com.google.android.material.card.MaterialCardView>
 
                         <com.google.android.material.card.MaterialCardView
@@ -1504,25 +1876,30 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
+                            android:clipChildren="false"
+                            android:clipToPadding="false"
                             app:cardCornerRadius="16dp"
                             app:cardElevation="0dp"
-                            app:contentPaddingStart="16dp"
-                            app:contentPaddingEnd="14dp"
-                            app:contentPaddingTop="10dp"
-                            app:contentPaddingBottom="8dp"
-                            app:strokeWidth="1dp"
+                            app:cardBackgroundColor="@android:color/transparent"
+                            app:contentPaddingStart="0dp"
+                            app:contentPaddingEnd="0dp"
+                            app:contentPaddingBottom="0dp"
+                            app:contentPaddingTop="12dp"
+                            app:strokeWidth="0dp"
                             app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full">
 
-                            <LinearLayout
+                            <com.highfly.logbook.InputTile
                                 android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:orientation="vertical"
-                                android:paddingStart="20dp">
+                                android:layout_height="match_parent"
+                                android:minHeight="52dp"
+                                android:paddingStart="20dp"
+                                android:paddingEnd="4dp">
 
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="@string/registration_label"
+                                    android:labelFor="@id/et_rueckflug_registration"
                                     android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                                     android:textColor="?attr/colorOnSurfaceVariant"
                                     android:textStyle="bold" />
@@ -1537,48 +1914,227 @@
                                     android:maxLines="1"
                                     android:textSize="17sp"
                                     android:textColor="?attr/colorOnSurface" />
-                            </LinearLayout>
+                            </com.highfly.logbook.InputTile>
                         </com.google.android.material.card.MaterialCardView>
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="4dp"
-                            android:layout_marginTop="16dp"
-                            android:text="@string/comment_label"
-                            android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
-                            android:textStyle="bold" />
-
                         <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/tile_rueckflug_comment"
+                            android:id="@+id/tile_rueckflug_function"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
+                            android:visibility="gone"
+                            android:clipChildren="false"
+                            android:clipToPadding="false"
                             app:cardCornerRadius="16dp"
                             app:cardElevation="0dp"
-                            app:contentPaddingStart="16dp"
-                            app:contentPaddingEnd="14dp"
-                            app:contentPaddingTop="10dp"
-                            app:contentPaddingBottom="8dp"
-                            app:strokeWidth="1dp">
+                            app:cardBackgroundColor="@android:color/transparent"
+                            app:contentPaddingStart="0dp"
+                            app:contentPaddingEnd="0dp"
+                            app:contentPaddingBottom="0dp"
+                            app:contentPaddingTop="12dp"
+                            app:strokeWidth="0dp"
+                            app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full">
 
-                            <EditText
-                                android:id="@+id/et_rueckflug_comment"
+                            <com.highfly.logbook.InputTile
                                 android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="20dp"
-                                android:background="@null"
-                                android:gravity="top"
-                                android:hint="@string/comment_hint"
-                                android:inputType="textMultiLine"
-                                android:minLines="3"
-                                android:textSize="16sp"
-                                android:textColor="?attr/colorOnSurface" />
+                                android:layout_height="match_parent"
+                                android:minHeight="52dp"
+                                android:paddingStart="20dp"
+                                android:paddingEnd="4dp">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/function_label"
+                                    android:labelFor="@id/et_rueckflug_function"
+                                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                    android:textColor="?attr/colorOnSurfaceVariant"
+                                    android:textStyle="bold" />
+
+                                <EditText
+                                    android:id="@+id/et_rueckflug_function"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:background="@null"
+                                    android:hint="@string/function_hint"
+                                    android:inputType="textCapWords"
+                                    android:maxLines="1"
+                                    android:textSize="17sp"
+                                    android:textColor="?attr/colorOnSurface" />
+                            </com.highfly.logbook.InputTile>
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/tile_rueckflug_travel_buddy"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:clipChildren="false"
+                            android:clipToPadding="false"
+                            app:cardCornerRadius="16dp"
+                            app:cardElevation="0dp"
+                            app:cardBackgroundColor="@android:color/transparent"
+                            app:contentPaddingStart="0dp"
+                            app:contentPaddingEnd="0dp"
+                            app:contentPaddingBottom="0dp"
+                            app:contentPaddingTop="12dp"
+                            app:strokeWidth="0dp"
+                            app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full">
+
+                            <com.highfly.logbook.InputTile
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:minHeight="52dp"
+                                android:paddingStart="20dp"
+                                android:paddingEnd="4dp">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/travel_buddy_label"
+                                    android:labelFor="@id/et_rueckflug_travel_buddy"
+                                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                    android:textColor="?attr/colorOnSurfaceVariant"
+                                    android:textStyle="bold" />
+
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="vertical">
+
+                                <com.highfly.logbook.FlowLayout
+                                        android:id="@+id/buddy_chips_rueckflug"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:paddingBottom="4dp"
+                                        android:visibility="gone" />
+
+                                <EditText
+                                        android:id="@+id/et_rueckflug_travel_buddy"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:background="@null"
+                                        android:gravity="top"
+                                        android:hint="@string/travel_buddy_hint"
+                                        android:inputType="textCapWords|textMultiLine"
+                                        android:maxLines="3"
+                                        android:minLines="1"
+                                        android:textColor="?attr/colorOnSurface"
+                                        android:textSize="17sp" />
+                                </LinearLayout>
+                            </com.highfly.logbook.InputTile>
+                        </com.google.android.material.card.MaterialCardView>
+                    </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- Beide Kommentare stehen in einer Zeile: Ohne das wandert
+                         der Hinflug-Kommentar weg, sobald bei ihm ein weiteres
+                         Feld (z. B. die Layoverlaenge) eingeblendet wird. Beide
+                         Kacheln bekommen match_parent und damit dieselbe Hoehe. -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/tile_hinflug_comment"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:clipChildren="false"
+                            android:clipToPadding="false"
+                            app:cardCornerRadius="16dp"
+                            app:cardElevation="0dp"
+                            app:cardBackgroundColor="@android:color/transparent"
+                            app:contentPaddingStart="0dp"
+                            app:contentPaddingEnd="0dp"
+                            app:contentPaddingBottom="0dp"
+                            app:contentPaddingTop="12dp"
+                            app:strokeWidth="0dp"
+                            app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full">
+
+                            <com.highfly.logbook.InputTile
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:minHeight="52dp"
+                                android:paddingStart="20dp"
+                                android:paddingEnd="4dp">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/comment_label"
+                                    android:labelFor="@id/et_hinflug_comment"
+                                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                    android:textColor="?attr/colorOnSurfaceVariant"
+                                    android:textStyle="bold" />
+
+                                <EditText
+                                    android:id="@+id/et_hinflug_comment"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:background="@null"
+                                    android:gravity="top"
+                                    android:hint="@string/comment_hint"
+                                    android:inputType="textMultiLine"
+                                    android:minLines="3"
+                                    android:textColor="?attr/colorOnSurface"
+                                    android:textSize="17sp" />
+                            </com.highfly.logbook.InputTile>
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/tile_rueckflug_comment"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:clipChildren="false"
+                            android:clipToPadding="false"
+                            app:cardCornerRadius="16dp"
+                            app:cardElevation="0dp"
+                            app:cardBackgroundColor="@android:color/transparent"
+                            app:contentPaddingStart="0dp"
+                            app:contentPaddingEnd="0dp"
+                            app:contentPaddingBottom="0dp"
+                            app:contentPaddingTop="12dp"
+                            app:strokeWidth="0dp"
+                            app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full">
+
+                            <com.highfly.logbook.InputTile
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:minHeight="52dp"
+                                android:paddingStart="20dp"
+                                android:paddingEnd="4dp">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/comment_label"
+                                    android:labelFor="@id/et_rueckflug_comment"
+                                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                    android:textColor="?attr/colorOnSurfaceVariant"
+                                    android:textStyle="bold" />
+
+                                <EditText
+                                    android:id="@+id/et_rueckflug_comment"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:background="@null"
+                                    android:gravity="top"
+                                    android:hint="@string/comment_hint"
+                                    android:inputType="textMultiLine"
+                                    android:minLines="3"
+                                    android:textColor="?attr/colorOnSurface"
+                                    android:textSize="17sp" />
+                            </com.highfly.logbook.InputTile>
                         </com.google.android.material.card.MaterialCardView>
                     </LinearLayout>
                 </LinearLayout>
             </LinearLayout>
-            </LinearLayout>
+        </LinearLayout>
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_save_flight"
@@ -1605,6 +2161,7 @@
                 android:visibility="gone"
                 app:backgroundTint="@android:color/transparent" />
 
+            </LinearLayout>
         </LinearLayout>
     </ScrollView>
 

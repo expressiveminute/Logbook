@@ -115,7 +115,7 @@ class CountriesFragment : Fragment() {
         Thread {
             val shapes = CountryShapes.load(appContext)
             val items = shapes?.let { list ->
-                val flightIso2 = RubbelkarteStats.summarize(LogbookRepository.getEntries()) { iata ->
+                val flightIso2 = RubbelkarteStats.summarize(LogbookRepository.getFlownEntries()) { iata ->
                     AirportData.country(appContext, iata)
                 }.countries
                 CountryChecklist.build(

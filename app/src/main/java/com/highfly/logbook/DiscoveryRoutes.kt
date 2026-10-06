@@ -33,7 +33,7 @@ object DiscoveryRoutes {
      * Anzahl der Tage, innerhalb derer ein Rückflug noch zum Hinflug gehört.
      * Danach werden Hin- und Rückflug als zwei eigene Strecken geführt.
      */
-    const val ROUND_TRIP_MAX_DAYS = 7L
+    const val ROUND_TRIP_MAX_DAYS = 30L
 
     private fun routeKey(from: String, to: String) = "$from-$to"
 

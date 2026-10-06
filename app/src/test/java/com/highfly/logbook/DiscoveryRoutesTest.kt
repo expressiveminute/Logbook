@@ -124,7 +124,7 @@ class DiscoveryRoutesTest {
     }
 
     @Test
-    fun firstFlown_mergesRoundTripWithinSevenDays() {
+    fun firstFlown_mergesRoundTripWithinThirtyDays() {
         val entries = listOf(
             entry(LocalDate.of(2026, 3, 12), from = "MUC", to = "DEN"),
             entry(LocalDate.of(2026, 3, 15), from = "DEN", to = "MUC")
@@ -138,10 +138,20 @@ class DiscoveryRoutesTest {
     }
 
     @Test
+    fun firstFlown_mergesRoundTripOnDayThirty() {
+        val entries = listOf(
+            entry(LocalDate.of(2026, 3, 1), from = "MUC", to = "DEN"),
+            entry(LocalDate.of(2026, 3, 31), from = "DEN", to = "MUC")
+        )
+        val discovery = DiscoveryRoutes.firstFlown(entries).single()
+        assertEquals(LocalDate.of(2026, 3, 31), discovery.returnDate)
+    }
+
+    @Test
     fun firstFlown_keepsBothDirectionsWhenRoundTripIsTooLongApart() {
         val entries = listOf(
             entry(LocalDate.of(2026, 3, 1), from = "MUC", to = "DEN"),
-            entry(LocalDate.of(2026, 3, 9), from = "DEN", to = "MUC")
+            entry(LocalDate.of(2026, 4, 1), from = "DEN", to = "MUC")
         )
         val discoveries = DiscoveryRoutes.firstFlown(entries)
         assertEquals(2, discoveries.size)

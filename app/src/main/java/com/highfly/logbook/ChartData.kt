@@ -41,6 +41,18 @@ object ChartData {
         ),
     )
 
+    /** Die einzige Reiseart, die nicht als dienstlich gilt. */
+    const val PRIVATE_CANONICAL = "Privat"
+
+    /**
+     * Alle Reisearten ausser [PRIVATE_CANONICAL]: On Duty, Deadhead, Ferry,
+     * Ground Transfer und Dienstreise. Der Filter "Nur Dienstlich" des
+     * Dashboards zaehlt genau diese, damit die Liste der Reisearten und der
+     * Filter nicht auseinanderlaufen koennen.
+     */
+    val DUTY_CANONICALS: List<String> =
+        travelTypes.map { it.canonical }.filterNot { it == PRIVATE_CANONICAL }
+
     private val classTypes = listOf(
         ClassType(R.string.class_economy, "Economy", listOf("economy", "economy class")),
         ClassType(
@@ -101,7 +113,7 @@ object ChartData {
         if (!isBarChart(tileId)) return emptyList()
         val key = Settings.getDefaultPeriodKey(context)
         val entries = DashboardStats.filterForPeriod(
-            LogbookRepository.getEntries(),
+            LogbookRepository.getFlownEntries(),
             key
         )
         val counts: Map<String, Int> = when (tileId) {
@@ -175,6 +187,29 @@ object ChartData {
         return entries.filter {
             it.layover && it.toAirport.trim().uppercase() == target
         }.sortedBy { it.date }
+    }
+
+    /**
+     * Dieselbe Liste wie [layoverHistory], aber für die Anzeige umgekehrt: der
+     * jüngste Layover steht oben, der am längsten her zurückliegende unten. So
+     * steht das, was man zuletzt gemacht hat, oben - wie in der Eintragliste.
+     */
+    fun layoverHistoryNewestFirst(
+        entries: List<LogbookEntry>,
+        airport: String
+    ): List<LogbookEntry> = layoverHistory(entries, airport).reversed()
+
+    /**
+     * Summe der angegebenen Layoverlängen für einen Flughafen, in Stunden.
+     * Grundlage der Leiste auf der Detailseite: jeder Eintrag zählt mit seiner
+     * eigenen Angabe aus "Neuer Flug". Einträge ohne Angabe bleiben offen -
+     * ihre Zeit ist schlicht nicht erfasst, nicht etwa null Stunden.
+     */
+    fun layoverHoursTotal(entries: List<LogbookEntry>, airport: String): Int {
+        val target = airport.trim().uppercase()
+        return entries.filter {
+            it.layover && it.toAirport.trim().uppercase() == target
+        }.sumOf { it.layoverHours ?: 0 }
     }
 
     fun airportBars(context: Context): List<Bar> =
@@ -387,7 +422,7 @@ object ChartData {
 
     fun periodFiltered(context: Context): List<LogbookEntry> =
         DashboardStats.filterForPeriod(
-            LogbookRepository.getEntries(),
+            LogbookRepository.getFlownEntries(),
             Settings.getDefaultPeriodKey(context)
         )
 

@@ -20,8 +20,15 @@ object LogbookRepository {
         }
         db = LogbookDatabase(context)
         demoDb = LogbookDatabase(context, DEMO_DATABASE_NAME)
-        if (demoDb?.count() == 0) {
-            demoDb?.replaceAll(DemoData.entries())
+        // Die Demodatenbank wird neu aufgebaut, wenn sie leer ist oder der
+        // Datensatz inzwischen in einer anderen Fassung vorliegt. Sonst bliebe
+        // nach einem Update der alte, beim ersten Start angelegte Bestand
+        // stehen - ein neuer Datensatz kaeme nie an.
+        if (demoDb?.count() == 0 ||
+            Settings.getDemoDataVersion(context) != DemoData.VERSION
+        ) {
+            demoDb?.replaceAll(DemoData.entries(context))
+            Settings.setDemoDataVersion(context, DemoData.VERSION)
         }
         Thread {
             try {
@@ -68,6 +75,16 @@ object LogbookRepository {
 
     fun getEntry(id: Long): LogbookEntry? = activeDb()?.getEntry(id)
 
+    /**
+     * Eintraege bis einschliesslich heute. Das ist die Grundlage jeder
+     * Auswertung: Ein Flug, der erst noch bevorsteht, steht unter "Upcoming"
+     * und zaehlt erst ab seinem Tag mit.
+     */
+    fun getFlownEntries(): List<LogbookEntry> = UpcomingEntries.flown(getEntries())
+
+    /** Geplante Fluege mit Datum in der Zukunft, der naechste zuerst. */
+    fun getUpcomingEntries(): List<LogbookEntry> = UpcomingEntries.upcoming(getEntries())
+
     @Synchronized
     fun updateEntry(entry: LogbookEntry) {
         activeDb()?.update(entry)
@@ -92,5 +109,5 @@ object LogbookRepository {
     }
 
     fun getYears(): List<Int> =
-        getEntries().map { it.date.year }.distinct().sortedDescending()
+        getFlownEntries().map { it.date.year }.distinct().sortedDescending()
 }

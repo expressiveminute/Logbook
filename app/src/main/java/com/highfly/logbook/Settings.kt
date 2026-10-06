@@ -53,6 +53,7 @@ object Settings {
     private const val KEY_THEME_MODE = "theme_mode"
     private const val KEY_LEGACY_DARK_MODE = "dark_mode"
     private const val KEY_DEFAULT_PERIOD = "default_period"
+    private const val KEY_FLIGHT_TYPE_FILTER = "flight_type_filter"
     private const val KEY_DEFAULT_TIME_UNIT = "default_time_unit"
     private const val KEY_ACCENT = "accent_color"
     private const val KEY_ROLE = "role"
@@ -105,6 +106,22 @@ object Settings {
 
     fun setDefaultPeriodKey(context: Context, key: String) {
         prefs(context).edit().putString(KEY_DEFAULT_PERIOD, key).apply()
+    }
+
+    /**
+     * Welche Fluege die Kacheln des Dashboards zeigen, siehe
+     * [FlightTypeOptions]. Der Wert bleibt erhalten, damit die Kachelzeile nach
+     * einem Neustart dasselbe anzeigt wie zuletzt.
+     */
+    fun getFlightTypeFilterKey(context: Context): String =
+        FlightTypeOptions.normalize(
+            prefs(context).getString(KEY_FLIGHT_TYPE_FILTER, FlightTypeOptions.KEY_ALL)
+        )
+
+    fun setFlightTypeFilterKey(context: Context, key: String) {
+        prefs(context).edit()
+            .putString(KEY_FLIGHT_TYPE_FILTER, FlightTypeOptions.normalize(key))
+            .apply()
     }
 
     /**
@@ -231,6 +248,21 @@ object Settings {
     fun setDemoMigrationDone(context: Context) {
         prefs(context).edit().putBoolean(KEY_DEMO_MIGRATION, true).apply()
     }
+
+    /**
+     * Fassung des Demodatensatzes, zuletzt in die Demodatenbank geschrieben.
+     * Weicht sie von [DemoData.VERSION] ab, baut [LogbookRepository] die Bank
+     * neu auf - sonst bliebe der alte Bestand stehen, weil die Bank nur beim
+     * ersten Start gefuellt wird.
+     */
+    fun getDemoDataVersion(context: Context): Int =
+        prefs(context).getInt(KEY_DEMO_DATA_VERSION, 0)
+
+    fun setDemoDataVersion(context: Context, value: Int) {
+        prefs(context).edit().putInt(KEY_DEMO_DATA_VERSION, value).apply()
+    }
+
+    private const val KEY_DEMO_DATA_VERSION = "demo_data_version"
 
     fun getCityLabelLanguage(context: Context): String =
         prefs(context).getString(KEY_CITY_LABEL_LANGUAGE, CITY_LANG_NATIVE) ?: CITY_LANG_NATIVE

@@ -14,7 +14,7 @@ object LogbookCsv {
         "date", "flightType", "classType", "fromAirport", "toAirport",
         "airline", "flightNumber", "aircraftType", "registration",
         "distanceKm", "flightMinutes", "layover", "comment", "function",
-        "travelBuddy"
+        "travelBuddy", "layoverHours"
     )
 
     fun toCsv(entries: List<LogbookEntry>): String = buildString {
@@ -36,7 +36,8 @@ object LogbookCsv {
                     if (entry.layover) "1" else "0",
                     entry.comment.orEmpty(),
                     entry.function.orEmpty(),
-                    entry.travelBuddy.orEmpty()
+                    entry.travelBuddy.orEmpty(),
+                    entry.layoverHours?.toString().orEmpty()
                 ).joinToString(",") { escape(it) }
             )
         }
@@ -72,7 +73,8 @@ object LogbookCsv {
                 layover = fields.getOrNull(11) == "1",
                 comment = fields.getOrNull(12)?.nullIfBlank(),
                 function = fields.getOrNull(13)?.nullIfBlank(),
-                travelBuddy = fields.getOrNull(14)?.nullIfBlank()
+                travelBuddy = fields.getOrNull(14)?.nullIfBlank(),
+                layoverHours = fields.getOrNull(15)?.toIntOrNull()
             )
         }
         return entries

@@ -63,7 +63,14 @@
     <string name="dashboard_reset">Auf Standard zurücksetzen</string>
     <string name="dashboard_remove">Entfernen</string>
     <string name="dashboard_empty">Noch keine Kacheln</string>
+    <string name="dashboard_filter_all_flights">Alle Flüge</string>
+    <string name="dashboard_filter_only_duty">Nur Dienstlich</string>
+    <string name="dashboard_filter_only_private">Nur Privat</string>
+    <string name="dashboard_filter_separator">•</string>
+    <string name="dashboard_filter_selected">Ausgewählt</string>
     <string name="period_all">Gesamt</string>
+    <!-- Im Filter der Kachelzeile ausgeschrieben, dort steht der ganze Zeitraum. -->
+    <string name="period_all_range">Gesamter Zeitraum</string>
     <string name="period_this_month">Dieser Monat</string>
     <string name="period_ytd">YTD</string>
     <string name="nav_entries">Einträge</string>
@@ -192,16 +199,19 @@
     <string name="flight_time_label">Flugzeit</string>
     <string name="flight_time_hint">min</string>
     <string name="airline_label">Fluggesellschaft</string>
-    <string name="airline_hint">LH</string>
     <string name="flight_number_label">Flugnummer</string>
     <string name="flight_number_hint">123</string>
-    <string name="date_label">Datum</string>
     <string name="return_flight_add">- Rückflug -</string>
+    <string name="flight_combined_hint">LH 400</string>
+    <string name="date_label">Datum</string>
     <string name="hinflight_label">Hinflug</string>
     <string name="return_flight_label">Rückflug</string>
     <string name="return_remove_desc">Rückflug entfernen</string>
+    <!-- Platzhalterzeile der Kacheln: Nur der Reisebuddy traegt einen Zusatz in
+         Klammern, dort hilft nur der Bedienhinweis. Die Beispielwerte selbst
+         stehen als Hinweis im Feld, sobald die Kachel angetippt wird. -->
+    <string name="buddy_confirm_example">mit Enter bestätigen</string>
     <string name="optional_label">Optional</string>
-    <string name="date_hint">TT.MM.JJJJ</string>
     <string name="aircraft_type_label">Flugzeugtyp</string>
     <string name="aircraft_type_hint">A320</string>
     <string name="registration_label">Registrierung</string>
@@ -214,6 +224,8 @@
     <string name="travel_buddy_label">Reisebuddy</string>
     <string name="travel_buddy_hint">Name eingeben, mit Enter bestätigen</string>
     <string name="buddy_chip_desc">Reisebuddy %1$s, tippen zum Entfernen</string>
+    <string name="layover_hours_label">Layoverlänge</string>
+    <string name="layover_hours_hint">h</string>
     <string name="comment_label">Kommentar</string>
     <string name="comment_hint">Kommentar …</string>
     <string name="airport_departure_icon_desc">Abflug</string>
@@ -239,6 +251,13 @@
     <string name="entries_no_results">Keine Einträge gefunden</string>
     <string name="entries_filter_desc">Filter</string>
     <string name="entries_month">%1$s %2$d</string>
+    <string name="entries_upcoming">Upcoming</string>
+    <plurals name="dashboard_upcoming_hint">
+        <item quantity="one">Ein geplanter Flug zählt erst ab seinem Tag mit, nicht vorher.</item>
+        <item quantity="other">%d geplante Flüge zählen erst ab ihrem Tag mit, nicht vorher.</item>
+    </plurals>
+    <string name="dashboard_upcoming_hint_desc">Hinweis zu geplanten Flügen</string>
+    <string name="dashboard_upcoming_hint_affected">Das trifft diese Kacheln:</string>
     <string name="entry_airline_logo">Airline-Logo</string>
     <string name="entry_travel_buddy_desc">Reisebuddies: %1$s</string>
     <string name="filter_title">Filter</string>
@@ -256,6 +275,8 @@
     <string name="layover_last">Zuletzt: %1$s</string>
     <string name="layover_extreme_newest">Letztes Layover</string>
     <string name="layover_extreme_oldest">Ältestes Layover</string>
+    <string name="layover_extreme_newest_desc">Letztes Layover: %1$s am %2$s</string>
+    <string name="layover_extreme_oldest_desc">Ältestes Layover: %1$s am %2$s</string>
     <string name="chart_filter_all">Alle</string>
     <string name="chart_empty">Keine Daten für diesen Zeitraum.</string>
     <string name="world_map_loading">Weltkarte wird geladen…</string>
@@ -348,7 +369,36 @@
     <string name="settings_made_with_suffix">by expressiveminute</string>
 
 <!-- Layover-Detailseite -->
-    <string name="layover_timeline_title">Verlauf</string>
     <string name="layover_timeline_empty">Keine Layover in diesem Zeitraum.</string>
     <string name="layover_map_desc">Karte von %1$s mit Flughafen %2$s</string>
+    <!-- Dauer über der Layover-Leiste: Zerlegung in Stunden, Tagen, Wochen,
+         Monaten, Quartalen und Jahren, getrennt durch Punkte. -->
+    <string name="layover_time_unit_hours">%1$s h</string>
+    <plurals name="layover_time_unit_days">
+        <item quantity="one">%1$s Tag</item>
+        <item quantity="other">%1$s Tage</item>
+    </plurals>
+    <plurals name="layover_time_unit_weeks">
+        <item quantity="one">%1$s Woche</item>
+        <item quantity="other">%1$s Wochen</item>
+    </plurals>
+    <plurals name="layover_time_unit_months">
+        <item quantity="one">%1$s Monat</item>
+        <item quantity="other">%1$s Monate</item>
+    </plurals>
+    <plurals name="layover_time_unit_quarters">
+        <item quantity="one">%1$s Quartal</item>
+        <item quantity="other">%1$s Quartale</item>
+    </plurals>
+    <!-- Einheit der Layover-Leiste: sie richtet sich nach der verbrachten Zeit,
+         unter einem Tag zählt sie in Tagen, danach in Wochen, Monaten, Quartalen
+         und Jahren. -->
+    <string name="layover_time_step_day">1 Tag</string>
+    <string name="layover_time_step_week">1 Woche</string>
+    <string name="layover_time_step_month">1 Monat</string>
+    <string name="layover_time_step_quarter">1 Quartal</string>
+    <plurals name="layover_time_step_year">
+        <item quantity="one">1 Jahr</item>
+        <item quantity="other">%d Jahre</item>
+    </plurals>
 </resources>

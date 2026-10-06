@@ -162,6 +162,10 @@
                 android:textStyle="bold"
                 android:visibility="gone" />
 
+            <!-- Zwei Kacheln mit letztem und ältestem Layover. Beide sind so breit wie
+                 die halbe Zeile, ihre Beschriftungen aber unterschiedlich lang,
+                 deshalb bekommen die Codes nach dem ersten Layout dieselbe
+                 Schriftgrösse, siehe fitLayoverTileCodes(). -->
             <LinearLayout
                 android:id="@+id/layover_extremes"
                 android:layout_width="match_parent"
@@ -173,10 +177,14 @@
                 tools:visibility="visible">
 
                 <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_layover_newest"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="4dp"
                     android:layout_weight="1"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
                     app:cardBackgroundColor="?attr/colorSecondaryContainer"
                     app:cardCornerRadius="16dp"
                     app:cardElevation="0dp"
@@ -225,10 +233,14 @@
                 </com.google.android.material.card.MaterialCardView>
 
                 <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_layover_oldest"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="4dp"
                     android:layout_weight="1"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
                     app:cardBackgroundColor="?attr/colorSecondaryContainer"
                     app:cardCornerRadius="16dp"
                     app:cardElevation="0dp"

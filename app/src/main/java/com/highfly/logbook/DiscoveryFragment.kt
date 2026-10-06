@@ -89,7 +89,7 @@ class DiscoveryFragment : Fragment() {
 
         val appContext = requireContext().applicationContext
         Thread {
-            val months = DiscoveryRoutes.byMonth(LogbookRepository.getEntries(), year)
+            val months = DiscoveryRoutes.byMonth(LogbookRepository.getFlownEntries(), year)
             view?.post {
                 if (generation != loadGeneration || _binding == null) return@post
                 binding.discoveryProgress.visibility = View.GONE

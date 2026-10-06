@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Gefuellte Eingabekaestchen: Flaeche in einem grauen Ton, kein Rahmen. Die
+     Kontur der Umgebung zeichnet die Karte selbst nur als Radius, das Kästchen
+     zeigt damit allein seinen Wert auf gedämpftem Grund. Der Ton ist die
+     gefuellte Material-Flaeche, die Schrift (colorOnSurface) bleibt darauf in
+     beiden Themes lesbar. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="?attr/colorSurfaceContainerHigh" />
+    <corners android:radius="16dp" />
+</shape>

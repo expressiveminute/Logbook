@@ -24,70 +24,124 @@
             app:contentInsetStart="0dp"
             app:contentInsetStartWithNavigation="0dp">
 
-            <LinearLayout
+            <!-- Das Wort steht aus sich heraus mittig: Es ist an beiden
+                 Seiten des Bildes verankert, damit das "i" es nicht
+                 verschiebt. Der Hinweis haengt sich mit Abstand an das Ende
+                 des Wortes und erklaert, dass geplante Fluege in keiner
+                 Kachel mitzaehlen. Sichtbar ist er nur, wenn es geplante
+                 Fluege gibt. -->
+            <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:minHeight="64dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
+                android:minHeight="64dp">
 
                 <TextView
                     android:id="@+id/tv_title"
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
                     android:ellipsize="end"
-                    android:gravity="center_horizontal"
                     android:maxLines="1"
                     android:text="@string/app_name"
                     android:textColor="?attr/colorOnSurface"
                     android:textSize="36sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
+                    android:textStyle="bold"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <ImageView
+                    android:id="@+id/iv_upcoming_hint"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="6dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/dashboard_upcoming_hint_desc"
+                    android:padding="10dp"
+                    android:src="@drawable/ic_upcoming_badge"
+                    android:visibility="gone"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintHorizontal_bias="0"
+                    app:layout_constraintStart_toEndOf="@id/tv_title"
+                    app:layout_constraintTop_toTopOf="parent" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
         </com.google.android.material.appbar.MaterialToolbar>
 
+        <!--
+            Die beiden Filter der Kacheln darunter: Flugart und Zeitraum als
+            diskreter Text in der Mitte, getrennt durch einen Punkt. Beide Wörter
+            sind anklickbar und öffnen ihr Menü - mehr braucht die Zeile nicht,
+            sonst würde sie die Kacheln wieder nach unten drängen.
+        -->
         <LinearLayout
+            android:id="@+id/dashboard_filter_bar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingStart="16dp"
-            android:paddingEnd="16dp">
+            android:paddingTop="2dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="10dp">
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/period_layout"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+            <!-- Beide Haelften bekommen dasselbe Gewicht, damit der Punkt
+                 genau in der Mitte des Bildschirms steht und nicht dort, wo
+                 die beiden Woerter gerade zusammenpassen. Das Wort sitzt an
+                 der Mitte, mit Abstand zum Punkt. -->
+            <FrameLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:layout_marginBottom="8dp"
-                android:layout_weight="1"
-                app:boxCornerRadiusBottomEnd="16dp"
-                app:boxCornerRadiusBottomStart="16dp"
-                app:boxCornerRadiusTopEnd="16dp"
-                app:boxCornerRadiusTopStart="16dp"
-                app:boxStrokeColor="?attr/colorOutlineVariant"
-                app:boxStrokeWidth="2dp"
-                app:boxStrokeWidthFocused="2dp">
+                android:layout_gravity="center_vertical"
+                android:layout_weight="1">
 
-                <com.google.android.material.textfield.MaterialAutoCompleteTextView
-                    android:id="@+id/period_dropdown"
-                    android:layout_width="match_parent"
+                <TextView
+                    android:id="@+id/tv_filter_flight_type"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:inputType="none"
-                    android:text="@string/period_all" />
-            </com.google.android.material.textfield.TextInputLayout>
+                    android:layout_gravity="center"
+                    android:background="?attr/selectableItemBackground"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:padding="8dp"
+                    android:text="@string/dashboard_filter_all_flights"
+                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                    android:textColor="?attr/colorPrimary" />
+            </FrameLayout>
 
-            <ImageButton
-                android:id="@+id/btn_edit_tiles"
+            <TextView
+                android:id="@+id/tv_filter_separator"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="4dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/dashboard_edit"
-                android:padding="12dp"
-                android:src="@drawable/ic_edit"
-                app:tint="?attr/colorPrimary" />
+                android:layout_gravity="center_vertical"
+                android:paddingStart="2dp"
+                android:paddingEnd="2dp"
+                android:text="@string/dashboard_filter_separator"
+                android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="18sp" />
+
+            <FrameLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:layout_weight="1">
+
+                <!-- Das Wort sitzt mittig in seiner Haelfte, damit der Punkt
+                     bei beiden Woertern gleich weit weg steht. -->
+                <TextView
+                    android:id="@+id/tv_filter_period"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:background="?attr/selectableItemBackground"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:padding="8dp"
+                    android:text="@string/period_all_range"
+                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                    android:textColor="?attr/colorPrimary" />
+
+            </FrameLayout>
         </LinearLayout>
     </com.google.android.material.appbar.AppBarLayout>
 

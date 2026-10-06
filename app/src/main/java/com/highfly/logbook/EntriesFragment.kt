@@ -36,9 +36,11 @@ class EntriesFragment : Fragment(), ImeVisibilityAware {
         val aircraftType: String = "",
         val registration: String = "",
         val classType: String = "",
+        val layover: String = "",
+        val travelBuddy: String = "",
     ) {
         fun isActive(): Boolean = listOf(
-            travelType, airline, airport, aircraftType, registration, classType
+            travelType, airline, airport, aircraftType, registration, classType, layover, travelBuddy
         ).any { it.isNotBlank() }
     }
 
@@ -269,6 +271,16 @@ class EntriesFragment : Fragment(), ImeVisibilityAware {
                 return false
             }
         }
+        if (!TravelBuddyStats.matches(entry.travelBuddy, activeFilters.travelBuddy)) {
+            return false
+        }
+        val layoverFilter = activeFilters.layover
+        if (layoverFilter.isNotBlank()) {
+            val wantLayover = layoverFilter == getString(R.string.world_map_filter_layover_yes)
+            if (entry.layover != wantLayover) {
+                return false
+            }
+        }
         return true
     }
 
@@ -286,6 +298,10 @@ class EntriesFragment : Fragment(), ImeVisibilityAware {
             sheetView.findViewById<AutoCompleteTextView>(R.id.filter_registration)
         val filterClassType =
             sheetView.findViewById<AutoCompleteTextView>(R.id.filter_class_type)
+        val filterLayover =
+            sheetView.findViewById<AutoCompleteTextView>(R.id.filter_layover)
+        val filterTravelBuddy =
+            sheetView.findViewById<AutoCompleteTextView>(R.id.filter_travel_buddy)
 
         filterTravelType.setAdapter(labelAdapter())
         filterAirline.setAdapter(distinctValuesAdapter { it.airline?.uppercase() })
@@ -293,10 +309,16 @@ class EntriesFragment : Fragment(), ImeVisibilityAware {
         filterAircraftType.setAdapter(distinctValuesAdapter { it.aircraftType })
         filterRegistration.setAdapter(distinctValuesAdapter { it.registration })
         filterClassType.setAdapter(classAdapter())
+        filterLayover.setAdapter(layoverAdapter())
+        // Die Vorschlaege kommen aus den Reisebuddies der Eintraege, nicht aus
+        // dem Freitextfeld: Ein Eintrag traegt mehrere Namen, die Liste zeigt
+        // jeden davon einzeln.
+        filterTravelBuddy.setAdapter(buddyAdapter())
 
         listOf(
             filterTravelType, filterAirline, filterAirport,
-            filterAircraftType, filterRegistration, filterClassType
+            filterAircraftType, filterRegistration, filterClassType,
+            filterLayover, filterTravelBuddy
         ).forEach { highlightFilterValue(it) }
 
         filterTravelType.setText(activeFilters.travelType, false)
@@ -305,6 +327,8 @@ class EntriesFragment : Fragment(), ImeVisibilityAware {
         filterAircraftType.setText(activeFilters.aircraftType, false)
         filterRegistration.setText(activeFilters.registration, false)
         filterClassType.setText(activeFilters.classType, false)
+        filterLayover.setText(activeFilters.layover, false)
+        filterTravelBuddy.setText(activeFilters.travelBuddy, false)
 
         val dialog = BottomSheetDialog(requireContext())
         dialog.setContentView(sheetView)
@@ -326,6 +350,8 @@ class EntriesFragment : Fragment(), ImeVisibilityAware {
                 aircraftType = filterAircraftType.text?.toString()?.trim().orEmpty(),
                 registration = filterRegistration.text?.toString()?.trim().orEmpty(),
                 classType = filterClassType.text?.toString()?.trim().orEmpty(),
+                layover = filterLayover.text?.toString()?.trim().orEmpty(),
+                travelBuddy = filterTravelBuddy.text?.toString()?.trim().orEmpty(),
             )
             updateFilterIcon()
             renderEntries()
@@ -346,6 +372,16 @@ class EntriesFragment : Fragment(), ImeVisibilityAware {
                 getString(R.string.flight_type_ferry),
                 getString(R.string.flight_type_ground_transfer),
                 getString(R.string.flight_type_duty_travel),
+            )
+        )
+
+        private fun layoverAdapter(): ArrayAdapter<String> =
+        ArrayAdapter(
+            requireContext(),
+            android.R.layout.simple_dropdown_item_1line,
+            listOf(
+                getString(R.string.world_map_filter_layover_yes),
+                getString(R.string.world_map_filter_layover_no),
             )
         )
 
@@ -372,6 +408,19 @@ class EntriesFragment : Fragment(), ImeVisibilityAware {
             .sorted()
         return ArrayAdapter(
             requireContext(), android.R.layout.simple_dropdown_item_1line, values
+        )
+    }
+
+    /** Die Reisebuddies der Eintraege als Vorschlaege, jeder Name einmal. */
+    private fun buddyAdapter(): ArrayAdapter<String> {
+        val values = allEntries
+            .flatMap { TravelBuddyStats.parse(it.travelBuddy) }
+            .distinctBy { it.lowercase() }
+            .sortedWith(String.CASE_INSENSITIVE_ORDER)
+        return ArrayAdapter(
+            requireContext(),
+            android.R.layout.simple_dropdown_item_1line,
+            values
         )
     }
 

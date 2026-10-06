@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Zeile im Filtermenue: Die Welle ist auf 12dp gerundet und damit etwas
+    kleiner als das Menue selbst, sodass zwischen den Zeilen ein Stueck
+    Flaeche stehen bleibt.
+-->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="?attr/colorControlHighlight">
+    <item android:id="@android:id/mask">
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/white" />
+            <corners android:radius="12dp" />
+        </shape>
+    </item>
+</ripple>

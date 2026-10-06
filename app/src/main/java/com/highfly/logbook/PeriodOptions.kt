@@ -22,6 +22,16 @@ object PeriodOptions {
         else -> key
     }
 
+    /**
+     * Beschriftung fuer die Filterzeile ueber den Kacheln. "Gesamt" steht dort
+     * ausgeschrieben als "Gesamter Zeitraum": Das Wort steht dort allein und
+     * muss den Zeitraum auch ohne Kontext verständlich machen.
+     */
+    fun headerLabel(context: Context, key: String): String = when (key) {
+        KEY_ALL -> context.getString(R.string.period_all_range)
+        else -> label(context, key)
+    }
+
     fun keyForLabel(context: Context, label: String): String? =
         keys(context).firstOrNull { this.label(context, it) == label }
 }

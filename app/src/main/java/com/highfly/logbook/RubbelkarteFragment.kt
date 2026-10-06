@@ -93,7 +93,7 @@ class RubbelkarteFragment : Fragment() {
         val appContext = requireContext().applicationContext
 
         Thread {
-            val summary = RubbelkarteStats.summarize(LogbookRepository.getEntries()) { iata ->
+            val summary = RubbelkarteStats.summarize(LogbookRepository.getFlownEntries()) { iata ->
                 AirportData.country(appContext, iata)
             }
             // Länder, die auf der Länderliste von Hand abgehakt wurden, gehören

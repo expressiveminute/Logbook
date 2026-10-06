@@ -2,9 +2,7 @@ package com.highfly.logbook
 
 import android.content.Context
 import android.os.Bundle
-import android.util.Log
 import android.view.View
-import android.widget.ArrayAdapter
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.activity.enableEdgeToEdge
@@ -97,17 +95,109 @@ class MainActivity : AppCompatActivity() {
             updateHeaderAndContent()
         }
 
-        setupPeriodDropdown()
-        setupDashboardEdit()
+        setupDashboardFilter()
     }
 
-    private fun setupDashboardEdit() {
-        binding.btnEditTiles.setOnClickListener {
-            DashboardEditSheet(
-                this
-            ) {
-                DashboardEvents.onPeriodChanged?.invoke()
-            }.show()
+    /**
+     * Die beiden Filterwoerter ueber den Kacheln: links die Flugart, rechts
+     * der Zeitraum. Getippt wird nichts - ein Tipp auf eines der Woerter
+     * oeffnet das Menue mit seinen Moeglichkeiten, danach richtet sich die
+     * Filterzeile und damit die Kachelsumme unten neu aus.
+     */
+    /** Geplante Fluege im aktuellen Filter; 0 blendet das "i" aus. */
+    private var upcomingCount = 0
+
+    private fun setupDashboardFilter() {
+        binding.tvFilterFlightType.setOnClickListener { anchor ->
+            showFlightTypeMenu(anchor)
+        }
+        binding.tvFilterPeriod.setOnClickListener { anchor ->
+            showPeriodMenu(anchor)
+        }
+        binding.ivUpcomingHint.setOnClickListener { anchor ->
+            showUpcomingHint(anchor)
+        }
+        renderDashboardFilter()
+    }
+
+    /**
+     * Das blaue "i" neben der Filterzeile erklaert, dass es geplante Fluege
+     * gibt, die keine Kachel mitzaehlt. Es steht bei den Filtern und nicht
+     * mehr auf der Kachel "Fluege", weil es nicht diese eine Kachel meint,
+     * sondern alle - die Liste nennt sie auf.
+     *
+     * Sichtbar ist es nur bei geplanten Fluegen; ohne sie gaebe es nichts zu
+     * erklaeren.
+     */
+    private fun showUpcomingHint(anchor: View) {
+        val count = upcomingCount
+        if (count <= 0) return
+        FilterPopupMenu.showInfo(
+            this,
+            anchor,
+            resources.getQuantityString(
+                R.plurals.dashboard_upcoming_hint, count, count
+            ),
+            getString(R.string.dashboard_upcoming_hint_affected),
+            affectedTileNames()
+        )
+    }
+
+    /**
+     * Die Kacheln, deren Zahl aus den geflogenen Eintraegen kommt - und damit
+     * an den geplanten Fluegen vorbeilaeuft. Genau die stehen im Fenster, in
+     * der Reihenfolge des Rasters, damit sie wiederzuerkennen sind.
+     */
+    private fun affectedTileNames(): List<String> =
+        DashboardPrefs.readRows(this)
+            .flatten()
+            .distinct()
+            .map { getString(DashboardPrefs.tileById(it).nameRes) }
+            .distinct()
+
+    private fun renderDashboardFilter() {
+        val typeKey = Settings.getFlightTypeFilterKey(this)
+        val periodKey = Settings.getDefaultPeriodKey(this)
+        binding.tvFilterFlightType.text = FlightTypeOptions.label(this, typeKey)
+        binding.tvFilterPeriod.text = PeriodOptions.headerLabel(this, periodKey)
+        val weight = if (
+            typeKey == FlightTypeOptions.KEY_ALL && periodKey == PeriodOptions.KEY_ALL
+        ) {
+            android.graphics.Typeface.BOLD
+        } else {
+            android.graphics.Typeface.NORMAL
+        }
+        binding.tvFilterSeparator.setTypeface(null, weight)
+    }
+
+    private fun showFlightTypeMenu(anchor: View) {
+        val keys = FlightTypeOptions.keys()
+        FilterPopupMenu.showOptions(
+            this,
+            anchor,
+            keys,
+            keys.map { FlightTypeOptions.label(this, it) },
+            Settings.getFlightTypeFilterKey(this)
+        ) { key ->
+            Settings.setFlightTypeFilterKey(this, key)
+            renderDashboardFilter()
+            DashboardEvents.onFilterChanged?.invoke()
+        }
+    }
+
+    /** Dieselben Zeitraeume wie zuvor im Auswahlfeld, jetzt im Menue am Wort. */
+    private fun showPeriodMenu(anchor: View) {
+        val keys = PeriodOptions.keys(this)
+        FilterPopupMenu.showOptions(
+            this,
+            anchor,
+            keys,
+            keys.map { PeriodOptions.headerLabel(this, it) },
+            Settings.getDefaultPeriodKey(this)
+        ) { key ->
+            Settings.setDefaultPeriodKey(this, key)
+            renderDashboardFilter()
+            DashboardEvents.onFilterChanged?.invoke()
         }
     }
 
@@ -191,7 +281,6 @@ class MainActivity : AppCompatActivity() {
         val isImport = dest == R.id.nav_import
 
         binding.appBar.visibility = if (showHeader) View.VISIBLE else View.GONE
-        binding.btnEditTiles.visibility = if (showHeader) View.VISIBLE else View.GONE
         binding.appBar.setPadding(navBarLeft, if (showHeader) statusBarTop else 0, navBarRight, 0)
         val navVisible = !isAddEntry && !isWorldMap && !isImport
         // Über der Tastatur soll nichts stehen: Solange sie offen ist, bekommt
@@ -302,29 +391,22 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    private fun setupPeriodDropdown() {
-        val keys = PeriodOptions.keys(this)
-        val labels = keys.map { PeriodOptions.label(this, it) }
-        val adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, labels)
-        binding.periodDropdown.setAdapter(adapter)
-        binding.periodDropdown.setText(
-            PeriodOptions.label(this, Settings.getDefaultPeriodKey(this)),
-            false
-        )
-        binding.periodDropdown.setOnItemClickListener { parent, _, position, _ ->
-            Log.d("MainActivity", "Period selected: ${parent.getItemAtPosition(position)}")
-            val label = parent.getItemAtPosition(position) as String
-            val key = PeriodOptions.keyForLabel(this, label)
-            if (key != null) {
-                Settings.setDefaultPeriodKey(this, key)
-                DashboardEvents.onPeriodChanged?.invoke()
-            }
-        }
-    }
-
     override fun onResume() {
         super.onResume()
         refreshProfileNavIcon()
+        // Der Zeitraum laesst sich auch in den Einstellungen aendern: Die
+        // Filterzeile muss das bei jedem Aufkommen uebernehmen.
+        renderDashboardFilter()
+        DashboardEvents.onUpcomingCountChanged = { count ->
+            upcomingCount = count
+            binding.ivUpcomingHint.visibility =
+                if (count > 0) View.VISIBLE else View.GONE
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        DashboardEvents.onUpcomingCountChanged = null
     }
 
     override fun onPostCreate(savedInstanceState: Bundle?) {

@@ -63,7 +63,13 @@
     <string name="dashboard_reset">Reset to default</string>
     <string name="dashboard_remove">Remove</string>
     <string name="dashboard_empty">No tiles yet</string>
+    <string name="dashboard_filter_all_flights">All Flights</string>
+    <string name="dashboard_filter_only_duty">Duty Only</string>
+    <string name="dashboard_filter_only_private">Private Only</string>
+    <string name="dashboard_filter_separator">•</string>
+    <string name="dashboard_filter_selected">Selected</string>
     <string name="period_all">All</string>
+    <string name="period_all_range">All Time</string>
     <string name="period_this_month">This Month</string>
     <string name="period_ytd">YTD</string>
     <string name="nav_entries">Entries</string>
@@ -192,16 +198,15 @@
     <string name="flight_time_label">Flight time</string>
     <string name="flight_time_hint">min</string>
     <string name="airline_label">Airline</string>
-    <string name="airline_hint">LH</string>
     <string name="flight_number_label">Flight No.</string>
     <string name="flight_number_hint">123</string>
+    <string name="return_flight_add">- Return -</string>
+    <string name="flight_combined_hint">LH 400</string>
     <string name="date_label">Date</string>
-    <string name="return_flight_add">- Return flight -</string>
     <string name="hinflight_label">Outbound</string>
     <string name="return_flight_label">Return</string>
     <string name="return_remove_desc">Remove return flight</string>
     <string name="optional_label">Optional</string>
-    <string name="date_hint">DD.MM.YYYY</string>
     <string name="aircraft_type_label">Aircraft type</string>
     <string name="aircraft_type_hint">A320</string>
     <string name="registration_label">Registration</string>
@@ -213,7 +218,10 @@
     <string name="crew_function_flight_attendant">Flight Attendant</string>
     <string name="travel_buddy_label">Travel buddy</string>
     <string name="travel_buddy_hint">Type a name and press Enter</string>
+    <string name="buddy_confirm_example">press Enter to confirm</string>
     <string name="buddy_chip_desc">Travel buddy %1$s, tap to remove</string>
+    <string name="layover_hours_label">Layover length</string>
+    <string name="layover_hours_hint">h</string>
     <string name="comment_label">Comment</string>
     <string name="comment_hint">Comment …</string>
     <string name="airport_departure_icon_desc">Departure</string>
@@ -239,6 +247,13 @@
     <string name="entries_no_results">No entries found</string>
     <string name="entries_filter_desc">Filter</string>
     <string name="entries_month">%1$s %2$d</string>
+    <string name="entries_upcoming">Upcoming</string>
+    <plurals name="dashboard_upcoming_hint">
+        <item quantity="one">A planned flight is counted from its day on, not before.</item>
+        <item quantity="other">%d planned flights are counted from their day on, not before.</item>
+    </plurals>
+    <string name="dashboard_upcoming_hint_desc">Note on planned flights</string>
+    <string name="dashboard_upcoming_hint_affected">This affects these tiles:</string>
     <string name="entry_airline_logo">Airline logo</string>
     <string name="entry_travel_buddy_desc">Travel buddies: %1$s</string>
     <string name="filter_title">Filter</string>
@@ -256,6 +271,8 @@
     <string name="layover_last">Last: %1$s</string>
     <string name="layover_extreme_newest">Last layover</string>
     <string name="layover_extreme_oldest">Oldest layover</string>
+    <string name="layover_extreme_newest_desc">Last layover: %1$s on %2$s</string>
+    <string name="layover_extreme_oldest_desc">Oldest layover: %1$s on %2$s</string>
     <string name="chart_filter_all">All</string>
     <string name="chart_empty">No data for this period.</string>
     <string name="world_map_loading">Loading world map…</string>
@@ -348,7 +365,35 @@
     <string name="settings_made_with_suffix">by expressiveminute</string>
 
 <!-- Layover detail page -->
-    <string name="layover_timeline_title">Timeline</string>
     <string name="layover_timeline_empty">No layovers in this period.</string>
     <string name="layover_map_desc">Map of %1$s with airport %2$s</string>
+    <!-- Duration above the layover bar: broken down into hours, days, weeks,
+         months, quarters and years, separated by dots. -->
+    <string name="layover_time_unit_hours">%1$s h</string>
+    <plurals name="layover_time_unit_days">
+        <item quantity="one">%1$s day</item>
+        <item quantity="other">%1$s days</item>
+    </plurals>
+    <plurals name="layover_time_unit_weeks">
+        <item quantity="one">%1$s week</item>
+        <item quantity="other">%1$s weeks</item>
+    </plurals>
+    <plurals name="layover_time_unit_months">
+        <item quantity="one">%1$s month</item>
+        <item quantity="other">%1$s months</item>
+    </plurals>
+    <plurals name="layover_time_unit_quarters">
+        <item quantity="one">%1$s quarter</item>
+        <item quantity="other">%1$s quarters</item>
+    </plurals>
+    <!-- Unit of the layover bar: it follows the time spent, counting in days
+         below one day, then in weeks, months, quarters and years. -->
+    <string name="layover_time_step_day">1 day</string>
+    <string name="layover_time_step_week">1 week</string>
+    <string name="layover_time_step_month">1 month</string>
+    <string name="layover_time_step_quarter">1 quarter</string>
+    <plurals name="layover_time_step_year">
+        <item quantity="one">1 year</item>
+        <item quantity="other">%d years</item>
+    </plurals>
 </resources>

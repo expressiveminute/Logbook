@@ -2,6 +2,7 @@ package com.highfly.logbook
 
 import android.app.DatePickerDialog
 import android.graphics.Color
+import android.graphics.Rect
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.text.Editable
@@ -9,6 +10,7 @@ import android.text.SpannableString
 import android.text.Spanned
 import android.text.TextWatcher
 import android.text.style.ForegroundColorSpan
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -31,6 +33,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.highfly.logbook.databinding.FragmentAddEntryBinding
 import com.highfly.logbook.databinding.ItemBuddyChipBinding
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -96,8 +99,9 @@ class AddEntryFragment : Fragment() {
         setupFlightTypeTiles()
         setupDeadheadTiles()
         setupClassTiles()
-        setupAirlineAutoAdvance()
-        setupFlightNumberRoutePrefill()
+        setupAirportTiles()
+        setupTileExamples()
+        setupFlightCombinedWatcher()
         setupAircraftTypeFields()
         setupRegistrationUppercase()
         setupAirportAutoAdvance()
@@ -108,6 +112,7 @@ class AddEntryFragment : Fragment() {
         setupProgressiveReveal()
         setupOptionalSection()
         setupTravelBuddyChips()
+        setupLayoverHours()
         setupSaveAndDiscard()
 
         updateLayoverVisibility()
@@ -231,14 +236,28 @@ class AddEntryFragment : Fragment() {
     /**
      * Das Feld "Funktion" erscheint nur bei den Reisearten On Duty und Deadhead
      * und wird automatisch mit der in den Einstellungen gewählten Crew-Funktion
-     * befüllt (sofern es noch leer ist).
+     * befüllt (sofern es noch leer ist). Bei aktivem Rückflug hat jede Richtung
+     * ihr eigenes Feld, weil daraus auch zwei Einträge werden.
      */
     private fun updateFunctionVisibility() {
         val show = selectedFlightTypeIndex == ON_DUTY_INDEX ||
             selectedFlightTypeIndex == DEADHEAD_INDEX
+        if (returnActive) {
+            binding.tileHinflugFunction.visibility = if (show) View.VISIBLE else View.GONE
+            binding.tileRueckflugFunction.visibility = if (show) View.VISIBLE else View.GONE
+            if (show && !prefilling) {
+                fillFunctionFromSettings(binding.etHinflugFunction)
+                fillFunctionFromSettings(binding.etRueckflugFunction)
+            }
+            return
+        }
         binding.functionSection.visibility = if (show) View.VISIBLE else View.GONE
-        if (show && !prefilling && binding.etFunction.text.isNullOrBlank()) {
-            binding.etFunction.setText(Settings.selectedCrewFunctionLabel(requireContext()))
+        if (show && !prefilling) fillFunctionFromSettings(binding.etFunction)
+    }
+
+    private fun fillFunctionFromSettings(field: EditText) {
+        if (field.text.isNullOrBlank()) {
+            field.setText(Settings.selectedCrewFunctionLabel(requireContext()))
         }
     }
 
@@ -283,6 +302,50 @@ class AddEntryFragment : Fragment() {
         val isPrivate = selectedFlightTypeIndex == PRIVATE_INDEX
         binding.cbLayover.visibility =
             if (isCrew && !isPrivate) View.VISIBLE else View.GONE
+        updateLayoverHoursVisibility()
+    }
+
+    /**
+     * Wie lange ein Layover gedauert hat, weiss nur der Nutzer - und es
+     * interessiert nur, wenn der Eintrag ueberhaupt ein Layover ist. Das Feld
+     * erscheint deshalb erst, sobald oben bei "Ankunft" das Kästchen
+     * "Layover" angeklickt ist, und verschwindet wieder, wenn es abgehaakt
+     * wird. Der bei "Flugdistanz" und "Flugzeit" benutzte Weg ueber
+     * [refreshVisibility] passt hier nicht, weil die Sichtbarkeit nicht am
+     * Textfeld haengt.
+     */
+    private fun setupLayoverHours() {
+        binding.cbLayover.setOnCheckedChangeListener { _, _ ->
+            updateLayoverHoursVisibility()
+        }
+        setupLayoverHoursUnit(binding.etLayoverHours, binding.tvLayoverHoursUnit)
+        setupLayoverHoursUnit(binding.etHinflugLayoverHours, binding.tvHinflugLayoverHoursUnit)
+    }
+
+    private fun setupLayoverHoursUnit(input: EditText, unit: View) {
+        input.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                unit.visibility =
+                    if (s.isNullOrBlank()) View.GONE else View.VISIBLE
+            }
+        })
+    }
+
+    /**
+     * Bei aktivem Rückflug wandert die Layoverlaenge in die Spalte "Hinflug" -
+     * das Kästchen "Layover" steht beim Ankunftsfeld des Hinflugs.
+     */
+    private fun updateLayoverHoursVisibility() {
+        val active = binding.cbLayover.isChecked &&
+            binding.cbLayover.visibility == View.VISIBLE
+        binding.layoverHoursSection.visibility = if (active) View.VISIBLE else View.GONE
+        binding.tileHinflugLayoverHours.visibility = if (active) View.VISIBLE else View.GONE
+        if (!active) {
+            binding.etLayoverHours.text?.clear()
+            binding.etHinflugLayoverHours.text?.clear()
+        }
     }
 
     /**
@@ -294,10 +357,10 @@ class AddEntryFragment : Fragment() {
         val prefill = selectedFlightTypeIndex == ON_DUTY_INDEX ||
             selectedFlightTypeIndex == DEADHEAD_INDEX ||
             selectedFlightTypeIndex == DUTY_TRAVEL_INDEX
-        if (prefill && !prefilling && binding.etAirline.text.isNullOrBlank()) {
+        if (prefill && !prefilling && binding.etFlightCombined.text.isNullOrBlank()) {
             val airline = Settings.getAirline(requireContext())
             if (airline.isNotBlank()) {
-                binding.etAirline.setText(airline)
+                binding.etFlightCombined.setText(airline)
             }
         }
     }
@@ -413,8 +476,9 @@ class AddEntryFragment : Fragment() {
         }
         if (classIndex != null) selectClass(classIndex)
 
-        binding.etAirline.setText(entry.airline)
-        binding.etFlightNumber.setText(entry.flightNumber)
+        // Mit Leerzeichen, damit das Kästchen wieder in beide Felder zerlegbar
+        // bleibt - ohne Trenner ist die Grenze beim Speichern nicht erkennbar.
+        binding.etFlightCombined.setText(FlightCombined.format(entry.airline, entry.flightNumber))
         binding.etDate.setText(entry.date.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")))
 
         binding.airportSection.visibility = View.VISIBLE
@@ -424,17 +488,20 @@ class AddEntryFragment : Fragment() {
         binding.etDistance.setText(entry.distanceKm?.toString().orEmpty())
         binding.etFlightTime.setText(entry.flightMinutes?.toString().orEmpty())
         binding.cbLayover.isChecked = entry.layover
+        // Erst nach dem Kästchen setzen: Der Listener blendet das Feld aus und
+        // leert es, solange kein Layover angeklickt ist.
+        binding.etLayoverHours.setText(entry.layoverHours?.toString().orEmpty())
 
         binding.etAircraftType.setText(entry.aircraftType)
         binding.etRegistration.setText(entry.registration)
 
         binding.etFunction.setText(entry.function)
         for (name in TravelBuddyStats.parse(entry.travelBuddy)) {
-            addTravelBuddyChip(name)
+            addTravelBuddyChip(binding.buddyChips, name)
         }
         binding.etComment.setText(entry.comment)
 
-        val hasOptional = listOf(
+        val hasOptional = entry.layoverHours != null || listOf(
             entry.aircraftType,
             entry.registration,
             entry.comment,
@@ -442,31 +509,38 @@ class AddEntryFragment : Fragment() {
             entry.travelBuddy
         ).any { !it.isNullOrBlank() }
         if (hasOptional) toggleOptionalBody(expanded = true)
-        validateAirport(entry.fromAirport, binding.etAirportFrom, binding.ivAirportCheckFrom)
-        validateAirport(entry.toAirport, binding.etAirportTo, binding.ivAirportCheckTo)
-        updateCountryFlag(entry.fromAirport, binding.tvCountryFlagFrom)
-        updateCountryFlag(entry.toAirport, binding.tvCountryFlagTo)
+        updateAirportCode(
+            entry.fromAirport, binding.etAirportFrom, binding.ivAirportCheckFrom,
+        )
+        updateAirportCode(
+            entry.toAirport, binding.etAirportTo, binding.ivAirportCheckTo,
+        )
         prefilling = false
     }
 
+    /**
+     * Die Beschriftung der Auswahlkacheln folgt dem Ton der Platzhalterzeile der
+     * Eingabekacheln: Ungewählt steht sie genauso abgedunkelt, damit beide
+     * Kachelarten im Formular gleich zurückhaltend wirken. Gewählt bleibt sie
+     * weiß, weil sie dann auf dem farbigen Feld liegt und sich sonst nicht mehr
+     * vom Untergrund abhebt.
+     */
+    private fun restingSelectionColor(): Int = InputTile.hintColor(binding.root)
+
     private fun updateFlightLabels(labels: List<TextView>, selectedIndex: Int?) {
-        val onSurface = MaterialColors.getColor(
-            binding.root, com.google.android.material.R.attr.colorOnSurface
-        )
+        val resting = restingSelectionColor()
         labels.forEachIndexed { index, label ->
-            label.setTextColor(if (index == selectedIndex) Color.WHITE else onSurface)
+            label.setTextColor(if (index == selectedIndex) Color.WHITE else resting)
         }
     }
 
     private fun updateClassLabels(labels: List<TextView>, selectedIndex: Int?) {
-        val onSurface = MaterialColors.getColor(
-            binding.root, com.google.android.material.R.attr.colorOnSurface
-        )
+        val resting = restingSelectionColor()
         labels.forEachIndexed { index, label ->
-            label.setTextColor(if (index == selectedIndex) Color.WHITE else onSurface)
+            label.setTextColor(if (index == selectedIndex) Color.WHITE else resting)
         }
         binding.ivClassJump.setColorFilter(
-            if (selectedIndex == CLASS_JUMP_INDEX) Color.WHITE else onSurface
+            if (selectedIndex == CLASS_JUMP_INDEX) Color.WHITE else resting
         )
     }
 
@@ -519,53 +593,103 @@ class AddEntryFragment : Fragment() {
             setColor(color)
         }
 
-    private fun setupAirlineAutoAdvance() {
-        binding.etAirline.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: Editable) {
-                val upper = s.toString().uppercase()
-                if (upper != s.toString()) {
-                    s.replace(0, s.length, upper)
-                    return
-                }
-                if (s.length == 2) {
-                    focusAndShowKeyboard(binding.etFlightNumber)
-                }
-                prefillRegistration()
-                prefillRouteFromHistory()
-            }
-        })
-    }
-
-    private fun setupFlightNumberRoutePrefill() {
-        binding.etFlightNumber.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: Editable) {
-                prefillRouteFromHistory()
-            }
-        })
+    /**
+     * Die Eingabekachel, in der ein Feld liegt. Beschriftung und Beispiel der
+     * Kachel gehören nicht dem Feld, deshalb wird die Kachel von unten herauf
+     * gesucht, auch über eine Gruppe hinweg wie bei Wert und Einheit. So
+     * braucht keine Kachel eine eigene id im Layout.
+     */
+    private fun inputTile(field: View): InputTile? {
+        var parent = field.parent
+        while (parent is View) {
+            if (parent is InputTile) return parent
+            parent = parent.parent
+        }
+        return null
     }
 
     /**
-     * Wenn Fluggesellschaft und Flugnummer bereits in gespeicherten Einträgen
-     * vorkommen, werden Abflug und Ankunft automatisch mit der am häufigsten
-     * gespeicherten Strecke übernommen. Eigene Eingaben werden nicht überschrieben.
+     * Abflug und Ankunft stehen ohne Rahmen und ohne Beschriftung da: Die beiden
+     * Codes tragen die Richtung schon allein, zusammen mit dem Pfeil dazwischen,
+     * und ein Rahmen um drei Buchstaben herum wäre nur eine Kiste mehr. Die
+     * Kacheln zeigen deshalb dauerhaft ihr Feld, eine leere weist ihren
+     * Beispieltext darin aus.
      */
-    private fun prefillRouteFromHistory() {
-        if (editingEntryId >= 0) return
-        if (!binding.etAirportFrom.text.isNullOrBlank() || !binding.etAirportTo.text.isNullOrBlank()) {
-            return
-        }
-        val airline = binding.etAirline.text?.toString()?.trim().orEmpty()
-        val flightNumber = binding.etFlightNumber.text?.toString()?.trim().orEmpty()
-        if (airline.isEmpty() || flightNumber.isEmpty()) return
-        val route = mostFrequentRoute(LogbookRepository.getEntries(), airline, flightNumber)
-            ?: return
-        binding.etAirportFrom.setText(route.from)
-        binding.etAirportTo.setText(route.to)
+    private fun setupAirportTiles() {
+        inputTile(binding.etAirportFrom)?.setBare(true)
+        inputTile(binding.etAirportTo)?.setBare(true)
     }
+
+    /**
+     * Beispiele fuer die Platzhalterzeile der leeren Kacheln: Solange nichts
+     * getippt ist, steht da die Beschriftung, bei einzelnen Feldern mit einem
+     * Zusatz in Klammern. Angezeigt werden nur Bedienhinweise, keine Beispiel-
+     * werte - die stehen stattdessen weiterhin als Hinweis im Feld. Das
+     * Reisebuddy-Feld traegt den Hinweis auf die Bestaetigung mit Enter, weil
+     * dort ein Name eingetragen wird, der gar nicht geraten werden kann. Die
+     * beiden Kommentar bekommen nichts, weil es dort nichts zu zeigen gibt.
+     */
+    private fun setupTileExamples() {
+        inputTile(binding.etTravelBuddy)?.setExample(getString(R.string.buddy_confirm_example))
+        inputTile(binding.etHinflugTravelBuddy)?.setExample(getString(R.string.buddy_confirm_example))
+        inputTile(binding.etRueckflugTravelBuddy)?.setExample(getString(R.string.buddy_confirm_example))
+    }
+
+    private fun setupFlightCombinedWatcher() {
+        setupCombinedWatcher(binding.etFlightCombined) {
+            prefillRegistration()
+            prefillRouteFromHistory()
+        }
+        // Im Rückflugskästchen wird nur die Nummer gepflegt. Abflug und Ankunft
+        // stehen weiterhin für den Hinflug und werden hier bewusst nicht
+        // nachgeschlagen, sonst nähme die Rückflugsnummer die Strecke mit.
+        setupCombinedWatcher(binding.etRueckflugFlight) {}
+    }
+
+    /**
+     * Beide Kästchen - Hinflug und Rückflug - trennen Fluggesellschaft und
+     * Flugnummer beim Tippen mit einem Leerzeichen und schreiben die ersten
+     * beiden Zeichen gross. [afterNormalize] laeuft danach, also mit dem Text,
+     * der auch gespeichert wird.
+     */
+    private fun setupCombinedWatcher(field: EditText, afterNormalize: () -> Unit) {
+        field.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable) {
+                val normalized = FlightCombined.normalizeTyped(s.toString())
+                if (normalized != s.toString()) {
+                    s.replace(0, s.length, normalized)
+                    field.setSelection(normalized.length)
+                }
+                val (capitalized, caret) = FlightCombined.capitalizeTyped(s.toString())
+                if (capitalized != s.toString()) {
+                    s.replace(0, s.length, capitalized)
+                    field.setSelection(caret)
+                }
+                afterNormalize()
+            }
+        })
+    }
+
+/**
+ * Abflug und Ankunft gehoeren immer zum Hinflug: Sie werden aus der Nummer im
+ * linken Kästchen nachgeschlagen, nie aus der des Rückflugs. Wird die Nummer des
+ * Hinflugs schon in gespeicherten Einträgen gefunden, übernimmt die am häufigsten
+ * gespeicherte Strecke. Eigene Eingaben werden nicht überschrieben.
+ */
+private fun prefillRouteFromHistory() {
+    if (editingEntryId >= 0) return
+    if (!binding.etAirportFrom.text.isNullOrBlank() || !binding.etAirportTo.text.isNullOrBlank()) {
+        return
+    }
+    val (airline, flightNumber) = combinedFlight()
+    if (airline.isEmpty() || flightNumber.isEmpty()) return
+    val route = mostFrequentRoute(LogbookRepository.getFlownEntries(), airline, flightNumber)
+        ?: return
+    binding.etAirportFrom.setText(route.from)
+    binding.etAirportTo.setText(route.to)
+}
 
     private fun setupAircraftTypeFields() {
         setupAircraftTypeField(binding.etAircraftType, binding.etRegistration)
@@ -658,8 +782,10 @@ class AddEntryFragment : Fragment() {
         registration.setText(prefix)
     }
 
-    private fun airlineIsLh(): Boolean =
-        binding.etAirline.text?.toString()?.trim().equals("LH", ignoreCase = true)
+    private fun airlineIsLh(): Boolean {
+        val (airline, _) = combinedFlight()
+        return airline.equals("LH", ignoreCase = true)
+    }
 
     private fun setupAirportAutoAdvance() {
         binding.etAirportFrom.addTextChangedListener(object : TextWatcher {
@@ -671,8 +797,9 @@ class AddEntryFragment : Fragment() {
                     s.replace(0, s.length, upper)
                     return
                 }
-                validateAirport(s.toString(), binding.etAirportFrom, binding.ivAirportCheckFrom)
-                updateCountryFlag(s.toString(), binding.tvCountryFlagFrom)
+                updateAirportCode(
+                    s.toString(), binding.etAirportFrom, binding.ivAirportCheckFrom,
+                )
                 if (s.length == 3) {
                     focusAndShowKeyboard(binding.etAirportTo)
                 }
@@ -689,74 +816,132 @@ class AddEntryFragment : Fragment() {
                     s.replace(0, s.length, upper)
                     return
                 }
-                validateAirport(s.toString(), binding.etAirportTo, binding.ivAirportCheckTo)
-                updateCountryFlag(s.toString(), binding.tvCountryFlagTo)
+                updateAirportCode(
+                    s.toString(), binding.etAirportTo, binding.ivAirportCheckTo,
+                )
                 autoFillRouteData()
             }
         })
     }
 
-    private fun validateAirport(code: String, editText: EditText, check: ImageView) {
+    /**
+     * Prüft einen Flughafencode und blendet den Haken ein. Er wird danach an
+     * seine Stelle am Code gesetzt, siehe [positionAirportOverlays].
+     */
+    private fun updateAirportCode(
+        code: String,
+        editText: EditText,
+        check: ImageView,
+    ) {
+        validateAirport(code, check)
+        positionAirportOverlays(editText, check)
+    }
+
+    /**
+     * Setzt den Haken an seine Stelle am Code: Direkt hinter die drei Buchstaben
+     * auf deren Höhe, weil er neben ihnen stehen soll und nicht an einer festen
+     * Stelle der Kachel. Drei Buchstaben in doppelter Schrift sind breit genug,
+     * um daneben Platz zu lassen.
+     */
+    private fun positionAirportOverlays(editText: EditText, check: ImageView) {
+        editText.doOnLayout { placeCheckBehindCode(editText, check) }
+    }
+
+    /**
+     * Setzt den Haken direkt hinter den Code, weil er neben den drei Buchstaben
+     * stehen soll und nicht an einer festen Stelle der Kachel: Drei Buchstaben in
+     * doppelter Schrift sind breit genug, um daneben Platz zu lassen.
+     */
+    private fun placeCheckBehindCode(editText: EditText, check: ImageView) {
+        val code = codeBoxInTile(editText) ?: return
+        val density = resources.displayMetrics.density
+        check.translationX = code.right + 5f * density
+        check.translationY = code.centerY() - 8f * density
+    }
+
+    /**
+     * Das Rechteck der drei Buchstaben innerhalb der Kachel. Der Code steht
+     * waagerecht mittig im Feld und senkrecht mittig in dem Teil des Feldes,
+     * der unter der Beschriftung liegt.
+     *
+     * Bezugspunkt ist die Kachel selbst und nicht der Vater des Feldes - je nach
+     * Kachel ist das einmal die Kachel und einmal eine Gruppe darum, deren
+     * Innenabstand sonst mitgezählt würde.
+     */
+    private fun codeBoxInTile(editText: EditText): Rect? {
+        val tile = inputTile(editText) ?: return null
+        var left = 0
+        var top = 0
+        var view: View? = editText
+        while (view != null && view !== tile) {
+            left += view.left
+            top += view.top
+            view = view.parent as? View
+        }
+        // Die Textbreite kommt aus dem Zeilenumbruch, weil er die Buchstaben
+        // wirklich kennt. Deren Anfang nicht: Der Umbruch eines Feldes traegt
+        // keine brauchbare Breite, solange es unvermessen ist, und seine
+        // mittige Zeile liegt dann um die halbe Million Pixel daneben. Der
+        // Abstand zum Rand wird deshalb aus dem Feld selbst gerechnet.
+        val line = editText.layout?.takeIf { it.lineCount > 0 }
+        val textWidth = line?.getLineWidth(0)
+            ?: editText.paint.measureText(editText.text.toString())
+        val innerWidth =
+            (editText.width - editText.totalPaddingLeft - editText.totalPaddingRight)
+                .coerceAtLeast(0)
+        val slack = (innerWidth - textWidth).coerceAtLeast(0f)
+        val horizontal = editText.gravity and Gravity.HORIZONTAL_GRAVITY_MASK
+        val inset = when (horizontal) {
+            Gravity.CENTER, Gravity.CENTER_HORIZONTAL -> slack / 2f
+            Gravity.END, Gravity.RIGHT -> slack
+            else -> 0f
+        }
+        val textLeft = left + editText.totalPaddingLeft + inset
+        // Senkrecht zaehlt die Zeile selbst, nicht das Feld: Unter der Kerbe
+        // fuellt das Feld den ganzen Rest der Kachel, der Code steht aber nur
+        // in der Mitte davon. Sonst hinge die Flagge am oberen Rand des Feldes
+        // statt ueber den Buchstaben.
+        val lineHeight = (line?.height ?: editText.height).toFloat()
+        val innerHeight =
+            (editText.height - editText.totalPaddingTop - editText.totalPaddingBottom)
+                .coerceAtLeast(0)
+        val slackHeight = (innerHeight - lineHeight).coerceAtLeast(0f)
+        val vertical = editText.gravity and Gravity.VERTICAL_GRAVITY_MASK
+        val insetHeight = when (vertical) {
+            Gravity.CENTER, Gravity.CENTER_VERTICAL -> slackHeight / 2f
+            Gravity.BOTTOM -> slackHeight
+            else -> 0f
+        }
+        val textTop = (top + editText.totalPaddingTop + insetHeight).toInt()
+        return Rect(
+            textLeft.toInt(),
+            textTop,
+            (textLeft + textWidth).toInt(),
+            textTop + lineHeight.toInt(),
+        )
+    }
+
+    private fun validateAirport(code: String, check: ImageView) {
         val exists = code.length == 3 &&
             AirportData.location(requireContext(), code) != null
         if (exists) {
             val wasVisible = check.visibility == View.VISIBLE
             if (!wasVisible) {
-                check.visibility = View.INVISIBLE
+                check.visibility = View.VISIBLE
                 check.alpha = 0f
                 check.scaleX = 0.3f
                 check.scaleY = 0.3f
-            }
-            editText.doOnLayout {
-                positionCheckBehindCode(editText, check, code)
-                if (!wasVisible) {
-                    check.visibility = View.VISIBLE
-                    check.animate()
-                        .alpha(1f)
-                        .scaleX(1f)
-                        .scaleY(1f)
-                        .setDuration(280)
-                        .setInterpolator(OvershootInterpolator())
-                        .start()
-                }
+                check.animate()
+                    .alpha(1f)
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .setDuration(280)
+                    .setInterpolator(OvershootInterpolator())
+                    .start()
             }
         } else if (check.visibility != View.GONE) {
             check.animate().cancel()
             check.visibility = View.GONE
-        }
-    }
-
-    private fun positionCheckBehindCode(editText: EditText, check: ImageView, code: String) {
-        val parentLayout = editText.parent as? ViewGroup
-        val textStartX = (parentLayout?.paddingLeft ?: 0) + editText.paddingLeft
-        val textWidth = editText.paint.measureText(code)
-        val gap = 5f * resources.displayMetrics.density
-        check.translationX = textStartX + textWidth + gap
-
-        val checkHalfHeight = 8f * resources.displayMetrics.density
-        check.translationY = editText.top + editText.height / 2f - checkHalfHeight
-    }
-
-    private fun updateCountryFlag(code: String, flag: TextView) {
-        val iso = if (code.length == 3) AirportData.country(requireContext(), code) else null
-        if (iso != null) {
-            flag.text = AirportData.flagEmoji(iso)
-            if (flag.visibility != View.VISIBLE) {
-                flag.visibility = View.VISIBLE
-                flag.alpha = 0f
-                flag.scaleX = 0.6f
-                flag.scaleY = 0.6f
-                flag.animate()
-                    .alpha(1f)
-                    .scaleX(1f)
-                    .scaleY(1f)
-                    .setDuration(240)
-                    .setInterpolator(OvershootInterpolator())
-                    .start()
-            }
-        } else if (flag.visibility != View.GONE) {
-            flag.animate().cancel()
-            flag.visibility = View.GONE
         }
     }
 
@@ -806,8 +991,7 @@ class AddEntryFragment : Fragment() {
                 refreshVisibility()
             }
         }
-        binding.etAirline.addTextChangedListener(watcher)
-        binding.etFlightNumber.addTextChangedListener(watcher)
+        binding.etFlightCombined.addTextChangedListener(watcher)
         binding.etDate.addTextChangedListener(watcher)
         binding.etDateReturn.addTextChangedListener(watcher)
         binding.etAirportFrom.addTextChangedListener(watcher)
@@ -843,10 +1027,18 @@ class AddEntryFragment : Fragment() {
     /**
      * Reisebuddies werden Eingabe-für-Eingabe gesammelt: Ein Name wird getippt,
      * mit Enter bestätigt und erscheint als Chip mit grünem Haken. Ein neuer
-     * Name beginnt im Feld dahinter, die Tastatur bleibt dabei geöffnet.
+     * Name beginnt im Feld dahinter, die Tastatur bleibt dabei geöffnet. Bei
+     * aktivem Rückflug hat jede Richtung ihr eigenes Feld, deshalb wird die
+     * Sammlung für Chip-Container und Eingabefeld parametrisiert.
      */
     private fun setupTravelBuddyChips() {
-        binding.etTravelBuddy.addTextChangedListener(object : TextWatcher {
+        setupTravelBuddyChips(binding.buddyChips, binding.etTravelBuddy)
+        setupTravelBuddyChips(binding.buddyChipsHinflug, binding.etHinflugTravelBuddy)
+        setupTravelBuddyChips(binding.buddyChipsRueckflug, binding.etRueckflugTravelBuddy)
+    }
+
+    private fun setupTravelBuddyChips(chips: FlowLayout, input: EditText) {
+        input.addTextChangedListener(object : TextWatcher {
             private var isCommitting = false
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
@@ -860,26 +1052,32 @@ class AddEntryFragment : Fragment() {
                 // bleibt im Feld stehen (z. B. beim Einfügen mehrerer Namen).
                 s.delete(0, newline + 1)
                 isCommitting = false
-                if (name.isNotEmpty()) addTravelBuddyChip(name)
+                if (name.isNotEmpty()) addTravelBuddyChip(chips, name)
             }
         })
     }
 
-    private fun addTravelBuddyChip(name: String) {
+    private fun addTravelBuddyChip(chips: FlowLayout, name: String) {
         val chip = ItemBuddyChipBinding.inflate(layoutInflater).root
         chip.text = name
         chip.contentDescription = getString(R.string.buddy_chip_desc, name)
-        chip.setOnClickListener { removeTravelBuddyChip(chip) }
+        chip.setOnClickListener { removeTravelBuddyChip(chips, chip) }
         chip.alpha = 0f
         chip.animate().alpha(1f).setDuration(180).start()
-        binding.buddyChips.addView(chip)
-        binding.buddyChips.visibility = View.VISIBLE
+        chips.addView(chip)
+        chips.visibility = View.VISIBLE
     }
 
-    private fun removeTravelBuddyChip(chip: View) {
-        binding.buddyChips.removeView(chip)
-        binding.buddyChips.visibility =
-            if (binding.buddyChips.childCount == 0) View.GONE else View.VISIBLE
+    private fun removeTravelBuddyChip(chips: FlowLayout, chip: View) {
+        chips.removeView(chip)
+        chips.visibility =
+            if (chips.childCount == 0) View.GONE else View.VISIBLE
+    }
+
+    private fun clearTravelBuddyChips(chips: FlowLayout, input: EditText) {
+        chips.removeAllViews()
+        chips.visibility = View.GONE
+        input.text?.clear()
     }
 
     /**
@@ -887,19 +1085,31 @@ class AddEntryFragment : Fragment() {
      * Resttext im Feld. Die Namen werden kommagetrennt gespeichert und in
      * [TravelBuddyStats] wieder zerlegt.
      */
-    private fun collectedTravelBuddyNames(): List<String> {
+    private fun collectedTravelBuddyNames(chips: FlowLayout, input: EditText): List<String> {
         val names = mutableListOf<String>()
-        for (i in 0 until binding.buddyChips.childCount) {
-            val text = (binding.buddyChips.getChildAt(i) as TextView).text.toString().trim()
+        for (i in 0 until chips.childCount) {
+            val text = (chips.getChildAt(i) as TextView).text.toString().trim()
             if (text.isNotEmpty()) names += text
         }
-        val typed = binding.etTravelBuddy.text?.toString().orEmpty()
+        val typed = input.text?.toString().orEmpty()
         return TravelBuddyStats.parse(names.joinToString("\n") + "\n" + typed)
     }
 
     private fun setupReturnToggle() {
         binding.tvAddReturn.setOnClickListener { activateReturn() }
+        binding.tvAddReturn.visibility = if (returnActive) View.GONE else View.VISIBLE
         binding.btnRemoveReturn.setOnClickListener { deactivateReturn() }
+        updateRouteArrows()
+    }
+
+    /**
+     * Der zweite Pfeil zwischen Abflug und Ankunft kommt mit dem Rückflug dazu:
+     * Der Hinflug nach rechts rückt dadurch nach oben, darunter steht der
+     * Rückflug nach links. Beide Pfeile werden mittig in der Spalte zwischen den
+     * Kacheln ausgerichtet, deshalb muss hier nur die Sichtbarkeit stimmen.
+     */
+    private fun updateRouteArrows() {
+        binding.ivRouteBack.visibility = if (returnActive) View.VISIBLE else View.GONE
     }
 
     private fun activateReturn() {
@@ -907,27 +1117,66 @@ class AddEntryFragment : Fragment() {
         returnActive = true
         val aircraft = binding.etAircraftType.text?.toString()?.trim().orEmpty()
         val registration = binding.etRegistration.text?.toString()?.trim().orEmpty()
+        val function = binding.etFunction.text?.toString()?.trim().orEmpty()
         val comment = binding.etComment.text?.toString()?.trim().orEmpty()
+        val (airline, flightNumber) = combinedFlight()
         binding.etHinflugAircraft.setText(aircraft)
         binding.etHinflugRegistration.setText(registration)
+        binding.etHinflugFunction.setText(function)
         binding.etHinflugComment.setText(comment)
         binding.etRueckflugAircraft.setText(aircraft)
         binding.etRueckflugRegistration.setText(registration)
+        binding.etRueckflugFunction.setText(function)
         binding.etRueckflugComment.setText(comment)
+        // Reisebuddies und Layoverlaenge stehen bei einem Rückflug in beiden
+        // Spalten, damit sie sich einzeln korrigieren lassen.
+        val buddies = collectedTravelBuddyNames(binding.buddyChips, binding.etTravelBuddy)
+        clearTravelBuddyChips(binding.buddyChips, binding.etTravelBuddy)
+        val layoverHours = binding.etLayoverHours.text?.toString()?.trim().orEmpty()
+        binding.etLayoverHours.text?.clear()
+        for (name in buddies) {
+            addTravelBuddyChip(binding.buddyChipsHinflug, name)
+            addTravelBuddyChip(binding.buddyChipsRueckflug, name)
+        }
+        binding.etHinflugLayoverHours.setText(layoverHours)
+        // "LH 400" wird zu "LH 401": Die Airline wandert mit, die Nummer geht
+        // eins weiter, damit nicht zwei Eintraege dieselbe bekommen.
+        binding.etRueckflugFlight.setText(
+            FlightCombined.format(airline, FlightCombined.nextNumber(flightNumber))
+        )
+
         val hinflugDate = binding.etDate.text?.toString()?.trim().orEmpty()
         if (hinflugDate.isNotEmpty()) {
             binding.etDateReturn.setText(hinflugDate)
         }
+        // Abflug und Ankunft bleiben die des Hinflugs, die Rückflugsnummer hat
+        // darauf keinen Einfluss. Waren sie noch leer, gehoeren sie jetzt
+        // eindeutig zum Hinflug und werden aus seiner Nummer nachgeschlagen.
+        prefillRouteFromHistory()
+        // Nur die Rueckflugsnummer wird eingetragen. Der Datumsdialog bleibt zu,
+        // das Datum holt sich der Nutzer selbst, sobald er das Feld antippt.
         updateReturnUi()
-        showDatePicker(binding.etDateReturn)
     }
 
+    /**
+     * Nimmt den Rückflug wieder aus dem Formular: Die Felder des Hinflugs
+     * wandern zurück in den Einzelblock, die des Rückflugs werden geleert.
+     */
     private fun deactivateReturn() {
         if (!returnActive) return
         returnActive = false
         binding.etAircraftType.setText(binding.etHinflugAircraft.text?.toString()?.trim().orEmpty())
         binding.etRegistration.setText(binding.etHinflugRegistration.text?.toString()?.trim().orEmpty())
+        binding.etFunction.setText(binding.etHinflugFunction.text?.toString()?.trim().orEmpty())
         binding.etComment.setText(binding.etHinflugComment.text?.toString()?.trim().orEmpty())
+        binding.etRueckflugFlight.setText("")
+        val buddies = collectedTravelBuddyNames(binding.buddyChipsHinflug, binding.etHinflugTravelBuddy)
+        clearTravelBuddyChips(binding.buddyChipsHinflug, binding.etHinflugTravelBuddy)
+        clearTravelBuddyChips(binding.buddyChipsRueckflug, binding.etRueckflugTravelBuddy)
+        val layoverHours = binding.etHinflugLayoverHours.text?.toString()?.trim().orEmpty()
+        binding.etHinflugLayoverHours.text?.clear()
+        binding.etLayoverHours.setText(layoverHours)
+        for (name in buddies) addTravelBuddyChip(binding.buddyChips, name)
         updateReturnUi()
     }
 
@@ -935,10 +1184,26 @@ class AddEntryFragment : Fragment() {
         val editing = editingEntryId >= 0
         binding.returnSection.visibility = if (editing) View.GONE else View.VISIBLE
         binding.tvAddReturn.visibility = if (returnActive) View.GONE else View.VISIBLE
+        binding.tileFlightReturn.visibility = if (returnActive) View.VISIBLE else View.GONE
         binding.tileDateReturn.visibility = if (returnActive) View.VISIBLE else View.GONE
-        binding.tvDateLabel.setText(if (returnActive) R.string.hinflight_label else R.string.date_label)
+        updateRouteArrows()
+        // Erst mit dem Rückflug sind es zwei Flüge: Links steht dann der
+        // Hinflug und daneben der Rückflug, beide mit eigener Flugnummer.
+        // Die Beschriftung wird ueber die Kachel gesetzt und nicht direkt in
+        // ihren TextView: Sie setzt ihren Text bei jedem Zustandswechsel neu
+        // auf und kaeme dabei wieder auf das beim Anlegen gelesene "Datum"
+        // zurueck, sobald das Feld geleert wird.
+        inputTile(binding.etFlightCombined)?.setLabelText(
+            getString(if (returnActive) R.string.hinflight_label else R.string.flight_number_label)
+        )
+        inputTile(binding.etDate)?.setLabelText(
+            getString(if (returnActive) R.string.hinflight_label else R.string.date_label)
+        )
         binding.optionalSingleBlock.visibility = if (returnActive) View.GONE else View.VISIBLE
         binding.optionalSplitBlock.visibility = if (returnActive) View.VISIBLE else View.GONE
+        // Die Funktion hat bei einem Rückflug in beiden Spalten ein eigenes
+        // Feld, ihre Sichtbarkeit hängt also an beiden Blöcken.
+        updateFunctionVisibility()
         binding.btnSaveFlight.setText(
             if (editing) R.string.btn_update_flight
             else if (returnActive) R.string.btn_save_flights
@@ -957,29 +1222,10 @@ class AddEntryFragment : Fragment() {
      */
     private fun refreshVisibility() {
         val hasType = selectedFlightTypeIndex != null
-        val airline = binding.etAirline.text?.toString()?.trim().orEmpty()
-        val flightNumber = binding.etFlightNumber.text?.toString()?.trim().orEmpty()
-        val date = try {
-            LocalDate.parse(
-                binding.etDate.text?.toString()?.trim().orEmpty(),
-                DATE_FORMAT
-            )
-            true
-        } catch (e: Exception) {
-            false
-        }
-
-        val returnDate = if (returnActive) {
-            try {
-                LocalDate.parse(
-                    binding.etDateReturn.text?.toString()?.trim().orEmpty(),
-                    DATE_FORMAT
-                )
-                true
-            } catch (e: Exception) {
-                false
-            }
-        } else true
+        val (airline, flightNumber) = combinedFlight()
+        val date = parseDate(binding.etDate.text?.toString()) != null
+        val returnDate = !returnActive ||
+            parseDate(binding.etDateReturn.text?.toString()) != null
 
         binding.classSection.visibility = if (hasType) View.VISIBLE else View.GONE
         binding.detailsSection.visibility = if (hasType) View.VISIBLE else View.GONE
@@ -1045,10 +1291,9 @@ class AddEntryFragment : Fragment() {
             classLabels()[index].text.toString()
         }
 
-    private fun nextFlightNumber(current: String?): String? {
-        val number = current?.trim()?.toIntOrNull() ?: return current
-        return (number + 1).toString()
-    }
+    /** Fluggesellschaft und Flugnummer, wie sie gerade im Kästchen stehen. */
+    private fun combinedFlight(): Pair<String, String> =
+        FlightCombined.split(binding.etFlightCombined.text?.toString().orEmpty())
 
     private fun saveFlight() {
         val missingLabels = mutableListOf<String>()
@@ -1057,30 +1302,16 @@ class AddEntryFragment : Fragment() {
         // Eintrag ohne gespeichert, das Feld ist in der Datenbank auch nullable.
         if (selectedFlightTypeIndex == null) missingLabels += getString(R.string.flight_type_label)
 
-        val airline = binding.etAirline.text?.toString()?.trim().orEmpty()
-        val flightNumber = binding.etFlightNumber.text?.toString()?.trim().orEmpty()
-        if (airline.isEmpty()) missingLabels += getString(R.string.airline_label)
-        if (flightNumber.isEmpty()) missingLabels += getString(R.string.flight_number_label)
-
-        val date = try {
-            LocalDate.parse(
-                binding.etDate.text?.toString()?.trim().orEmpty(),
-                DateTimeFormatter.ofPattern("dd.MM.yyyy")
-            )
-        } catch (e: Exception) {
-            null
+        val (airline, flightNumber) = combinedFlight()
+        if (airline.isEmpty() || flightNumber.isEmpty()) {
+            missingLabels += getString(R.string.flight_number_label)
         }
+
+        val date = parseDate(binding.etDate.text?.toString())
         if (date == null) missingLabels += getString(R.string.date_label)
 
         val returnDate = if (returnActive) {
-            try {
-                LocalDate.parse(
-                    binding.etDateReturn.text?.toString()?.trim().orEmpty(),
-                    DateTimeFormatter.ofPattern("dd.MM.yyyy")
-                )
-            } catch (e: Exception) {
-                null
-            }
+            parseDate(binding.etDateReturn.text?.toString())
         } else null
         if (returnActive && returnDate == null) missingLabels += getString(R.string.return_flight_label)
 
@@ -1096,6 +1327,17 @@ class AddEntryFragment : Fragment() {
         if (distanceText.isNotEmpty() && distanceKm == null) missingLabels += getString(R.string.flight_distance_label)
         if (flightTimeText.isNotEmpty() && flightMinutes == null) missingLabels += getString(R.string.flight_time_label)
 
+        // Die Layoverlaenge gehoert zu einem Layover: ohne angeklicktes
+        // Kästchen wird sie nicht gespeichert, auch wenn das Feld noch Text hat.
+        // Bei aktivem Rückflug steht sie in der Spalte "Hinflug".
+        val layoverHoursField =
+            if (returnActive) binding.etHinflugLayoverHours else binding.etLayoverHours
+        val layoverHoursText = layoverHoursField.text?.toString()?.trim().orEmpty()
+        val layoverHours = layoverHoursText.toIntOrNull()
+        if (layoverHoursText.isNotEmpty() && layoverHours == null) {
+            missingLabels += getString(R.string.layover_hours_label)
+        }
+
         if (missingLabels.isNotEmpty()) {
             Toast.makeText(
                 requireContext(),
@@ -1107,16 +1349,33 @@ class AddEntryFragment : Fragment() {
 
         val confirmedDate = date ?: return
 
+        // Das Kästchen des Rückflugs enthält wieder Airline und Nummer. Fehlt
+        // dort etwas, übernimmt die Airline des Hinflugs.
+        val (returnAirline, returnFlightNumber) =
+            FlightCombined.split(binding.etRueckflugFlight.text?.toString().orEmpty())
+
         val aircraftType = (if (returnActive) binding.etHinflugAircraft else binding.etAircraftType)
             .text?.toString()?.trim()?.ifEmpty { null }
         val registration = (if (returnActive) binding.etHinflugRegistration else binding.etRegistration)
             .text?.toString()?.trim()?.uppercase()?.ifEmpty { null }
         val comment = (if (returnActive) binding.etHinflugComment else binding.etComment)
             .text?.toString()?.trim()?.ifEmpty { null }
-        val function = binding.etFunction.text?.toString()?.trim()?.ifEmpty { null }
+        // Die Funktion gehoert zu der Richtung, aus der der Eintrag entsteht:
+        // Bei einem Rueckflug hat der Hinflug sein eigenes Feld.
+        val function = (if (returnActive) binding.etHinflugFunction else binding.etFunction)
+            .text?.toString()?.trim()?.ifEmpty { null }
         // Reisebuddies werden im Formular als Chips gesammelt und hier als
         // kommagetrennte Liste gespeichert; TravelBuddyStats zerlegt sie später.
-        val travelBuddy = collectedTravelBuddyNames()
+        // Bei aktivem Rückflug hat jede Richtung ihr eigenes Feld.
+        val travelBuddy = collectedTravelBuddyNames(
+            if (returnActive) binding.buddyChipsHinflug else binding.buddyChips,
+            if (returnActive) binding.etHinflugTravelBuddy else binding.etTravelBuddy
+        )
+            .joinToString(", ")
+            .ifEmpty { null }
+        val returnTravelBuddy = collectedTravelBuddyNames(
+            binding.buddyChipsRueckflug, binding.etRueckflugTravelBuddy
+        )
             .joinToString(", ")
             .ifEmpty { null }
 
@@ -1134,6 +1393,7 @@ class AddEntryFragment : Fragment() {
             distanceKm = distanceKm,
             flightMinutes = flightMinutes,
             layover = binding.cbLayover.isChecked,
+            layoverHours = if (binding.cbLayover.isChecked) layoverHours else null,
             fromCountry = AirportData.country(requireContext(), from),
             toCountry = AirportData.country(requireContext(), to),
             function = function,
@@ -1154,17 +1414,18 @@ class AddEntryFragment : Fragment() {
                 classType = entry.classType,
                 fromAirport = to,
                 toAirport = from,
-                airline = entry.airline,
-                flightNumber = nextFlightNumber(entry.flightNumber),
+                airline = returnAirline.uppercase().ifEmpty { entry.airline },
+                flightNumber = returnFlightNumber.ifEmpty { FlightCombined.nextNumber(entry.flightNumber) },
                 aircraftType = binding.etRueckflugAircraft.text?.toString()?.trim()?.ifEmpty { null },
                 registration = binding.etRueckflugRegistration.text?.toString()?.trim()?.uppercase()?.ifEmpty { null },
                 distanceKm = entry.distanceKm,
                 flightMinutes = entry.flightMinutes,
                 layover = false,
+                layoverHours = null,
                 fromCountry = entry.toCountry,
                 toCountry = entry.fromCountry,
-                function = entry.function,
-                travelBuddy = entry.travelBuddy,
+                function = binding.etRueckflugFunction.text?.toString()?.trim()?.ifEmpty { null },
+                travelBuddy = returnTravelBuddy,
                 comment = binding.etRueckflugComment.text?.toString()?.trim()?.ifEmpty { null }
             )
             LogbookRepository.addEntry(returnEntry)
@@ -1210,11 +1471,40 @@ class AddEntryFragment : Fragment() {
         dialog.show()
     }
 
+    /**
+     * Das Datumfenster des Rückflugs öffnet im Monat des Hinflugs: Der Nutzer
+     * fliegt hin und zurück, deshalb steht er beim Rückflug im selben Monat -
+     * auch wenn er den Hinflug gerade in einen anderen Monat gesetzt hat. Der
+     * Tag bleibt der, den der Rückflug schon hat.
+     */
+    private fun returnDatePickerStart(own: LocalDate?): LocalDate {
+        val outbound = parseDate(binding.etDate.text?.toString())
+            ?: return own ?: LocalDate.now()
+        val month = YearMonth.of(outbound.year, outbound.monthValue)
+        val day = (own?.dayOfMonth ?: outbound.dayOfMonth)
+            .coerceIn(1, month.lengthOfMonth())
+        return month.atDay(day)
+    }
+
+    private fun parseDate(text: String?): LocalDate? = try {
+        LocalDate.parse(text?.trim().orEmpty(), DATE_FORMAT)
+    } catch (e: Exception) {
+        null
+    }
+
     private fun setupDateField() {
         setupDateEditText(binding.etDate)
         setupDateEditText(binding.etDateReturn)
     }
 
+    /**
+     * Datum und Rueckflugdatum oeffnen beim Antippen ihren Kalender, ohne
+     * selbst zu einer Tastatur zu fuehren - der Kalender ist die einzige
+     * Eingabe dafuer. Der Fokus zaehlt zusaetzlich mit, falls das Feld auf
+     * anderem Weg den Fokus bekommt; der Listener wird ueber die Kachel
+     * angemeldet, weil ein eigener am Feld den der Kachel ersetzen wuerde und
+     * sie nicht mehr mitbekaeme, dass getippt wird.
+     */
     private fun setupDateEditText(editText: EditText) {
         editText.addTextChangedListener(object : TextWatcher {
             private var isFormatting = false
@@ -1232,19 +1522,17 @@ class AddEntryFragment : Fragment() {
         })
 
         editText.setOnClickListener { showDatePicker(editText) }
-        editText.setOnFocusChangeListener { _, hasFocus ->
+        inputTile(editText)?.setOnInputFocusChangeListener { hasFocus ->
             if (hasFocus) showDatePicker(editText)
         }
     }
 
     private fun showDatePicker(target: EditText) {
-        val initial = try {
-            LocalDate.parse(
-                target.text?.toString()?.trim().orEmpty(),
-                DATE_FORMAT
-            )
-        } catch (e: Exception) {
-            LocalDate.now()
+        val typed = parseDate(target.text?.toString())
+        val initial = if (target === binding.etDateReturn) {
+            returnDatePickerStart(typed)
+        } else {
+            typed ?: LocalDate.now()
         }
         val dialog = DatePickerDialog(
             requireContext(),

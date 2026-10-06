@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Monatsueberschrift der Eintraege: Monat und Jahr stehen rechts ueber der
-     ersten Kachel des Monats, alle Kacheln desselben Monats folgen direkt
-     darunter. Der negative rechte Rand zieht die Schrift 1dp ueber den
-     Kachelrand hinaus: der 1dp-Stroke der Karte liegt mittig auf der Kante und
-     ragt 0,5dp nach aussen, dazu kommt die rechte Seitenlinie der Glyphe.
+<!-- Ueberschrift einer Gruppe der Eintraege: Monat und Jahr stehen rechts ueber
+     der ersten Kachel des Monats, alle Kacheln desselben Monats folgen direkt
+     darunter. Ganz oben steht statt eines Monats "Upcoming" fuer die Fluege,
+     die noch bevorstehen. Der negative rechte Rand zieht die Schrift 1dp ueber
+     den Kachelrand hinaus: der 1dp-Stroke der Karte liegt mittig auf der Kante
+     und ragt 0,5dp nach aussen, dazu kommt die rechte Seitenlinie der Glyphe.
      Zusammen sassen sonst gut 1dp Luft, -1dp trifft die sichtbare Kante. -->
 <TextView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"

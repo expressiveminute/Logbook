@@ -124,7 +124,14 @@ class LayoverCountryMapView @JvmOverloads constructor(
                     markerLat = marker.lat,
                     markerLon = marker.lon,
                     code = excerptCode.orEmpty(),
-                    accent = accentColor
+                    accent = accentColor,
+                    labelColor = MaterialColors.getColor(
+                        this, com.google.android.material.R.attr.colorOnSurface
+                    ),
+                    haloColor = MaterialColors.getColor(
+                        this, com.google.android.material.R.attr.colorOutline
+                    ),
+                    density = resources.displayMetrics.density
                 )
             )
         }
@@ -216,16 +223,19 @@ class LayoverCountryMapView @JvmOverloads constructor(
     }
 
     /**
-     * Zeichnet das Land in Akzentfarbe und den Flughafen als Punkt mit
-     * IATA-Badge. Die Ringe werden wie die Landoverlays über dieselbe
-     * Projektion gezeichnet, also deckungsgleich mit der Weltkarte.
+     * Zeichnet das Land in Akzentfarbe und den Flughafen als Punkt, daneben den
+     * Code. Die Ringe werden wie die Landoverlays über dieselbe Projektion
+     * gezeichnet, also deckungsgleich mit der Weltkarte.
      */
     private class CountryExcerptOverlay(
         private val country: CountryShapes.Country,
         private val markerLat: Double,
         private val markerLon: Double,
         private val code: String,
-        private val accent: Int
+        private val accent: Int,
+        private val labelColor: Int,
+        private val haloColor: Int,
+        private val density: Float
     ) : Overlay() {
 
         private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -249,6 +259,25 @@ class LayoverCountryMapView @JvmOverloads constructor(
         private val badgeBg = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = accent
             style = Paint.Style.FILL
+        }
+
+        /**
+         * Der Code als Text neben dem Punkt. Er bekommt einen Halo in der
+         * Konturfarbe, weil er im hellen Theme auf der hellen Länderfüllung
+         * stünde und dort ohne Kontur schwer lesbar wäre.
+         */
+        private val label = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = labelColor
+            isFakeBoldText = true
+            textSize = 11f * density
+        }
+        private val labelHalo = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = haloColor
+            style = Paint.Style.STROKE
+            strokeJoin = Paint.Join.ROUND
+            strokeWidth = 2.5f * density
+            textSize = 11f * density
+            isFakeBoldText = true
         }
         private val reusePoint = Point()
 
@@ -283,44 +312,56 @@ class LayoverCountryMapView @JvmOverloads constructor(
             projection.toPixels(GeoPoint(markerLat, markerLon), reusePoint)
             val cx = reusePoint.x.toFloat()
             val cy = reusePoint.y.toFloat()
-            val density = mapView.context.resources.displayMetrics.density
+            val mapDensity = mapView.context.resources.displayMetrics.density
 
-            // Flughafen-Badge direkt auf dem Punkt, wie auf der Weltkarte.
-            val code = code
-            if (code.isEmpty()) {
-                val radius = 3.5f * density
-                canvas.drawCircle(cx, cy, radius + 1.5f * density, halo)
-                canvas.drawCircle(cx, cy, radius, badgeBg)
-                return
-            }
-            val label = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = Color.WHITE
-                isFakeBoldText = true
-                textSize = (if (code.length >= 4) 8.5f else 10f) * density
-            }
-            val paddingH = 4f * density
-            val paddingV = 2f * density
+            // Punkt, nicht Badge: Der Code steht daneben und verdeckt den Punkt
+            // damit nicht.
+            val radius = 3.5f * mapDensity
+            canvas.drawCircle(cx, cy, radius + 1.5f * mapDensity, halo)
+            canvas.drawCircle(cx, cy, radius, badgeBg)
+            if (code.isEmpty()) return
+            drawCodeLabel(canvas, cx, cy, mapView.width.toFloat(), mapView.height.toFloat())
+        }
+
+        /**
+         * Setzt den Code neben den Punkt: bevorzugt darunter, sonst darüber,
+         * rechts oder links, je nachdem, was noch in den Ausschnitt passt. Passt
+         * keine Lage ganz, wandert der Text in den Rand - der Punkt selbst
+         * bleibt, wo er ist.
+         */
+        private fun drawCodeLabel(
+            canvas: Canvas,
+            cx: Float,
+            cy: Float,
+            width: Float,
+            height: Float
+        ) {
+            val margin = 5f * density
+            val gap = 6f * density
             val textWidth = label.measureText(code)
             val textHeight = label.descent() - label.ascent()
-            val badgeWidth = textWidth + 2 * paddingH
-            val badgeHeight = textHeight + 2 * paddingV
-            val margin = 4f * density
-            var badgeLeft = cx - badgeWidth / 2
-            badgeLeft = badgeLeft.coerceIn(
-                margin, mapView.width.toFloat() - margin - badgeWidth
+            val places = listOf(
+                // darunter
+                RectF(cx - textWidth / 2, cy + gap, cx + textWidth / 2, cy + gap + textHeight),
+                // darüber
+                RectF(cx - textWidth / 2, cy - gap - textHeight, cx + textWidth / 2, cy - gap),
+                // rechts
+                RectF(cx + gap, cy - textHeight / 2, cx + gap + textWidth, cy + textHeight / 2),
+                // links
+                RectF(cx - gap - textWidth, cy - textHeight / 2, cx - gap, cy + textHeight / 2)
             )
-            var badgeTop = cy - badgeHeight / 2
-            badgeTop = badgeTop.coerceIn(
-                margin, mapView.height.toFloat() - margin - badgeHeight
-            )
-            val badge = RectF(badgeLeft, badgeTop, badgeLeft + badgeWidth, badgeTop + badgeHeight)
-            canvas.drawRoundRect(badge, badgeHeight / 2, badgeHeight / 2, badgeBg)
-            canvas.drawText(
-                code,
-                badge.centerX() - textWidth / 2,
-                badge.centerY() - (label.ascent() + label.descent()) / 2,
-                label
-            )
+            val fits = { rect: RectF ->
+                rect.left >= margin && rect.right <= width - margin &&
+                    rect.top >= margin && rect.bottom <= height - margin
+            }
+            val rect = places.firstOrNull(fits) ?: places.first()
+            if (rect.left < margin) rect.offset(margin - rect.left, 0f)
+            if (rect.right > width - margin) rect.offset(width - margin - rect.right, 0f)
+            if (rect.top < margin) rect.offset(0f, margin - rect.top)
+            if (rect.bottom > height - margin) rect.offset(0f, height - margin - rect.bottom)
+            val baseline = rect.bottom - label.descent()
+            canvas.drawText(code, rect.left, baseline, labelHalo)
+            canvas.drawText(code, rect.left, baseline, label)
         }
     }
 }
