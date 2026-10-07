@@ -196,7 +196,9 @@ class BarChartView @JvmOverloads constructor(
         if (items.isEmpty()) return
 
         val width = width.toFloat()
-        val maxCount = items.maxOf { it.count }
+        // mindestens 1: bei null (z. B. "0 h" als größter Wert) würde die
+        // Teilung durch die Summe sonst einen Bruch statt einer Balkenlänge liefern.
+        val maxCount = items.maxOf { it.count }.coerceAtLeast(1)
         val pill = rowHeight / 2f
 
         val rankOffset = if (showRanks) items.indices.maxOf { rankWidth(it) } + rankGap else 0f

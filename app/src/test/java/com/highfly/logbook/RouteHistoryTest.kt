@@ -91,4 +91,83 @@ class RouteHistoryTest {
         assertEquals("0", normalizeFlightNumber("000"))
         assertEquals("", normalizeFlightNumber(""))
     }
+
+    @Test
+    fun routePrefillAction_fillsEmptyFieldsOnExactMatch() {
+        val entries = listOf(entry(flightNumber = "16", from = "FRA", to = "HAM"))
+        assertEquals(
+            RoutePrefillAction.Fill(Route("FRA", "HAM")),
+            routePrefillAction(entries, "LH", "16", current = null, suggested = null)
+        )
+    }
+
+    @Test
+    fun routePrefillAction_keepsEmptyFieldsWithoutMatch() {
+        val entries = listOf(entry(flightNumber = "16", from = "FRA", to = "HAM"))
+        assertEquals(
+            RoutePrefillAction.Keep,
+            routePrefillAction(entries, "LH", "1672", current = null, suggested = null)
+        )
+    }
+
+    @Test
+    fun routePrefillAction_clearsSuggestionWhenNumberGrowsToOtherFlight() {
+        // "LH 16" passt noch, "LH 1672" nicht mehr – der Vorschlag räumt auf.
+        val entries = listOf(entry(flightNumber = "16", from = "FRA", to = "HAM"))
+        val suggested = Route("FRA", "HAM")
+        assertEquals(
+            RoutePrefillAction.Clear,
+            routePrefillAction(entries, "LH", "1672", current = suggested, suggested = suggested)
+        )
+    }
+
+    @Test
+    fun routePrefillAction_clearsSuggestionWhenNumberIsRemoved() {
+        val entries = listOf(entry(flightNumber = "16", from = "FRA", to = "HAM"))
+        val suggested = Route("FRA", "HAM")
+        assertEquals(
+            RoutePrefillAction.Clear,
+            routePrefillAction(entries, "", "", current = suggested, suggested = suggested)
+        )
+    }
+
+    @Test
+    fun routePrefillAction_keepsOwnRoute() {
+        val entries = listOf(
+            entry(flightNumber = "16", from = "FRA", to = "HAM"),
+            entry(flightNumber = "1672", from = "MUC", to = "DUS")
+        )
+        val own = Route("BER", "CGN")
+        assertEquals(
+            RoutePrefillAction.Keep,
+            routePrefillAction(entries, "LH", "16", current = own, suggested = null)
+        )
+        assertEquals(
+            RoutePrefillAction.Keep,
+            routePrefillAction(entries, "LH", "1672", current = own, suggested = null)
+        )
+    }
+
+    @Test
+    fun routePrefillAction_keepsSuggestionThatStillMatches() {
+        val entries = listOf(entry(flightNumber = "16", from = "FRA", to = "HAM"))
+        val suggested = Route("FRA", "HAM")
+        assertEquals(
+            RoutePrefillAction.Keep,
+            routePrefillAction(entries, "LH", "16", current = suggested, suggested = suggested)
+        )
+    }
+
+    @Test
+    fun routePrefillAction_replacesOwnSuggestionOnNewMatch() {
+        val entries = listOf(
+            entry(flightNumber = "16", from = "FRA", to = "HAM"),
+            entry(flightNumber = "1672", from = "MUC", to = "DUS")
+        )
+        val suggested = Route("FRA", "HAM")
+        assertEquals(
+            RoutePrefillAction.Fill(Route("MUC", "DUS")),
+            routePrefillAction(entries, "LH", "1672", current = suggested, suggested = suggested)
+        )
+    }
 }

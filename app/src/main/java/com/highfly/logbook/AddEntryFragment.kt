@@ -53,6 +53,19 @@ class AddEntryFragment : Fragment() {
     private var returnActive = false
 
     /**
+     * Die zuletzt aus der Historie eingesetzte Strecke. Nur sie darf auch
+     * wieder entfernt werden, wenn sich die Flugnummer ändert – eigene
+     * Eingaben in Abflug und Ankunft bleiben davon unberührt.
+     */
+    private var suggestedRoute: Route? = null
+
+    /**
+     * Läuft true, während der Vorschlag selbst schreibt: Die Flughafen-Watcher
+     * dürfen das dann nicht als Tippen werten und den Vorschlag löschen.
+     */
+    private var writingSuggestedRoute = false
+
+    /**
      * Soft-Input-Modus des Fensters, bevor das Formular ihn fuer die Dauer der
      * Bearbeitung versteckt. Wird in onDestroyView wiederhergestellt.
      */
@@ -682,22 +695,67 @@ class AddEntryFragment : Fragment() {
     }
 
 /**
- * Abflug und Ankunft gehoeren immer zum Hinflug: Sie werden aus der Nummer im
- * linken Kästchen nachgeschlagen, nie aus der des Rückflugs. Wird die Nummer des
- * Hinflugs schon in gespeicherten Einträgen gefunden, übernimmt die am häufigsten
- * gespeicherte Strecke. Eigene Eingaben werden nicht überschrieben.
+ * Abflug und Ankunft gehören immer zum Hinflug: Sie werden aus der Nummer im
+ * linken Kästchen nachgeschlagen, nie aus der des Rückflugs. Die Strecke folgt
+ * der Nummer, solange man tippt, und zeigt immer nur den exakten Treffer dazu –
+ * trifft sie später nicht mehr, verschwindet der Vorschlag wieder. Eigene
+ * Eingaben werden nicht überschrieben.
  */
 private fun prefillRouteFromHistory() {
     if (editingEntryId >= 0) return
-    if (!binding.etAirportFrom.text.isNullOrBlank() || !binding.etAirportTo.text.isNullOrBlank()) {
-        return
-    }
     val (airline, flightNumber) = combinedFlight()
-    if (airline.isEmpty() || flightNumber.isEmpty()) return
-    val route = mostFrequentRoute(LogbookRepository.getFlownEntries(), airline, flightNumber)
-        ?: return
+    val action = routePrefillAction(
+        LogbookRepository.getFlownEntries(),
+        airline,
+        flightNumber,
+        currentRoute(),
+        suggestedRoute,
+    )
+    when (action) {
+        RoutePrefillAction.Keep -> return
+        RoutePrefillAction.Clear -> clearSuggestedRoute()
+        is RoutePrefillAction.Fill -> fillSuggestedRoute(action.route)
+    }
+}
+
+/** Abflug und Ankunft, wie sie gerade stehen – leer, wenn beide leer sind. */
+private fun currentRoute(): Route? {
+    val from = binding.etAirportFrom.text?.toString()?.trim().orEmpty()
+    val to = binding.etAirportTo.text?.toString()?.trim().orEmpty()
+    if (from.isEmpty() && to.isEmpty()) return null
+    return Route(from, to)
+}
+
+/**
+ * Setzt die gefundene Strecke und merkt sie sich als eigenen Vorschlag.
+ * Distanz und Flugzeit gehörten zur bisherigen Strecke und werden vor dem
+ * Ersetzen entfernt – für die neue Strecke spielt `autoFillRouteData` sie
+ * wieder ein.
+ */
+private fun fillSuggestedRoute(route: Route) {
+    if (currentRoute() != null) {
+        binding.etDistance.setText("")
+        binding.etFlightTime.setText("")
+    }
+    writingSuggestedRoute = true
     binding.etAirportFrom.setText(route.from)
     binding.etAirportTo.setText(route.to)
+    writingSuggestedRoute = false
+    suggestedRoute = route
+}
+
+/**
+ * Nimmt den eigenen Vorschlag zurück, weil die Flugnummer nicht mehr passt.
+ * Distanz und Flugzeit gehören zur Strecke und verschwinden mit ihr.
+ */
+private fun clearSuggestedRoute() {
+    suggestedRoute = null
+    writingSuggestedRoute = true
+    binding.etAirportFrom.setText("")
+    binding.etAirportTo.setText("")
+    binding.etDistance.setText("")
+    binding.etFlightTime.setText("")
+    writingSuggestedRoute = false
 }
 
     private fun setupAircraftTypeFields() {
@@ -806,6 +864,9 @@ private fun prefillRouteFromHistory() {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable) {
+                // Selbst getippte Strecke: Der Historievorschlag darf sie dann
+                // weder ersetzen noch wieder entfernen.
+                if (!writingSuggestedRoute) suggestedRoute = null
                 val upper = s.toString().uppercase()
                 if (upper != s.toString()) {
                     s.replace(0, s.length, upper)
@@ -829,6 +890,8 @@ private fun prefillRouteFromHistory() {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable) {
+                // Siehe Abflugsfeld: Eigenes Tippen macht den Vorschlag ungültig.
+                if (!writingSuggestedRoute) suggestedRoute = null
                 val upper = s.toString().uppercase()
                 if (upper != s.toString()) {
                     s.replace(0, s.length, upper)

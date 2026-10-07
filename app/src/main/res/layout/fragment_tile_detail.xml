@@ -289,6 +289,49 @@
                 </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
 
+            <!-- Sortierung der Layover-Balken als diskreter Text wie die
+                 Filterwoerter ueber den Kacheln des Dashboards: die Beschriftung
+                 steht rechts neben dem anklickbaren Wort. Steht wie die Kacheln
+                 darueber nur bei der Layover-Kachel im Spiel. -->
+            <LinearLayout
+                android:id="@+id/layover_sort_row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <!-- Der leere Platz mit Gewicht schiebt Beschriftung und Wort
+                     nach rechts, damit die Auswahl am Rand endet. -->
+                <Space
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1" />
+
+                <TextView
+                    android:id="@+id/tv_layover_sort_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:labelFor="@id/tv_layover_sort"
+                    android:maxLines="2"
+                    android:text="@string/layover_sort_label"
+                    android:textAppearance="?attr/textAppearanceBodyMedium" />
+
+                <TextView
+                    android:id="@+id/tv_layover_sort"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:padding="8dp"
+                    android:textAppearance="?attr/textAppearanceBodyMedium"
+                    android:textColor="?attr/colorPrimary"
+                    tools:text="@string/layover_sort_count" />
+            </LinearLayout>
+
             <com.highfly.logbook.BarChartView
                 android:id="@+id/bar_chart"
                 android:layout_width="match_parent"

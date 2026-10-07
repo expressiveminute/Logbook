@@ -20,6 +20,9 @@ object ChartData {
     /** Layover-Eintrag als Angabe fuer die Kacheln ueber dem Diagramm. */
     data class LayoverExtreme(val airport: String, val date: LocalDate)
 
+    /** Womit die Balken der Layover-Kachel gemessen und sortiert werden. */
+    enum class LayoverSort { ANZAHL, DAUER }
+
     private data class TravelType(val resId: Int, val canonical: String, val aliases: List<String>)
 
     private data class ClassType(val resId: Int, val canonical: String, val aliases: List<String>)
@@ -109,16 +112,39 @@ object ChartData {
         }?.canonical ?: v
     }
 
-    fun barChart(context: Context, tileId: String): List<Bar> {
+    fun barChart(context: Context, tileId: String): List<Bar> =
+        barChart(context, tileId, LayoverSort.ANZAHL)
+
+    /**
+     * @param layoverSort Bei der Layover-Kachel: Balken nach Zahl der Layover
+     *   oder nach der gesamten Layoverzeit ordnen, siehe [layoverBars]. Bei den
+     *   anderen Kacheln ohne Wirkung.
+     */
+    fun barChart(context: Context, tileId: String, layoverSort: LayoverSort): List<Bar> {
         if (!isBarChart(tileId)) return emptyList()
         val key = Settings.getDefaultPeriodKey(context)
         val entries = DashboardStats.filterForPeriod(
             LogbookRepository.getFlownEntries(),
             key
         )
+        if (tileId == "layover") {
+            val bars = layoverBars(
+                entries = entries,
+                sort = layoverSort,
+                subLabels = layoverLastLabels(entries).mapValues { (_, date) ->
+                    context.getString(R.string.layover_last, date)
+                }
+            )
+            // Im Dauer-Modus steht die Zeit in Tagen neben dem Balken - mit
+            // einer Nachkommastelle, wie sie auch die Detailseite zeigt.
+            return if (layoverSort == LayoverSort.DAUER) {
+                bars.map { it.copy(countLabel = layoverDaysText(context, it.count)) }
+            } else {
+                bars
+            }
+        }
         val counts: Map<String, Int> = when (tileId) {
             "flights" -> flightsPerPeriod(entries, key)
-            "layover" -> countBy(entries.filter { it.layover }) { it.toAirport }
             "routes" -> countBy(entries) { routeOf(it) }
             "airlines" -> countBy(entries) { it.airline }
             "aircraftreg" -> countBy(entries) { it.registration }
@@ -126,17 +152,56 @@ object ChartData {
                 .mapKeys { (code, _) -> "${code} ${AirportData.flagEmoji(code)}" }
             else -> emptyMap()
         }
-        val subLabels = if (tileId == "layover") {
-            layoverLastLabels(entries).mapValues { (_, date) ->
-                context.getString(R.string.layover_last, date)
-            }
-        } else {
-            emptyMap()
-        }
         return counts.map { (label, count) ->
-            Bar(label, count, subLabels[label])
+            Bar(label, count)
         }
             .sortedWith(compareByDescending<Bar> { it.count }.thenBy { it.label })
+    }
+
+    /**
+     * Balken der Layover-Kachel: pro Flughafen ein Balken. Nach
+     * [LayoverSort.ANZAHL] misst er, wie oft man dort im Layover war, nach
+     * [LayoverSort.DAUER] wie lange man dort insgesamt verbracht hat -
+     * gerechnet aus den Angaben zur Layoverlänge. Einträge ohne Angabe
+     * zählen mit null Stunden, weil diese Zeit schlicht nicht erfasst ist.
+     *
+     * Die Unterbeschriftung "Zuletzt: …" bleibt in beiden Fällen gleich,
+     * sortiert wird absteigend nach dem dargestellten Wert und bei Gleichstand
+     * nach dem Flughafencode. Die Rangzeichen (Medaillen) des Diagramms
+     * folgen automatisch demselben Wert. Die Beschriftung des Werts im
+     * Dauer-Modus hängt an [barChart], weil sie Sprache und Einheit braucht.
+     */
+    fun layoverBars(
+        entries: List<LogbookEntry>,
+        sort: LayoverSort,
+        subLabels: Map<String, String> = emptyMap()
+    ): List<Bar> {
+        val layovers = entries.filter { it.layover }
+        val values: Map<String, Int> = when (sort) {
+            LayoverSort.ANZAHL -> countBy(layovers) { it.toAirport }
+            LayoverSort.DAUER -> layoverHoursByAirport(layovers)
+        }
+        return values.map { (label, value) ->
+            Bar(label = label, count = value, subLabel = subLabels[label])
+        }
+            .sortedWith(compareByDescending<Bar> { it.count }.thenBy { it.label })
+    }
+
+    /**
+     * Layoverdauer in Tagen mit einer Nachkommastelle, z. B. "3,5 Tage" -
+     * dieselbe Schreibweise wie die Dauer über der Leiste auf der Detailseite,
+     * inklusive Singular nur bei genau einem Tag.
+     */
+    private fun layoverDaysText(context: Context, hours: Int): String {
+        val days = LayoverTimeScale.oneDecimal(
+            hours / LayoverTimeScale.DAY_HOURS.toDouble(),
+            Locale.getDefault()
+        )
+        return context.resources.getQuantityString(
+            R.plurals.layover_time_unit_days,
+            LayoverTimeScale.daysQuantity(hours),
+            days
+        )
     }
 
     /**
@@ -210,6 +275,22 @@ object ChartData {
         return entries.filter {
             it.layover && it.toAirport.trim().uppercase() == target
         }.sumOf { it.layoverHours ?: 0 }
+    }
+
+    /**
+     * Summe der Layoverlängen je Flughafen in Stunden. Die Schlüssel sind
+     * dieselben wie bei der Zählung: der gespeicherte Flughafencode unverändert
+     * und ohne leere Codes, damit beide Auswertungen dieselben Balken zeigen.
+     * Einträge ohne Angabe zählen mit null Stunden, bleiben also als Balken
+     * mit "0 h" sichtbar.
+     */
+    fun layoverHoursByAirport(entries: List<LogbookEntry>): Map<String, Int> {
+        val hours = LinkedHashMap<String, Int>()
+        entries.filter { it.layover }.forEach { entry ->
+            val airport = entry.toAirport.takeIf(String::isNotBlank) ?: return@forEach
+            hours[airport] = (hours[airport] ?: 0) + (entry.layoverHours ?: 0)
+        }
+        return hours
     }
 
     fun airportBars(context: Context): List<Bar> =

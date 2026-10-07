@@ -24,6 +24,9 @@ class TileDetailFragment : Fragment() {
 
     private var tileId: String = "flights"
 
+    /** Nach was die Layover-Balken geordnet sind, Standard: Anzahl. */
+    private var layoverSort: ChartData.LayoverSort = ChartData.LayoverSort.ANZAHL
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -36,6 +39,9 @@ class TileDetailFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         tileId = requireArguments().getString("tileId") ?: "flights"
+        layoverSort = savedInstanceState?.getString(KEY_LAYOVER_SORT)
+            ?.let { name -> ChartData.LayoverSort.entries.firstOrNull { it.name == name } }
+            ?: ChartData.LayoverSort.ANZAHL
 
         binding.btnBack.setOnClickListener {
             findNavController().navigateUp()
@@ -68,19 +74,14 @@ class TileDetailFragment : Fragment() {
                 renderAircraftRegistrations()
             }
             ChartData.isBarChart(tileId) -> {
-                val bars = ChartData.barChart(requireContext(), tileId)
                 if (tileId == "countries") {
                     renderContinents()
                 }
                 if (tileId == "layover") {
-                    renderLayoverExtremes()
-                    // Klick auf Medaille, Code oder Balken öffnet die
-                    // Detailseite des Ziel-Flughafens.
-                    binding.barChart.setOnItemClickListener { index ->
-                        openLayoverDetail(bars.getOrNull(index)?.label)
-                    }
+                    renderLayover()
+                } else {
+                    renderBars(ChartData.barChart(requireContext(), tileId))
                 }
-                renderBars(bars)
             }
             else -> {
                 binding.tvEmpty.visibility = View.VISIBLE
@@ -101,6 +102,68 @@ class TileDetailFragment : Fragment() {
                 )
             }
         )
+    }
+
+    /**
+     * Layover-Kachel vollstaendig: die beiden Extrem-Kacheln, die Sortierung
+     * darunter und die Balken des gewaehlten Modus. Nur die Balken haengen von
+     * der Auswahl ab, die Kacheln oben bleiben, egal was gewaehlt ist.
+     */
+    private fun renderLayover() {
+        renderLayoverExtremes()
+        renderLayoverSort()
+        renderLayoverBars()
+    }
+
+    /**
+     * Sortierung als diskreter Text rechts neben seiner Beschriftung, wie die
+     * Filterwoerter ueber den Kacheln des Dashboards. Standard ist "Anzahl".
+     * Ein Tipp oeffnet das Menue, ein Wechsel zeichnet allein die Balken
+     * darunter neu - die Auswahl selbst bleibt bis zum Verlassen der Seite.
+     */
+    private fun renderLayoverSort() {
+        val options = listOf(
+            ChartData.LayoverSort.ANZAHL to getString(R.string.layover_sort_count),
+            ChartData.LayoverSort.DAUER to getString(R.string.layover_sort_duration)
+        )
+        binding.tvLayoverSort.text =
+            options.firstOrNull { it.first == layoverSort }?.second
+                ?: options.first().second
+        binding.tvLayoverSort.setOnClickListener { anchor ->
+            FilterPopupMenu.showOptions(
+                requireContext(),
+                anchor,
+                options.map { it.first.name },
+                options.map { it.second },
+                layoverSort.name
+            ) { key ->
+                val selected =
+                    ChartData.LayoverSort.entries.firstOrNull { it.name == key }
+                if (selected != null && selected != layoverSort) {
+                    layoverSort = selected
+                    renderLayoverSort()
+                    renderLayoverBars()
+                }
+            }
+        }
+    }
+
+    /**
+     * Balken der Layover-Kachel im gewaehlten Modus: nach Zahl der Layover
+     * oder nach der gesamten Layoverzeit in Tagen. Die Auswahlzeile bleibt
+     * sichtbar, solange es etwas zu sortieren gibt.
+     *
+     * Klick auf Medaille, Code oder Balken oeffnet in beiden Modi dieselbe
+     * Detailseite des Ziel-Flughafens.
+     */
+    private fun renderLayoverBars() {
+        val bars = ChartData.barChart(requireContext(), "layover", layoverSort)
+        binding.layoverSortRow.visibility =
+            if (bars.isEmpty()) View.GONE else View.VISIBLE
+        binding.barChart.setOnItemClickListener { index ->
+            openLayoverDetail(bars.getOrNull(index)?.label)
+        }
+        renderBars(bars)
     }
 
     /**
@@ -243,7 +306,9 @@ class TileDetailFragment : Fragment() {
         binding.tvEmpty.visibility = if (bars.isEmpty()) View.VISIBLE else View.GONE
         binding.barChart.visibility = View.VISIBLE
         binding.barChart.setItems(
-            bars.map { BarChartView.Item(it.label, it.count, it.subLabel) }
+            bars.map {
+                BarChartView.Item(it.label, it.count, it.subLabel, it.countLabel)
+            }
         )
     }
 
@@ -262,6 +327,12 @@ class TileDetailFragment : Fragment() {
         )
     }
 
+    /** Merkt die Layover-Sortierung ueber eine Neuerstellung der Seite hinweg. */
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString(KEY_LAYOVER_SORT, layoverSort.name)
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
@@ -274,6 +345,9 @@ class TileDetailFragment : Fragment() {
         /** Grenzen der gemeinsamen Schriftgrösse der beiden Code-Kacheln. */
         const val LAYOVER_CODE_MIN_SP = 14
         const val LAYOVER_CODE_MAX_SP = 28
+
+        /** Schlüssel für die gemerkte Layover-Sortierung im Zustand. */
+        const val KEY_LAYOVER_SORT = "layoverSort"
 
         val DATE_LABEL_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
     }

@@ -3,13 +3,15 @@
      Höhe der Flugroute und nicht neben dem Datum. Die Layoverlänge des
      Eintrags aus "Neuer Flug" steht in ganzen Stunden im Punkt. Das Icon des
      Reisebuddies steht mittig auf der Bildschirmbreite, der Name rechts
-     dahinter. -->
+     dahinter. Die ganze Zeile ist antippar und öffnet den Eintrag zum
+     Bearbeiten, deshalb der Druckeffekt als foreground. -->
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="16dp">
+    android:layout_marginBottom="16dp"
+    android:foreground="?attr/selectableItemBackground">
 
     <TextView
         android:id="@+id/timeline_dot"

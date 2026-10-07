@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.highfly.logbook.databinding.FragmentLayoverDetailBinding
@@ -59,8 +60,6 @@ class LayoverDetailFragment : Fragment() {
 
         renderHeader()
         renderMap()
-        renderLayoverTime()
-        renderTimeline()
     }
 
     /**
@@ -204,9 +203,13 @@ class LayoverDetailFragment : Fragment() {
      * oben und der am längsten her zurückliegende unten. Neben dem Datum steht
      * die Flugroute, mittig daneben der Punkt mit der Layoverlänge des
      * Eintrags in Stunden, rechts davon der Reisebuddy, falls beim Eintrag
-     * einer hinterlegt ist.
+     * einer hinterlegt ist. Antippen einer Zeile öffnet den Eintrag auf der
+     * Seite "Flug bearbeiten".
      */
     private fun renderTimeline() {
+        binding.layoverTimeline.removeAllViews()
+        binding.timelineRoot.visibility = View.GONE
+        binding.tvEmpty.visibility = View.GONE
         val entries = ChartData.layoverHistoryNewestFirst(
             ChartData.periodFiltered(requireContext()),
             code
@@ -220,6 +223,7 @@ class LayoverDetailFragment : Fragment() {
             val row = ItemLayoverTimelineBinding.inflate(
                 layoutInflater, binding.layoverTimeline, false
             )
+            row.root.setOnClickListener { openEditEntry(entry) }
             row.tvDate.text = entry.date.format(DATE_LABEL_FORMAT)
             // Im Punkt steht die Layoverlänge aus "Neuer Flug", also genau die
             // Zeit, die auch die Leiste weiter oben zusammenzählt. Die Flugzeit
@@ -254,6 +258,17 @@ class LayoverDetailFragment : Fragment() {
     }
 
     /**
+     * Eintrag des Zeitstrahls bearbeiten: dieselbe Seite "Flug bearbeiten"
+     * wie aus der Eintragliste, mit der Kennung des Eintrags als Argument.
+     */
+    private fun openEditEntry(entry: LogbookEntry) {
+        findNavController().navigate(
+            R.id.action_layover_detail_to_add_entry,
+            bundleOf("entryId" to (entry.id ?: -1L))
+        )
+    }
+
+    /**
      * Die senkrechte Linie des Zeitstrahls verbindet nur die Punkte: Sie
      * beginnt auf halber Höhe der obersten Zeile und endet auf halber Höhe der
      * untersten. Von selbst spannte sie sich über die ganze Liste und stünde an
@@ -273,9 +288,19 @@ class LayoverDetailFragment : Fragment() {
         binding.timelineLine.layoutParams = params
     }
 
+    /**
+     * Layover-Zeit und Zeitstrahl werden erst hier und damit bei jeder
+     * Rueckkehr aus dem Bearbeiten-Screen neu gezeichnet. Nur so sind
+     * Aenderungen an einem Eintrag (Layoverlänge, Route, Reisebuddy) sofort
+     * sichtbar, ohne dass man die Seite dafuer neu oeffnen muss.
+     */
     override fun onResume() {
         super.onResume()
-        if (_binding != null) binding.countryMap.onResume()
+        if (_binding != null) {
+            binding.countryMap.onResume()
+            renderLayoverTime()
+            renderTimeline()
+        }
     }
 
     override fun onPause() {

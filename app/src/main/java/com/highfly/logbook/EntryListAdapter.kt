@@ -392,6 +392,19 @@ class EntryListAdapter(
             item.itemFlightType, com.google.android.material.R.attr.colorOnSurfaceVariant
         ))
 
+        // Die Layover-Uhr erscheint nur, wenn fuer den Flug eine Dauer
+        // eingetragen ist. Sie steht links neben dem Reisebuddy-Symbol; ohne
+        // Buddy rueckt sie an die rechte Spalte, weil sie am Buddy haengt und
+        // dessen Leitlinien dann am Kachelrand liegen.
+        val layoverHours = entry.layoverHours
+        if (layoverHours == null) {
+            item.ivLayoverClock.visibility = View.GONE
+        } else {
+            item.ivLayoverClock.visibility = View.VISIBLE
+            item.ivLayoverClock.contentDescription =
+                context.getString(R.string.entry_layover_hours_desc, layoverHours)
+        }
+
         // Das Reisebuddy-Icon erscheint nur bei einem Eintrag mit hinterlegtem
         // Buddy. Der Name steht in der Description, damit Talkback ihn vorliest.
         val buddy = entry.travelBuddy?.takeIf { it.isNotBlank() }

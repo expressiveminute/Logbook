@@ -294,4 +294,101 @@ class ChartDataLayoverTest {
         assertEquals(0, ChartData.layoverHoursTotal(entries, "JFK"))
         assertEquals(0, ChartData.layoverHoursTotal(emptyList(), "JFK"))
     }
+
+    @Test
+    fun layoverHoursByAirport_sumsTheLengthsPerAirport() {
+        val entries = listOf(
+            entry("JFK", LocalDate.of(2021, 6, 11), layoverHours = 48),
+            entry("JFK", LocalDate.of(2023, 5, 17), layoverHours = 24),
+            entry("DXB", LocalDate.of(2024, 11, 13), layoverHours = 72)
+        )
+
+        assertEquals(
+            mapOf("JFK" to 72, "DXB" to 72),
+            ChartData.layoverHoursByAirport(entries)
+        )
+    }
+
+    @Test
+    fun layoverHoursByAirport_ignoresFlightsWithoutLayoverAndBlankAirports() {
+        val entries = listOf(
+            entry("JFK", LocalDate.of(2021, 6, 11), layoverHours = 48),
+            entry("SFO", LocalDate.of(2021, 6, 11), layover = false, layoverHours = 48),
+            entry("", LocalDate.of(2021, 6, 11), layoverHours = 48)
+        )
+
+        assertEquals(mapOf("JFK" to 48), ChartData.layoverHoursByAirport(entries))
+    }
+
+    @Test
+    fun layoverHoursByAirport_countsEntriesWithoutLengthAsZero() {
+        // Ohne Angabe ist die Zeit nicht erfasst. Der Flughafen bleibt trotzdem
+        // Teil der Auswertung - mit "0 h", nicht mit einem fehlenden Balken.
+        val entries = listOf(
+            entry("JFK", LocalDate.of(2021, 6, 11), layoverHours = 48),
+            entry("JFK", LocalDate.of(2023, 5, 17)),
+            entry("DOH", LocalDate.of(2023, 5, 17))
+        )
+
+        assertEquals(
+            mapOf("JFK" to 48, "DOH" to 0),
+            ChartData.layoverHoursByAirport(entries)
+        )
+    }
+
+    @Test
+    fun layoverBars_countsTheVisitsPerAirport() {
+        val entries = listOf(
+            entry("JFK", LocalDate.of(2021, 6, 11), layoverHours = 48),
+            entry("JFK", LocalDate.of(2023, 5, 17), layoverHours = 24),
+            entry("DXB", LocalDate.of(2024, 11, 13), layoverHours = 72),
+            entry("SFO", LocalDate.of(2020, 1, 5), layover = false)
+        )
+
+        val bars = ChartData.layoverBars(entries, ChartData.LayoverSort.ANZAHL)
+
+        assertEquals(listOf("JFK", "DXB"), bars.map { it.label })
+        assertEquals(listOf(2, 1), bars.map { it.count })
+        assertEquals(listOf(null, null), bars.map { it.countLabel })
+    }
+
+    @Test
+    fun layoverBars_sortsByDurationOfTheLayovers() {
+        // Geordnet wird nach Stunden, die Beschriftung in Tagen haengt an
+        // barChart und braucht deshalb hier nicht die Werte selbst.
+        val entries = listOf(
+            entry("JFK", LocalDate.of(2021, 6, 11), layoverHours = 48),
+            entry("DXB", LocalDate.of(2024, 11, 13), layoverHours = 72),
+            entry("DXB", LocalDate.of(2023, 5, 17), layoverHours = 12)
+        )
+
+        val bars = ChartData.layoverBars(entries, ChartData.LayoverSort.DAUER)
+
+        assertEquals(listOf("DXB", "JFK"), bars.map { it.label })
+        assertEquals(listOf(84, 48), bars.map { it.count })
+        assertEquals(listOf(null, null), bars.map { it.countLabel })
+    }
+
+    @Test
+    fun layoverBars_keepsTheLastVisitSubLabelInBothModes() {
+        val entries = listOf(
+            entry("DXB", LocalDate.of(2023, 5, 17), layoverHours = 12),
+            entry("DXB", LocalDate.of(2024, 11, 13), layoverHours = 72)
+        )
+        val subLabels = mapOf("DXB" to "Zuletzt: 13.11.2024")
+
+        for (sort in ChartData.LayoverSort.entries) {
+            val bars = ChartData.layoverBars(entries, sort, subLabels = subLabels)
+            assertEquals(listOf("Zuletzt: 13.11.2024"), bars.map { it.subLabel })
+        }
+    }
+
+    @Test
+    fun layoverBars_withoutLayoversIsEmpty() {
+        val entries = listOf(entry("SFO", LocalDate.of(2018, 1, 5), layover = false))
+
+        for (sort in ChartData.LayoverSort.entries) {
+            assertEquals(emptyList<ChartData.Bar>(), ChartData.layoverBars(entries, sort))
+        }
+    }
 }

@@ -260,6 +260,7 @@
     <string name="dashboard_upcoming_hint_affected">Das trifft diese Kacheln:</string>
     <string name="entry_airline_logo">Airline-Logo</string>
     <string name="entry_travel_buddy_desc">Reisebuddies: %1$s</string>
+    <string name="entry_layover_hours_desc">Layoverlänge: %1$d h</string>
     <string name="filter_title">Filter</string>
     <string name="filter_travel_type">Reiseart</string>
     <string name="filter_class_type">Reiseklasse</string>
@@ -277,6 +278,9 @@
     <string name="layover_extreme_oldest">Ältestes Layover</string>
     <string name="layover_extreme_newest_desc">Letztes Layover: %1$s am %2$s</string>
     <string name="layover_extreme_oldest_desc">Ältestes Layover: %1$s am %2$s</string>
+    <string name="layover_sort_label">Sortieren nach:</string>
+    <string name="layover_sort_count">Anzahl</string>
+    <string name="layover_sort_duration">Dauer</string>
     <string name="chart_filter_all">Alle</string>
     <string name="chart_empty">Keine Daten für diesen Zeitraum.</string>
     <string name="world_map_loading">Weltkarte wird geladen…</string>

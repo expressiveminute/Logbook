@@ -546,6 +546,7 @@ class InputTile @JvmOverloads constructor(
             label.visibility = GONE
             floating = true
             fieldView?.visibility = View.VISIBLE
+            field.visibility = View.VISIBLE
             val first = !applied
             applied = true
             if (first) requestLayout()
@@ -558,16 +559,25 @@ class InputTile @JvmOverloads constructor(
         // kippt - etwa beim zweiten Namen im schon schwebenden Zustand.
         val hasExtra = extraContent?.invoke() == true
         field.hint = if (hasExtra) null else inputHint
+        val shouldFloat = editing || field.hasFocus() || !field.text.isNullOrBlank() || hasExtra
+        // Das Eingabefeld steht nur im Eingabezustand der Kachel. Die
+        // Sichtbarkeit gehört vor die Kurzschlussprüfung unten: Bei einer
+        // Kachel, deren zweites Kind direkt das Eingabefeld ist, würde ein
+        // dort gesetztes "sichtbar" die Prüfung überleben, weil sich der
+        // Zustand nicht ändert - die Beschriftung bliebe in der Mitte und läge
+        // neben dem Hinweis. Gleiches gilt für ein erneutes Anschreiben des
+        // Feldes mit demselben Wert, etwa beim Zurückschreiben der Einträge
+        // nach dem Deaktivieren des Rückflugs.
         // Auch das leere Feld selbst braucht keine Zeile unter den Chips: Die
         // Kachel misst ihre Höhe aus dem Feld, und eine leere Zeile bliebe
         // immer stehen. Das Feld wird deshalb ausgeblendet, bis getippt oder
         // fokussiert wird - eine weitere Zeile entsteht dann von selbst, wenn
-        // die Namen umbrechen. Vorgeschaltet, weil sich die Sichtbarkeit auch
-        // ändern kann, ohne dass der Zustand der Kachel kippt.
-        field.visibility = if (
-            hasExtra && !editing && !field.hasFocus() && field.text.isNullOrEmpty()
-        ) View.GONE else View.VISIBLE
-        val shouldFloat = editing || field.hasFocus() || !field.text.isNullOrBlank() || hasExtra
+        // die Namen umbrechen.
+        field.visibility = when {
+            hasExtra && !editing && !field.hasFocus() && field.text.isNullOrEmpty() -> View.GONE
+            !shouldFloat -> View.GONE
+            else -> View.VISIBLE
+        }
         val first = !applied
         applied = true
         if (!first && shouldFloat == floating) return

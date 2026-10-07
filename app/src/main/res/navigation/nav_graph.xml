@@ -137,6 +137,11 @@
             android:name="code"
             app:argType="string"
             android:defaultValue="" />
+
+        <!-- Eintrag des Zeitstrahls antippen: direkt zur Seite "Flug bearbeiten". -->
+        <action
+            android:id="@+id/action_layover_detail_to_add_entry"
+            app:destination="@id/nav_add_entry" />
     </fragment>
 
     <fragment
