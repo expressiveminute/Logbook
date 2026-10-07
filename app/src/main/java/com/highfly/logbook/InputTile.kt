@@ -89,8 +89,22 @@ class InputTile @JvmOverloads constructor(
      * Nur dieses Feld beobachtet Text und Fokus, die Gruppe bestimmt nichts.
      */
     private var inputView: EditText? = null
+    /**
+     * Hinweis des Eingabefelds, wie er im Layout steht. Er wird hier
+     * gespeichert, weil die Kachel ihn vorübergehend entfernt, sobald Chips
+     * den Wert tragen, und ihn danach wiederherstellen muss.
+     */
+    private var inputHint: CharSequence? = null
     private var labelText: CharSequence = ""
     private var example: CharSequence? = null
+    /**
+     * Zusatzlicher Inhalt unter der Kerbe, der nicht aus dem Eingabefeld
+     * stammt - die Reisebuddy-Chips. Die Kachel befragt ihn bei jeder
+     * Neubewertung ihres Zustands: Ein leeres Feld allein hiesse sonst "nichts
+     * eingetragen", die Beschriftung wanderte zurück in die Kachelmitte und
+     * das Feld samt Chips würde ausgeblendet, obwohl die Chips den Wert tragen.
+     */
+    private var extraContent: (() -> Boolean)? = null
     private var inputFocusListener: ((hasFocus: Boolean) -> Unit)? = null
     private var editing = false
     private var floating = false
@@ -129,6 +143,27 @@ class InputTile @JvmOverloads constructor(
     fun setExample(example: CharSequence?) {
         this.example = example
         renderLabel()
+    }
+
+    /**
+     * Meldet Inhalt unter der Kerbe, der nicht im Eingabefeld steht, etwa die
+     * Reisebuddy-Chips: Solange [check] wahr ist, behält die Kachel ihre
+     * Beschriftung oben und ihr Feld sichtbar, auch wenn das Eingabefeld leer
+     * ist. Die Kachel richtet sich sofort neu ein, weil der Zusatzinhalt erst
+     * nach ihrem Aufbau bekannt wird.
+     */
+    fun setExtraContentCheck(check: () -> Boolean) {
+        extraContent = check
+        refresh(animate = false)
+    }
+
+    /**
+     * Bewertet den Kachelzustand neu, nachdem sich der Zusatzinhalt von
+     * aussen geändert hat - ein Chip kam dazu oder wurde entfernt. Das
+     * Eingabefeld beobachtet die Kachel selbst, die Chips nicht.
+     */
+    fun refreshState() {
+        refresh(animate = false)
     }
 
     /**
@@ -181,6 +216,7 @@ class InputTile @JvmOverloads constructor(
         // Autore-sizing des TextView bleibt aus.
         labelView?.setAutoSizeTextTypeWithDefaults(TextView.AUTO_SIZE_TEXT_TYPE_NONE)
         inputView?.let { field ->
+            inputHint = field.hint
             field.addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
@@ -316,6 +352,28 @@ class InputTile @JvmOverloads constructor(
         }
     }
 
+    /**
+     * Oberkante des Feldes unter der Kerbe, in [labelHeight] Pixeln gemessen.
+     *
+     * Die Beschriftung sitzt mit ihrer Mitte auf der oberen Kachelkante und
+     * ragt zur Hälfte nach oben heraus - ihr unterer Rand liegt also in der
+     * Kachel, und erst darunter beginnt der Platz, den das Feld einnehmen
+     * darf. Ein zentrierter Wert wird deshalb unter diesem Rand zentriert und
+     * nicht hinter der Beschriftung: Zentrierte man ihn über die ganze
+     * Kachel, verschwende die Beschriftung ihren halben Platz nach oben und
+     * der Inhalt stünde optisch zu hoch - die Reisebuddy-Chips wirkten
+     * gedrückt, obwohl sie mittig vermessen sind.
+     *
+     * Inhalt, der oben beginnt, bekommt zusätzlich den Kerbenabstand, damit
+     * er die Beschriftung nicht berührt. In einer nackten Kachel gibt es
+     * keine Beschriftung und damit auch keinen Versatz.
+     */
+    private fun fieldTop(labelHeight: Int): Int = when {
+        bare -> paddingTop
+        fieldView.centersValue() -> paddingTop + labelHeight / 2
+        else -> paddingTop + labelHeight / 2 + notchGap
+    }
+
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val width = MeasureSpec.getSize(widthMeasureSpec)
         val innerWidth = (width - paddingLeft - paddingRight).coerceAtLeast(0)
@@ -351,7 +409,7 @@ class InputTile @JvmOverloads constructor(
         // Werts, damit sein Text sie nicht berührt. Ein Wert, der oben beginnt,
         // kommt unter die Kerze und braucht sie nur einmal.
         val wanted = paddingTop + paddingBottom + when {
-            notched -> labelHeight + notchGap * if (field.centersValue()) 2 else 1 +
+            notched -> labelHeight + notchGap * (if (field.centersValue()) 2 else 1) +
                 (field?.measuredHeight ?: 0)
             floating -> field?.measuredHeight ?: 0
             else -> labelHeight
@@ -359,13 +417,12 @@ class InputTile @JvmOverloads constructor(
         val height = max(resolveSize(wanted, heightMeasureSpec), suggestedMinimumHeight)
 
         // Nur unter der Kerze nimmt das Feld den Platz, in dem sein Text stehen
-        // soll: Ein mittiger Wert bekommt die ganze Kachel, damit er in deren
-        // Mitte landet, ein oben beginnender nur den Rest unter der Beschriftung.
+        // soll: Ein mittiger Wert wird unter dem unteren Beschriftungsrand
+        // zentriert, ein oben beginnender nur den Rest unter der Beschriftung.
         // Ohne Kerze behält das Feld seine eigene Höhe - in einer nackten Kachel
         // steht es mittig in der ganzen.
         if (field != null && (notched || bare)) {
-            val top = if (field.centersValue()) paddingTop
-            else paddingTop + labelHeight / 2 + notchGap
+            val top = fieldTop(labelHeight)
             field.measure(
                 MeasureSpec.makeMeasureSpec(innerWidth, MeasureSpec.EXACTLY),
                 MeasureSpec.makeMeasureSpec(
@@ -417,9 +474,8 @@ class InputTile @JvmOverloads constructor(
         }
         val field = fieldView
         if (field != null && field.visibility != GONE) {
-            val fieldTop = if (field.centersValue()) paddingTop
-            else paddingTop + (label?.measuredHeight ?: 0) / 2 + notchGap
-            field.layout(paddingLeft, fieldTop, width - paddingRight, height)
+            val top = fieldTop(label?.measuredHeight ?: 0)
+            field.layout(paddingLeft, top, width - paddingRight, height)
         }
         for (index in 2 until childCount) {
             val overlay = getChildAt(index)
@@ -495,7 +551,23 @@ class InputTile @JvmOverloads constructor(
             if (first) requestLayout()
             return
         }
-        val shouldFloat = editing || field.hasFocus() || !field.text.isNullOrBlank()
+        // Solange Chips den Wert tragen, wäre der Hinweis "Name eingeben,
+        // mit Enter bestätigen" eine Aufforderung unter bereits gemerkten
+        // Namen. Er wird deshalb vor der Kurzschlussprüfung unten entfernt,
+        // weil sich sein Zustand ändern kann, ohne dass der der Kachel
+        // kippt - etwa beim zweiten Namen im schon schwebenden Zustand.
+        val hasExtra = extraContent?.invoke() == true
+        field.hint = if (hasExtra) null else inputHint
+        // Auch das leere Feld selbst braucht keine Zeile unter den Chips: Die
+        // Kachel misst ihre Höhe aus dem Feld, und eine leere Zeile bliebe
+        // immer stehen. Das Feld wird deshalb ausgeblendet, bis getippt oder
+        // fokussiert wird - eine weitere Zeile entsteht dann von selbst, wenn
+        // die Namen umbrechen. Vorgeschaltet, weil sich die Sichtbarkeit auch
+        // ändern kann, ohne dass der Zustand der Kachel kippt.
+        field.visibility = if (
+            hasExtra && !editing && !field.hasFocus() && field.text.isNullOrEmpty()
+        ) View.GONE else View.VISIBLE
+        val shouldFloat = editing || field.hasFocus() || !field.text.isNullOrBlank() || hasExtra
         val first = !applied
         applied = true
         if (!first && shouldFloat == floating) return

@@ -780,6 +780,10 @@
                                 android:id="@+id/et_airport_from"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
+                                android:autoSizeMaxTextSize="34sp"
+                                android:autoSizeMinTextSize="14sp"
+                                android:autoSizeStepGranularity="1sp"
+                                android:autoSizeTextType="uniform"
                                 android:background="@null"
                                 android:gravity="center"
                                 android:hint="@string/airport_departure_label"
@@ -908,6 +912,10 @@
                                 android:id="@+id/et_airport_to"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
+                                android:autoSizeMaxTextSize="34sp"
+                                android:autoSizeMinTextSize="14sp"
+                                android:autoSizeStepGranularity="1sp"
+                                android:autoSizeTextType="uniform"
                                 android:background="@null"
                                 android:gravity="center"
                                 android:hint="@string/airport_arrival_label"
@@ -1367,7 +1375,8 @@
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="vertical">
+                            android:orientation="vertical"
+                            android:gravity="center_vertical">
 
                         <com.highfly.logbook.FlowLayout
                                 android:id="@+id/buddy_chips"
@@ -1436,7 +1445,8 @@
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="horizontal">
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
 
                             <EditText
                                 android:id="@+id/et_layover_hours"
@@ -1507,7 +1517,7 @@
                         android:gravity="top"
                         android:hint="@string/comment_hint"
                         android:inputType="textMultiLine"
-                        android:minLines="3"
+                        android:minLines="1"
                         android:textSize="17sp"
                         android:textColor="?attr/colorOnSurface" />
                 </com.highfly.logbook.InputTile>
@@ -1719,7 +1729,8 @@
                                 <LinearLayout
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:orientation="vertical">
+                                    android:orientation="vertical"
+                                    android:gravity="center_vertical">
 
                                 <com.highfly.logbook.FlowLayout
                                         android:id="@+id/buddy_chips_hinflug"
@@ -1781,7 +1792,8 @@
                                 <LinearLayout
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:orientation="horizontal">
+                                    android:orientation="horizontal"
+                                    android:gravity="center_vertical">
 
                                     <EditText
                                         android:id="@+id/et_hinflug_layover_hours"
@@ -2000,7 +2012,8 @@
                                 <LinearLayout
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:orientation="vertical">
+                                    android:orientation="vertical"
+                                    android:gravity="center_vertical">
 
                                 <com.highfly.logbook.FlowLayout
                                         android:id="@+id/buddy_chips_rueckflug"
@@ -2078,7 +2091,7 @@
                                     android:gravity="top"
                                     android:hint="@string/comment_hint"
                                     android:inputType="textMultiLine"
-                                    android:minLines="3"
+                                    android:minLines="1"
                                     android:textColor="?attr/colorOnSurface"
                                     android:textSize="17sp" />
                             </com.highfly.logbook.InputTile>
@@ -2126,7 +2139,7 @@
                                     android:gravity="top"
                                     android:hint="@string/comment_hint"
                                     android:inputType="textMultiLine"
-                                    android:minLines="3"
+                                    android:minLines="1"
                                     android:textColor="?attr/colorOnSurface"
                                     android:textSize="17sp" />
                             </com.highfly.logbook.InputTile>

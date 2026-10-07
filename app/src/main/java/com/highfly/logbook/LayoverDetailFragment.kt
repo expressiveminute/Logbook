@@ -202,8 +202,9 @@ class LayoverDetailFragment : Fragment() {
     /**
      * Zeitstrahl: alle Layover des Zeitraums an diesem Flughafen, der jüngste
      * oben und der am längsten her zurückliegende unten. Neben dem Datum steht
-     * die Flugroute, mittig daneben der Punkt, rechts davon der Reisebuddy,
-     * falls beim Eintrag einer hinterlegt ist.
+     * die Flugroute, mittig daneben der Punkt mit der Layoverlänge des
+     * Eintrags in Stunden, rechts davon der Reisebuddy, falls beim Eintrag
+     * einer hinterlegt ist.
      */
     private fun renderTimeline() {
         val entries = ChartData.layoverHistoryNewestFirst(
@@ -220,8 +221,11 @@ class LayoverDetailFragment : Fragment() {
                 layoutInflater, binding.layoverTimeline, false
             )
             row.tvDate.text = entry.date.format(DATE_LABEL_FORMAT)
+            // Im Punkt steht die Layoverlänge aus "Neuer Flug", also genau die
+            // Zeit, die auch die Leiste weiter oben zusammenzählt. Die Flugzeit
+            // des Eintrags gehört nicht hierher - sie wäre eine andere Größe.
             row.timelineDot.text =
-                entry.flightMinutes?.let { durationHours(it) }.orEmpty()
+                entry.layoverHours?.let { hours -> "$hours h" }.orEmpty()
             row.tvRoute.text = getString(
                 R.string.import_review_summary_route,
                 entry.fromAirport.uppercase(),
@@ -248,14 +252,6 @@ class LayoverDetailFragment : Fragment() {
             if (_binding != null) alignTimelineLine()
         }
     }
-
-    /**
-     * Umlaufdauer eines Eintrags in ganzen Stunden, kaufmännisch gerundet:
-     * aus 425 Minuten werden "7 h". Erst ab 31 Restminuten zählt die Stunde
-     * hoch, sonst stünde für einen kurzen Hopser "0 h" im Punkt.
-     */
-    private fun durationHours(minutes: Int): String =
-        "${(minutes + 30) / 60} h"
 
     /**
      * Die senkrechte Linie des Zeitstrahls verbindet nur die Punkte: Sie

@@ -717,11 +717,16 @@ class WorldMapFragment : Fragment() {
     }
 
     private fun finishLoading() {
-        if (_binding == null) return
-        binding.loadingOverlay.animate()
+        // Das Ueberblenden darf nicht mehr auf [binding] zugreifen: Die
+        // Karten-Orientierung dreht das Fenster waehrend der 300-ms-Animation,
+        // dadurch wird die Ansicht zerstoert und [_binding] auf null gesetzt.
+        // Der End-Action lief dann auf null und liess die App abstuerzen.
+        // Die lokal gehaltene Ansicht unschaerfbar zu machen ist harmlos.
+        val current = _binding ?: return
+        current.loadingOverlay.animate()
             .alpha(0f)
             .setDuration(300)
-            .withEndAction { binding.loadingOverlay.visibility = View.GONE }
+            .withEndAction { current.loadingOverlay.visibility = View.GONE }
             .start()
     }
 

@@ -123,6 +123,15 @@ class AddEntryFragment : Fragment() {
             prefill(editingEntry)
         }
         refreshVisibility()
+
+        // Der Soft-Input-Modus wirkt nur beim ersten Anzeigen des Fensters:
+        // Die Tastatur der vorherigen Seite bliebe sonst stehen und landete
+        // beim Vorbefuellen in einem der Felder. Einmalig loesen - sie
+        // erscheint erst wieder, wenn der Nutzer selbst in ein Feld tippt.
+        view.post {
+            view.findFocus()?.clearFocus()
+            hideKeyboard()
+        }
     }
 
     private fun setupFlightTypeTiles() {
@@ -731,7 +740,12 @@ private fun prefillRouteFromHistory() {
                     s.replace(0, s.length, completion)
                     isFormatting = false
                     prefillRegistration(aircraft, registration)
-                    focusAndShowKeyboard(registration)
+                    // Der Sprung zur Registrierung ist ein Bedienhinweis beim
+                    // Tippen: Beim Vorbefuellen eines gespeicherten Eintrags
+                    // steht der Fokus woanders und die Tastatur bleibt zu.
+                    if (aircraft.hasFocus()) {
+                        focusAndShowKeyboard(registration)
+                    }
                     registration.setSelection(registration.length())
                     return
                 }
@@ -800,7 +814,11 @@ private fun prefillRouteFromHistory() {
                 updateAirportCode(
                     s.toString(), binding.etAirportFrom, binding.ivAirportCheckFrom,
                 )
-                if (s.length == 3) {
+                // Nur beim eigenen Tippen wechselt das Feld weiter: Wird der
+                // Code dagegen aus der Routenvorschlag-Liste geschrieben, gehoert
+                // der Fokus noch dem Kästchen der Flugnummer und die Tastatur
+                // darf weder springen noch aufgehen.
+                if (s.length == 3 && binding.etAirportFrom.hasFocus()) {
                     focusAndShowKeyboard(binding.etAirportTo)
                 }
                 autoFillRouteData()
@@ -1035,6 +1053,13 @@ private fun prefillRouteFromHistory() {
         setupTravelBuddyChips(binding.buddyChips, binding.etTravelBuddy)
         setupTravelBuddyChips(binding.buddyChipsHinflug, binding.etHinflugTravelBuddy)
         setupTravelBuddyChips(binding.buddyChipsRueckflug, binding.etRueckflugTravelBuddy)
+        // Die Chips stehen unter der Kerbe, nicht im Eingabefeld: Ohne diese
+        // Meldung hält die Kachel den leeren Rückstand im Feld für "nichts
+        // eingetragen" und blendet die bereits gespeicherten Buddies aus, bis
+        // man hineintippt.
+        inputTile(binding.etTravelBuddy)?.setExtraContentCheck { binding.buddyChips.childCount > 0 }
+        inputTile(binding.etHinflugTravelBuddy)?.setExtraContentCheck { binding.buddyChipsHinflug.childCount > 0 }
+        inputTile(binding.etRueckflugTravelBuddy)?.setExtraContentCheck { binding.buddyChipsRueckflug.childCount > 0 }
     }
 
     private fun setupTravelBuddyChips(chips: FlowLayout, input: EditText) {
@@ -1066,18 +1091,25 @@ private fun prefillRouteFromHistory() {
         chip.animate().alpha(1f).setDuration(180).start()
         chips.addView(chip)
         chips.visibility = View.VISIBLE
+        // Der Chip ist Inhalt der Kachel, nicht des Feldes: Die Kachel muss
+        // neu bewertet werden, sonst bleibt sie im Platzhalterzustand.
+        inputTile(chips)?.refreshState()
     }
 
     private fun removeTravelBuddyChip(chips: FlowLayout, chip: View) {
         chips.removeView(chip)
         chips.visibility =
             if (chips.childCount == 0) View.GONE else View.VISIBLE
+        // Ohne den letzten Chip und ohne Text im Feld fällt die Kachel in ihren
+        // Platzhalterzustand zurück - aber erst nach der Neubewertung.
+        inputTile(chips)?.refreshState()
     }
 
     private fun clearTravelBuddyChips(chips: FlowLayout, input: EditText) {
         chips.removeAllViews()
         chips.visibility = View.GONE
         input.text?.clear()
+        inputTile(chips)?.refreshState()
     }
 
     /**
