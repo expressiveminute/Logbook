@@ -117,8 +117,6 @@
     <string name="settings_accent_brown">Brown</string>
     <string name="settings_accent_magenta">Magenta</string>
     <string name="settings_accent_turquoise">Turquoise</string>
-    <string name="settings_class_scheme">Travel Class Color Scheme</string>
-    <string name="class_scheme_lufthansa">Lufthansa</string>
     <string name="settings_default_period">Default Period</string>
     <string name="settings_default_time_unit">Default Time Display</string>
     <string name="settings_language">Language</string>

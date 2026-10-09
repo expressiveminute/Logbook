@@ -39,9 +39,13 @@ class TileDetailFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         tileId = requireArguments().getString("tileId") ?: "flights"
-        layoverSort = savedInstanceState?.getString(KEY_LAYOVER_SORT)
-            ?.let { name -> ChartData.LayoverSort.entries.firstOrNull { it.name == name } }
-            ?: ChartData.LayoverSort.ANZAHL
+        // Bei einer Neuerstellung der Ansicht bleibt die Fragment-Instanz
+        // erhalten, der Zustands-Bundle ist dann null. Der bereits gewählte
+        // Wert darf in diesem Fall nicht auf den Standard zurückspringen.
+        savedInstanceState?.getString(KEY_LAYOVER_SORT)?.let { name ->
+            layoverSort = ChartData.LayoverSort.entries
+                .firstOrNull { it.name == name } ?: layoverSort
+        }
 
         binding.btnBack.setOnClickListener {
             findNavController().navigateUp()

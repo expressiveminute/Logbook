@@ -146,11 +146,6 @@ class SettingsSectionFragment : Fragment() {
                 binding.lightModeLabel,
                 binding.systemModeLabel
             )
-            fitTileLabels(
-                binding.accentBrownLabel,
-                binding.accentMagentaLabel,
-                binding.accentTurquoiseLabel
-            )
         }
     }
 
@@ -227,11 +222,8 @@ class SettingsSectionFragment : Fragment() {
         binding.accentMagentaTile.setOnClickListener { applyAccent(Settings.ACCENT_MAGENTA) }
         binding.accentTurquoiseTile.setOnClickListener { applyAccent(Settings.ACCENT_TURQUOISE) }
 
-        binding.tileClassSchemeLufthansa.setOnClickListener { applyClassScheme(Settings.CLASS_SCHEME_LUFTHANSA) }
-
         updateModeTiles(Settings.getThemeMode(requireContext()))
         updateAccentTiles(Settings.getAccentColor(requireContext()))
-        updateClassSchemeTiles(Settings.getClassScheme(requireContext()))
     }
 
     private fun setupCustomization() {
@@ -454,62 +446,40 @@ class SettingsSectionFragment : Fragment() {
     private fun updateAccentTiles(accent: String) {
         styleAccentTile(
             binding.accentBrownTile,
-            binding.accentBrownLabel,
-            R.color.accent_brown_primary_container,
-            R.color.accent_brown_on_primary_container,
             R.color.accent_brown_primary,
             accent == Settings.ACCENT_BROWN
         )
         styleAccentTile(
             binding.accentMagentaTile,
-            binding.accentMagentaLabel,
-            R.color.accent_magenta_primary_container,
-            R.color.accent_magenta_on_primary_container,
             R.color.accent_magenta_primary,
             accent == Settings.ACCENT_MAGENTA
         )
         styleAccentTile(
             binding.accentTurquoiseTile,
-            binding.accentTurquoiseLabel,
-            R.color.accent_turquoise_primary_container,
-            R.color.accent_turquoise_on_primary_container,
             R.color.accent_turquoise_primary,
             accent == Settings.ACCENT_TURQUOISE
         )
     }
 
-    private fun styleAccentTile(
-        card: MaterialCardView,
-        label: TextView,
-        backgroundColorRes: Int,
-        contentColorRes: Int,
-        outlineColorRes: Int,
-        active: Boolean
-    ) {
+    /**
+     * Die Kachel ist eine reine Farbfläche in der Akzentfarbe, ohne
+     * Beschriftung. Weil die Fläche bei allen drei Kacheln unterschiedlich ist,
+     * zeigt nur noch ein kräftigerer Rahmen den aktiven Zustand an: die
+     * Konturfarbe colorOnPrimary hebt sich von der hellen Fläche ab, während
+     * inaktive Kacheln nur eine dezente Kontur behalten.
+     */
+    private fun styleAccentTile(card: MaterialCardView, colorRes: Int, active: Boolean) {
         val context = card.context
-        card.setCardBackgroundColor(ContextCompat.getColor(context, backgroundColorRes))
-        card.strokeColor = ContextCompat.getColor(context, outlineColorRes)
+        card.setCardBackgroundColor(ContextCompat.getColor(context, colorRes))
+        val onPrimary = MaterialColors.getColor(
+            binding.root, com.google.android.material.R.attr.colorOnPrimary
+        )
+        val outlineVariant = MaterialColors.getColor(
+            binding.root, com.google.android.material.R.attr.colorOutlineVariant
+        )
+        card.strokeColor = if (active) onPrimary else outlineVariant
         card.strokeWidth = if (active) dp(2) else dp(1)
         card.isSelected = active
-        label.setTextColor(ContextCompat.getColor(context, contentColorRes))
-    }
-
-    private fun applyClassScheme(scheme: String) {
-        if (Settings.getClassScheme(requireContext()) == scheme) return
-        Settings.setClassScheme(requireContext(), scheme)
-        updateClassSchemeTiles(scheme)
-    }
-
-    private fun updateClassSchemeTiles(scheme: String) {
-        val active = scheme == Settings.CLASS_SCHEME_LUFTHANSA
-        if (active) {
-            val navy = ContextCompat.getColor(requireContext(), R.color.scheme_lufthansa_bg)
-            binding.tileClassSchemeLufthansa.setCardBackgroundColor(navy)
-            binding.tileClassSchemeLufthansa.strokeColor = navy
-            binding.labelClassSchemeLufthansa.setTextColor(Color.WHITE)
-        } else {
-            highlight(binding.tileClassSchemeLufthansa, binding.labelClassSchemeLufthansa, false)
-        }
     }
 
     private fun highlight(

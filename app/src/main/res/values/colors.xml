@@ -26,9 +26,6 @@
     <color name="type_ferry_bg">#FF6E8BB7</color>
     <color name="type_ground_transfer_bg">#FF6E8BB7</color>
 
-    <!-- Class color scheme: Lufthansa -->
-    <color name="scheme_lufthansa_bg">#FF05164D</color>
-
     <color name="button_save_bg">#FF4CAF50</color>
     <color name="text_discard">#FFD32F2F</color>
 

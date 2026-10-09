@@ -118,8 +118,6 @@
     <string name="settings_accent_brown">Braun</string>
     <string name="settings_accent_magenta">Magenta</string>
     <string name="settings_accent_turquoise">Türkis</string>
-    <string name="settings_class_scheme">Farbeschema Reiseklasse</string>
-    <string name="class_scheme_lufthansa">Lufthansa</string>
     <string name="settings_default_period">Standard-Zeitraum</string>
     <string name="settings_default_time_unit">Standard-Zeitanzeige</string>
     <string name="settings_language">Sprache</string>

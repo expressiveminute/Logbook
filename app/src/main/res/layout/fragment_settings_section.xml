@@ -275,56 +275,22 @@
                     <com.google.android.material.card.MaterialCardView
                         android:id="@+id/accent_brown_tile"
                         style="@style/SettingsTile"
-                        android:layout_marginEnd="3dp">
-
-                        <TextView
-                            android:id="@+id/accent_brown_label"
-                            style="@style/SettingsTileLabel"
-                            android:text="@string/settings_accent_brown" />
-                    </com.google.android.material.card.MaterialCardView>
+                        android:layout_marginEnd="3dp"
+                        android:contentDescription="@string/settings_accent_brown" />
 
                     <com.google.android.material.card.MaterialCardView
                         android:id="@+id/accent_magenta_tile"
                         style="@style/SettingsTile"
-                        android:layout_marginEnd="3dp">
-
-                        <TextView
-                            android:id="@+id/accent_magenta_label"
-                            style="@style/SettingsTileLabel"
-                            android:text="@string/settings_accent_magenta" />
-                    </com.google.android.material.card.MaterialCardView>
+                        android:layout_marginEnd="3dp"
+                        android:contentDescription="@string/settings_accent_magenta" />
 
                     <com.google.android.material.card.MaterialCardView
                         android:id="@+id/accent_turquoise_tile"
-                        style="@style/SettingsTile">
-
-                        <TextView
-                            android:id="@+id/accent_turquoise_label"
-                            style="@style/SettingsTileLabel"
-                            android:text="@string/settings_accent_turquoise" />
-                    </com.google.android.material.card.MaterialCardView>
+                        style="@style/SettingsTile"
+                        android:contentDescription="@string/settings_accent_turquoise" />
                 </LinearLayout>
             </LinearLayout>
 
-            <LinearLayout style="@style/SettingsRow">
-
-                <TextView
-                    style="@style/SettingsRowLabel"
-                    android:text="@string/settings_class_scheme" />
-
-                <LinearLayout style="@style/SettingsRowValue">
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/tile_class_scheme_lufthansa"
-                        style="@style/SettingsTile">
-
-                        <TextView
-                            android:id="@+id/label_class_scheme_lufthansa"
-                            style="@style/SettingsTileLabel"
-                            android:text="@string/class_scheme_lufthansa" />
-                    </com.google.android.material.card.MaterialCardView>
-                </LinearLayout>
-            </LinearLayout>
         </LinearLayout>
 
         <LinearLayout
