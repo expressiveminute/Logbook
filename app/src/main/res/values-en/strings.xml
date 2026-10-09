@@ -188,8 +188,8 @@
     <string name="class_business">Business</string>
     <string name="class_first">First</string>
     <string name="class_jump">Jump</string>
-    <string name="airport_departure_label">Departure</string>
-    <string name="airport_arrival_label">Arrival</string>
+    <string name="airport_departure_label">FROM</string>
+    <string name="airport_arrival_label">TO</string>
     <string name="layover_label">Layover</string>
     <string name="flight_distance_label">Flight distance</string>
     <string name="flight_distance_hint">km</string>
@@ -275,9 +275,17 @@
     <string name="layover_sort_label">Sort by:</string>
     <string name="layover_sort_count">Count</string>
     <string name="layover_sort_duration">Duration</string>
+    <!-- Magnifier and search field of the layover tile: searched by the
+         three-letter code or by the city. -->
+    <string name="layover_search_desc">Search layover</string>
+    <string name="layover_search_hint">Code or city</string>
+    <string name="layover_search_empty">No layovers found</string>
     <!-- Header of the collapsed group of airports for which no layover duration
          is recorded in duration mode (0 hours). %1$d is their number. -->
     <string name="layover_zero_header">No duration (%1$d)</string>
+    <!-- Label of the sparkle button in the top right of the layover page; it
+         will later open the summarizing overview. -->
+    <string name="layover_overview">Layover overview</string>
     <string name="chart_filter_all">All</string>
     <string name="chart_empty">No data for this period.</string>
     <string name="world_map_loading">Loading world map…</string>

@@ -189,8 +189,8 @@
     <string name="class_business">Business</string>
     <string name="class_first">First</string>
     <string name="class_jump">Jump</string>
-    <string name="airport_departure_label">Abflug</string>
-    <string name="airport_arrival_label">Ankunft</string>
+    <string name="airport_departure_label">FROM</string>
+    <string name="airport_arrival_label">TO</string>
     <string name="layover_label">Layover</string>
     <string name="flight_distance_label">Flugdistanz</string>
     <string name="flight_distance_hint">km</string>
@@ -279,10 +279,18 @@
     <string name="layover_sort_label">Sortieren nach:</string>
     <string name="layover_sort_count">Anzahl</string>
     <string name="layover_sort_duration">Dauer</string>
+    <!-- Lupe und Suchfeld der Layover-Kachel: gesucht wird nach dem
+         Dreilettercode oder nach der Stadt. -->
+    <string name="layover_search_desc">Layover suchen</string>
+    <string name="layover_search_hint">Code oder Stadt</string>
+    <string name="layover_search_empty">Keine Layover gefunden</string>
     <!-- Kopf der eingeklappten Gruppe mit den Flughaefen, fuer die im
          Dauer-Modus keine Layoverdauer erfasst ist (0 Stunden). %1$d ist ihre
          Anzahl. -->
     <string name="layover_zero_header">Ohne Dauer (%1$d)</string>
+    <!-- Beschriftung des Sterne-Knopfs oben rechts auf der Layover-Seite; er
+         oeffnet spaeter die zusammenfassende Uebersicht. -->
+    <string name="layover_overview">Layover-Übersicht</string>
     <string name="chart_filter_all">Alle</string>
     <string name="chart_empty">Keine Daten für diesen Zeitraum.</string>
     <string name="world_map_loading">Weltkarte wird geladen…</string>
