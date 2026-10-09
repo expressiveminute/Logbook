@@ -1,5 +1,6 @@
 package com.highfly.logbook
 
+import android.graphics.Color
 import android.os.Bundle
 import android.util.TypedValue
 import android.view.LayoutInflater
@@ -26,6 +27,9 @@ class TileDetailFragment : Fragment() {
 
     /** Nach was die Layover-Balken geordnet sind, Standard: Anzahl. */
     private var layoverSort: ChartData.LayoverSort = ChartData.LayoverSort.ANZAHL
+
+    /** Reiseart, nach der die Kachel "Reiseklasse" ihre Klassen zeigt. */
+    private var classTravelType: String = ClassTravelType.DEFAULT
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -63,7 +67,8 @@ class TileDetailFragment : Fragment() {
 
         when {
             tileId == "class" -> {
-                renderPie(ChartData.classSlices(requireContext()))
+                setupClassTravelType()
+                renderClassPie()
             }
             tileId == "traveltype" -> {
                 renderPie(ChartData.travelTypeSlices(requireContext()))
@@ -114,6 +119,7 @@ class TileDetailFragment : Fragment() {
      * der Auswahl ab, die Kacheln oben bleiben, egal was gewaehlt ist.
      */
     private fun renderLayover() {
+        setupLayoverZeroSection()
         renderLayoverExtremes()
         renderLayoverSort()
         renderLayoverBars()
@@ -161,13 +167,64 @@ class TileDetailFragment : Fragment() {
      * Detailseite des Ziel-Flughafens.
      */
     private fun renderLayoverBars() {
-        val bars = ChartData.barChart(requireContext(), "layover", layoverSort)
+        val allBars = ChartData.barChart(requireContext(), "layover", layoverSort)
+        // Flughäfen ohne erfasste Dauer (nur im Dauer-Modus möglich) stehen
+        // nicht in der Rangliste, sondern in der einklappbaren Gruppe darunter.
+        val (bars, zeroBars) = ChartData.splitLayoverZeroDuration(allBars)
+
         binding.layoverSortRow.visibility =
-            if (bars.isEmpty()) View.GONE else View.VISIBLE
+            if (allBars.isEmpty()) View.GONE else View.VISIBLE
         binding.barChart.setOnItemClickListener { index ->
             openLayoverDetail(bars.getOrNull(index)?.label)
         }
+        // Die Layover-Kachel zeigt in beiden Sortierungen gleich: der Wert im
+        // Balken, "Zuletzt: …" fest am rechten Rand.
+        binding.barChart.setValueInsideBar(true)
         renderBars(bars)
+        // Gibt es nur noch die Null-Gruppe, gehört der Leertext nicht über sie -
+        // die Daten stehen ja darunter.
+        if (zeroBars.isNotEmpty()) binding.tvEmpty.visibility = View.GONE
+        renderLayoverZeroBars(zeroBars)
+    }
+
+    /**
+     * Die Flughäfen ohne erfasste Dauer als einklappbare Gruppe unter dem
+     * Diagramm. Der Kopf nennt ihre Anzahl; die Balken darunter sehen aus wie
+     * die der Rangliste, nur ohne Rangzeichen - eine Reihenfolge nach Dauer
+     * gibt es hier ja nicht. Ohne solche Flughäfen bleibt die Gruppe weg.
+     */
+    private fun renderLayoverZeroBars(bars: List<ChartData.Bar>) {
+        binding.layoverZeroSection.visibility =
+            if (bars.isEmpty()) View.GONE else View.VISIBLE
+        if (bars.isEmpty()) return
+        binding.tvLayoverZeroHeader.text =
+            getString(R.string.layover_zero_header, bars.size)
+        binding.barChartZero.setValueInsideBar(true)
+        binding.barChartZero.setShowRanks(false)
+        binding.barChartZero.setOnItemClickListener { index ->
+            openLayoverDetail(bars.getOrNull(index)?.label)
+        }
+        binding.barChartZero.setItems(
+            bars.map {
+                BarChartView.Item(it.label, it.count, it.subLabel, it.countLabel)
+            }
+        )
+        applyLayoverZeroExpanded(expanded = false)
+    }
+
+    private fun setupLayoverZeroSection() {
+        binding.layoverZeroHeader.setOnClickListener {
+            applyLayoverZeroExpanded(binding.barChartZero.visibility != View.VISIBLE)
+        }
+    }
+
+    /** Klappt die Null-Gruppe auf oder zu; der Pfeil dreht sich mit. */
+    private fun applyLayoverZeroExpanded(expanded: Boolean) {
+        binding.barChartZero.visibility = if (expanded) View.VISIBLE else View.GONE
+        binding.ivLayoverZeroArrow.animate()
+            .rotation(if (expanded) 180f else 0f)
+            .setDuration(200)
+            .start()
     }
 
     /**
@@ -328,6 +385,138 @@ class TileDetailFragment : Fragment() {
                     ContextCompat.getColor(requireContext(), it.colorRes)
                 )
             }
+        )
+    }
+
+    /**
+     * Reiseart-Auswahl der Kachel "Reiseklasse" - dieselbe Zeile wie im
+     * Formular "Neuer Flug". Anders als dort ist immer eine Reiseart gewaehlt:
+     * Die Kachel zeigt nie alle Klassen auf einmal, Standard ist "Privat".
+     */
+    private fun setupClassTravelType() {
+        classTravelType = Settings.getClassTravelType(requireContext())
+        binding.classTravelTypeSection.visibility = View.VISIBLE
+
+        val topTiles = classTopTiles()
+        SelectionHighlight.configure(
+            binding.classFlightGroupFrame, binding.classFlightHighlight, topTiles
+        )
+        topTiles.forEachIndexed { index, tile ->
+            tile.setOnClickListener { selectClassTopType(index) }
+        }
+
+        val detailTiles = classDeadheadTiles()
+        SelectionHighlight.configure(
+            binding.classDeadheadGroupFrame, binding.classDeadheadHighlight, detailTiles
+        )
+        detailTiles.forEachIndexed { index, tile ->
+            tile.setOnClickListener { selectClassDeadheadType(index) }
+        }
+
+        applyClassTravelType()
+    }
+
+    /** Markiert die gewaehlte Reiseart und blendet die Deadhead-Zeile passend ein. */
+    private fun applyClassTravelType() {
+        val topIndex = ClassTravelType.topIndexOf(classTravelType)
+        SelectionHighlight.move(
+            binding.classFlightGroupFrame,
+            binding.classFlightHighlight,
+            classTopTiles(),
+            topIndex,
+            ContextCompat.getColor(requireContext(), classTopColorRes(topIndex))
+        )
+        updateClassTravelTypeLabels(classTopLabels(), topIndex)
+
+        val detailIndex = ClassTravelType.detailIndexOf(classTravelType)
+        binding.classDeadheadSection.visibility =
+            if (detailIndex >= 0) View.VISIBLE else View.GONE
+        if (detailIndex >= 0) {
+            SelectionHighlight.move(
+                binding.classDeadheadGroupFrame,
+                binding.classDeadheadHighlight,
+                classDeadheadTiles(),
+                detailIndex,
+                ContextCompat.getColor(requireContext(), R.color.type_deadhead_bg)
+            )
+        }
+        updateClassTravelTypeLabels(classDeadheadLabels(), detailIndex.takeIf { it >= 0 })
+    }
+
+    /**
+     * Wechselt die oberste Reiseart. Bei "Deadhead" bleibt eine zuvor gewaehlte
+     * Unterart (Ferry, Ground Transfer) erhalten, sonst beginnt es mit Deadhead.
+     */
+    private fun selectClassTopType(index: Int) {
+        val top = ClassTravelType.TOP_LEVEL.getOrNull(index) ?: return
+        classTravelType = if (top == ChartData.DEADHEAD_CANONICAL) {
+            classTravelType.takeIf { it in ClassTravelType.DEADHEAD_DETAIL }
+                ?: ChartData.DEADHEAD_CANONICAL
+        } else {
+            top
+        }
+        persistClassTravelType()
+    }
+
+    private fun selectClassDeadheadType(index: Int) {
+        classTravelType = ClassTravelType.DEADHEAD_DETAIL.getOrNull(index) ?: return
+        persistClassTravelType()
+    }
+
+    private fun persistClassTravelType() {
+        Settings.setClassTravelType(requireContext(), classTravelType)
+        applyClassTravelType()
+        renderClassPie()
+    }
+
+    private fun classTopTiles() = listOf(
+        binding.tileClassTypePrivate,
+        binding.tileClassTypeOnDuty,
+        binding.tileClassTypeDeadhead,
+        binding.tileClassTypeDutyTravel,
+    )
+
+    private fun classTopLabels() = listOf(
+        binding.labelClassTypePrivate,
+        binding.labelClassTypeOnDuty,
+        binding.labelClassTypeDeadhead,
+        binding.labelClassTypeDutyTravel,
+    )
+
+    private fun classDeadheadTiles() = listOf(
+        binding.tileClassDeadheadDeadhead,
+        binding.tileClassDeadheadFerry,
+        binding.tileClassDeadheadGroundTransfer,
+    )
+
+    private fun classDeadheadLabels() = listOf(
+        binding.labelClassDeadheadDeadhead,
+        binding.labelClassDeadheadFerry,
+        binding.labelClassDeadheadGroundTransfer,
+    )
+
+    private fun classTopColorRes(index: Int): Int = when (index) {
+        0 -> R.color.type_private_bg
+        1 -> R.color.type_on_duty_bg
+        2 -> R.color.type_deadhead_bg
+        else -> R.color.type_duty_travel_bg
+    }
+
+    private fun updateClassTravelTypeLabels(labels: List<TextView>, selectedIndex: Int?) {
+        val resting = InputTile.hintColor(binding.root)
+        labels.forEachIndexed { index, label ->
+            label.setTextColor(if (index == selectedIndex) Color.WHITE else resting)
+        }
+    }
+
+    private fun renderClassPie() {
+        renderPie(
+            ChartData.classSlices(
+                requireContext(),
+                null,
+                ChartData.periodFiltered(requireContext()),
+                classTravelType
+            )
         )
     }
 

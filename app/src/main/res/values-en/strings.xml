@@ -275,6 +275,9 @@
     <string name="layover_sort_label">Sort by:</string>
     <string name="layover_sort_count">Count</string>
     <string name="layover_sort_duration">Duration</string>
+    <!-- Header of the collapsed group of airports for which no layover duration
+         is recorded in duration mode (0 hours). %1$d is their number. -->
+    <string name="layover_zero_header">No duration (%1$d)</string>
     <string name="chart_filter_all">All</string>
     <string name="chart_empty">No data for this period.</string>
     <string name="world_map_loading">Loading world map…</string>

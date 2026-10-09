@@ -54,6 +54,7 @@ object Settings {
     private const val KEY_LEGACY_DARK_MODE = "dark_mode"
     private const val KEY_DEFAULT_PERIOD = "default_period"
     private const val KEY_FLIGHT_TYPE_FILTER = "flight_type_filter"
+    private const val KEY_CLASS_TRAVEL_TYPE = "class_travel_type"
     private const val KEY_DEFAULT_TIME_UNIT = "default_time_unit"
     private const val KEY_ACCENT = "accent_color"
     private const val KEY_ROLE = "role"
@@ -121,6 +122,20 @@ object Settings {
     fun setFlightTypeFilterKey(context: Context, key: String) {
         prefs(context).edit()
             .putString(KEY_FLIGHT_TYPE_FILTER, FlightTypeOptions.normalize(key))
+            .apply()
+    }
+
+    /**
+     * Reiseart, nach der die Kachel "Reiseklasse" ihre Klassen aufschluesselt,
+     * siehe [ClassTravelType]. Standard ist "Privat". Der Wert bleibt erhalten,
+     * weil ihn auch die Vorschau auf dem Dashboard braucht.
+     */
+    fun getClassTravelType(context: Context): String =
+        ClassTravelType.normalize(prefs(context).getString(KEY_CLASS_TRAVEL_TYPE, null))
+
+    fun setClassTravelType(context: Context, value: String) {
+        prefs(context).edit()
+            .putString(KEY_CLASS_TRAVEL_TYPE, ClassTravelType.normalize(value))
             .apply()
     }
 

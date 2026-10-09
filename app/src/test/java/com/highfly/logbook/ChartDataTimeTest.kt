@@ -14,7 +14,7 @@ class ChartDataTimeTest {
     ) = LogbookEntry(date = date, fromAirport = from, toAirport = to, flightMinutes = minutes)
 
     @Test
-    fun histogram_countsFlightsPerFullHour() {
+    fun histogram_countsFlightsPerFullHourAndEndsOneHourHigher() {
         val bars = ChartData.durationHistogram(
             listOf(
                 entry("FRA", "JFK", 180),
@@ -24,12 +24,31 @@ class ChartDataTimeTest {
             )
         )
 
-        assertEquals(20, bars.size)
+        // Höchster belegter Wert ist 3 Stunden, danach folgt noch "4+".
+        assertEquals(4, bars.size)
+        assertEquals("1", bars[0].label)
+        assertEquals(0, bars[0].count)
+        assertEquals(1, bars[1].count)
+        assertEquals("2", bars[1].label)
         assertEquals(3, bars[2].count)
         assertEquals("3", bars[2].label)
-        assertEquals(1, bars[1].count)
-        assertEquals(0, bars[0].count)
-        assertEquals("20+", bars[19].label)
+        assertEquals("4+", bars[3].label)
+        assertEquals(0, bars[3].count)
+    }
+
+    @Test
+    fun histogram_stopsAtThePlusBarAfterTheLongestFlight() {
+        // Vier Flüge à 14 Stunden, dann keiner mehr: Die Achse zeigt bis
+        // "15+", die Zahlen dahinter (16, 17, ...) entfallen.
+        val bars = ChartData.durationHistogram(
+            List(4) { entry("FRA", "JFK", 840) }
+        )
+
+        assertEquals(15, bars.size)
+        assertEquals(4, bars[13].count)
+        assertEquals("14", bars[13].label)
+        assertEquals("15+", bars[14].label)
+        assertEquals(0, bars[14].count)
     }
 
     @Test

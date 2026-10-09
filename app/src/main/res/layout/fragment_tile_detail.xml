@@ -340,6 +340,327 @@
                 android:visibility="gone"
                 tools:visibility="visible" />
 
+            <!-- Flughaefen ohne erfasste Layoverdauer: im Dauer-Modus nicht in
+                 der Rangliste oben, sondern in dieser Gruppe. Sie ist
+                 standardmaessig eingeklappt und sitzt unter dem Diagramm. Der
+                 Kopf ist wie der Optional-Kopf im Formular "Neuer Flug"
+                 aufgebaut. Nur bei der Layover-Kachel sichtbar. -->
+            <LinearLayout
+                android:id="@+id/layover_zero_section"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <LinearLayout
+                    android:id="@+id/layover_zero_header"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingVertical="4dp">
+
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="1dp"
+                        android:layout_weight="1"
+                        android:background="?attr/colorOutlineVariant" />
+
+                    <TextView
+                        android:id="@+id/tv_layover_zero_header"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textStyle="bold"
+                        tools:text="Ohne Dauer (3)" />
+
+                    <ImageView
+                        android:id="@+id/iv_layover_zero_arrow"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_marginStart="12dp"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/ic_expand" />
+
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="1dp"
+                        android:layout_marginStart="12dp"
+                        android:layout_weight="1"
+                        android:background="?attr/colorOutlineVariant" />
+                </LinearLayout>
+
+                <com.highfly.logbook.BarChartView
+                    android:id="@+id/bar_chart_zero"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
+            </LinearLayout>
+
+            <!-- Reiseart der Kachel "Reiseklasse": dieselbe Zeile wie im Formular
+                 "Neuer Flug". Die Klassen im Pie darunter zaehlen nur die
+                 gewaehlte Reiseart, Standard ist "Privat". Nur bei dieser Kachel
+                 sichtbar. -->
+            <LinearLayout
+                android:id="@+id/class_travel_type_section"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:orientation="vertical"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/tile_travel_type"
+                    android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    app:contentPadding="0dp"
+                    app:strokeColor="?attr/colorOutlineVariant"
+                    app:strokeWidth="1dp">
+
+                    <FrameLayout
+                        android:id="@+id/class_flight_group_frame"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp">
+
+                        <View
+                            android:id="@+id/class_flight_highlight"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent" />
+
+                        <LinearLayout
+                            android:id="@+id/class_flight_type_container"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:orientation="horizontal">
+
+                            <LinearLayout
+                                android:id="@+id/tile_class_type_private"
+                                android:layout_width="0dp"
+                                android:layout_height="match_parent"
+                                android:layout_weight="1"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center">
+
+                                <TextView
+                                    android:id="@+id/label_class_type_private"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:autoSizeMaxTextSize="14sp"
+                                    android:autoSizeMinTextSize="9sp"
+                                    android:autoSizeStepGranularity="1sp"
+                                    android:autoSizeTextType="uniform"
+                                    android:gravity="center"
+                                    android:maxLines="1"
+                                    android:text="@string/flight_type_private"
+                                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:id="@+id/tile_class_type_on_duty"
+                                android:layout_width="0dp"
+                                android:layout_height="match_parent"
+                                android:layout_weight="1"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center">
+
+                                <TextView
+                                    android:id="@+id/label_class_type_on_duty"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:autoSizeMaxTextSize="14sp"
+                                    android:autoSizeMinTextSize="9sp"
+                                    android:autoSizeStepGranularity="1sp"
+                                    android:autoSizeTextType="uniform"
+                                    android:gravity="center"
+                                    android:maxLines="1"
+                                    android:text="@string/flight_type_on_duty"
+                                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:id="@+id/tile_class_type_deadhead"
+                                android:layout_width="0dp"
+                                android:layout_height="match_parent"
+                                android:layout_weight="1"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center">
+
+                                <TextView
+                                    android:id="@+id/label_class_type_deadhead"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:autoSizeMaxTextSize="14sp"
+                                    android:autoSizeMinTextSize="9sp"
+                                    android:autoSizeStepGranularity="1sp"
+                                    android:autoSizeTextType="uniform"
+                                    android:gravity="center"
+                                    android:maxLines="1"
+                                    android:text="@string/flight_type_deadhead"
+                                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:id="@+id/tile_class_type_duty_travel"
+                                android:layout_width="0dp"
+                                android:layout_height="match_parent"
+                                android:layout_weight="1"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center">
+
+                                <TextView
+                                    android:id="@+id/label_class_type_duty_travel"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:autoSizeMaxTextSize="14sp"
+                                    android:autoSizeMinTextSize="9sp"
+                                    android:autoSizeStepGranularity="1sp"
+                                    android:autoSizeTextType="uniform"
+                                    android:gravity="center"
+                                    android:maxLines="1"
+                                    android:text="@string/flight_type_duty_travel"
+                                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+                        </LinearLayout>
+                    </FrameLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <LinearLayout
+                    android:id="@+id/class_deadhead_section"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="0dp"
+                        app:contentPadding="0dp"
+                        app:strokeColor="?attr/colorOutlineVariant"
+                        app:strokeWidth="1dp">
+
+                        <FrameLayout
+                            android:id="@+id/class_deadhead_group_frame"
+                            android:layout_width="match_parent"
+                            android:layout_height="52dp">
+
+                            <View
+                                android:id="@+id/class_deadhead_highlight"
+                                android:layout_width="0dp"
+                                android:layout_height="match_parent" />
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:orientation="horizontal">
+
+                                <LinearLayout
+                                    android:id="@+id/tile_class_deadhead_deadhead"
+                                    android:layout_width="0dp"
+                                    android:layout_height="match_parent"
+                                    android:layout_weight="1"
+                                    android:clickable="true"
+                                    android:focusable="true"
+                                    android:gravity="center">
+
+                                    <TextView
+                                        android:id="@+id/label_class_deadhead_deadhead"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:autoSizeMaxTextSize="14sp"
+                                        android:autoSizeMinTextSize="9sp"
+                                        android:autoSizeStepGranularity="1sp"
+                                        android:autoSizeTextType="uniform"
+                                        android:gravity="center"
+                                        android:maxLines="1"
+                                        android:text="@string/flight_type_deadhead"
+                                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                        android:textStyle="bold" />
+                                </LinearLayout>
+
+                                <LinearLayout
+                                    android:id="@+id/tile_class_deadhead_ferry"
+                                    android:layout_width="0dp"
+                                    android:layout_height="match_parent"
+                                    android:layout_weight="1"
+                                    android:clickable="true"
+                                    android:focusable="true"
+                                    android:gravity="center">
+
+                                    <TextView
+                                        android:id="@+id/label_class_deadhead_ferry"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:autoSizeMaxTextSize="14sp"
+                                        android:autoSizeMinTextSize="9sp"
+                                        android:autoSizeStepGranularity="1sp"
+                                        android:autoSizeTextType="uniform"
+                                        android:gravity="center"
+                                        android:maxLines="1"
+                                        android:text="@string/flight_type_ferry"
+                                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                        android:textStyle="bold" />
+                                </LinearLayout>
+
+                                <LinearLayout
+                                    android:id="@+id/tile_class_deadhead_ground_transfer"
+                                    android:layout_width="0dp"
+                                    android:layout_height="match_parent"
+                                    android:layout_weight="1"
+                                    android:clickable="true"
+                                    android:focusable="true"
+                                    android:gravity="center">
+
+                                    <TextView
+                                        android:id="@+id/label_class_deadhead_ground_transfer"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:autoSizeMaxTextSize="14sp"
+                                        android:autoSizeMinTextSize="9sp"
+                                        android:autoSizeStepGranularity="1sp"
+                                        android:autoSizeTextType="uniform"
+                                        android:gravity="center"
+                                        android:maxLines="1"
+                                        android:text="@string/flight_type_ground_transfer"
+                                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                        android:textStyle="bold" />
+                                </LinearLayout>
+                            </LinearLayout>
+                        </FrameLayout>
+                    </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
+            </LinearLayout>
+
             <com.highfly.logbook.PieChartView
                 android:id="@+id/pie_chart"
                 android:layout_width="match_parent"

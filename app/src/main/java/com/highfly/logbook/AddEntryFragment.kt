@@ -3,7 +3,6 @@ package com.highfly.logbook
 import android.app.DatePickerDialog
 import android.graphics.Color
 import android.graphics.Rect
-import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.text.Editable
 import android.text.SpannableString
@@ -19,7 +18,6 @@ import android.view.animation.OvershootInterpolator
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.DatePicker
-import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
@@ -152,7 +150,7 @@ class AddEntryFragment : Fragment() {
         val tiles = orderedFlightTypeTiles()
         val labels = orderedFlightTypeLabels()
 
-        configureHighlight(binding.flightGroupFrame, binding.flightHighlight, tiles)
+        SelectionHighlight.configure(binding.flightGroupFrame, binding.flightHighlight, tiles)
 
         tiles.forEachIndexed { visualIndex, tile ->
             tile.setOnClickListener { selectFlightType(flightTypeVisualOrder()[visualIndex]) }
@@ -203,7 +201,7 @@ class AddEntryFragment : Fragment() {
         val tiles = deadheadTiles()
         val labels = deadheadLabels()
 
-        configureHighlight(binding.deadheadGroupFrame, binding.deadheadHighlight, tiles)
+        SelectionHighlight.configure(binding.deadheadGroupFrame, binding.deadheadHighlight, tiles)
 
         tiles.forEachIndexed { index, tile ->
             tile.setOnClickListener { selectDeadheadType(index) }
@@ -225,7 +223,7 @@ class AddEntryFragment : Fragment() {
 
     private fun selectDeadheadType(index: Int) {
         selectedDeadheadIndex = index
-        moveHighlight(
+        SelectionHighlight.move(
             binding.deadheadGroupFrame,
             binding.deadheadHighlight,
             deadheadTiles(),
@@ -288,7 +286,7 @@ class AddEntryFragment : Fragment() {
         val tiles = orderedFlightTypeTiles()
         val labels = orderedFlightTypeLabels()
         val visualIndex = flightTypeVisualOrder().indexOf(index)
-        moveHighlight(
+        SelectionHighlight.move(
             binding.flightGroupFrame,
             binding.flightHighlight,
             tiles,
@@ -391,7 +389,7 @@ class AddEntryFragment : Fragment() {
         selectedClassIndex = index
         val tiles = classTiles()
         val classColors = ClassColorSchemes.colorsFor(Settings.getClassScheme(requireContext()))
-        moveHighlight(
+        SelectionHighlight.move(
             binding.classGroupFrame,
             binding.classHighlight,
             tiles,
@@ -438,7 +436,7 @@ class AddEntryFragment : Fragment() {
     )
 
     private fun setupClassTiles() {
-        configureHighlight(binding.classGroupFrame, binding.classHighlight, classTiles())
+        SelectionHighlight.configure(binding.classGroupFrame, binding.classHighlight, classTiles())
         // Ohne Reiseklasse gibt es nichts zu markieren, deshalb startet der
         // Rahmen ausgeblendet und bekommt erst beim Tippen eine Farbe.
         binding.classHighlight.visibility = View.GONE
@@ -565,55 +563,6 @@ class AddEntryFragment : Fragment() {
             if (selectedIndex == CLASS_JUMP_INDEX) Color.WHITE else resting
         )
     }
-
-    private fun configureHighlight(frame: FrameLayout, highlight: View, tiles: List<View>) {
-        frame.doOnLayout {
-            val anchor = tiles.firstOrNull() ?: return@doOnLayout
-            (highlight.layoutParams as FrameLayout.LayoutParams).width = anchor.width
-            highlight.translationX = frame.offsetTo(anchor)
-        }
-    }
-
-    private fun moveHighlight(
-        frame: FrameLayout,
-        highlight: View,
-        tiles: List<View>,
-        index: Int,
-        color: Int
-    ) {
-        frame.doOnLayout {
-            val tile = tiles.getOrNull(index) ?: return@doOnLayout
-            (highlight.layoutParams as FrameLayout.LayoutParams).width = tile.width
-            highlight.layoutParams = highlight.layoutParams
-
-            highlight.background = roundedCellBackground(color)
-
-            if (highlight.visibility != View.VISIBLE) {
-                highlight.visibility = View.VISIBLE
-                highlight.alpha = 0f
-                highlight.animate().alpha(1f).setDuration(200).start()
-            }
-
-            highlight.animate()
-                .translationX(frame.offsetTo(tile))
-                .setDuration(250)
-                .start()
-        }
-    }
-
-    private fun FrameLayout.offsetTo(target: View): Float {
-        val framePos = IntArray(2)
-        val targetPos = IntArray(2)
-        getLocationInWindow(framePos)
-        target.getLocationInWindow(targetPos)
-        return (targetPos[0] - framePos[0]).toFloat()
-    }
-
-    private fun roundedCellBackground(color: Int): GradientDrawable =
-        GradientDrawable().apply {
-            cornerRadius = 16f * resources.displayMetrics.density
-            setColor(color)
-        }
 
     /**
      * Die Eingabekachel, in der ein Feld liegt. Beschriftung und Beispiel der

@@ -391,4 +391,38 @@ class ChartDataLayoverTest {
             assertEquals(emptyList<ChartData.Bar>(), ChartData.layoverBars(entries, sort))
         }
     }
+
+    @Test
+    fun splitLayoverZeroDuration_separatesAirportsWithoutRecordedTime() {
+        // Im Dauer-Modus haben Flughäfen ohne erfasste Zeit den Wert 0. Sie
+        // gehören nicht in die Rangliste, sondern in die Null-Gruppe.
+        val entries = listOf(
+            entry("JFK", LocalDate.of(2021, 6, 11), layoverHours = 48),
+            entry("DOH", LocalDate.of(2023, 5, 17)),
+            entry("DXB", LocalDate.of(2024, 11, 13), layoverHours = 72)
+        )
+        val bars = ChartData.layoverBars(entries, ChartData.LayoverSort.DAUER)
+
+        val (ranked, zero) = ChartData.splitLayoverZeroDuration(bars)
+
+        assertEquals(listOf("DXB", "JFK"), ranked.map { it.label })
+        assertEquals(listOf("DOH"), zero.map { it.label })
+        assertEquals(listOf(0), zero.map { it.count })
+    }
+
+    @Test
+    fun splitLayoverZeroDuration_keepsCountModeUntouched() {
+        // Im Anzahl-Modus gibt es keine Null-Balken: jeder Flughafen wurde
+        // mindestens einmal besucht, die Null-Gruppe bleibt leer.
+        val entries = listOf(
+            entry("JFK", LocalDate.of(2021, 6, 11)),
+            entry("DOH", LocalDate.of(2023, 5, 17))
+        )
+        val bars = ChartData.layoverBars(entries, ChartData.LayoverSort.ANZAHL)
+
+        val (ranked, zero) = ChartData.splitLayoverZeroDuration(bars)
+
+        assertEquals(bars, ranked)
+        assertEquals(emptyList<ChartData.Bar>(), zero)
+    }
 }

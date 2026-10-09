@@ -56,12 +56,14 @@ class BarChartView @JvmOverloads constructor(
     private var rankGap = 0f
     private var barGap = 0f
     private var countGap = 0f
+    private var subGap = 0f
     private var flagGap = 0f
     private var medalRadius = 0f
     private var barInset = 0f
     private var showRanks = true
     private var barFraction = 1f
     private var labelReferences: List<String> = emptyList()
+    private var valueInsideBar = false
 
     init {
         barColor = MaterialColors.getColor(this, com.google.android.material.R.attr.colorPrimary)
@@ -83,6 +85,7 @@ class BarChartView @JvmOverloads constructor(
         rankGap = dp(10)
         barGap = dp(10)
         countGap = dp(8)
+        subGap = dp(8)
         flagGap = dp(8)
         medalRadius = dp(11)
         barInset = dp(10)
@@ -127,6 +130,25 @@ class BarChartView @JvmOverloads constructor(
     fun setBarFraction(fraction: Float) {        val value = fraction.coerceIn(MIN_BAR_FRACTION, 1f)
         if (barFraction == value) return
         barFraction = value
+        invalidate()
+    }
+
+    /**
+     * Wert im Balken, Unterbeschriftung fest am rechten Rand: der Messwert
+     * (die Zahl der Layover oder die Dauer als "3,5 Tage") wird in den Balken
+     * geschrieben, sobald er hineinpasst, und steht sonst direkt rechts neben
+     * dem Balken. Die Unterbeschriftung ("Zuletzt: …") erscheint dagegen in
+     * jeder Zeile am rechten Rand, damit alle Datumsworte auf einer Linie
+     * enden. Die Balkenlaenge richtet sich danach, dass Wert und
+     * Unterbeschriftung rechts nebeneinander Platz brauchen, siehe
+     * [maxBarWidth] und [subReserve].
+     */
+    fun setValueInsideBar(inside: Boolean) {
+        if (valueInsideBar == inside) return
+        valueInsideBar = inside
+        // Im neuen Layout steht die Unterbeschriftung immer fett, deshalb auch
+        // bei der Messung fett gemessen - sonst passt der reservierte Platz nicht.
+        subPaint.isFakeBoldText = inside
         invalidate()
     }
 
@@ -202,8 +224,7 @@ class BarChartView @JvmOverloads constructor(
         val pill = rowHeight / 2f
 
         val rankOffset = if (showRanks) items.indices.maxOf { rankWidth(it) } + rankGap else 0f
-        val countReserve =
-            items.maxOf { countPaint.measureText(countText(it)) } + countGap + sidePadding
+        val maxCountWidth = items.maxOf { countPaint.measureText(countText(it)) }
 
         var maxCodeWidth = 0f
         var maxFlagWidth = 0f
@@ -221,7 +242,10 @@ class BarChartView @JvmOverloads constructor(
         val flagLeft = labelLeft + maxCodeWidth + flagGap
         val flagCenterX = flagLeft + maxFlagWidth / 2f
         val barLeft = labelLeft + labelReserve + barGap
-        val usableBarWidth = (width - barLeft - countReserve).coerceAtLeast(0f)
+        // Rechte Grenze fuer die Balken: die Unterbeschriftung am rechten Rand
+        // und der Wert, der neben dem Balken steht, brauchen dort ihren Platz.
+        val barLimit = width - sidePadding - subReserve()
+        val usableBarWidth = maxBarWidth(barLeft, barLimit, maxCountWidth)
 
         val barRect = RectF()
 
@@ -263,18 +287,28 @@ class BarChartView @JvmOverloads constructor(
             barPaint.color = barColor
             canvas.drawRoundRect(barRect, pill, pill, barPaint)
 
-            countPaint.color = countColor
-            canvas.drawText(
-                countText(item),
-                barRight + countGap,
-                centeredBaseline(barTop, barBottom, countPaint),
-                countPaint
-            )
+            val valueText = countText(item)
+            val valueWidth = countPaint.measureText(valueText)
+            val valueBaseline = centeredBaseline(barTop, barBottom, countPaint)
+            if (valueInsideBar && barWidth - 2 * barInset >= valueWidth) {
+                // Der Wert passt in den Balken: innen links mit dem ueblichen
+                // Rand, sonst direkt rechts neben dem Balken.
+                countPaint.color = backgroundColor
+                canvas.drawText(valueText, barLeft + barInset, valueBaseline, countPaint)
+            } else {
+                countPaint.color = countColor
+                canvas.drawText(valueText, barRight + countGap, valueBaseline, countPaint)
+            }
 
             item.subLabel?.takeIf { it.isNotEmpty() }?.let { subLabel ->
-                val subWidth = subPaint.measureText(subLabel)
                 val subBaseline = centeredBaseline(barTop, barBottom, subPaint)
-                if (barWidth - 2 * barInset >= subWidth) {
+                if (valueInsideBar) {
+                    // Fest am rechten Rand: alle Zeilen enden auf derselben
+                    // Linie, unabhängig davon, wie lang der Balken ist.
+                    subPaint.textAlign = Paint.Align.RIGHT
+                    subPaint.color = labelColor
+                    canvas.drawText(subLabel, width - sidePadding, subBaseline, subPaint)
+                } else if (barWidth - 2 * barInset >= subPaint.measureText(subLabel)) {
                     subPaint.textAlign = Paint.Align.LEFT
                     subPaint.color = backgroundColor
                     canvas.drawText(
@@ -296,6 +330,42 @@ class BarChartView @JvmOverloads constructor(
 
     private fun countText(item: Item): String =
         item.countLabel ?: item.count.toString()
+
+    /**
+     * Platz, den die fest am rechten Rand stehende Unterbeschriftung
+     * beansprucht, damit der Wert daneben nicht hineinlaeuft. Im
+     * Standardlayout entfaellt die Reserve, weil dort die Unterbeschriftung
+     * selbst im Balken steht.
+     */
+    private fun subReserve(): Float {
+        if (!valueInsideBar) return 0f
+        val widest = items.maxOf { subWidth(it) }
+        return if (widest <= 0f) 0f else widest + subGap
+    }
+
+    private fun subWidth(item: Item): Float =
+        item.subLabel?.takeIf { it.isNotEmpty() }?.let { subPaint.measureText(it) } ?: 0f
+
+    /**
+     * Breite, die dem laengsten Balken verbleibt. Rechts vom Balken steht der
+     * Wert (Zahl oder Tage), wenn er nicht hineinpasst, und dahinter liegt
+     * immer die Unterbeschriftung am rechten Rand. Passt der Wert in den
+     * Balken, darf dieser bis an die Unterbeschriftung heranreichen. Kuerzere
+     * Balken dagegen werden so weit gekuerzt, dass auch der laengste von ihnen
+     * mit seinem Wert daneben noch vor der Unterbeschriftung endet.
+     */
+    private fun maxBarWidth(barLeft: Float, barLimit: Float, maxCountWidth: Float): Float {
+        // Platz fuer den Wert neben dem Balken, gerechnet ab dessen rechtem Rand.
+        val besideRoom = barLimit - barLeft - maxCountWidth - countGap
+        // Ab dieser Balkenbreite passt der Wert inklusive Rand in den Balken.
+        val insideAt = maxCountWidth + 2 * barInset
+        val room = if (valueInsideBar && besideRoom >= insideAt) {
+            barLimit - barLeft
+        } else {
+            besideRoom
+        }
+        return room.coerceAtLeast(0f)
+    }
 
     private fun rankFor(index: Int): Int =
         items.map { it.count }.distinct().count { it > items[index].count } + 1

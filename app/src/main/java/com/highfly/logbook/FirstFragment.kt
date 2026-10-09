@@ -259,7 +259,12 @@ class FirstFragment : Fragment() {
                     worldmapPreview.visibility = View.GONE
                     pieView.visibility = View.VISIBLE
                     val slices = when (tileId) {
-                        "class" -> ChartData.classSlices(requireContext(), null, entries)
+                        "class" -> ChartData.classSlices(
+                            requireContext(),
+                            null,
+                            entries,
+                            Settings.getClassTravelType(requireContext())
+                        )
                         "function" -> ChartData.functionSlices(requireContext(), entries)
                         else -> ChartData.travelTypeSlices(requireContext(), entries)
                     }

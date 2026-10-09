@@ -46,6 +46,14 @@ object ChartData {
 
     /** Die einzige Reiseart, die nicht als dienstlich gilt. */
     const val PRIVATE_CANONICAL = "Privat"
+    const val ON_DUTY_CANONICAL = "On Duty"
+    const val DEADHEAD_CANONICAL = "Deadhead"
+    const val FERRY_CANONICAL = "Ferry"
+    const val GROUND_TRANSFER_CANONICAL = "Ground Transfer"
+    const val DUTY_TRAVEL_CANONICAL = "Dienstreise"
+
+    /** Alle Reisearten in kanonischer Schreibweise, in Anzeige-Reihenfolge. */
+    val TRAVEL_TYPE_CANONICALS: List<String> = travelTypes.map { it.canonical }
 
     /**
      * Alle Reisearten ausser [PRIVATE_CANONICAL]: On Duty, Deadhead, Ferry,
@@ -77,7 +85,7 @@ object ChartData {
     )
     private val PIE_CHART_TILES = setOf("class", "traveltype", "function")
 
-    /** Balken der Flugdauer-Histogramm: 1-19 Stunden, danach "20+". */
+    /** Obergrenze der Stunden-Balken: alles ab dieser Stunde landet im Sammel-Balken. */
     private const val HOUR_BUCKETS = 20
 
     private val DATE_LABEL_FORMAT: DateTimeFormatter =
@@ -186,6 +194,17 @@ object ChartData {
         }
             .sortedWith(compareByDescending<Bar> { it.count }.thenBy { it.label })
     }
+
+    /**
+     * Teilt die Balken der Layover-Kachel in die Rangliste (Wert über null) und
+     * die Flughäfen ohne erfasste Dauer (Wert null). Im Dauer-Modus stehen
+     * solche Flughäfen nicht in der Rangliste, sondern in einer eigenen,
+     * einklappbaren Gruppe darunter; die Reihenfolge bleibt erhalten. Im
+     * Anzahl-Modus ist die zweite Liste leer, weil dort jeder gelistete
+     * Flughafen mindestens einmal besucht wurde.
+     */
+    fun splitLayoverZeroDuration(bars: List<Bar>): Pair<List<Bar>, List<Bar>> =
+        bars.partition { it.count > 0 }
 
     /**
      * Layoverdauer in Tagen mit einer Nachkommastelle, z. B. "3,5 Tage" -
@@ -364,26 +383,40 @@ object ChartData {
         )
     }
 
-    /**
-     * Anzahl der Flüge je voller Stunde: 1 bis 19 Stunden, danach ein
-     * Sammel-Balken "20+" für alles darueber. Kuerzere Fluege landen im
-     * 1-Stunden-Balken. Ohne erfasste Flugzeit wird der Flug nicht gezaehlt.
-     */
     fun durationHistogram(context: Context): List<Bar> =
         durationHistogram(periodFiltered(context))
 
+    /**
+     * Anzahl der Flüge je voller Stunde. Die x-Achse endet dynamisch: Auf den
+     * höchsten belegten Stundenwert folgt noch ein Balken mehr, der als "N+"
+     * beschriftet ist und alle längeren Flüge sammelt. Gibt es also nur Flüge
+     * bis 14 Stunden, endet die Achse bei "15+" (leer), und die Zahlen dahinter
+     * entfallen. Kürzere Flüge landen im 1-Stunden-Balken, mehr als
+     * [HOUR_BUCKETS] Stunden immer im letzten Balken. Ohne erfasste Flugzeit
+     * wird der Flug nicht gezählt.
+     */
     fun durationHistogram(entries: List<LogbookEntry>): List<Bar> {
-        val counts = IntArray(HOUR_BUCKETS)
-        entries.forEach { entry ->
-            val minutes = entry.flightMinutes ?: return@forEach
-            if (minutes <= 0) return@forEach
-            val hours = Math.round(minutes / 60.0).toInt()
-            counts[hours.coerceIn(1, HOUR_BUCKETS) - 1]++
+        val hoursList = entries.mapNotNull { entry ->
+            val minutes = entry.flightMinutes
+            if (minutes == null || minutes <= 0) {
+                null
+            } else {
+                Math.round(minutes / 60.0).toInt().coerceAtLeast(1)
+            }
+        }
+        if (hoursList.isEmpty()) return emptyList()
+        // Ein Balken ueber den hoechsten belegten hinaus, aber nie mehr als
+        // HOUR_BUCKETS - der letzte Balken ist immer der Sammel-Balken "N+".
+        val lastOccupied = hoursList.max().coerceAtMost(HOUR_BUCKETS)
+        val buckets = (lastOccupied + 1).coerceAtMost(HOUR_BUCKETS)
+        val counts = IntArray(buckets)
+        hoursList.forEach { hours ->
+            counts[hours.coerceIn(1, buckets) - 1]++
         }
         return counts.mapIndexed { index, count ->
             val hours = index + 1
             Bar(
-                label = if (hours >= HOUR_BUCKETS) "${HOUR_BUCKETS}+" else "$hours",
+                label = if (hours >= buckets) "$hours+" else "$hours",
                 count = count
             )
         }
@@ -403,12 +436,21 @@ object ChartData {
     fun classSlices(context: Context, classType: String?): List<Slice> =
         classSlices(context, classType, periodFiltered(context))
 
+    /**
+     * @param flightType Reiseart, auf die die Klassen eingeschraenkt werden -
+     *   die Auswahl der Kachel "Reiseklasse". `null` zaehlt alle Reisearten.
+     */
     fun classSlices(
         context: Context,
         classType: String?,
-        entries: List<LogbookEntry>
+        entries: List<LogbookEntry>,
+        flightType: String? = null
     ): List<Slice> {
         var filtered = entries
+        if (flightType != null) {
+            val travel = normalizeFlightType(flightType)
+            filtered = filtered.filter { normalizeFlightType(it.flightType) == travel }
+        }
         if (classType != null) {
             val target = normalizeClassType(classType)
             filtered = filtered.filter { normalizeClassType(it.classType) == target }
