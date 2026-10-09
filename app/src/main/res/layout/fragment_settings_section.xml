@@ -81,6 +81,40 @@
                 </LinearLayout>
             </LinearLayout>
 
+            <!--
+                Die Fluggesellschaft gehoert beiden Rollen: Sie ist die
+                Vorbefuellung fuer das Feld "Fluggesellschaft" eines neuen
+                Flugs und steht deshalb ausserhalb der Besatzungs-Gruppe.
+            -->
+            <LinearLayout style="@style/SettingsRow">
+
+                <TextView
+                    style="@style/SettingsRowLabel"
+                    android:labelFor="@id/profile_airline_input"
+                    android:text="@string/profile_airline_label" />
+
+                <LinearLayout style="@style/SettingsRowValue">
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/profile_airline_layout"
+                        style="@style/SettingsTextField"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/profile_airline_input"
+                            style="@style/SettingsTextField.EditText"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="@string/profile_airline_hint"
+                            android:imeOptions="actionDone"
+                            android:inputType="text"
+                            android:maxLength="2"
+                            android:maxLines="1" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+            </LinearLayout>
+
             <LinearLayout
                 android:id="@+id/crew_function_group"
                 android:layout_width="match_parent"
@@ -126,35 +160,6 @@
                                 style="@style/SettingsTileLabel"
                                 android:text="@string/crew_function_flight_attendant" />
                         </com.google.android.material.card.MaterialCardView>
-                    </LinearLayout>
-                </LinearLayout>
-
-                <LinearLayout style="@style/SettingsRow">
-
-                    <TextView
-                        style="@style/SettingsRowLabel"
-                        android:labelFor="@id/profile_airline_input"
-                        android:text="@string/profile_airline_label" />
-
-                    <LinearLayout style="@style/SettingsRowValue">
-
-                        <com.google.android.material.textfield.TextInputLayout
-                            android:id="@+id/profile_airline_layout"
-                            style="@style/SettingsTextField"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content">
-
-                            <com.google.android.material.textfield.TextInputEditText
-                                android:id="@+id/profile_airline_input"
-                                style="@style/SettingsTextField.EditText"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:hint="@string/profile_airline_hint"
-                                android:imeOptions="actionDone"
-                                android:inputType="text"
-                                android:maxLength="2"
-                                android:maxLines="1" />
-                        </com.google.android.material.textfield.TextInputLayout>
                     </LinearLayout>
                 </LinearLayout>
 

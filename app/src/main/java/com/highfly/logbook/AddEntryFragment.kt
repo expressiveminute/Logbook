@@ -1,6 +1,7 @@
 package com.highfly.logbook
 
 import android.app.DatePickerDialog
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Rect
 import android.os.Bundle
@@ -41,6 +42,9 @@ class AddEntryFragment : Fragment() {
     private var _binding: FragmentAddEntryBinding? = null
 
     private val binding get() = _binding!!
+
+    /** Die globale Rolle bestimmt Reisearten, Funktion und Layover. */
+    private val role: Role get() = Settings.getRole(requireContext())
 
     private var selectedFlightTypeIndex: Int? = null
     private var selectedClassIndex: Int? = null
@@ -160,8 +164,9 @@ class AddEntryFragment : Fragment() {
 
     /**
      * Semantische Indizes -> Kacheln. Die sichtbare Reihenfolge kann je nach Rolle
-     * abweichen (Crew: On Duty, Deadhead, Dienstreise, Privat; Passagier: wie im
-     * Layout), daher werden Kacheln/Labels immer über diese Zuordnung aufgelöst.
+     * abweichen: Die Besatzung waehlt On Duty, Deadhead, Dienstreise, Privat, der
+     * Fluggast nur Privat und Dienstreise. Kacheln/Labels werden deshalb immer
+     * ueber diese Zuordnung aufgeloest.
      */
     private fun flightTypeTilesByIndex(): Map<Int, View> = mapOf(
         PRIVATE_INDEX to binding.tileFlightPrivate,
@@ -178,10 +183,10 @@ class AddEntryFragment : Fragment() {
     )
 
     private fun flightTypeVisualOrder(): IntArray =
-        if (Settings.getRole(requireContext()) == Settings.ROLE_CREW) {
+        if (role.isCrew) {
             intArrayOf(ON_DUTY_INDEX, DEADHEAD_INDEX, DUTY_TRAVEL_INDEX, PRIVATE_INDEX)
         } else {
-            intArrayOf(PRIVATE_INDEX, ON_DUTY_INDEX, DEADHEAD_INDEX, DUTY_TRAVEL_INDEX)
+            intArrayOf(PRIVATE_INDEX, DUTY_TRAVEL_INDEX)
         }
 
     private fun orderedFlightTypeTiles(): List<View> =
@@ -192,6 +197,12 @@ class AddEntryFragment : Fragment() {
 
     private fun reorderFlightTypeTiles() {
         val container = binding.flightTypeContainer
+        val order = flightTypeVisualOrder()
+        // Dem Fluggast fehlen On Duty und Deadhead ganz: Ihre Kacheln bleiben
+        // im Layout, werden aber ausgeblendet und belegen keinen Platz mehr.
+        flightTypeTilesByIndex().forEach { (index, tile) ->
+            tile.visibility = if (order.contains(index)) View.VISIBLE else View.GONE
+        }
         val ordered = orderedFlightTypeTiles()
         for (tile in ordered) container.removeView(tile)
         for (tile in ordered) container.addView(tile)
@@ -246,7 +257,7 @@ class AddEntryFragment : Fragment() {
      * Transfer). Standardmäßig ist dort "Deadhead" ausgewählt.
      */
     private fun updateDeadheadRowVisibility() {
-        val isDeadhead = selectedFlightTypeIndex == DEADHEAD_INDEX
+        val isDeadhead = role.isCrew && selectedFlightTypeIndex == DEADHEAD_INDEX
         binding.deadheadSection.visibility = if (isDeadhead) View.VISIBLE else View.GONE
         if (isDeadhead && selectedDeadheadIndex == null) {
             selectDeadheadType(0)
@@ -260,8 +271,10 @@ class AddEntryFragment : Fragment() {
      * ihr eigenes Feld, weil daraus auch zwei Einträge werden.
      */
     private fun updateFunctionVisibility() {
-        val show = selectedFlightTypeIndex == ON_DUTY_INDEX ||
-            selectedFlightTypeIndex == DEADHEAD_INDEX
+        val show = role.showsFunction && (
+            selectedFlightTypeIndex == ON_DUTY_INDEX ||
+                selectedFlightTypeIndex == DEADHEAD_INDEX
+            )
         if (returnActive) {
             binding.tileHinflugFunction.visibility = if (show) View.VISIBLE else View.GONE
             binding.tileRueckflugFunction.visibility = if (show) View.VISIBLE else View.GONE
@@ -318,10 +331,9 @@ class AddEntryFragment : Fragment() {
     }
 
     private fun updateLayoverVisibility() {
-        val isCrew = Settings.getRole(requireContext()) == Settings.ROLE_CREW
         val isPrivate = selectedFlightTypeIndex == PRIVATE_INDEX
         binding.cbLayover.visibility =
-            if (isCrew && !isPrivate) View.VISIBLE else View.GONE
+            if (role.showsLayover && !isPrivate) View.VISIBLE else View.GONE
         updateLayoverHoursVisibility()
     }
 
@@ -358,11 +370,14 @@ class AddEntryFragment : Fragment() {
      * das Kästchen "Layover" steht beim Ankunftsfeld des Hinflugs.
      */
     private fun updateLayoverHoursVisibility() {
-        val active = binding.cbLayover.isChecked &&
-            binding.cbLayover.visibility == View.VISIBLE
+        val layoverVisible = binding.cbLayover.visibility == View.VISIBLE
+        val active = layoverVisible && binding.cbLayover.isChecked
         binding.layoverHoursSection.visibility = if (active) View.VISIBLE else View.GONE
         binding.tileHinflugLayoverHours.visibility = if (active) View.VISIBLE else View.GONE
-        if (!active) {
+        // Nur loeschen, wenn das Kaestchen sichtbar und nicht angeklickt ist.
+        // Ein ausgeblendetes Feld (Fluggast) bewahrt seinen Wert, damit ein
+        // vorhandener Eintrag beim Speichern unveraendert bleibt.
+        if (layoverVisible && !binding.cbLayover.isChecked) {
             binding.etLayoverHours.text?.clear()
             binding.etHinflugLayoverHours.text?.clear()
         }
@@ -559,7 +574,7 @@ class AddEntryFragment : Fragment() {
         labels.forEachIndexed { index, label ->
             label.setTextColor(if (index == selectedIndex) Color.WHITE else resting)
         }
-        binding.ivClassJump.setColorFilter(
+        binding.ivClassJump.imageTintList = ColorStateList.valueOf(
             if (selectedIndex == CLASS_JUMP_INDEX) Color.WHITE else resting
         )
     }

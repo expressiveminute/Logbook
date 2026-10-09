@@ -30,9 +30,6 @@ object Settings {
     private const val LEGACY_ACCENT_LIGHT_BLUE = "light_blue"
     private const val LEGACY_ACCENT_BLUE = "blue"
 
-    const val ROLE_CREW = "crew"
-    const val ROLE_PASSENGER = "passenger"
-
     const val CLASS_SCHEME_LUFTHANSA = "lufthansa"
 
     const val CREW_FUNCTION_PURSER_II = "purser_ii"
@@ -172,11 +169,15 @@ object Settings {
         else -> ACCENT_BROWN
     }
 
-    fun getRole(context: Context): String =
-        prefs(context).getString(KEY_ROLE, ROLE_CREW) ?: ROLE_CREW
+    /**
+     * Globale Rolle des Nutzers - Besatzung oder Fluggast, siehe [Role]. Ohne
+     * gespeicherte Wahl gilt [Role.DEFAULT].
+     */
+    fun getRole(context: Context): Role =
+        Role.fromKey(prefs(context).getString(KEY_ROLE, null))
 
-    fun setRole(context: Context, value: String) {
-        prefs(context).edit().putString(KEY_ROLE, value).apply()
+    fun setRole(context: Context, role: Role) {
+        prefs(context).edit().putString(KEY_ROLE, role.key).apply()
     }
 
     fun getCrewFunction(context: Context): String =

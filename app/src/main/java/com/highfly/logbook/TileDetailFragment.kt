@@ -1,11 +1,18 @@
 package com.highfly.logbook
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.ValueAnimator
 import android.graphics.Color
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.os.bundleOf
@@ -31,6 +38,18 @@ class TileDetailFragment : Fragment() {
     /** Reiseart, nach der die Kachel "Reiseklasse" ihre Klassen zeigt. */
     private var classTravelType: String = ClassTravelType.DEFAULT
 
+    /** Suchtext der Layover-Kachel: Dreilettercode oder Stadt. */
+    private var layoverQuery: String = ""
+
+    /** Ob das Suchfeld der Layover-Kachel ausgeklappt ist. */
+    private var layoverSearchOpen = false
+
+    /** Alle Layover-Balken vor der Suche, damit die Eingabe nur filtern muss. */
+    private var layoverAllBars: List<ChartData.Bar> = emptyList()
+
+    /** Laufende Aufklapp-/Einklappanimation des Layover-Suchfelds. */
+    private var searchAnimator: ValueAnimator? = null
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -50,6 +69,8 @@ class TileDetailFragment : Fragment() {
             layoverSort = ChartData.LayoverSort.entries
                 .firstOrNull { it.name == name } ?: layoverSort
         }
+        savedInstanceState?.getString(KEY_LAYOVER_QUERY)?.let { layoverQuery = it }
+        layoverSearchOpen = savedInstanceState?.getBoolean(KEY_LAYOVER_SEARCH_OPEN) ?: false
 
         binding.btnBack.setOnClickListener {
             findNavController().navigateUp()
@@ -119,10 +140,23 @@ class TileDetailFragment : Fragment() {
      * der Auswahl ab, die Kacheln oben bleiben, egal was gewaehlt ist.
      */
     private fun renderLayover() {
+        setupLayoverOverviewButton()
         setupLayoverZeroSection()
         renderLayoverExtremes()
         renderLayoverSort()
+        setupLayoverSearch()
         renderLayoverBars()
+    }
+
+    /**
+     * Der Sterne-Knopf oben rechts ist nur ein Platzhalter: Er ist bereits
+     * sichtbar und anklickbar, die Übersichtsseite dahinter entsteht später.
+     */
+    private fun setupLayoverOverviewButton() {
+        binding.btnLayoverOverview.visibility = View.VISIBLE
+        binding.btnLayoverOverview.setOnClickListener {
+            // TODO: hier später die zusammenfassende Layover-Übersicht öffnen.
+        }
     }
 
     /**
@@ -167,24 +201,151 @@ class TileDetailFragment : Fragment() {
      * Detailseite des Ziel-Flughafens.
      */
     private fun renderLayoverBars() {
-        val allBars = ChartData.barChart(requireContext(), "layover", layoverSort)
-        // Flughäfen ohne erfasste Dauer (nur im Dauer-Modus möglich) stehen
-        // nicht in der Rangliste, sondern in der einklappbaren Gruppe darunter.
-        val (bars, zeroBars) = ChartData.splitLayoverZeroDuration(allBars)
-
+        layoverAllBars = ChartData.barChart(requireContext(), "layover", layoverSort)
         binding.layoverSortRow.visibility =
-            if (allBars.isEmpty()) View.GONE else View.VISIBLE
+            if (layoverAllBars.isEmpty()) View.GONE else View.VISIBLE
+        applyLayoverFilter()
+    }
+
+    /**
+     * Zeichnet die Layover-Balken erneut, aber nur mit den Flughaefen, die zur
+     * Sucheingabe passen. Ohne Eingabe bleiben alle stehen. Flughaefen ohne
+     * erfasste Dauer (nur im Dauer-Modus moeglich) stehen nicht in der
+     * Rangliste, sondern in der einklappbaren Gruppe darunter - das gilt auch
+     * fuer die gefilterte Auswahl.
+     */
+    private fun applyLayoverFilter() {
+        val query = layoverQuery.trim()
+        val matching = if (query.isEmpty()) {
+            layoverAllBars
+        } else {
+            layoverAllBars.filter { layoverMatches(it.label, query) }
+        }
+        val (bars, zeroBars) = ChartData.splitLayoverZeroDuration(matching)
+
         binding.barChart.setOnItemClickListener { index ->
             openLayoverDetail(bars.getOrNull(index)?.label)
         }
         // Die Layover-Kachel zeigt in beiden Sortierungen gleich: der Wert im
         // Balken, "Zuletzt: …" fest am rechten Rand.
         binding.barChart.setValueInsideBar(true)
+        binding.tvEmpty.setText(
+            if (query.isEmpty()) R.string.chart_empty else R.string.layover_search_empty
+        )
         renderBars(bars)
         // Gibt es nur noch die Null-Gruppe, gehört der Leertext nicht über sie -
         // die Daten stehen ja darunter.
         if (zeroBars.isNotEmpty()) binding.tvEmpty.visibility = View.GONE
         renderLayoverZeroBars(zeroBars)
+        // Trifft die Suche nichts, bleibt nur der Hinweis stehen; ein leeres
+        // Diagramm darueber haette keinen Inhalt.
+        if (matching.isEmpty() && query.isNotEmpty()) {
+            binding.barChart.visibility = View.GONE
+        }
+    }
+
+    /**
+     * Lupe links auf der Sortierzeile: Ein Tipp klappt rechts daneben das
+     * Suchfeld aus, ein zweiter wieder ein und hebt den Filter auf. Gesucht
+     * wird nach dem Flughafencode und nach der Stadt.
+     */
+    private fun setupLayoverSearch() {
+        // Text vor dem Beobachter setzen: die wiederhergestellte Suche soll
+        // nicht schon hier, sondern erst beim Zeichnen der Balken greifen.
+        binding.etLayoverSearch.setText(layoverQuery)
+        binding.etLayoverSearch.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                layoverQuery = s?.toString().orEmpty()
+                applyLayoverFilter()
+            }
+        })
+        binding.ivLayoverSearch.setOnClickListener {
+            toggleLayoverSearch(!layoverSearchOpen)
+        }
+        if (layoverSearchOpen) {
+            binding.etLayoverSearch.visibility = View.VISIBLE
+            binding.etLayoverSearch.alpha = 1f
+            setLayoverSearchProgress(1f)
+        }
+    }
+
+    /**
+     * Trifft die Suche den Flughafen - ueber den Code, die Stadt oder die
+     * deutsche Schreibweise der Stadt (z. B. "Muenchen" fuer MUC).
+     */
+    private fun layoverMatches(code: String, query: String): Boolean {
+        if (code.contains(query, ignoreCase = true)) return true
+        val info = AirportNames.get(requireContext(), code) ?: return false
+        if (info.city?.contains(query, ignoreCase = true) == true) return true
+        return info.cityDe?.contains(query, ignoreCase = true) == true
+    }
+
+    /**
+     * Klappt das Suchfeld aus oder ein. Beim Oeffnen waechst es aus der Lupe
+     * heraus nach rechts, beim Schliessen laeuft es rueckwaerts und leert die
+     * Suche erst am Ende - so springt die Liste nicht schon waehrend der
+     * Animation auf den vollen Bestand zurueck.
+     */
+    private fun toggleLayoverSearch(open: Boolean) {
+        searchAnimator?.cancel()
+        layoverSearchOpen = open
+        if (open) {
+            binding.etLayoverSearch.visibility = View.VISIBLE
+            binding.etLayoverSearch.requestFocus()
+            binding.etLayoverSearch.post {
+                if (_binding != null) showLayoverKeyboard()
+            }
+        } else {
+            hideLayoverKeyboard()
+        }
+        searchAnimator = ValueAnimator.ofFloat(if (open) 0f else 1f, if (open) 1f else 0f)
+            .apply {
+                duration = SEARCH_ANIMATION_MS
+                addUpdateListener { animation ->
+                    setLayoverSearchProgress(animation.animatedValue as Float)
+                }
+                addListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        if (!open) {
+                            binding.etLayoverSearch.visibility = View.GONE
+                            // Leeren loest den Beobachter aus und zeigt wieder
+                            // alle Balken.
+                            binding.etLayoverSearch.setText("")
+                        }
+                    }
+                })
+                start()
+            }
+    }
+
+    /**
+     * Oeffnungsgrad des Suchfelds als gegenlaeufige Gewichte: Bei 0 traegt der
+     * Leerraum den Rest und das Feld bleibt ohne Breite, bei 1 fuellt das Feld
+     * den Platz zwischen Lupe und Sortierauswahl. Die Auswahl am rechten Rand
+     * bleibt dabei stehen.
+     */
+    private fun setLayoverSearchProgress(progress: Float) {
+        val field = binding.etLayoverSearch
+        if (progress > 0f) field.visibility = View.VISIBLE
+        field.alpha = progress
+        val fieldParams = field.layoutParams as LinearLayout.LayoutParams
+        fieldParams.weight = progress
+        field.requestLayout()
+        val spacerParams = binding.layoverSortSpacer.layoutParams as LinearLayout.LayoutParams
+        spacerParams.weight = 1f - progress
+        binding.layoverSortSpacer.requestLayout()
+    }
+
+    private fun showLayoverKeyboard() {
+        requireContext().getSystemService(InputMethodManager::class.java)
+            ?.showSoftInput(binding.etLayoverSearch, InputMethodManager.SHOW_IMPLICIT)
+    }
+
+    private fun hideLayoverKeyboard() {
+        requireContext().getSystemService(InputMethodManager::class.java)
+            ?.hideSoftInputFromWindow(binding.etLayoverSearch.windowToken, 0)
     }
 
     /**
@@ -520,13 +681,24 @@ class TileDetailFragment : Fragment() {
         )
     }
 
-    /** Merkt die Layover-Sortierung ueber eine Neuerstellung der Seite hinweg. */
+    /**
+     * Merkt die Layover-Sortierung und die Layover-Suche ueber eine
+     * Neuerstellung der Seite hinweg.
+     */
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putString(KEY_LAYOVER_SORT, layoverSort.name)
+        outState.putString(KEY_LAYOVER_QUERY, layoverQuery)
+        outState.putBoolean(KEY_LAYOVER_SEARCH_OPEN, layoverSearchOpen)
     }
 
     override fun onDestroyView() {
+        // Zuerst die Zuhoerer entfernen: das Abbrechen ruft sonst noch einmal
+        // in die Ansicht hinein, die gleich danach freigegeben wird.
+        searchAnimator?.removeAllListeners()
+        searchAnimator?.removeAllUpdateListeners()
+        searchAnimator?.cancel()
+        searchAnimator = null
         super.onDestroyView()
         _binding = null
     }
@@ -541,6 +713,15 @@ class TileDetailFragment : Fragment() {
 
         /** Schlüssel für die gemerkte Layover-Sortierung im Zustand. */
         const val KEY_LAYOVER_SORT = "layoverSort"
+
+        /** Schlüssel für die gemerkte Layover-Suche im Zustand. */
+        const val KEY_LAYOVER_QUERY = "layoverQuery"
+
+        /** Schlüssel dafür, ob das Layover-Suchfeld ausgeklappt ist. */
+        const val KEY_LAYOVER_SEARCH_OPEN = "layoverSearchOpen"
+
+        /** Dauer der Aufklapp-/Einklappanimation des Suchfelds. */
+        const val SEARCH_ANIMATION_MS = 220L
 
         val DATE_LABEL_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
     }

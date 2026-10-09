@@ -395,9 +395,10 @@ class EntryListAdapter(
         // Die Layover-Uhr erscheint nur, wenn fuer den Flug eine Dauer
         // eingetragen ist. Sie steht links neben dem Reisebuddy-Symbol; ohne
         // Buddy rueckt sie an die rechte Spalte, weil sie am Buddy haengt und
-        // dessen Leitlinien dann am Kachelrand liegen.
+        // dessen Leitlinien dann am Kachelrand liegen. Der Fluggast kennt kein
+        // Layover, deshalb bleibt die Uhr bei ihm verborgen.
         val layoverHours = entry.layoverHours
-        if (layoverHours == null) {
+        if (layoverHours == null || !Settings.getRole(context).showsLayover) {
             item.ivLayoverClock.visibility = View.GONE
         } else {
             item.ivLayoverClock.visibility = View.VISIBLE

@@ -242,6 +242,19 @@ object DashboardPrefs {
     fun tileById(id: String): Tile =
         CATALOG.firstOrNull { it.id == id } ?: CATALOG.first()
 
+    /**
+     * Ob eine Kachel zur Rolle passt. Layover und Funktion sind reine
+     * Besatzungs-Kacheln und fehlen dem Fluggast ueberall: im Dashboard, in der
+     * Auswahl des Bearbeitens und damit auch in der Detailseite. Die Zuordnung
+     * haengt an [Role.showsLayover] und [Role.showsFunction], damit Kachel und
+     * Definition nicht auseinanderlaufen koennen.
+     */
+    fun isTileAvailable(id: String, role: Role): Boolean = when (id) {
+        "layover" -> role.showsLayover
+        "function" -> role.showsFunction
+        else -> true
+    }
+
     private fun cleanRows(rows: List<List<String>>): List<List<String>> =
         rows.map { row -> row.filter { id -> CATALOG.any { it.id == id } } }
             .filter { it.isNotEmpty() }

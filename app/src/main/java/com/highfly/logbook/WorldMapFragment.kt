@@ -360,6 +360,7 @@ class WorldMapFragment : Fragment() {
         // gleichermassen, siehe dort.
         val filtered = allRoutes.filter { MapSelection.touches(it.from to it.to, selected) }
         val reached = MapSelection.connected(allRoutes.map { it.from to it.to }, selected)
+        val connections = connectionCounts(allRoutes)
 
         filtered.forEach { route ->
             val polyline = Polyline().apply {
@@ -367,8 +368,10 @@ class WorldMapFragment : Fragment() {
                 outlinePaint.color = routeColor
                 // Ohne Auswahl alle gleich stark. Mit Auswahl treten die
                 // Strecken des Flughafens hervor, der Rest tritt zurück.
+                // Bewusst dünn: die Linien liegen dicht beieinander und
+                // sollen die Flughafen-Badges nicht verdecken.
                 val highlighted = selected == null
-                outlinePaint.strokeWidth = (if (highlighted) 1.8f else 1.0f) * density
+                outlinePaint.strokeWidth = (if (highlighted) 0.9f else 0.5f) * density
                 outlinePaint.alpha = if (highlighted) 255 else 130
                 outlinePaint.style = Paint.Style.STROKE
             }
@@ -378,6 +381,7 @@ class WorldMapFragment : Fragment() {
         mv.overlays.add(
             AirportOverlay(
                 airports,
+                connections,
                 routeColor,
                 labelColor,
                 selected,
@@ -461,6 +465,20 @@ class WorldMapFragment : Fragment() {
         return airports to routes
     }
 
+    /**
+     * Zahl der verschiedenen Ziele je Flughafen. Ein Flughafen mit vielen
+     * Verbindungen bekommt damit einen höheren Wert und wird beim Zeichnen
+     * zuletzt gelegt, liegt also über den weniger verbundenen.
+     */
+    private fun connectionCounts(routes: List<RouteLine>): Map<String, Int> {
+        val neighbors = HashMap<String, MutableSet<String>>()
+        for (route in routes) {
+            neighbors.getOrPut(route.from) { HashSet() }.add(route.to)
+            neighbors.getOrPut(route.to) { HashSet() }.add(route.from)
+        }
+        return neighbors.mapValues { it.value.size }
+    }
+
     private fun onAirportTap(iata: String) {
         selectedIata = if (selectedIata == iata) null else iata
         val mv = mapView ?: return
@@ -477,15 +495,27 @@ class WorldMapFragment : Fragment() {
         val filterTravelBuddy = sheetView.findViewById<AutoCompleteTextView>(R.id.filter_travel_buddy)
         val filterCityLanguage = sheetView.findViewById<AutoCompleteTextView>(R.id.filter_city_language)
 
+        val role = Settings.getRole(requireContext())
+        // Der Fluggast kennt kein Layover - weder bei der Eingabe noch im Filter.
+        sheetView.findViewById<View>(R.id.filter_layover_field).visibility =
+            if (role.showsLayover) View.VISIBLE else View.GONE
+
         filterTravelType.setAdapter(
-            labelAdapter(
-                getString(R.string.flight_type_private),
-                getString(R.string.flight_type_on_duty),
-                getString(R.string.flight_type_deadhead),
-                getString(R.string.flight_type_ferry),
-                getString(R.string.flight_type_ground_transfer),
-                getString(R.string.flight_type_duty_travel)
-            )
+            if (role.isCrew) {
+                labelAdapter(
+                    getString(R.string.flight_type_private),
+                    getString(R.string.flight_type_on_duty),
+                    getString(R.string.flight_type_deadhead),
+                    getString(R.string.flight_type_ferry),
+                    getString(R.string.flight_type_ground_transfer),
+                    getString(R.string.flight_type_duty_travel)
+                )
+            } else {
+                labelAdapter(
+                    getString(R.string.flight_type_private),
+                    getString(R.string.flight_type_duty_travel)
+                )
+            }
         )
         filterClass.setAdapter(
             labelAdapter(
@@ -553,10 +583,14 @@ class WorldMapFragment : Fragment() {
                 flightType = filterTravelType.text?.toString()?.trim().orEmpty(),
                 classType = filterClass.text?.toString()?.trim().orEmpty(),
                 aircraftType = filterAircraftType.text?.toString()?.trim().orEmpty(),
-                layover = when (filterLayover.text?.toString()?.trim().orEmpty()) {
-                    getString(R.string.world_map_filter_layover_yes) -> "yes"
-                    getString(R.string.world_map_filter_layover_no) -> "no"
-                    else -> ""
+                layover = if (role.showsLayover) {
+                    when (filterLayover.text?.toString()?.trim().orEmpty()) {
+                        getString(R.string.world_map_filter_layover_yes) -> "yes"
+                        getString(R.string.world_map_filter_layover_no) -> "no"
+                        else -> ""
+                    }
+                } else {
+                    ""
                 },
                 travelBuddy = filterTravelBuddy.text?.toString()?.trim().orEmpty()
             )
@@ -817,6 +851,7 @@ class WorldMapFragment : Fragment() {
      */
     private class AirportOverlay(
         private val airports: Map<String, GeoPoint>,
+        private val connectionCounts: Map<String, Int>,
         private val dotColor: Int,
         private val mutedColor: Int,
         private val selectedIata: String?,
@@ -915,7 +950,9 @@ class WorldMapFragment : Fragment() {
             val padX = 3f * density
             val padY = 1.5f * density
 
-            iatas.forEach { iata ->
+            // Weniger verbundene Flughäfen zuerst, stark vernetzte zuletzt -
+            // so liegen letztere obenauf, wenn sich Badges überlappen.
+            iatas.sortedBy { connectionCounts[it] ?: 0 }.forEach { iata ->
                 val point = airports[iata] ?: return@forEach
                 val px = mapView.projection.toPixels(point, null)
                 val sx = px.x.toFloat()

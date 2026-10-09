@@ -34,6 +34,9 @@ class DashboardEditSheet(
 
     private val rows = mutableListOf<List<String>>()
 
+    /** Die Rolle bestimmt, welche Kacheln hier ueberhaupt angeboten werden. */
+    private val role: Role get() = Settings.getRole(context)
+
     /** Rasterposition je Kachel, fuer die Farbdarstellung der Vorschau. */
     private val tilePositions = mutableMapOf<String, DashboardPrefs.TilePosition>()
     private var preview: LinearLayout? = null
@@ -177,7 +180,9 @@ class DashboardEditSheet(
         val previewLayout = preview ?: return
         val emptyView = empty ?: return
         previewLayout.removeAllViews()
-        val isEmptyRows = rows.isEmpty()
+        val isEmptyRows = rows.none { row ->
+            row.any { DashboardPrefs.isTileAvailable(it, role) }
+        }
         emptyView.visibility = if (isEmptyRows) View.VISIBLE else View.GONE
         previewLayout.visibility = if (isEmptyRows) View.GONE else View.VISIBLE
 
@@ -202,7 +207,9 @@ class DashboardEditSheet(
                     else -> true
                 }
             }
-            rowIds.forEachIndexed { index, tileId ->
+            val visibleIds = rowIds.filter { DashboardPrefs.isTileAvailable(it, role) }
+            if (visibleIds.isEmpty()) return@forEachIndexed
+            visibleIds.forEachIndexed { index, tileId ->
                 val binding = ItemDashboardTileBinding.inflate(
                     LayoutInflater.from(context),
                     row,
@@ -279,9 +286,9 @@ class DashboardEditSheet(
 
                 val params = LinearLayout.LayoutParams(0, dp(tile.heightDp), 1f)
                 params.topMargin = dp(8)
-                if (rowIds.size > 1) {
+                if (visibleIds.size > 1) {
                     params.rightMargin =
-                        if (index < rowIds.lastIndex) dp(4) else dp(0)
+                        if (index < visibleIds.lastIndex) dp(4) else dp(0)
                 }
                 row.addView(binding.root, params)
             }
@@ -325,7 +332,9 @@ class DashboardEditSheet(
 
     private fun showAddDialog() {
         val used = rows.flatten().toSet()
-        val available = DashboardPrefs.CATALOG.filter { it.id !in used }
+        val available = DashboardPrefs.CATALOG.filter {
+            it.id !in used && DashboardPrefs.isTileAvailable(it.id, role)
+        }
         if (available.isEmpty()) {
             Toast.makeText(context, R.string.dashboard_empty, Toast.LENGTH_SHORT).show()
             return

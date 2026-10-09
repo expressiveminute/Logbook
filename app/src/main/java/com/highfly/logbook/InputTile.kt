@@ -370,7 +370,7 @@ class InputTile @JvmOverloads constructor(
      */
     private fun fieldTop(labelHeight: Int): Int = when {
         bare -> paddingTop
-        fieldView.centersValue() -> paddingTop + labelHeight / 2
+        fieldView.centersValue() -> paddingTop + (height - (fieldView?.measuredHeight ?: 0)) / 2
         else -> paddingTop + labelHeight / 2 + notchGap
     }
 
@@ -409,26 +409,25 @@ class InputTile @JvmOverloads constructor(
         // Werts, damit sein Text sie nicht berührt. Ein Wert, der oben beginnt,
         // kommt unter die Kerze und braucht sie nur einmal.
         val wanted = paddingTop + paddingBottom + when {
-            notched -> labelHeight + notchGap * (if (field.centersValue()) 2 else 1) +
-                (field?.measuredHeight ?: 0)
-            floating -> field?.measuredHeight ?: 0
-            else -> labelHeight
+            notched -> {
+                val base = labelHeight + notchGap * 2
+                base + (field?.measuredHeight ?: 0)
+            }
+            else -> field?.measuredHeight ?: labelHeight
         }
         val height = max(resolveSize(wanted, heightMeasureSpec), suggestedMinimumHeight)
 
-        // Nur unter der Kerze nimmt das Feld den Platz, in dem sein Text stehen
-        // soll: Ein mittiger Wert wird unter dem unteren Beschriftungsrand
-        // zentriert, ein oben beginnender nur den Rest unter der Beschriftung.
-        // Ohne Kerze behält das Feld seine eigene Höhe - in einer nackten Kachel
-        // steht es mittig in der ganzen.
+        // Für zentrierten Text in einer Kachel mit Kerbe: das Feld soll
+        // vollständig den Bereich zwischen unterem Rand der halbragenden
+        // Beschriftung und dem Kachelboden füllen. Der Text wird innerhalb
+        // dieses Blocks (gravity=center_vertical) exakt mittig ausgerichtet.
+        // Dadurch steht er optisch in der Mitte der gesamten Kachel.
         if (field != null && (notched || bare)) {
             val top = fieldTop(labelHeight)
+            val fieldHeight = (height - paddingBottom - top).coerceAtLeast(0)
             field.measure(
                 MeasureSpec.makeMeasureSpec(innerWidth, MeasureSpec.EXACTLY),
-                MeasureSpec.makeMeasureSpec(
-                    (height - paddingBottom - top).coerceAtLeast(0),
-                    MeasureSpec.EXACTLY,
-                ),
+                MeasureSpec.makeMeasureSpec(fieldHeight, MeasureSpec.EXACTLY),
             )
         }
         // Zuschläge, die über die ganze Kachel gelegt sind: der Prüfhaken und
@@ -473,9 +472,15 @@ class InputTile @JvmOverloads constructor(
             if (!moving && floating) label.translationY = restingOffset()
         }
         val field = fieldView
+        val notchedNow = floating && !bare
         if (field != null && field.visibility != GONE) {
-            val top = fieldTop(label?.measuredHeight ?: 0)
-            field.layout(paddingLeft, top, width - paddingRight, height)
+            if (notchedNow || bare) {
+                val top = fieldTop(label?.measuredHeight ?: 0)
+                val bottomEdge = height - paddingBottom
+                field.layout(paddingLeft, top, width - paddingRight, bottomEdge)
+            } else {
+                field.layout(paddingLeft, paddingTop, width - paddingRight, height - paddingBottom)
+            }
         }
         for (index in 2 until childCount) {
             val overlay = getChildAt(index)

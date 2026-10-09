@@ -5,16 +5,20 @@ import android.util.Log
 import org.json.JSONObject
 
 /**
- * Flughafenname und Stadt zu einem IATA-Code. Koordinaten stehen in
- * [AirportData], das Land in `airport_countries.json` - nur die zwei
- * menschenlesbaren Felder kommen aus dem Namens-Asset.
+ * Flughafenname, Stadt und - wo vorhanden - deutsche Stadt zu einem IATA-Code.
+ * Koordinaten stehen in [AirportData], das Land in `airport_countries.json` -
+ * nur die menschenlesbaren Felder kommen aus dem Namens-Asset.
  */
 object AirportNames {
 
     private const val TAG = "AirportNames"
     private const val ASSET = "airports/airport_names.json"
 
-    data class Info(val name: String?, val city: String?)
+    /**
+     * @param cityDe Deutsche Schreibweise der Stadt, wenn sie sich vom
+     *   [city]-Feld unterscheidet (z. B. "München" zu "Munich"). Sonst `null`.
+     */
+    data class Info(val name: String?, val city: String?, val cityDe: String? = null)
 
     @Volatile
     private var cached: Map<String, Info>? = null
@@ -36,7 +40,8 @@ object AirportNames {
                     val fields = root.getJSONObject(iata)
                     result[iata] = Info(
                         name = fields.optString("n").takeIf(String::isNotBlank),
-                        city = fields.optString("c").takeIf(String::isNotBlank)
+                        city = fields.optString("c").takeIf(String::isNotBlank),
+                        cityDe = fields.optString("d").takeIf(String::isNotBlank)
                     )
                 }
                 result
@@ -49,7 +54,7 @@ object AirportNames {
         }
     }
 
-    /** Name und Stadt zum IATA-Code oder `null`, wenn der Code unbekannt ist. */
+    /** Name, Stadt und deutsche Stadt zum IATA-Code; `null` bei unbekanntem Code. */
     fun get(context: Context, iata: String): Info? =
         load(context)[iata.uppercase()]
 }

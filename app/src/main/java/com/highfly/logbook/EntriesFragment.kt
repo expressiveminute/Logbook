@@ -300,6 +300,13 @@ class EntriesFragment : Fragment(), ImeVisibilityAware {
             sheetView.findViewById<AutoCompleteTextView>(R.id.filter_class_type)
         val filterLayover =
             sheetView.findViewById<AutoCompleteTextView>(R.id.filter_layover)
+        // Der Fluggast kennt kein Layover - weder bei der Eingabe noch im Filter.
+        sheetView.findViewById<View>(R.id.filter_layover_field).visibility =
+            if (Settings.getRole(requireContext()).showsLayover) {
+                View.VISIBLE
+            } else {
+                View.GONE
+            }
         val filterTravelBuddy =
             sheetView.findViewById<AutoCompleteTextView>(R.id.filter_travel_buddy)
 
@@ -350,7 +357,11 @@ class EntriesFragment : Fragment(), ImeVisibilityAware {
                 aircraftType = filterAircraftType.text?.toString()?.trim().orEmpty(),
                 registration = filterRegistration.text?.toString()?.trim().orEmpty(),
                 classType = filterClassType.text?.toString()?.trim().orEmpty(),
-                layover = filterLayover.text?.toString()?.trim().orEmpty(),
+                layover = if (Settings.getRole(requireContext()).showsLayover) {
+                    filterLayover.text?.toString()?.trim().orEmpty()
+                } else {
+                    ""
+                },
                 travelBuddy = filterTravelBuddy.text?.toString()?.trim().orEmpty(),
             )
             updateFilterIcon()
@@ -361,19 +372,32 @@ class EntriesFragment : Fragment(), ImeVisibilityAware {
         dialog.show()
     }
 
-    private fun labelAdapter(): ArrayAdapter<String> =
-        ArrayAdapter(
+    /**
+     * Die waehlbaren Reisearten richten sich nach der Rolle: Die Besatzung
+     * filtert ueber alle, der Fluggast nur ueber privat und dienstlich.
+     */
+    private fun labelAdapter(): ArrayAdapter<String> {
+        val labels = if (Settings.getRole(requireContext()).isCrew) {
+            listOf(
+                R.string.flight_type_private,
+                R.string.flight_type_on_duty,
+                R.string.flight_type_deadhead,
+                R.string.flight_type_ferry,
+                R.string.flight_type_ground_transfer,
+                R.string.flight_type_duty_travel,
+            )
+        } else {
+            listOf(
+                R.string.flight_type_private,
+                R.string.flight_type_duty_travel,
+            )
+        }
+        return ArrayAdapter(
             requireContext(),
             android.R.layout.simple_dropdown_item_1line,
-            listOf(
-                getString(R.string.flight_type_private),
-                getString(R.string.flight_type_on_duty),
-                getString(R.string.flight_type_deadhead),
-                getString(R.string.flight_type_ferry),
-                getString(R.string.flight_type_ground_transfer),
-                getString(R.string.flight_type_duty_travel),
-            )
+            labels.map { getString(it) }
         )
+    }
 
         private fun layoverAdapter(): ArrayAdapter<String> =
         ArrayAdapter(

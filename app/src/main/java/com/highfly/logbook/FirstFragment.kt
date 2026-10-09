@@ -182,19 +182,19 @@ class FirstFragment : Fragment() {
         }
         container.visibility = View.VISIBLE
 
+        val role = Settings.getRole(requireContext())
         rows.forEachIndexed { rowIndex, rowIds ->
+            // Kacheln, die zur Rolle nicht passen (Layover, Funktion), fehlen
+            // hier ganz; die Spalten richten sich nur nach den sichtbaren.
+            val visibleIds = rowIds.filter { DashboardPrefs.isTileAvailable(it, role) }
+            if (visibleIds.isEmpty()) return@forEachIndexed
             val row = LinearLayout(requireContext()).apply {
                 orientation = LinearLayout.HORIZONTAL
             }
             // Zaehlt nur tatsaechlich sichtbare Kacheln, damit eine
             // ausgeblendete Kachel die Spalten danach nicht verschiebt.
             var column = 0
-            rowIds.forEachIndexed { index, tileId ->
-                if (tileId == "function" &&
-                    Settings.getRole(requireContext()) != Settings.ROLE_CREW
-                ) {
-                    return@forEachIndexed
-                }
+            visibleIds.forEachIndexed { index, tileId ->
                 val isDistance = tileId == "distance"
                 val isCo2 = tileId == "co2"
                 val tileContainer = if (isDistance) {
@@ -317,14 +317,19 @@ class FirstFragment : Fragment() {
 
                 val params = LinearLayout.LayoutParams(0, tileHeight(tile), 1f)
                 params.topMargin = dp(8)
-                if (rowIds.size > 1) {
+                if (visibleIds.size > 1) {
                     params.rightMargin =
-                        if (index < rowIds.lastIndex) dp(4) else dp(0)
+                        if (index < visibleIds.lastIndex) dp(4) else dp(0)
                 }
                 row.addView(tileContainer, params)
                 column++
             }
             container.addView(row)
+        }
+
+        if (container.childCount == 0) {
+            container.visibility = View.GONE
+            return
         }
 
         container.viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {

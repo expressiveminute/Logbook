@@ -176,9 +176,9 @@ class SettingsSectionFragment : Fragment() {
     }
 
     private fun setupProfile() {
-        binding.roleCrewTile.setOnClickListener { confirmRoleSwitch(Settings.ROLE_CREW, binding.roleCrewLabel) }
+        binding.roleCrewTile.setOnClickListener { confirmRoleSwitch(Role.CREW, binding.roleCrewLabel) }
         binding.rolePassengerTile.setOnClickListener {
-            confirmRoleSwitch(Settings.ROLE_PASSENGER, binding.rolePassengerLabel)
+            confirmRoleSwitch(Role.PASSENGER, binding.rolePassengerLabel)
         }
 
         binding.crewFunctionPurserIiTile.setOnClickListener {
@@ -365,7 +365,7 @@ class SettingsSectionFragment : Fragment() {
         highlight(binding.langDeTile, binding.langDeLabel, true)
     }
 
-    private fun confirmRoleSwitch(role: String, label: TextView) {
+    private fun confirmRoleSwitch(role: Role, label: TextView) {
         if (Settings.getRole(requireContext()) == role) return
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.role_switch_title)
@@ -378,10 +378,10 @@ class SettingsSectionFragment : Fragment() {
             .show()
     }
 
-    private fun updateRoleTiles(role: String) {
-        highlight(binding.roleCrewTile, binding.roleCrewLabel, role == Settings.ROLE_CREW)
-        highlight(binding.rolePassengerTile, binding.rolePassengerLabel, role == Settings.ROLE_PASSENGER)
-        binding.crewFunctionGroup.visibility = if (role == Settings.ROLE_CREW) View.VISIBLE else View.GONE
+    private fun updateRoleTiles(role: Role) {
+        highlight(binding.roleCrewTile, binding.roleCrewLabel, role.isCrew)
+        highlight(binding.rolePassengerTile, binding.rolePassengerLabel, role.isPassenger)
+        binding.crewFunctionGroup.visibility = if (role.isCrew) View.VISIBLE else View.GONE
     }
 
     private fun applyCrewFunction(key: String) {

@@ -64,6 +64,34 @@
                         android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                         android:textColor="?attr/colorOnSurfaceVariant" />
                 </LinearLayout>
+
+                <!-- Platzhalter fuer die spaetere Layover-Uebersicht: quadratisch
+                     mit abgerundeten Ecken und "drei Sterne"-Icon. Nur bei der
+                     Layover-Kachel sichtbar; der Klick oeffnet spaeter eine
+                     eigene Uebersichtsseite. -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/btn_layover_overview"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="8dp"
+                    android:clickable="true"
+                    android:contentDescription="@string/layover_overview"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
+                    android:visibility="gone"
+                    app:cardBackgroundColor="?attr/colorSecondaryContainer"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="0dp"
+                    tools:visibility="visible">
+
+                    <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:importantForAccessibility="no"
+                        android:padding="9dp"
+                        android:src="@drawable/ic_auto_awesome"
+                        app:tint="?attr/colorOnSecondaryContainer" />
+                </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
 
             <TextView
@@ -303,9 +331,48 @@
                 android:visibility="gone"
                 tools:visibility="visible">
 
+                <!-- Lupe links auf der Sortierzeile. Ein Tipp klappt rechts
+                     daneben das Suchfeld aus; die Dreilettercodes darunter
+                     werden dann nach Code oder Stadt gefiltert. -->
+                <ImageView
+                    android:id="@+id/iv_layover_search"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:clickable="true"
+                    android:contentDescription="@string/layover_search_desc"
+                    android:focusable="true"
+                    android:padding="8dp"
+                    android:src="@drawable/ic_search"
+                    app:tint="?attr/colorOnSurfaceVariant" />
+
+                <!-- Suchfeld, das aus der Lupe nach rechts herauswaechst. Im
+                     eingeklappten Zustand bleibt es ohne Breite und unsichtbar;
+                     die Gewichte von Feld und Leerraum laufen gegenlaeufig. -->
+                <EditText
+                    android:id="@+id/et_layover_search"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0"
+                    android:background="@null"
+                    android:hint="@string/layover_search_hint"
+                    android:imeOptions="actionSearch"
+                    android:inputType="text"
+                    android:maxLines="1"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="4dp"
+                    android:saveEnabled="false"
+                    android:singleLine="true"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textColorHint="?attr/colorOnSurfaceVariant"
+                    android:textSize="14sp"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
+
                 <!-- Der leere Platz mit Gewicht schiebt Beschriftung und Wort
                      nach rechts, damit die Auswahl am Rand endet. -->
                 <Space
+                    android:id="@+id/layover_sort_spacer"
                     android:layout_width="0dp"
                     android:layout_height="1dp"
                     android:layout_weight="1" />
