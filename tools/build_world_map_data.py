@@ -242,6 +242,14 @@ def build_cities(pp_data, existing_cities_path=None):
     The native name prefers Natural Earth's parallel name (NAMEPAR), which
     is the Latin script transliteration of the local name (e.g. Moskva,
     Athenai), and falls back to the regular NAME field otherwise.
+
+    Natural Earth contains several places under the same native name
+    (Panama City in Panama and in Florida, London in England and in
+    Ontario, ...). From all candidates with one name exactly one is kept:
+    the capital when there is one, otherwise the most populous place. The
+    first version of this script kept the *first* place in the file and
+    copied rank/capital flags of the later ones on top - that put Panama
+    City in Florida and La Paz in Mexico, each wrongly flagged as capital.
     """
     def pop_to_rank(pop):
         if pop >= 3_000_000:
@@ -254,7 +262,7 @@ def build_cities(pp_data, existing_cities_path=None):
             return 3
         return None  # too small to include
 
-    cities = {}
+    candidates = {}
 
     for f in pp_data["features"]:
         p = f["properties"]
@@ -276,21 +284,43 @@ def build_cities(pp_data, existing_cities_path=None):
             continue
 
         cap = 1 if p.get("ADM0CAP") else 0
-        rank = pop_to_rank(p.get("POP_MAX") or 0)
+        pop = p.get("POP_MAX") or 0
+        rank = pop_to_rank(pop)
         if rank is None:
-            continue
+            # Hauptstaedte bleiben auch dann auf der Karte, wenn sie klein
+            # sind (Vaduz, Victoria/Seychellen, Hamilton/Bermuda ...). Sie
+            # bekommen die unterste Stufe und sind damit erst im hohen Zoom
+            # da - aber sie fehlen nicht mehr.
+            if not cap:
+                continue
+            rank = 3
         de_name = (p.get("NAME_DE") or "").strip() or native
         en_name = (p.get("NAME_EN") or "").strip() or native
-        lon, lat = coords[0], coords[1]
-        if native in cities:
-            # Same native name for several NE features: keep the entry, but
-            # promote rank so at least one version stays visible.
-            if cities[native][2] > rank:
-                cities[native][2] = rank
-            if cap:
-                cities[native][3] = cap
-            continue
-        cities[native] = [round(lat, 4), round(lon, 4), rank, cap, de_name, en_name]
+        candidates.setdefault(native, []).append({
+            "rank": rank,
+            "cap": cap,
+            "pop": pop,
+            "lat": coords[1],
+            "lon": coords[0],
+            "de": de_name,
+            "en": en_name,
+        })
+
+    cities = {}
+    for native, cands in candidates.items():
+        # Gleicher Name, mehrere Orte: die Hauptstadt gewinnt, sonst der mit
+        # der groessten Bevoelkerung. Nie mehr der erste im File, dessen
+        # Koordinaten zufaellig von einem kleinen Namensvetter stammen.
+        caps = [c for c in cands if c["cap"]]
+        best = max(caps if caps else cands, key=lambda c: (c["pop"], c["rank"]))
+        cities[native] = [
+            round(best["lat"], 4),
+            round(best["lon"], 4),
+            best["rank"],
+            best["cap"],
+            best["de"],
+            best["en"],
+        ]
 
     if existing_cities_path and os.path.exists(existing_cities_path):
         # Migrate previously curated cities: map them onto the freshly built
@@ -298,24 +328,25 @@ def build_cities(pp_data, existing_cities_path=None):
         # kept in the data even if Natural Earth dropped it. Ranks come from
         # the NE population brackets above, never from the old file (which
         # accumulated rank-0 values across earlier generator runs).
+        # Capital flags werden nicht uebernommen: Das "ocap"-Flag der alten
+        # Datei war selbst fehlerhaft (Colon, San Bernardo, Luton trugen
+        # falsches cap=1) - Hauptstadt sein darf nur, was NE als ADM0CAP
+        # fuehrt.
         with open(existing_cities_path) as f:
             old = json.load(f)
         added = 0
         for name, val in old.items():
             olat = float(val[0])
             olon = float(val[1])
-            ocap = 1 if len(val) > 3 and val[3] else 0
             match = min(
                 cities.items(),
                 key=lambda kv: abs(kv[1][0] - olat) + abs(kv[1][1] - olon),
                 default=None,
             )
             if match and abs(match[1][0] - olat) < 0.75 and abs(match[1][1] - olon) < 0.75:
-                if ocap:
-                    match[1][3] = ocap
                 continue
             if name not in cities:
-                cities[name] = [olat, olon, 3, ocap, name, name]
+                cities[name] = [olat, olon, 3, 0, name, name]
                 added += 1
         if added:
             print(f"  curated migration: added {added}")

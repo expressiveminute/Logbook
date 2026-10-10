@@ -86,9 +86,12 @@ class CountryLabelOverlay(
         // would fill up with unrelated labels.
         val farCap = max(width, height) * 2f
 
-        // Wird von jedem Land einmal gebraucht und sofort wieder überschrieben,
-        // deshalb nicht 255 Stück anlegen.
-        val ecke = Point()
+        // Zwei getrennte Punkte: `toPixels` gibt den uebergebenen Punkt zurueck,
+        // zwei Eckpunkte in EINEM Punkt wuerden sich gegenseitig ueberschreiben
+        // und das Land haette immer die Breite/Hoehe 0 - Ländernamen sichtbar
+        // waeren dann nie.
+        val obenEcke = Point()
+        val untenEcke = Point()
 
         /**
          * Tries to place the label, clamping its rectangle into the viewport
@@ -135,7 +138,7 @@ class CountryLabelOverlay(
             // Der Name muss wirklich ins Land passen, sonst steht er als Fremd-
             // koerper ueber dem Nachbarn. Das Land waechst mit dem Zoom, also
             // kommt jeder Name von selbst erst dann, wenn er Platz hat.
-            if (!passtInsLand(country, textWidth, textHeight, mapView, ecke)) return@forEach
+            if (!passtInsLand(country, textWidth, textHeight, mapView, obenEcke, untenEcke)) return@forEach
             val placed = placeLabel(sx, sy, textWidth) ?: return@forEach
             val drawX = placed[0]
             val drawY = placed[1]
@@ -189,7 +192,8 @@ class CountryLabelOverlay(
             textBreite: Float,
             textHoehe: Float,
             mapView: MapView,
-            ecke: Point
+            oben: Point,
+            unten: Point
         ): Boolean {
             // Ein Land quer ueber den Datumswechsel hat keine zusammenhaengende
             // Box; mit [LON_MIN] oben abgeschnitten hat es zwei, der Name
@@ -199,15 +203,11 @@ class CountryLabelOverlay(
             val sued = max(country.minLat, -LAT_LIMIT)
             if (nord < sued) return false
 
-            val obenLinks = mapView.projection.toPixels(
-                GeoPoint(nord, country.minLon), ecke
-            )
-            val obenRechts = mapView.projection.toPixels(
-                GeoPoint(sued, country.maxLon), ecke
-            )
-            val links = min(obenLinks.x, obenRechts.x).toFloat()
-            val rechts = max(obenLinks.x, obenRechts.x).toFloat()
-            val hoehe = max(obenLinks.y, obenRechts.y) - min(obenLinks.y, obenRechts.y)
+            mapView.projection.toPixels(GeoPoint(nord, country.minLon), oben)
+            mapView.projection.toPixels(GeoPoint(sued, country.maxLon), unten)
+            val links = min(oben.x, unten.x).toFloat()
+            val rechts = max(oben.x, unten.x).toFloat()
+            val hoehe = max(oben.y, unten.y) - min(oben.y, unten.y)
 
             return passtInsLand(textBreite, textHoehe, rechts - links, hoehe.toFloat())
         }

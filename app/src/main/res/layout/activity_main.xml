@@ -24,48 +24,72 @@
             app:contentInsetStart="0dp"
             app:contentInsetStartWithNavigation="0dp">
 
-            <!-- Das Wort steht aus sich heraus mittig: Es ist an beiden
-                 Seiten des Bildes verankert, damit das "i" es nicht
-                 verschiebt. Der Hinweis haengt sich mit Abstand an das Ende
-                 des Wortes und erklaert, dass geplante Fluege in keiner
-                 Kachel mitzaehlen. Sichtbar ist er nur, wenn es geplante
-                 Fluege gibt. -->
-            <androidx.constraintlayout.widget.ConstraintLayout
+            <!-- Kopfzeile des Dashboards: der runde Avatar aus den Einstellungen
+                 mit der Funktion und der ausgeschriebenen Fluggesellschaft
+                 rechts daneben. Die Zeile steht mittig, der Abstand zwischen
+                 Kreis und Text zieht den Avatar etwas nach links und den Text
+                 nach rechts. Ein Fluggast sieht nur den Avatar, ohne die
+                 Textspalte daneben. -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:minHeight="64dp">
+                android:orientation="vertical"
+                android:paddingStart="16dp"
+                android:paddingTop="8dp"
+                android:paddingEnd="16dp"
+                android:paddingBottom="4dp">
 
-                <TextView
-                    android:id="@+id/tv_title"
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:text="@string/app_name"
-                    android:textColor="?attr/colorOnSurface"
-                    android:textSize="36sp"
-                    android:textStyle="bold"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
+                    android:layout_gravity="center_horizontal"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
 
-                <ImageView
-                    android:id="@+id/iv_upcoming_hint"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:layout_marginStart="6dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="@string/dashboard_upcoming_hint_desc"
-                    android:padding="10dp"
-                    android:src="@drawable/ic_upcoming_badge"
-                    android:visibility="gone"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintHorizontal_bias="0"
-                    app:layout_constraintStart_toEndOf="@id/tv_title"
-                    app:layout_constraintTop_toTopOf="parent" />
-            </androidx.constraintlayout.widget.ConstraintLayout>
+                    <FrameLayout
+                        android:layout_width="72dp"
+                        android:layout_height="72dp"
+                        android:background="@drawable/bg_avatar_circle">
+
+                        <ImageView
+                            android:id="@+id/iv_dashboard_avatar"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:importantForAccessibility="no"
+                            android:padding="18dp"
+                            android:scaleType="fitCenter" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:id="@+id/ll_dashboard_avatar_labels"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="32dp"
+                        android:gravity="center_vertical"
+                        android:orientation="vertical">
+
+                        <!-- Die Funktion ist hervorgehoben, die Fluggesellschaft
+                             darunter bleibt in normaler Schrift. -->
+                        <TextView
+                            android:id="@+id/tv_dashboard_function"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_dashboard_airline"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                            android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
         </com.google.android.material.appbar.MaterialToolbar>
 
         <!--

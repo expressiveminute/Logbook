@@ -250,12 +250,6 @@
     <string name="entries_filter_desc">Filter</string>
     <string name="entries_month">%1$s %2$d</string>
     <string name="entries_upcoming">Upcoming</string>
-    <plurals name="dashboard_upcoming_hint">
-        <item quantity="one">Ein geplanter Flug zählt erst ab seinem Tag mit, nicht vorher.</item>
-        <item quantity="other">%d geplante Flüge zählen erst ab ihrem Tag mit, nicht vorher.</item>
-    </plurals>
-    <string name="dashboard_upcoming_hint_desc">Hinweis zu geplanten Flügen</string>
-    <string name="dashboard_upcoming_hint_affected">Das trifft diese Kacheln:</string>
     <string name="entry_airline_logo">Airline-Logo</string>
     <string name="entry_travel_buddy_desc">Reisebuddies: %1$s</string>
     <string name="entry_layover_hours_desc">Layoverlänge: %1$d h</string>

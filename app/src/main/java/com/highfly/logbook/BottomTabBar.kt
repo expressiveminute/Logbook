@@ -43,7 +43,6 @@ class BottomTabBar @JvmOverloads constructor(
     )
 
     private val tabs = mutableListOf<Tab>()
-    private val iconBitmaps = mutableMapOf<Int, Bitmap>()
     private var selectedIndex = -1
     private var contentIndex = -1
     private var pressedIndex = -1
@@ -94,7 +93,6 @@ class BottomTabBar @JvmOverloads constructor(
         slideProgress = 1f
         progressAnimator?.cancel()
         slideAnimator?.cancel()
-        iconBitmaps.clear()
         requestLayout()
         invalidate()
     }
@@ -133,19 +131,9 @@ class BottomTabBar @JvmOverloads constructor(
         announceForAccessibility(context.getString(tabs[index].labelRes))
     }
 
-    /** Tauscht das Icon eines Tabs aus (z. B. Profil-Avatar). */
-    fun setTabIcon(destId: Int, drawable: Drawable?) {
-        val index = tabs.indexOfFirst { it.id == destId }
-        if (index < 0 || drawable == null) return
-        iconBitmaps[destId] = drawableToBitmap(drawable)
-        invalidate()
-    }
-
     private fun iconBitmap(tab: Tab): Bitmap? =
-        iconBitmaps[tab.id] ?: run {
-            ContextCompat.getDrawable(context, tab.iconRes)?.let {
-                drawableToBitmap(it).also { bmp -> iconBitmaps[tab.id] = bmp }
-            }
+        ContextCompat.getDrawable(context, tab.iconRes)?.let {
+            drawableToBitmap(it)
         }
 
     private fun drawableToBitmap(drawable: Drawable): Bitmap {

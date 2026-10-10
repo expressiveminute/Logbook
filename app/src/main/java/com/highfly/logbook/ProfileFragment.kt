@@ -149,7 +149,6 @@ class ProfileFragment : Fragment() {
                     }
                 )
                 icon.imageTintList = null
-                refreshNavAvatar()
                 return
             }
         }
@@ -167,7 +166,6 @@ class ProfileFragment : Fragment() {
                 com.google.android.material.R.attr.colorOnPrimaryContainer
             )
         )
-        refreshNavAvatar()
     }
 
     /** Verkleinert ein Preset-Icon auf [insetDp] innerhalb des runden Rahmens;
@@ -175,10 +173,6 @@ class ProfileFragment : Fragment() {
     private fun setIconInset(icon: ImageView, insetDp: Int) {
         val inset = (insetDp * resources.displayMetrics.density).roundToInt()
         icon.setPadding(inset, inset, inset, inset)
-    }
-
-    private fun refreshNavAvatar() {
-        (activity as? MainActivity)?.refreshProfileNavIcon()
     }
 
     private fun showAvatarDialog() {

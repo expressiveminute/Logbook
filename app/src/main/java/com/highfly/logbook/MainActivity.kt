@@ -1,8 +1,10 @@
 package com.highfly.logbook
 
 import android.content.Context
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.view.View
+import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.activity.enableEdgeToEdge
@@ -19,6 +21,7 @@ import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
+import com.google.android.material.color.MaterialColors
 import com.highfly.logbook.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
@@ -90,12 +93,13 @@ class MainActivity : AppCompatActivity() {
         )
         setupActionBarWithNavController(navController, appBarConfiguration)
         setupBottomNav(navController)
-        refreshProfileNavIcon()
         navController.addOnDestinationChangedListener { _, destination, _ ->
             updateHeaderAndContent()
+            if (destination.id == R.id.nav_dashboard) refreshDashboardHeader()
         }
 
         setupDashboardFilter()
+        refreshDashboardHeader()
     }
 
     /**
@@ -104,9 +108,6 @@ class MainActivity : AppCompatActivity() {
      * oeffnet das Menue mit seinen Moeglichkeiten, danach richtet sich die
      * Filterzeile und damit die Kachelsumme unten neu aus.
      */
-    /** Geplante Fluege im aktuellen Filter; 0 blendet das "i" aus. */
-    private var upcomingCount = 0
-
     private fun setupDashboardFilter() {
         binding.tvFilterFlightType.setOnClickListener { anchor ->
             showFlightTypeMenu(anchor)
@@ -114,46 +115,8 @@ class MainActivity : AppCompatActivity() {
         binding.tvFilterPeriod.setOnClickListener { anchor ->
             showPeriodMenu(anchor)
         }
-        binding.ivUpcomingHint.setOnClickListener { anchor ->
-            showUpcomingHint(anchor)
-        }
         renderDashboardFilter()
     }
-
-    /**
-     * Das blaue "i" neben der Filterzeile erklaert, dass es geplante Fluege
-     * gibt, die keine Kachel mitzaehlt. Es steht bei den Filtern und nicht
-     * mehr auf der Kachel "Fluege", weil es nicht diese eine Kachel meint,
-     * sondern alle - die Liste nennt sie auf.
-     *
-     * Sichtbar ist es nur bei geplanten Fluegen; ohne sie gaebe es nichts zu
-     * erklaeren.
-     */
-    private fun showUpcomingHint(anchor: View) {
-        val count = upcomingCount
-        if (count <= 0) return
-        FilterPopupMenu.showInfo(
-            this,
-            anchor,
-            resources.getQuantityString(
-                R.plurals.dashboard_upcoming_hint, count, count
-            ),
-            getString(R.string.dashboard_upcoming_hint_affected),
-            affectedTileNames()
-        )
-    }
-
-    /**
-     * Die Kacheln, deren Zahl aus den geflogenen Eintraegen kommt - und damit
-     * an den geplanten Fluegen vorbeilaeuft. Genau die stehen im Fenster, in
-     * der Reihenfolge des Rasters, damit sie wiederzuerkennen sind.
-     */
-    private fun affectedTileNames(): List<String> =
-        DashboardPrefs.readRows(this)
-            .flatten()
-            .distinct()
-            .map { getString(DashboardPrefs.tileById(it).nameRes) }
-            .distinct()
 
     private fun renderDashboardFilter() {
         val typeKey = Settings.getFlightTypeFilterKey(this)
@@ -168,6 +131,48 @@ class MainActivity : AppCompatActivity() {
             android.graphics.Typeface.NORMAL
         }
         binding.tvFilterSeparator.setTypeface(null, weight)
+    }
+
+    /**
+     * Kopfzeile des Dashboards: Ein Besatzungsmitglied sieht neben dem Avatar
+     * seine Funktion und die ausgeschriebene Fluggesellschaft, ein Fluggast
+     * nur den Avatar mittig ohne Beschriftung. Alle Werte kommen aus den
+     * Einstellungen und werden hier bei jedem Aufkommen neu gelesen.
+     *
+     * Beim Avatar wird wie auf der Profilseite unterschieden: Ein
+     * hochgeladenes Foto fuellt den Kreis voll aus und behaelt seine Farben,
+     * ein Preset-Icon sitzt verkleinert in der Mitte und ist eingefaerbt.
+     */
+    private fun refreshDashboardHeader() {
+        val avatar = binding.ivDashboardAvatar
+        if (Settings.getAvatar(this) == Settings.AVATAR_FILE) {
+            avatar.setPadding(0, 0, 0, 0)
+            avatar.scaleType = ImageView.ScaleType.CENTER_CROP
+            avatar.setImageDrawable(ProfileAvatar.load(this))
+            avatar.imageTintList = null
+        } else {
+            avatar.setImageDrawable(ProfileAvatar.load(this))
+            avatar.scaleType = ImageView.ScaleType.FIT_CENTER
+            avatar.imageTintList = ColorStateList.valueOf(
+                MaterialColors.getColor(
+                    binding.main,
+                    com.google.android.material.R.attr.colorOnPrimaryContainer
+                )
+            )
+        }
+
+        if (Settings.getRole(this).isCrew) {
+            // "Funktion" meint die Bordfunktion der Besatzung.
+            binding.llDashboardAvatarLabels.visibility = View.VISIBLE
+            binding.tvDashboardFunction.text = Settings.selectedCrewFunctionLabel(this)
+            val code = Settings.getAirline(this).trim().uppercase()
+            binding.tvDashboardAirline.text = AirlineCatalog.name(this, code) ?: code
+            binding.tvDashboardAirline.visibility =
+                if (code.isEmpty()) View.GONE else View.VISIBLE
+        } else {
+            // Fluggast: nur der Avatar mittig, ohne Beschriftung daneben.
+            binding.llDashboardAvatarLabels.visibility = View.GONE
+        }
     }
 
     private fun showFlightTypeMenu(anchor: View) {
@@ -218,7 +223,7 @@ class MainActivity : AppCompatActivity() {
                 BottomTabBar.Tab(
                     R.id.nav_rubbelkarte, R.drawable.ic_world_map, R.string.nav_rubbelkarte
                 ),
-                BottomTabBar.Tab(R.id.nav_profile, R.drawable.ic_profile, R.string.nav_profile),
+                BottomTabBar.Tab(R.id.nav_profile, R.drawable.ic_settings, R.string.nav_profile),
             )
         )
         binding.bottomNav.setOnTabSelectedListener { destId ->
@@ -247,15 +252,6 @@ class MainActivity : AppCompatActivity() {
         // The navigation to the start destination may already have happened
         // before this listener was registered, so sync once explicitly.
         updateTabSelection(navController.currentDestination?.id)
-    }
-
-    /**
-     * Shows the avatar chosen in the profile settings on the bottom bar's
-     * profile tab. Uploaded photos keep their colours, presets stay tinted
-     * like the other navigation icons.
-     */
-    fun refreshProfileNavIcon() {
-        binding.bottomNav.setTabIcon(R.id.nav_profile, ProfileAvatar.load(this))
     }
 
     private fun isMenuTab(destinationId: Int?): Boolean =
@@ -393,20 +389,11 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        refreshProfileNavIcon()
         // Der Zeitraum laesst sich auch in den Einstellungen aendern: Die
-        // Filterzeile muss das bei jedem Aufkommen uebernehmen.
+        // Filterzeile muss das bei jedem Aufkommen uebernehmen. Gleiches gilt
+        // fuer Avatar, Rolle und Fluggesellschaft der Kopfzeile.
         renderDashboardFilter()
-        DashboardEvents.onUpcomingCountChanged = { count ->
-            upcomingCount = count
-            binding.ivUpcomingHint.visibility =
-                if (count > 0) View.VISIBLE else View.GONE
-        }
-    }
-
-    override fun onPause() {
-        super.onPause()
-        DashboardEvents.onUpcomingCountChanged = null
+        refreshDashboardHeader()
     }
 
     override fun onPostCreate(savedInstanceState: Bundle?) {

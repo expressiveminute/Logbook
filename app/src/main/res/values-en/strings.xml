@@ -246,12 +246,6 @@
     <string name="entries_filter_desc">Filter</string>
     <string name="entries_month">%1$s %2$d</string>
     <string name="entries_upcoming">Upcoming</string>
-    <plurals name="dashboard_upcoming_hint">
-        <item quantity="one">A planned flight is counted from its day on, not before.</item>
-        <item quantity="other">%d planned flights are counted from their day on, not before.</item>
-    </plurals>
-    <string name="dashboard_upcoming_hint_desc">Note on planned flights</string>
-    <string name="dashboard_upcoming_hint_affected">This affects these tiles:</string>
     <string name="entry_airline_logo">Airline logo</string>
     <string name="entry_travel_buddy_desc">Travel buddies: %1$s</string>
     <string name="entry_layover_hours_desc">Layover duration: %1$d h</string>

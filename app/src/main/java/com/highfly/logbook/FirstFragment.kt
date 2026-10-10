@@ -127,13 +127,6 @@ class FirstFragment : Fragment() {
                 FlightTypeOptions.filter(LogbookRepository.getFlownEntries(), typeKey),
                 key
             )
-            // Geplante Fluege zaehlen in keiner Kachel mit. Sie werden nur
-            // gemeldet, damit das "i" in der Filterzeile sie erklaeren kann,
-            // und tauchen mit ihrem Datum in den Auswertungen auf.
-            val upcoming = DashboardStats.filterForPeriod(
-                FlightTypeOptions.filter(LogbookRepository.getUpcomingEntries(), typeKey),
-                key
-            ).size
             val time = DashboardStats.flightMinutes(entries)
             val values = DashboardStats.values(appContext, entries)
             val distance = DashboardStats.distanceDetails(appContext, entries)
@@ -144,7 +137,6 @@ class FirstFragment : Fragment() {
                 binding.dashboardProgress.visibility = View.GONE
                 timeMinutes = time
                 timeUnit = TimeUnitOptions.unit(timeUnitKey)
-                DashboardEvents.onUpcomingCountChanged?.invoke(upcoming)
                 renderGrid(
                     DashboardPrefs.readRows(binding.root.context),
                     binding.gridTiles,

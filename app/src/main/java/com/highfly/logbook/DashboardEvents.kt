@@ -8,11 +8,4 @@ object DashboardEvents {
      * deshalb reicht das Signal - mehr Daten muessen nicht uebergeben werden.
      */
     var onFilterChanged: (() -> Unit)? = null
-
-    /**
-     * Zahl der geplanten Fluege, die die Kacheln NICHT mitzaehlen. Die
-     * Filterzeile blendet danach das blaue "i" ein, das erklaert, welche
-     * Kacheln betroffen sind.
-     */
-    var onUpcomingCountChanged: ((Int) -> Unit)? = null
 }
