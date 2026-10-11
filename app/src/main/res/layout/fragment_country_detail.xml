@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?android:attr/colorBackground"
+    tools:context=".CountryDetailFragment">
+
+    <!-- Kopfleiste: bleibt stehen, darunter füllt die Karte den Rest. -->
+    <LinearLayout
+        android:id="@+id/header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?android:attr/colorBackground"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_country_detail_back"
+            style="?attr/materialIconButtonStyle"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            app:backgroundTint="@android:color/transparent"
+            app:contentDescription="@string/btn_back"
+            app:icon="@drawable/ic_arrow_back"
+            app:iconSize="24dp"
+            app:iconTint="?attr/colorOnSurface" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_country_detail_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
+                android:textStyle="bold"
+                tools:text="Deutschland 🇩🇪" />
+
+            <TextView
+                android:id="@+id/tv_country_detail_subtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                tools:text="DE · Europa" />
+        </LinearLayout>
+
+        <!-- Medaille des Rangs in der Länderliste, wenn das Land einen der
+             ersten drei Plätze belegt. -->
+        <com.highfly.logbook.RankBadgeView
+            android:id="@+id/badge_country_detail_rank"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:importantForAccessibility="no"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <!-- Karte des Landes mit Flughäfen und Verbindungen. -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/country_map_card"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginHorizontal="16dp"
+        app:cardBackgroundColor="?android:attr/colorBackground"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="0dp"
+        app:strokeColor="?attr/colorOutlineVariant"
+        app:strokeWidth="1dp"
+        app:layout_constraintBottom_toTopOf="@id/tv_country_stats"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/header">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <com.highfly.logbook.CountryRouteMapView
+                android:id="@+id/country_map"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+            <TextView
+                android:id="@+id/tv_country_empty"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginHorizontal="24dp"
+                android:gravity="center"
+                android:text="@string/country_detail_empty"
+                android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:visibility="gone" />
+
+            <!-- Zoomt auf alle angeflogenen Flughäfen, damit der
+                 Ausschnitt nicht durch Überseegebiete des Landes winzig wird. -->
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/fab_country_focus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|end"
+                android:layout_margin="12dp"
+                android:contentDescription="@string/country_detail_focus"
+                android:visibility="gone"
+                app:fabCustomSize="44dp"
+                app:maxImageSize="24dp"
+                app:srcCompat="@drawable/ic_zoom_in" />
+        </FrameLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Zahl der angeflogenen Flughäfen und Flüge. -->
+    <TextView
+        android:id="@+id/tv_country_stats"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginBottom="24dp"
+        android:gravity="center"
+        android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        tools:text="3 Flughäfen · 5 Flüge" />
+</androidx.constraintlayout.widget.ConstraintLayout>

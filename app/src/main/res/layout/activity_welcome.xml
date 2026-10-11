@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Rahmen der Willkommens-Tour. Der Inhalt der Seite steckt im
+    welcome_page_container, darunter Punkte als Fortschritt und die
+    Steuerleiste mit Zurück/Weiter. Die Seiten selbst bringen jeweils ein
+    eigenes Layout mit, sie werden zur Laufzeit eingehängt.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?android:attr/colorBackground"
+    android:fitsSystemWindows="true"
+    android:orientation="vertical"
+    tools:context=".WelcomeActivity">
+
+    <LinearLayout
+        android:id="@+id/welcome_header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="24dp"
+        android:paddingTop="12dp"
+        android:paddingEnd="12dp">
+
+        <TextView
+            android:id="@+id/tv_welcome_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/welcome_page_profile_title"
+            android:textAppearance="@style/TextAppearance.Material3.TitleLarge"
+            android:textStyle="bold" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_welcome_skip"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/welcome_skip" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:id="@+id/welcome_page_container"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <LinearLayout
+        android:id="@+id/welcome_dots"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="4dp"
+        android:gravity="center"
+        android:orientation="horizontal" />
+
+    <LinearLayout
+        android:id="@+id/welcome_nav_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="24dp"
+        android:paddingTop="12dp"
+        android:paddingEnd="24dp"
+        android:paddingBottom="20dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_welcome_back"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/welcome_back" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_welcome_next"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:text="@string/welcome_next" />
+    </LinearLayout>
+</LinearLayout>

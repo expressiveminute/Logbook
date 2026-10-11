@@ -86,34 +86,64 @@
                 Vorbefuellung fuer das Feld "Fluggesellschaft" eines neuen
                 Flugs und steht deshalb ausserhalb der Besatzungs-Gruppe.
             -->
-            <LinearLayout style="@style/SettingsRow">
+            <!--
+                Die Fluggesellschaft steht als Eingabekachel wie im Formular
+                "Neuer Flug": Die Beschriftung sitzt zunächst mittig, wandert
+                beim Antippen auf den oberen Rand und unterbricht dort den
+                Rahmen. Den Rahmen zeichnet die Kachel selbst (InputTile),
+                deshalb ist die Karte durchsichtig und trägt keinen Strich.
+            -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:clipChildren="false"
+                android:clipToPadding="false"
+                app:cardBackgroundColor="@android:color/transparent"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:contentPaddingBottom="0dp"
+                app:contentPaddingEnd="0dp"
+                app:contentPaddingStart="0dp"
+                app:contentPaddingTop="12dp"
+                app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full"
+                app:strokeColor="?attr/colorOutlineVariant"
+                app:strokeWidth="0dp">
 
-                <TextView
-                    style="@style/SettingsRowLabel"
-                    android:labelFor="@id/profile_airline_input"
-                    android:text="@string/profile_airline_label" />
+                <com.highfly.logbook.InputTile
+                    android:id="@+id/profile_airline_tile"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:minHeight="52dp"
+                    android:paddingStart="20dp"
+                    android:paddingEnd="4dp">
 
-                <LinearLayout style="@style/SettingsRowValue">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:labelFor="@id/profile_airline_input"
+                        android:maxLines="1"
+                        android:text="@string/profile_airline_label"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textStyle="bold" />
 
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/profile_airline_layout"
-                        style="@style/SettingsTextField"
+                    <EditText
+                        android:id="@+id/profile_airline_input"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content">
-
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/profile_airline_input"
-                            style="@style/SettingsTextField.EditText"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:hint="@string/profile_airline_hint"
-                            android:imeOptions="actionDone"
-                            android:inputType="text"
-                            android:maxLength="2"
-                            android:maxLines="1" />
-                    </com.google.android.material.textfield.TextInputLayout>
-                </LinearLayout>
-            </LinearLayout>
+                        android:layout_height="wrap_content"
+                        android:background="@null"
+                        android:gravity="center_vertical"
+                        android:hint="@string/profile_airline_hint"
+                        android:imeOptions="actionDone"
+                        android:inputType="textCapCharacters"
+                        android:maxLength="2"
+                        android:maxLines="1"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="17sp" />
+                </com.highfly.logbook.InputTile>
+            </com.google.android.material.card.MaterialCardView>
 
             <LinearLayout
                 android:id="@+id/crew_function_group"
@@ -215,6 +245,21 @@
                                 android:text="@string/class_first" />
                         </com.google.android.material.card.MaterialCardView>
                     </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout style="@style/SettingsRow">
+
+                <TextView
+                    style="@style/SettingsRowLabel"
+                    android:text="@string/settings_welcome_tour" />
+
+                <LinearLayout style="@style/SettingsRowValue">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_welcome_tour"
+                        style="@style/SettingsActionButton"
+                        android:text="@string/settings_welcome_tour_action" />
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>

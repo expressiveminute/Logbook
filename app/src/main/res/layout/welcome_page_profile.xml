@@ -1,0 +1,441 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Zweite Seite der Willkommens-Tour: Hier stellt der Nutzer sein Profil ein.
+    Der Name ist Pflicht, alles andere hat eine sinnvolle Vorauswahl.
+
+    Die Abschnitte stecken jeweils in einem eigenen Behälter (welcome_step_*)
+    und werden erst nach und nach eingeblendet: Der Nutzer sieht immer nur die
+    aktuelle Frage, die nächste erscheint nach der Auswahl. So ist nie zu viel
+    auf einmal zu sehen. Die Steuerung dazu sitzt in WelcomeActivity, die
+    Behälter werden über ihre Ids ein- und ausgeblendet.
+
+    Die Zeilen folgen dem Aufbau der Einstellungen (SettingsRow, SettingsTile).
+-->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/welcome_profile_scroll"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="24dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="24dp"
+        android:paddingBottom="16dp">
+
+        <!-- Schritt 1: Icon und Name (Name ist Pflicht). -->
+        <LinearLayout
+            android:id="@+id/welcome_step_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:id="@+id/welcome_avatar_row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                android:gravity="center_horizontal"
+                android:orientation="vertical">
+
+                <FrameLayout
+                    android:layout_width="88dp"
+                    android:layout_height="88dp"
+                    android:background="@drawable/bg_avatar_circle">
+
+                    <ImageView
+                        android:id="@+id/welcome_avatar_preview"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:contentDescription="@string/profile_avatar_title"
+                        android:padding="20dp"
+                        android:scaleType="fitCenter" />
+                </FrameLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/welcome_avatar_hint"
+                    android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                    android:textColor="?attr/colorOnSurfaceVariant" />
+            </LinearLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/welcome_name_layout"
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                app:boxCornerRadiusBottomEnd="16dp"
+                app:boxCornerRadiusBottomStart="16dp"
+                app:boxCornerRadiusTopEnd="16dp"
+                app:boxCornerRadiusTopStart="16dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/welcome_name_input"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/profile_name_hint"
+                    android:imeOptions="actionDone"
+                    android:inputType="textPersonName"
+                    android:maxLines="1" />
+            </com.google.android.material.textfield.TextInputLayout>
+        </LinearLayout>
+
+        <!-- Schritt 2: Erscheinungsbild (Dunkel/Hell/System). -->
+        <LinearLayout
+            android:id="@+id/welcome_step_theme"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="@string/welcome_section_appearance"
+                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                android:textStyle="bold" />
+
+            <LinearLayout style="@style/SettingsRow">
+
+                <TextView
+                    style="@style/SettingsRowLabel"
+                    android:text="@string/settings_appearance" />
+
+                <LinearLayout style="@style/SettingsRowValue">
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/welcome_theme_dark_tile"
+                        style="@style/SettingsTile"
+                        android:layout_marginEnd="3dp">
+
+                        <TextView
+                            android:id="@+id/welcome_theme_dark_label"
+                            style="@style/SettingsTileLabel"
+                            android:text="@string/settings_dark_mode" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/welcome_theme_light_tile"
+                        style="@style/SettingsTile"
+                        android:layout_marginEnd="3dp">
+
+                        <TextView
+                            android:id="@+id/welcome_theme_light_label"
+                            style="@style/SettingsTileLabel"
+                            android:text="@string/settings_light_mode" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/welcome_theme_system_tile"
+                        style="@style/SettingsTile">
+
+                        <TextView
+                            android:id="@+id/welcome_theme_system_label"
+                            style="@style/SettingsTileLabel"
+                            android:text="@string/settings_system_mode" />
+                    </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Schritt 3: Akzentfarbe. -->
+        <LinearLayout
+            android:id="@+id/welcome_step_accent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <LinearLayout style="@style/SettingsRow">
+
+                <TextView
+                    style="@style/SettingsRowLabel"
+                    android:text="@string/settings_accent_color" />
+
+                <LinearLayout style="@style/SettingsRowValue">
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/welcome_accent_brown_tile"
+                        style="@style/SettingsTile"
+                        android:layout_marginEnd="3dp"
+                        android:contentDescription="@string/settings_accent_brown" />
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/welcome_accent_magenta_tile"
+                        style="@style/SettingsTile"
+                        android:layout_marginEnd="3dp"
+                        android:contentDescription="@string/settings_accent_magenta" />
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/welcome_accent_turquoise_tile"
+                        style="@style/SettingsTile"
+                        android:contentDescription="@string/settings_accent_turquoise" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Schritt 4: Rolle (Besatzung oder Fluggast). -->
+        <LinearLayout
+            android:id="@+id/welcome_step_role"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="@string/welcome_section_role"
+                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                android:textStyle="bold" />
+
+            <LinearLayout style="@style/SettingsRow">
+
+                <TextView
+                    style="@style/SettingsRowLabel"
+                    android:text="@string/settings_role" />
+
+                <LinearLayout style="@style/SettingsRowValue">
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/welcome_role_crew_tile"
+                        style="@style/SettingsTile"
+                        android:layout_marginEnd="3dp">
+
+                        <TextView
+                            android:id="@+id/welcome_role_crew_label"
+                            style="@style/SettingsTileLabel"
+                            android:text="@string/role_crew" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/welcome_role_passenger_tile"
+                        style="@style/SettingsTile">
+
+                        <TextView
+                            android:id="@+id/welcome_role_passenger_label"
+                            style="@style/SettingsTileLabel"
+                            android:text="@string/role_passenger" />
+                    </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Schritt 5 (nur Besatzung): Bordfunktion. -->
+        <LinearLayout
+            android:id="@+id/welcome_step_function"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <LinearLayout style="@style/SettingsRow">
+
+                <TextView
+                    style="@style/SettingsRowLabel"
+                    android:text="@string/function_label" />
+
+                <LinearLayout style="@style/SettingsRowValue">
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/welcome_function_purser_ii_tile"
+                        style="@style/SettingsTile"
+                        android:layout_marginEnd="3dp">
+
+                        <TextView
+                            android:id="@+id/welcome_function_purser_ii_label"
+                            style="@style/SettingsTileLabel"
+                            android:text="@string/crew_function_purser_ii" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/welcome_function_purser_i_tile"
+                        style="@style/SettingsTile"
+                        android:layout_marginEnd="3dp">
+
+                        <TextView
+                            android:id="@+id/welcome_function_purser_i_label"
+                            style="@style/SettingsTileLabel"
+                            android:text="@string/crew_function_purser_i" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/welcome_function_flight_attendant_tile"
+                        style="@style/SettingsTile">
+
+                        <TextView
+                            android:id="@+id/welcome_function_flight_attendant_label"
+                            style="@style/SettingsTileLabel"
+                            android:text="@string/crew_function_flight_attendant" />
+                    </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Schritt 6 (nur Besatzung): bevorzugte Arbeitsposition. -->
+        <LinearLayout
+            android:id="@+id/welcome_step_class"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <LinearLayout style="@style/SettingsRow">
+
+                <TextView
+                    style="@style/SettingsRowLabel"
+                    android:text="@string/profile_preferred_class_label" />
+
+                <LinearLayout style="@style/SettingsRowValue">
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/welcome_class_economy_tile"
+                        style="@style/SettingsTile"
+                        android:layout_marginEnd="3dp">
+
+                        <TextView
+                            android:id="@+id/welcome_class_economy_label"
+                            style="@style/SettingsTileLabel"
+                            android:text="@string/class_economy" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/welcome_class_premium_economy_tile"
+                        style="@style/SettingsTile"
+                        android:layout_marginEnd="3dp">
+
+                        <TextView
+                            android:id="@+id/welcome_class_premium_economy_label"
+                            style="@style/SettingsTileLabel"
+                            android:contentDescription="@string/class_premium_economy"
+                            android:text="@string/class_premium_economy_short" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/welcome_class_business_tile"
+                        style="@style/SettingsTile"
+                        android:layout_marginEnd="3dp">
+
+                        <TextView
+                            android:id="@+id/welcome_class_business_label"
+                            style="@style/SettingsTileLabel"
+                            android:text="@string/class_business" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/welcome_class_first_tile"
+                        style="@style/SettingsTile">
+
+                        <TextView
+                            android:id="@+id/welcome_class_first_label"
+                            style="@style/SettingsTileLabel"
+                            android:text="@string/class_first" />
+                    </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Letzter Schritt: Standard-Fluggesellschaft. Bei Crew ist sie der
+             Arbeitgeber, beim Fluggast zunächst nur ein Wunsch, der per
+             Schalter aktiviert wird. -->
+        <LinearLayout
+            android:id="@+id/welcome_step_airline"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:id="@+id/welcome_airline_switch_row"
+                style="@style/SettingsRow"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground">
+
+                <TextView
+                    style="@style/SettingsRowLabel"
+                    android:text="@string/welcome_airline_switch_label" />
+
+                <LinearLayout style="@style/SettingsRowValue">
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/welcome_airline_switch"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!--
+                Die Fluggesellschaft steht als Eingabekachel wie im Formular
+                "Neuer Flug": Die Beschriftung sitzt zunächst mittig, wandert
+                beim Antippen auf den oberen Rand und unterbricht dort den
+                Rahmen. Den Rahmen zeichnet die Kachel selbst (InputTile),
+                deshalb ist die Karte durchsichtig und trägt keinen Strich.
+            -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/welcome_airline_field_row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:clipChildren="false"
+                android:clipToPadding="false"
+                app:cardBackgroundColor="@android:color/transparent"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:contentPaddingBottom="0dp"
+                app:contentPaddingEnd="0dp"
+                app:contentPaddingStart="0dp"
+                app:contentPaddingTop="12dp"
+                app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full"
+                app:strokeColor="?attr/colorOutlineVariant"
+                app:strokeWidth="0dp">
+
+                <com.highfly.logbook.InputTile
+                    android:id="@+id/welcome_airline_tile"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:minHeight="52dp"
+                    android:paddingStart="20dp"
+                    android:paddingEnd="4dp">
+
+                    <TextView
+                        android:id="@+id/welcome_airline_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:labelFor="@id/welcome_airline_input"
+                        android:maxLines="1"
+                        android:text="@string/welcome_airline_label_passenger"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textStyle="bold" />
+
+                    <EditText
+                        android:id="@+id/welcome_airline_input"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@null"
+                        android:gravity="center_vertical"
+                        android:hint="@string/profile_airline_hint"
+                        android:imeOptions="actionDone"
+                        android:inputType="textCapCharacters"
+                        android:maxLength="2"
+                        android:maxLines="1"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="17sp" />
+                </com.highfly.logbook.InputTile>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

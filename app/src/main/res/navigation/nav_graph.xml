@@ -28,6 +28,9 @@
         <action
             android:id="@+id/action_dashboard_to_travel_buddies"
             app:destination="@id/nav_travel_buddies" />
+        <action
+            android:id="@+id/action_dashboard_to_visited_countries"
+            app:destination="@id/nav_visited_countries" />
     </fragment>
 
     <fragment
@@ -64,6 +67,31 @@
              Die Kacheln der Rubbelkarte öffnen dieselbe Seite gefiltert. -->
         <argument
             android:name="continent"
+            app:argType="string"
+            android:defaultValue="" />
+    </fragment>
+
+    <!-- Länderliste des Dashboards: alle besuchten Länder, ein Tipp führt zur
+         Länderseite mit der Karte. -->
+    <fragment
+        android:id="@+id/nav_visited_countries"
+        android:name="com.highfly.logbook.VisitedCountriesFragment"
+        tools:layout="@layout/fragment_visited_countries">
+
+        <action
+            android:id="@+id/action_visited_countries_to_country_detail"
+            app:destination="@id/nav_country_detail" />
+    </fragment>
+
+    <!-- Länderseite: Karte des Landes mit angeflogenen Flughäfen und den
+         Verbindungen aus dem Logbuch. -->
+    <fragment
+        android:id="@+id/nav_country_detail"
+        android:name="com.highfly.logbook.CountryDetailFragment"
+        tools:layout="@layout/fragment_country_detail">
+
+        <argument
+            android:name="iso2"
             app:argType="string"
             android:defaultValue="" />
     </fragment>

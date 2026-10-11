@@ -37,6 +37,10 @@ class MainActivity : AppCompatActivity() {
     private var imeBottom = 0
     private var imeVisible = false
 
+    /** Akzentfarbe und Erscheinungsbild, mit denen diese Instanz gestartet ist. */
+    private var appliedAccent: String? = null
+    private var appliedThemeMode: String? = null
+
     override fun attachBaseContext(newBase: Context) {
         val localized = LocaleUtils.applyLocale(newBase, Settings.LANG_DE)
         super.attachBaseContext(
@@ -54,6 +58,15 @@ class MainActivity : AppCompatActivity() {
         )
         setTheme(Settings.accentThemeResId(this))
         super.onCreate(savedInstanceState)
+
+        // Beim allerersten Start zuerst die Willkommens-Tour zeigen. Sie kehrt
+        // danach über einen frischen Start hierher zurück.
+        if (!Settings.isWelcomeSeen(this)) {
+            WelcomeActivity.startForFirstRun(this)
+            finish()
+            return
+        }
+
         enableEdgeToEdge()
 
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -389,6 +402,22 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Die Willkommens-Tour laesst sich aus den Einstellungen erneut öffnen
+        // und kann dort Akzentfarbe und Erscheinungsbild ändern. Theme-Wechsel
+        // meldet AppCompatDelegate zwar selbst, die Akzentfarbe nicht - sie
+        // wird hier verglichen und die Activity bei Bedarf neu aufgebaut.
+        val accent = Settings.getAccentColor(this)
+        val themeMode = Settings.getThemeMode(this)
+        if (appliedAccent != null &&
+            (appliedAccent != accent || appliedThemeMode != themeMode)
+        ) {
+            appliedAccent = accent
+            appliedThemeMode = themeMode
+            recreate()
+            return
+        }
+        appliedAccent = accent
+        appliedThemeMode = themeMode
         // Der Zeitraum laesst sich auch in den Einstellungen aendern: Die
         // Filterzeile muss das bei jedem Aufkommen uebernehmen. Gleiches gilt
         // fuer Avatar, Rolle und Fluggesellschaft der Kopfzeile.

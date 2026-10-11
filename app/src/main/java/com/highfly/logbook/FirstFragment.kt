@@ -513,6 +513,11 @@ class FirstFragment : Fragment() {
             id == "reisebuddy" -> {
                 findNavController().navigate(R.id.action_dashboard_to_travel_buddies)
             }
+            id == "countries" -> {
+                // Die Kachel "Länder" öffnet die Liste der besuchten Länder;
+                // von dort führt jede Zeile auf die Länderseite mit der Karte.
+                findNavController().navigate(R.id.action_dashboard_to_visited_countries)
+            }
             ChartData.isBarChart(id) || ChartData.isPieChart(id) -> {
                 val bundle = Bundle().apply { putString("tileId", id) }
                 findNavController().navigate(R.id.action_dashboard_to_tile_detail, bundle)

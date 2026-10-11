@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Eine Zeile der Länderliste: Rang (Medaille bzw. Platznummer), Flagge,
+     Name und die Zahl der Flüge, nach der die Liste sortiert ist. Im
+     Hintergrund liegt ein diskreter Balken, der die Flugzahl im Verhältnis
+     zum meistbesuchten Land zeigt. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/item_visited_country_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true"
+    android:minHeight="56dp"
+    android:paddingHorizontal="20dp"
+    android:paddingVertical="4dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <com.highfly.logbook.RankBadgeView
+            android:id="@+id/badge_visited_country_rank"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginEnd="10dp"
+            android:importantForAccessibility="no" />
+
+        <TextView
+            android:id="@+id/tv_visited_country_flag"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:importantForAccessibility="no"
+            android:textSize="22sp"
+            tools:text="🇩🇪" />
+
+        <FrameLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_weight="1">
+
+            <!-- Hintergrundbalken erst ab dem Ländernamen; Medaille und Flagge
+                 links bleiben untermalt. -->
+            <com.highfly.logbook.VisitedCountryBarView
+                android:id="@+id/visited_country_bar"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:importantForAccessibility="no" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:paddingStart="14dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tv_visited_country_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+                    tools:text="Deutschland" />
+
+                <TextView
+                    android:id="@+id/tv_visited_country_flights"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    tools:text="12 Flüge" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <ImageView
+            android:id="@+id/iv_visited_country_chevron"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginStart="8dp"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_chevron_right"
+            app:tint="?attr/colorOnSurfaceVariant" />
+    </LinearLayout>
+</FrameLayout>

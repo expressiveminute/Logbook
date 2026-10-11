@@ -329,6 +329,22 @@
     <string name="countries_flight">Flown to</string>
     <string name="countries_error">Countries could not be loaded. Please reinstall the app.</string>
 
+    <!-- Dashboard country list and the country map page -->
+    <plurals name="visited_countries_subtitle">
+        <item quantity="one">%1$d country visited</item>
+        <item quantity="other">%1$d countries visited</item>
+    </plurals>
+    <plurals name="visited_country_flights">
+        <item quantity="one">%1$d flight</item>
+        <item quantity="other">%1$d flights</item>
+    </plurals>
+    <string name="visited_countries_empty">No countries visited yet</string>
+    <string name="visited_country_desc">%1$s, rank %2$d, %3$d flights</string>
+    <string name="country_detail_stats">%1$d airports · %2$d flights</string>
+    <string name="country_detail_focus">Show all flown-to airports</string>
+    <string name="country_detail_empty">No flight data for this country yet.</string>
+    <string name="country_detail_map_desc">Map of %1$s with %2$d airports</string>
+
     <!-- Travel buddies: the evaluation behind the dashboard tile -->
     <string name="travel_buddies_title">Travel buddies</string>
     <string name="travel_buddies_subtitle">%1$d travel buddies on %2$d flights</string>
@@ -403,4 +419,44 @@
         <item quantity="one">1 year</item>
         <item quantity="other">%d years</item>
     </plurals>
+
+    <!-- Welcome tour: shown on first launch only, repeatable from settings. -->
+    <string name="welcome_skip">Skip</string>
+    <string name="welcome_back">Back</string>
+    <string name="welcome_next">Next</string>
+    <string name="welcome_finish">Let\'s go</string>
+    <string name="welcome_page_intro_title">Welcome</string>
+    <string name="welcome_page_profile_title">Your profile</string>
+    <string name="welcome_page_dashboard_title">Dashboard</string>
+    <string name="welcome_page_entries_title">Entries</string>
+    <string name="welcome_page_discovery_title">Discover</string>
+    <string name="welcome_intro_headline">Welcome!</string>
+    <string name="welcome_intro_body">Great that you\'re using Logbook!\n\nIn this tour I\'ll walk you through a few settings step by step and show you the basics.</string>
+    <string name="welcome_avatar_hint">Tap to pick an icon or photo</string>
+    <string name="welcome_section_appearance">Appearance</string>
+    <string name="welcome_section_role">Role</string>
+    <string name="welcome_airline_switch_label">Pre-fill airline</string>
+    <string name="welcome_airline_label_crew">Employer</string>
+    <string name="welcome_airline_label_passenger">Default airline</string>
+    <string name="welcome_name_required">Please enter a name.</string>
+    <string name="welcome_dashboard_headline">Your flights at a glance</string>
+    <string name="welcome_dashboard_body">The dashboard sums up your logbook in tiles – flights, distance, time, countries and more.</string>
+    <string name="welcome_dashboard_feature1_title">Filter by flight type and period</string>
+    <string name="welcome_dashboard_feature1_body">Above the tiles you choose whether duty, private or all flights are counted and for which period.</string>
+    <string name="welcome_dashboard_feature2_title">Open and arrange tiles</string>
+    <string name="welcome_dashboard_feature2_body">A tap opens a tile\'s details. A long press lets you move the tiles around.</string>
+    <string name="welcome_entries_headline">Every flight in the logbook</string>
+    <string name="welcome_entries_body">Under “Entries” you collect all your flights – chronological and searchable.</string>
+    <string name="welcome_entries_feature1_title">Add a flight</string>
+    <string name="welcome_entries_feature1_body">Use the plus button to create a flight: route, date, airline, flight type and optionally more.</string>
+    <string name="welcome_entries_feature2_title">Search, filter, edit</string>
+    <string name="welcome_entries_feature2_body">Tap an entry to edit or delete it. The magnifier searches your logbook.</string>
+    <string name="welcome_discovery_headline">Discover something new</string>
+    <string name="welcome_discovery_body">Two pages reward your curiosity: Discovery and the scratch map.</string>
+    <string name="welcome_discovery_feature1_title">Discovery</string>
+    <string name="welcome_discovery_feature1_body">Shows the routes you flew for the first time in a given year.</string>
+    <string name="welcome_discovery_feature2_title">Scratch map</string>
+    <string name="welcome_discovery_feature2_body">Colours in every country you visited and shows your progress around the world.</string>
+    <string name="settings_welcome_tour">Welcome tour</string>
+    <string name="settings_welcome_tour_action">Start tour</string>
 </resources>

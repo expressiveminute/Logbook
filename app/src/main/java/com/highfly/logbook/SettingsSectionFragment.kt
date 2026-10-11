@@ -211,6 +211,13 @@ class SettingsSectionFragment : Fragment() {
         updateRoleTiles(Settings.getRole(requireContext()))
         updateCrewFunctionTiles(Settings.getCrewFunction(requireContext()))
         updatePreferredClassTiles(Settings.getPreferredClassIndex(requireContext()))
+
+        // Die Willkommens-Tour lässt sich hier erneut öffnen; sie schreibt
+        // dieselben Einstellungen wie diese Seite, deshalb beim Zurückkommen
+        // neu einlesen.
+        binding.btnWelcomeTour.setOnClickListener {
+            WelcomeActivity.startForReplay(requireActivity())
+        }
     }
 
     private fun setupThemes() {
@@ -552,5 +559,22 @@ class SettingsSectionFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    /**
+     * Nach einer wiederholten Willkommens-Tour stehen die Werte der Profilseite
+     * möglicherweise anders; sie werden beim Zurückkommen neu gesetzt. Die
+     * Kacheln und Felder hier tragen dieselben Werte wie die Tour.
+     */
+    override fun onResume() {
+        super.onResume()
+        if (sectionKey != "profile" || _binding == null) return
+        updateRoleTiles(Settings.getRole(requireContext()))
+        updateCrewFunctionTiles(Settings.getCrewFunction(requireContext()))
+        updatePreferredClassTiles(Settings.getPreferredClassIndex(requireContext()))
+        val airline = Settings.getAirline(requireContext())
+        if (binding.profileAirlineInput.text?.toString() != airline) {
+            binding.profileAirlineInput.setText(airline)
+        }
     }
 }

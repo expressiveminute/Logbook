@@ -68,6 +68,7 @@ object Settings {
     private const val KEY_COMPACT_TEXT = "compact_text"
     private const val KEY_MANUAL_COUNTRIES = "manual_countries"
     private const val KEY_HIDDEN_COUNTRIES = "hidden_countries"
+    private const val KEY_WELCOME_SEEN = "welcome_seen"
 
     private fun prefs(context: Context): SharedPreferences =
         context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
@@ -94,6 +95,16 @@ object Settings {
     fun setThemeMode(context: Context, value: String) {
         require(value in THEME_MODE_OPTIONS)
         prefs(context).edit().putString(KEY_THEME_MODE, value).apply()
+    }
+
+    /**
+     * Ob der Nutzer das Erscheinungsbild schon einmal bewußt gewählt hat. Die
+     * Willkommens-Tour setzt sonst beim ersten Start [THEME_MODE_DARK] als
+     * Vorauswahl; eine getroffene Wahl bleibt unangetastet.
+     */
+    fun isThemeModeChosen(context: Context): Boolean {
+        val prefs = prefs(context)
+        return prefs.contains(KEY_THEME_MODE) || prefs.contains(KEY_LEGACY_DARK_MODE)
     }
 
     private fun normalizeThemeMode(value: String?): String =
@@ -254,6 +265,19 @@ object Settings {
 
     fun setCompactText(context: Context, value: Boolean) {
         prefs(context).edit().putBoolean(KEY_COMPACT_TEXT, value).apply()
+    }
+
+    /**
+     * Ob die Willkommens-Tour schon einmal durchlaufen oder übersprungen wurde.
+     * Ist der Schlüssel noch nicht gesetzt, zeigt der Start der App die Tour.
+     * Ein Abschluss über die Einstellungen ("Tour starten") läßt den Schlüssel
+     * unberührt, damit die Tour dort beliebig oft wiederholt werden kann.
+     */
+    fun isWelcomeSeen(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_WELCOME_SEEN, false)
+
+    fun setWelcomeSeen(context: Context, value: Boolean) {
+        prefs(context).edit().putBoolean(KEY_WELCOME_SEEN, value).apply()
     }
 
     private const val KEY_DEMO_MIGRATION = "demo_disabled_migration_v1"

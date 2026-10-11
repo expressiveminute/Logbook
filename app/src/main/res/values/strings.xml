@@ -334,6 +334,22 @@
     <string name="countries_flight">Angeflogen</string>
     <string name="countries_error">Länder konnten nicht geladen werden. Bitte die App neu installieren.</string>
 
+    <!-- Länderliste des Dashboards und Länderseite mit der Karte -->
+    <plurals name="visited_countries_subtitle">
+        <item quantity="one">%1$d Land besucht</item>
+        <item quantity="other">%1$d Länder besucht</item>
+    </plurals>
+    <plurals name="visited_country_flights">
+        <item quantity="one">%1$d Flug</item>
+        <item quantity="other">%1$d Flüge</item>
+    </plurals>
+    <string name="visited_countries_empty">Noch kein Land besucht</string>
+    <string name="visited_country_desc">%1$s, Rang %2$d, %3$d Flüge</string>
+    <string name="country_detail_stats">%1$d Flughäfen · %2$d Flüge</string>
+    <string name="country_detail_focus">Alle angeflogenen Flughäfen anzeigen</string>
+    <string name="country_detail_empty">Für dieses Land liegen noch keine Flugdaten vor.</string>
+    <string name="country_detail_map_desc">Karte von %1$s mit %2$d Flughäfen</string>
+
     <!-- Reisebuddies: Auswertung der Kachel auf dem Dashboard -->
     <string name="travel_buddies_title">Reisebuddies</string>
     <string name="travel_buddies_subtitle">%1$d Reisebuddies auf %2$d Flügen</string>
@@ -409,4 +425,44 @@
         <item quantity="one">1 Jahr</item>
         <item quantity="other">%d Jahre</item>
     </plurals>
+
+    <!-- Willkommens-Tour: nur beim ersten Start, wiederholbar aus den Einstellungen. -->
+    <string name="welcome_skip">Überspringen</string>
+    <string name="welcome_back">Zurück</string>
+    <string name="welcome_next">Weiter</string>
+    <string name="welcome_finish">Los geht\'s</string>
+    <string name="welcome_page_intro_title">Willkommen</string>
+    <string name="welcome_page_profile_title">Dein Profil</string>
+    <string name="welcome_page_dashboard_title">Dashboard</string>
+    <string name="welcome_page_entries_title">Einträge</string>
+    <string name="welcome_page_discovery_title">Entdecken</string>
+    <string name="welcome_intro_headline">Herzlich Willkommen!</string>
+    <string name="welcome_intro_body">Schön, dass du Logbook benutzt!\n\nIn dieser Tour führe ich dich Schritt für Schritt durch einige Einstellungen und zeige dir die Basics.</string>
+    <string name="welcome_avatar_hint">Tippe, um Icon oder Foto zu wählen</string>
+    <string name="welcome_section_appearance">Erscheinungsbild</string>
+    <string name="welcome_section_role">Rolle</string>
+    <string name="welcome_airline_switch_label">Fluggesellschaft vorausfüllen</string>
+    <string name="welcome_airline_label_crew">Arbeitgeber</string>
+    <string name="welcome_airline_label_passenger">Standard-Fluggesellschaft</string>
+    <string name="welcome_name_required">Bitte gib einen Namen ein.</string>
+    <string name="welcome_dashboard_headline">Deine Flüge auf einen Blick</string>
+    <string name="welcome_dashboard_body">Das Dashboard fasst dein Logbuch in Kacheln zusammen – Flüge, Distanz, Zeit, Länder und mehr.</string>
+    <string name="welcome_dashboard_feature1_title">Nach Flugart und Zeitraum filtern</string>
+    <string name="welcome_dashboard_feature1_body">Über den Kacheln stellst du ein, ob Dienstlich, Privat oder alle Flüge und welcher Zeitraum gezählt wird.</string>
+    <string name="welcome_dashboard_feature2_title">Kacheln öffnen und ordnen</string>
+    <string name="welcome_dashboard_feature2_body">Ein Tipp öffnet die Details einer Kachel. Ein langer Druck lässt dich die Kacheln verschieben.</string>
+    <string name="welcome_entries_headline">Jeder Flug im Logbuch</string>
+    <string name="welcome_entries_body">Unter „Einträge“ sammelst du alle Flüge – chronologisch und durchsuchbar.</string>
+    <string name="welcome_entries_feature1_title">Flug hinzufügen</string>
+    <string name="welcome_entries_feature1_body">Mit dem Plus-Knopf legst du einen Flug an: Route, Datum, Airline, Flugart und optional mehr.</string>
+    <string name="welcome_entries_feature2_title">Suchen, filtern, bearbeiten</string>
+    <string name="welcome_entries_feature2_body">Tippe einen Eintrag an, um ihn zu bearbeiten oder zu löschen. Die Lupe durchsucht dein Logbuch.</string>
+    <string name="welcome_discovery_headline">Neues entdecken</string>
+    <string name="welcome_discovery_body">Zwei Seiten belohnen deine Neugier: Discovery und die Rubbelkarte.</string>
+    <string name="welcome_discovery_feature1_title">Discovery</string>
+    <string name="welcome_discovery_feature1_body">Zeigt die Strecken, die du in einem Jahr zum ersten Mal geflogen bist.</string>
+    <string name="welcome_discovery_feature2_title">Rubbelkarte</string>
+    <string name="welcome_discovery_feature2_body">Färbt jedes besuchte Land ein und zeigt deinen Fortschritt auf der Welt.</string>
+    <string name="settings_welcome_tour">Willkommens-Tour</string>
+    <string name="settings_welcome_tour_action">Tour starten</string>
 </resources>

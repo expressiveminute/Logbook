@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Einzige Quelle für das App-Logo der Willkommens-Tour.
+    Solange hier auf das Launcher-Icon verwiesen wird, ändert sich das Logo
+    der Tour automatisch mit dem App-Icon. Soll die Tour ein eigenes Logo
+    zeigen, wird nur an dieser einen Stelle das Ziel ausgetauscht.
+-->
+<resources>
+    <item name="app_logo" type="mipmap">@mipmap/ic_launcher</item>
+</resources>
