@@ -122,6 +122,36 @@
                 app:srcCompat="@drawable/ic_chevron_right" />
         </LinearLayout>
 
+        <!-- Nutzer -->
+        <LinearLayout
+            android:id="@+id/header_section_users"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/settings_section_users"
+                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                android:textStyle="bold" />
+
+            <ImageView
+                android:id="@+id/users_header_arrow"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:contentDescription="@string/settings_open"
+                app:srcCompat="@drawable/ic_chevron_right" />
+        </LinearLayout>
+
         <!-- Customization (inkl. Themes) -->
         <LinearLayout
             android:id="@+id/header_section_customization"

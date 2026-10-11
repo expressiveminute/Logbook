@@ -21,6 +21,12 @@ class CountryDetailFragment : Fragment() {
 
     private var loadGeneration = 0
 
+    /**
+     * Letztes Auswertungsergebnis, aus dem der Detailtext des angeklickten
+     * Flughafens gebaut wird.
+     */
+    private var lastResult: CountryDetailModel.Result? = null
+
     /** Das Land als ISO-2, aus den Argumenten gelesen. */
     private val iso2: String?
         get() = arguments?.getString(ARG_ISO2)?.trim()?.uppercase()
@@ -45,6 +51,8 @@ class CountryDetailFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         binding.btnCountryDetailBack.setOnClickListener { findNavController().navigateUp() }
         binding.fabCountryFocus.setOnClickListener { binding.countryMap.zoomToFocus() }
+        // Ein Klick auf ein Flughafen-Badge blendet unten den Detailtext ein.
+        binding.countryMap.onAirportSelectionChanged = { code -> showAirportDetail(code) }
 
         // Bis zum Laden steht der Code als Titel; Name und Flagge kommen mit
         // dem Ergebnis aus dem Hintergrund.
@@ -198,7 +206,61 @@ class CountryDetailFragment : Fragment() {
             name ?: iso2.orEmpty(),
             result.airports.size
         )
+        // Frisch geladene Seite ohne Auswahl: der Detailtext ist verborgen.
+        lastResult = result
+        showAirportDetail(null)
     }
+
+    /**
+     * Zeigt unten den Detailtext zum angeklickten Flughafen: Zeile eins mit
+     * Dreilettercode und Name, Zeile zwei mit der Zahl der Flüge und Zeile
+     * drei mit den drei häufigsten Verbindungen, getrennt durch einen Punkt.
+     * Null blendet den Text wieder aus.
+     */
+    private fun showAirportDetail(code: String?) {
+        val view = _binding ?: return
+        val result = lastResult ?: return
+        val airport = code?.let { c -> result.airports.firstOrNull { it.iata == c } }
+        if (airport == null) {
+            view.tvCountryAirportDetail.visibility = View.GONE
+            return
+        }
+        val lines = mutableListOf(
+            listOfNotNull(airport.iata, airportName(airport.iata)).joinToString(" · ")
+        )
+        lines += resources.getQuantityString(
+            R.plurals.visited_country_flights, airport.count, airport.count
+        )
+        val top = topConnections(result, airport.iata)
+        if (top.isNotEmpty()) {
+            lines += resources.getQuantityString(
+                R.plurals.country_detail_top_routes,
+                top.size,
+                top.joinToString(" · ")
+            )
+        }
+        view.tvCountryAirportDetail.text = lines.joinToString("\n")
+        view.tvCountryAirportDetail.visibility = View.VISIBLE
+    }
+
+    /** Name des Flughafens, ersatzweise die Stadt. */
+    private fun airportName(code: String): String? =
+        AirportNames.get(requireContext(), code)?.let { it.name ?: it.city }
+
+    /** Die drei häufigsten Verbindungen des Flughafens, absteigend nach Zahl. */
+    private fun topConnections(result: CountryDetailModel.Result, code: String): List<String> =
+        (result.domestic + result.international)
+            .mapNotNull { route ->
+                when {
+                    route.from == code && route.to != code -> route.to to route.count
+                    route.to == code && route.from != code -> route.from to route.count
+                    else -> null
+                }
+            }
+            .sortedWith(compareByDescending<Pair<String, Int>> { it.second }.thenBy { it.first })
+            .map { it.first }
+            .distinct()
+            .take(3)
 
     /** Die App ist deutschsprachig, values-en liefert die englischen Namen. */
     private fun useGermanNames(locale: Locale): Boolean =

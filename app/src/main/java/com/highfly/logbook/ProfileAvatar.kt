@@ -16,6 +16,13 @@ object ProfileAvatar {
 
     const val FILE_NAME = "profile_avatar.png"
 
+    /** Dateiname des hochgeladenen Fotos für einen Nutzerplatz. */
+    fun fileNameForUser(userId: Int): String =
+        if (userId <= 1) FILE_NAME else "profile_avatar_$userId.png"
+
+    /** Dateiname des hochgeladenen Fotos des aktiven Nutzers. */
+    fun fileName(context: Context): String = fileNameForUser(Users.activeId(context))
+
     /** A selectable avatar: [value] is what gets stored in the settings,
      * [iconRes] is the symbol shown on the profile tile and in the navigation. */
     data class Preset(val value: String, val iconRes: Int, val nameRes: Int)
@@ -55,10 +62,14 @@ object ProfileAvatar {
     /** Anzeigename eines Presets, fuer Beschriftungen im Auswahldialog. */
     fun presetNameRes(value: String): Int = byValue[normalize(value)]?.nameRes ?: R.string.profile_avatar_opt_person
 
-    fun load(context: Context): Drawable? {
-        val value = Settings.getAvatar(context)
+    fun load(context: Context): Drawable? =
+        load(context, Users.activeId(context))
+
+    /** Wie [load], aber für einen bestimmten Nutzerplatz. */
+    fun load(context: Context, userId: Int): Drawable? {
+        val value = Settings.getAvatar(context, userId)
         if (value == Settings.AVATAR_FILE) {
-            val file = File(context.filesDir, FILE_NAME)
+            val file = File(context.filesDir, fileNameForUser(userId))
             val bitmap = if (file.exists()) BitmapFactory.decodeFile(file.absolutePath) else null
             if (bitmap != null) {
                 val circular = RoundedBitmapDrawableFactory.create(context.resources, bitmap).apply {

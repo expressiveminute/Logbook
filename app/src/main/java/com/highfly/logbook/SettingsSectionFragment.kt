@@ -1,5 +1,8 @@
 package com.highfly.logbook
 
+import android.content.Context
+import android.content.Intent
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Bundle
 import android.util.TypedValue
@@ -10,6 +13,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -17,11 +21,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
 import androidx.core.view.doOnLayout
+import androidx.core.view.isVisible
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.highfly.logbook.databinding.FragmentSettingsSectionBinding
+import com.highfly.logbook.databinding.ItemUserRowBinding
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.math.floor
@@ -41,12 +47,18 @@ class SettingsSectionFragment : Fragment() {
 
     private var sectionKey: String = "profile"
 
+    /** Nutzerplatz, dessen Daten der laufende Export ausliest. */
+    private var pendingExportUserId = 1
+
     private val exportLauncher = registerForActivityResult(
         ActivityResultContracts.CreateDocument("text/csv")
     ) { uri ->
         if (uri == null) return@registerForActivityResult
         try {
-            val csv = LogbookCsv.toCsv(LogbookRepository.getEntries())
+            val app = requireContext().applicationContext
+            val csv = LogbookCsv.toCsv(
+                LogbookRepository.entriesForUser(app, pendingExportUserId)
+            )
             requireContext().contentResolver.openOutputStream(uri)?.use { out ->
                 out.write(csv.toByteArray(Charsets.UTF_8))
             }
@@ -95,6 +107,10 @@ class SettingsSectionFragment : Fragment() {
             "profile" -> {
                 binding.contentProfile.visibility = View.VISIBLE
                 setupProfile()
+            }
+            "users" -> {
+                binding.contentUsers.visibility = View.VISIBLE
+                setupUsers()
             }
             "customization" -> {
                 binding.contentThemes.visibility = View.VISIBLE
@@ -170,6 +186,7 @@ class SettingsSectionFragment : Fragment() {
 
     private fun sectionTitleRes(key: String): Int = when (key) {
         "profile" -> R.string.settings_section_profile
+        "users" -> R.string.settings_section_users
         "customization" -> R.string.settings_section_customization
         "data" -> R.string.settings_section_data
         else -> R.string.settings_section_development
@@ -259,6 +276,10 @@ class SettingsSectionFragment : Fragment() {
         binding.btnImport.setOnClickListener {
             findNavController().navigate(R.id.action_settings_section_to_import)
         }
+        // Beide Danger-Zone-Aktionen verlangen die Passphrase FLIGHTS; erst
+        // die getippte Passphrase gibt den endgültigen Knopf frei.
+        binding.btnDeleteUser.setOnClickListener { confirmDeleteUserData() }
+        binding.btnFactoryReset.setOnClickListener { confirmFactoryReset() }
     }
 
     private fun setupDevelopment() {
@@ -321,14 +342,37 @@ class SettingsSectionFragment : Fragment() {
     private fun dp(value: Int): Int =
         (value * resources.displayMetrics.density).toInt()
 
+    /**
+     * Ab zwei Nutzern zuerst fragen, wessen Logbuch exportiert werden soll;
+     * danach dieselbe Abfrage wie bisher. Nur das Logbuch des gewählten
+     * Nutzers landet in der CSV-Datei.
+     */
     private fun confirmExport() {
-        val name = Settings.getProfileName(requireContext())
+        val app = requireContext().applicationContext
+        val ids = Users.ids(app)
+        if (ids.size > 1) {
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.export_choose_user_title)
+                .setItems(ids.map { Users.label(app, it) }.toTypedArray()) { _, which ->
+                    startExport(ids[which])
+                }
+                .setNegativeButton(R.string.discard_cancel, null)
+                .show()
+        } else {
+            startExport(ids.first())
+        }
+    }
+
+    private fun startExport(userId: Int) {
+        val ctx = requireContext()
+        pendingExportUserId = userId
+        val name = Settings.getProfileName(ctx, userId)
             .trim()
             .replace(Regex("[^A-Za-z0-9_\\-]"), "_")
             .ifEmpty { "default" }
         val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy_MM_dd_HH_mm"))
         val filename = "logbook_export_${name}_$timestamp.csv"
-        MaterialAlertDialogBuilder(requireContext())
+        MaterialAlertDialogBuilder(ctx)
             .setTitle(R.string.export_title)
             .setMessage(R.string.export_message)
             .setPositiveButton(R.string.export_confirm) { _, _ ->
@@ -336,6 +380,145 @@ class SettingsSectionFragment : Fragment() {
             }
             .setNegativeButton(R.string.discard_cancel, null)
             .show()
+    }
+
+    // --- Nutzer -----------------------------------------------------------
+
+    private fun setupUsers() {
+        binding.btnAddUser.setOnClickListener { addUser() }
+        renderUsers()
+    }
+
+    /**
+     * Zeigt alle angelegten Nutzer als Liste. Ein Tipp auf eine Zeile macht
+     * den Nutzer aktiv (Datenbankwechsel + Neustart der Activity), der
+     * Entfernen-Knopf löscht den Nutzer mit allen Daten. Platz 1 bleibt
+     * immer bestehen und trägt keinen Entfernen-Knopf.
+     */
+    private fun renderUsers() {
+        val ctx = requireContext()
+        val container = binding.contentUsersList
+        container.removeAllViews()
+        val activeId = Users.activeId(ctx)
+        Users.ids(ctx).forEach { id ->
+            val row = ItemUserRowBinding.inflate(layoutInflater, container, false)
+            val name = Settings.getProfileName(ctx, id).trim()
+            row.tvUserRowName.text = name.ifBlank { Users.label(ctx, id) }
+            loadUserRowAvatar(ctx, row, id)
+            row.ivUserRowActive.isVisible = id == activeId
+            row.btnUserRowRemove.isVisible = id > 1
+            if (id == activeId) {
+                // Der aktive Nutzer braucht keinen Tipp-Ziel; die Zeile bleibt
+                // lesbar, nur der Entfernen-Knopf funktioniert.
+                row.root.isClickable = false
+                row.root.isFocusable = false
+            } else {
+                row.root.setOnClickListener { switchToUser(id) }
+            }
+            row.btnUserRowRemove.setOnClickListener { confirmRemoveUser(id) }
+            container.addView(row.root)
+        }
+        binding.btnAddUser.isVisible = Users.hasRoom(ctx)
+        binding.tvUsersHint.isVisible = Users.count(ctx) > 1
+    }
+
+    private fun loadUserRowAvatar(context: Context, row: ItemUserRowBinding, userId: Int) {
+        val avatar = row.ivUserRowAvatar
+        if (Settings.getAvatar(context, userId) == Settings.AVATAR_FILE) {
+            avatar.setPadding(0, 0, 0, 0)
+            avatar.scaleType = ImageView.ScaleType.CENTER_CROP
+            avatar.imageTintList = null
+        } else {
+            avatar.setPadding(dp(10), dp(10), dp(10), dp(10))
+            avatar.scaleType = ImageView.ScaleType.FIT_CENTER
+            avatar.imageTintList = ColorStateList.valueOf(
+                MaterialColors.getColor(
+                    binding.root, com.google.android.material.R.attr.colorOnPrimaryContainer
+                )
+            )
+        }
+        avatar.setImageDrawable(ProfileAvatar.load(context, userId))
+    }
+
+    private fun switchToUser(userId: Int) {
+        val app = requireContext().applicationContext
+        Users.setActiveId(app, userId)
+        // Schließt die Verbindung des bisherigen Nutzers und öffnet die
+        // Datenbank des neuen, damit wirklich dessen Logbuch angezeigt wird.
+        LogbookRepository.switchUser(app)
+        requireActivity().recreate()
+    }
+
+    private fun addUser() {
+        val app = requireContext().applicationContext
+        if (Users.addUser(app) == null) return
+        LogbookRepository.switchUser(app)
+        requireActivity().recreate()
+    }
+
+    private fun confirmRemoveUser(userId: Int) {
+        val ctx = requireContext()
+        MaterialAlertDialogBuilder(ctx)
+            .setTitle(R.string.users_remove_title)
+            .setMessage(getString(R.string.users_remove_message, Users.label(ctx, userId)))
+            .setPositiveButton(R.string.users_remove_confirm) { _, _ ->
+                AppReset.removeUser(ctx, userId)
+                requireActivity().recreate()
+            }
+            .setNegativeButton(R.string.discard_cancel, null)
+            .show()
+    }
+
+    // --- Danger Zone ------------------------------------------------------
+
+    /** Löscht Logbuch und Profil des aktiven Nutzers; der Platz bleibt. */
+    private fun confirmDeleteUserData() {
+        val ctx = requireContext()
+        PassphraseConfirm.show(
+            context = ctx,
+            titleRes = R.string.danger_delete_user_title,
+            message = ctx.getString(
+                R.string.danger_delete_user_message,
+                Users.label(ctx, Users.activeId(ctx))
+            ),
+            phrase = PassphraseConfirm.PHRASE_FLIGHTS,
+            confirmRes = R.string.danger_delete_user_confirm,
+            onConfirmed = {
+                AppReset.clearActiveUser(ctx)
+                Toast.makeText(ctx, R.string.danger_delete_user_done, Toast.LENGTH_SHORT).show()
+                requireActivity().recreate()
+            }
+        )
+    }
+
+    /** Setzt die App auf den Werkszustand zurück und startet sie neu. */
+    private fun confirmFactoryReset() {
+        val ctx = requireContext()
+        PassphraseConfirm.show(
+            context = ctx,
+            titleRes = R.string.danger_reset_title,
+            message = ctx.getString(R.string.danger_reset_message),
+            phrase = PassphraseConfirm.PHRASE_FLIGHTS,
+            confirmRes = R.string.danger_reset_confirm,
+            onConfirmed = {
+                AppReset.factoryReset(ctx)
+                restartToMain()
+            }
+        )
+    }
+
+    /**
+     * Nach dem Werksreset ist die Einstellungsdatei leer, die App startet
+     * also mit der Willkommens-Tour. Damit kein halb gezeichneter
+     * Einstellungsbildschirm stehenbleibt, ersetzt eine frische MainActivity
+     * die gesamte Aufgabengeschichte.
+     */
+    private fun restartToMain() {
+        val intent = Intent(requireContext(), MainActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        startActivity(intent)
+        requireActivity().finish()
     }
 
     private fun applyAccent(accent: String) {

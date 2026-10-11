@@ -53,6 +53,13 @@ class CountryRouteMapView @JvmOverloads constructor(
     /** Angeklickter Flughafen, dessen Verbindungen hervorgehoben werden. */
     private var selectedAirport: String? = null
 
+    /**
+     * Meldet der Länderseite den angeklickten Flughafen (null, sobald keiner
+     * mehr ausgewählt ist), damit sie ihren Detailtext ein- und ausblenden
+     * kann.
+     */
+    var onAirportSelectionChanged: ((String?) -> Unit)? = null
+
     /** Zoomstufe der Länderansicht; dorthin kehrt die Karte ohne Auswahl zurück. */
     private var countryMinZoom: Double = 1.0
 
@@ -151,6 +158,7 @@ class CountryRouteMapView @JvmOverloads constructor(
             selectedAirport = null
             minZoomLevel = countryMinZoom
             rebuildOverlays()
+            onAirportSelectionChanged?.invoke(null)
         }
         zoomToBoundingBox(
             BoundingBox(box.maxLat, box.maxLon, box.minLat, box.minLon),
@@ -167,12 +175,14 @@ class CountryRouteMapView @JvmOverloads constructor(
             selectedAirport = null
             minZoomLevel = countryMinZoom
             rebuildOverlays()
+            onAirportSelectionChanged?.invoke(null)
             zoomToFocus()
         } else {
             // Neuer Flughafen: seine Verbindungen hervorheben und so weit
             // herauszoomen, dass alle sichtbar sind.
             selectedAirport = code
             rebuildOverlays()
+            onAirportSelectionChanged?.invoke(code)
             fitToSelectedAirport()
         }
         invalidate()
@@ -453,6 +463,18 @@ class CountryRouteMapView @JvmOverloads constructor(
             strokeWidth = 1.5f * density
             alpha = 200
         }
+        /** Ausgegrauter Badge: ein Flughafen ohne Bezug zur aktiven Auswahl. */
+        private val dimmedBadgeFill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = muted
+            alpha = 120
+            style = Paint.Style.FILL
+        }
+        private val dimmedBadgeRing = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            style = Paint.Style.STROKE
+            strokeWidth = 1.5f * density
+            alpha = 100
+        }
         /** Ring um den ausgewählten Flughafen, damit er sofort auffällt. */
         private val selectedBadgeRing = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = accent
@@ -470,6 +492,9 @@ class CountryRouteMapView @JvmOverloads constructor(
             drawRoutes(canvas, mapView, projection)
             drawAirports(canvas, projection)
             drawDestinationBadges(canvas, projection)
+            // Ganz zuletzt: der angeklickte Flughafen liegt damit immer über
+            // allen anderen Badges und bleibt im Vordergrund.
+            drawSelectedAirport(canvas, projection)
         }
 
         /** Tipp auf ein Badge wählt den Flughafen aus, ein zweiter hebt es auf. */
@@ -647,26 +672,63 @@ class CountryRouteMapView @JvmOverloads constructor(
         /**
          * Die angeflogenen Flughäfen des Landes als Badges mit IATA-Code.
          * Häufig angeflogene liegen zuletzt, damit sie bei überlappenden
-         * Badges obenauf liegen; der ausgewählte Flughafen ganz zuletzt.
+         * Badges obenauf liegen. Bei aktiver Auswahl treten alle Flughäfen
+         * zurück, die mit dem angeklickten Flughafen und seinen Verbindungen
+         * nichts zu tun haben; der angeklickte selbst wird zuletzt gezeichnet
+         * und liegt damit ganz vorn.
          */
         private fun drawAirports(
             canvas: Canvas,
             projection: org.osmdroid.views.Projection
         ) {
             if (airports.isEmpty()) return
-            badgeLabel.color = readableOn(accent)
+            val selected = selection
+            val connected = connectedAirports(selected)
             val ordered = airports.sortedWith(
                 compareBy<CountryDetailModel.AirportMarker> {
                     if (it.iata == selection) 1 else 0
                 }.thenBy { it.count }.thenBy { it.iata }
             )
             for (airport in ordered) {
-                val iata = airport.iata
+                if (airport.iata == selected) continue
+                val dimmed = selected != null && airport.iata !in connected
                 drawBadge(
-                    canvas, projection, airport.lat, airport.lon, iata,
-                    highlighted = iata == selection
+                    canvas, projection, airport.lat, airport.lon, airport.iata,
+                    highlighted = false, dimmed = dimmed
                 )
             }
+        }
+
+        /**
+         * Die IATA-Codes, die mit dem angeklickten Flughafen über eine
+         * Verbindung zusammenhängen: das jeweils andere Ende seiner Inlands-
+         * und Auslandsrouten. Ohne Auswahl gibt es nichts zurückzuhalten.
+         */
+        private fun connectedAirports(selected: String?): Set<String> {
+            if (selected == null) return emptySet()
+            val result = HashSet<String>()
+            for (route in domestic) {
+                if (route.from == selected) result += route.to
+                if (route.to == selected) result += route.from
+            }
+            for (route in international) {
+                if (route.from == selected) result += route.to
+                if (route.to == selected) result += route.from
+            }
+            return result
+        }
+
+        /** Der angeklickte Flughafen, ganz zuletzt und damit im Vordergrund. */
+        private fun drawSelectedAirport(
+            canvas: Canvas,
+            projection: org.osmdroid.views.Projection
+        ) {
+            val selected = selection ?: return
+            val airport = airports.firstOrNull { it.iata == selected } ?: return
+            drawBadge(
+                canvas, projection, airport.lat, airport.lon, selected,
+                highlighted = true, dimmed = false
+            )
         }
 
         /**
@@ -693,23 +755,24 @@ class CountryRouteMapView @JvmOverloads constructor(
                 }
             }
             if (destinations.isEmpty()) return
-            badgeLabel.color = readableOn(accent)
             for ((code, point) in destinations) {
                 drawBadge(
                     canvas, projection, point.latitude, point.longitude, code,
-                    highlighted = false
+                    highlighted = false, dimmed = false
                 )
             }
         }
 
-        /** Ein Badge mit IATA-Code; [highlighted] bekommt einen Akzentring. */
+        /** Ein Badge mit IATA-Code; [highlighted] bekommt einen Akzentring,
+         * [dimmed] tritt bei aktiver Auswahl grau zurück. */
         private fun drawBadge(
             canvas: Canvas,
             projection: org.osmdroid.views.Projection,
             lat: Double,
             lon: Double,
             code: String,
-            highlighted: Boolean
+            highlighted: Boolean,
+            dimmed: Boolean
         ) {
             projection.toPixels(GeoPoint(lat, lon), reusePoint)
             val sx = reusePoint.x.toFloat()
@@ -736,8 +799,12 @@ class CountryRouteMapView @JvmOverloads constructor(
                     selectedBadgeRing
                 )
             }
-            canvas.drawRoundRect(left, top, left + badgeWidth, top + badgeHeight, radius, radius, badgeFill)
-            canvas.drawRoundRect(left, top, left + badgeWidth, top + badgeHeight, radius, radius, badgeRing)
+            val fillPaint = if (dimmed) dimmedBadgeFill else badgeFill
+            val ringPaint = if (dimmed) dimmedBadgeRing else badgeRing
+            badgeLabel.color = readableOn(if (dimmed) muted else accent)
+            badgeLabel.alpha = if (dimmed) 150 else 255
+            canvas.drawRoundRect(left, top, left + badgeWidth, top + badgeHeight, radius, radius, fillPaint)
+            canvas.drawRoundRect(left, top, left + badgeWidth, top + badgeHeight, radius, radius, ringPaint)
             canvas.drawText(
                 code,
                 sx - textWidth / 2,

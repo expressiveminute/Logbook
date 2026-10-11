@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.res.Configuration
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
+import android.text.SpannableStringBuilder
+import android.text.Spanned
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
@@ -373,7 +375,20 @@ class EntryListAdapter(
             item.itemDate, com.google.android.material.R.attr.colorOnSurface
         ))
 
-        item.itemRoute.text = "${entry.fromAirport} → ${entry.toAirport}"
+        // Der Pfeil steht mit je einem Leerzeichen links und rechts im Text;
+        // der Span umfasst sie, damit beide Abstände gleich bleiben.
+        val route = SpannableStringBuilder()
+        route.append(entry.fromAirport)
+        val arrowStart = route.length
+        route.append(" $ROUTE_ARROW ")
+        route.setSpan(
+            VerticalCenterSpan(" $ROUTE_ARROW "),
+            arrowStart,
+            arrowStart + ROUTE_ARROW.length + 2,
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+        route.append(entry.toAirport)
+        item.itemRoute.text = route
         item.itemRoute.setTextColor(if (upcoming) grayTone else MaterialColors.getColor(
             item.itemRoute, com.google.android.material.R.attr.colorPrimary
         ))
@@ -458,6 +473,9 @@ class EntryListAdapter(
     companion object {
         private const val TYPE_MONTH = 0
         private const val TYPE_ENTRY = 1
+
+        /** Pfeil zwischen Abflug und Ankunft, siehe [VerticalCenterSpan]. */
+        private const val ROUTE_ARROW = "→"
 
         val dateFormatter: java.time.format.DateTimeFormatter =
             java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy")

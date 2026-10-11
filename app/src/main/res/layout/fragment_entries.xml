@@ -1,96 +1,100 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="?android:attr/colorBackground"
     android:orientation="vertical">
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btn_back_entries"
-        style="?attr/materialIconButtonStyle"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
-        android:visibility="gone"
-        app:backgroundTint="?attr/colorSurfaceContainerHigh"
-        app:icon="@drawable/ic_arrow_back"
-        app:iconSize="24dp"
-        app:iconTint="?attr/colorOnSurface"
-        app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Button.Circle"
-        app:contentDescription="@string/btn_back" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="20dp"
-        android:layout_marginTop="16dp"
-        android:text="@string/entries_title"
-        android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
-        android:textStyle="bold" />
-
-    <LinearLayout
+    <!-- Kopfzeile der Einträge als eine Zeile: links der Titel (mit dem
+         Zurückpfeil, wenn die Seite von der Karte kommt), mittig die Lupe,
+         rechts der Filter. Alles steht fest über der Liste und scrollt nicht
+         mit. Über die Lupe klappt rechts daneben das Suchfeld auf, das die
+         frühere breite Suchkachel ersetzt und so den Einträgen mehr Platz
+         lässt. -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/entries_header"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingHorizontal="16dp">
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp">
 
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="0dp"
+        <LinearLayout
+            android:id="@+id/ll_entries_lead"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:minHeight="56dp"
-            app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="0dp"
-            app:contentPadding="16dp"
-            app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full"
-            app:strokeColor="?attr/colorOutlineVariant"
-            app:strokeWidth="1dp">
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
 
-            <LinearLayout
-                android:layout_width="match_parent"
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_back_entries"
+                style="?attr/materialIconButtonStyle"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:visibility="gone"
+                app:backgroundTint="?attr/colorSurfaceContainerHigh"
+                app:contentDescription="@string/btn_back"
+                app:icon="@drawable/ic_arrow_back"
+                app:iconSize="24dp"
+                app:iconTint="?attr/colorOnSurface"
+                app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Button.Circle"
+                tools:visibility="visible" />
+
+            <TextView
+                android:id="@+id/tv_entries_title"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:minHeight="24dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
+                android:text="@string/entries_title"
+                android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
+                android:textStyle="bold" />
+        </LinearLayout>
 
-                <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:importantForAccessibility="no"
-                    android:src="@drawable/ic_search"
-                    app:tint="?attr/colorOnSurfaceVariant" />
-
-                <EditText
-                    android:id="@+id/et_entry_search"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="@null"
-                    android:hint="@string/entries_search_hint"
-                    android:imeOptions="actionSearch"
-                    android:inputType="text"
-                    android:maxLines="1"
-                    android:padding="0dp"
-                    android:singleLine="true"
-                    android:textColor="?attr/colorOnSurface"
-                    android:textColorHint="?attr/colorOnSurfaceVariant" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
+        <!-- Lupe, mittig auf der Bildschirmbreite. Ein Tipp klappt das
+             Suchfeld rechts daneben auf bzw. wieder zu. -->
         <com.google.android.material.card.MaterialCardView
-            android:id="@+id/tile_entry_filter"
-            android:layout_width="56dp"
-            android:layout_height="match_parent"
-            android:layout_marginStart="8dp"
+            android:id="@+id/btn_entry_search"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:clickable="true"
             android:focusable="true"
             app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
             app:cardCornerRadius="16dp"
             app:cardElevation="0dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full"
+            app:strokeColor="?attr/colorOutlineVariant"
+            app:strokeWidth="1dp">
+
+            <ImageView
+                android:id="@+id/iv_entry_search"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:contentDescription="@string/entries_search_open"
+                android:src="@drawable/ic_search"
+                app:tint="?attr/colorOnSurfaceVariant" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Filter, rechts in derselben Zeile. -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/tile_entry_filter"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:clickable="true"
+            android:focusable="true"
+            app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
             app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full"
             app:strokeColor="?attr/colorOutlineVariant"
             app:strokeWidth="1dp">
@@ -103,7 +107,43 @@
                 android:contentDescription="@string/entries_filter_desc"
                 android:src="@drawable/ic_filter" />
         </com.google.android.material.card.MaterialCardView>
-    </LinearLayout>
+
+        <!-- Suchfeld, das beim Tippen auf die Lupe von rechts nach links über
+             die Fläche des Filters gleitet. -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/entry_search_field"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:visibility="gone"
+            app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/btn_entry_search"
+            app:layout_constraintTop_toTopOf="parent"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full"
+            app:strokeColor="?attr/colorOutlineVariant"
+            app:strokeWidth="1dp"
+            tools:visibility="visible">
+
+            <EditText
+                android:id="@+id/et_entry_search"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:background="@null"
+                android:hint="@string/entries_search_hint"
+                android:imeOptions="actionSearch"
+                android:inputType="text"
+                android:maxLines="1"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:singleLine="true"
+                android:textColor="?attr/colorOnSurface"
+                android:textColorHint="?attr/colorOnSurfaceVariant" />
+        </com.google.android.material.card.MaterialCardView>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
     <FrameLayout
         android:layout_width="match_parent"

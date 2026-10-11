@@ -74,6 +74,16 @@ object Settings {
         context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
 
     /**
+     * Anhängsel für die nutzerbezogenen Schlüssel (Profil, Rolle,
+     * Fluggesellschaft, Arbeitsposition, abgehakte Länder). Nutzer 1 behält die
+     * alten Schlüssel ohne Anhang, damit eine bestehende Installation ihr
+     * Profil unverändert weiterbenutzt.
+     */
+    private fun suffixFor(userId: Int): String = if (userId <= 1) "" else "_u$userId"
+
+    private fun userSuffix(context: Context): String = suffixFor(Users.activeId(context))
+
+    /**
      * Erscheinungsbild der App. [THEME_MODE_SYSTEM] übernimmt die Einstellung,
      * die auf dem Handy gespeichert ist.
      *
@@ -185,18 +195,19 @@ object Settings {
      * gespeicherte Wahl gilt [Role.DEFAULT].
      */
     fun getRole(context: Context): Role =
-        Role.fromKey(prefs(context).getString(KEY_ROLE, null))
+        Role.fromKey(prefs(context).getString(KEY_ROLE + userSuffix(context), null))
 
     fun setRole(context: Context, role: Role) {
-        prefs(context).edit().putString(KEY_ROLE, role.key).apply()
+        prefs(context).edit().putString(KEY_ROLE + userSuffix(context), role.key).apply()
     }
 
     fun getCrewFunction(context: Context): String =
-        prefs(context).getString(KEY_CREW_FUNCTION, CREW_FUNCTION_PURSER_I)
-            ?: CREW_FUNCTION_PURSER_I
+        prefs(context).getString(
+            KEY_CREW_FUNCTION + userSuffix(context), CREW_FUNCTION_PURSER_I
+        ) ?: CREW_FUNCTION_PURSER_I
 
     fun setCrewFunction(context: Context, value: String) {
-        prefs(context).edit().putString(KEY_CREW_FUNCTION, value).apply()
+        prefs(context).edit().putString(KEY_CREW_FUNCTION + userSuffix(context), value).apply()
     }
 
     fun crewFunctionLabel(context: Context, key: String): String = when (key) {
@@ -214,10 +225,10 @@ object Settings {
      * wenn keine hinterlegt ist.
      */
     fun getPreferredClassIndex(context: Context): Int =
-        prefs(context).getInt(KEY_PREFERRED_CLASS, -1)
+        prefs(context).getInt(KEY_PREFERRED_CLASS + userSuffix(context), -1)
 
     fun setPreferredClassIndex(context: Context, index: Int) {
-        prefs(context).edit().putInt(KEY_PREFERRED_CLASS, index).apply()
+        prefs(context).edit().putInt(KEY_PREFERRED_CLASS + userSuffix(context), index).apply()
     }
 
     fun getClassScheme(context: Context): String =
@@ -228,24 +239,31 @@ object Settings {
     }
 
     fun getAvatar(context: Context): String =
-        prefs(context).getString(KEY_AVATAR, AVATAR_DEFAULT) ?: AVATAR_DEFAULT
+        getAvatar(context, Users.activeId(context))
+
+    fun getAvatar(context: Context, userId: Int): String =
+        prefs(context).getString(KEY_AVATAR + suffixFor(userId), AVATAR_DEFAULT)
+            ?: AVATAR_DEFAULT
 
     fun setAvatar(context: Context, value: String) {
-        prefs(context).edit().putString(KEY_AVATAR, value).apply()
+        prefs(context).edit().putString(KEY_AVATAR + userSuffix(context), value).apply()
     }
 
     fun getProfileName(context: Context): String =
-        prefs(context).getString(KEY_PROFILE_NAME, "") ?: ""
+        getProfileName(context, Users.activeId(context))
+
+    fun getProfileName(context: Context, userId: Int): String =
+        prefs(context).getString(KEY_PROFILE_NAME + suffixFor(userId), "") ?: ""
 
     fun setProfileName(context: Context, value: String) {
-        prefs(context).edit().putString(KEY_PROFILE_NAME, value).apply()
+        prefs(context).edit().putString(KEY_PROFILE_NAME + userSuffix(context), value).apply()
     }
 
     fun getAirline(context: Context): String =
-        prefs(context).getString(KEY_AIRLINE, "") ?: ""
+        prefs(context).getString(KEY_AIRLINE + userSuffix(context), "") ?: ""
 
     fun setAirline(context: Context, value: String) {
-        prefs(context).edit().putString(KEY_AIRLINE, value).apply()
+        prefs(context).edit().putString(KEY_AIRLINE + userSuffix(context), value).apply()
     }
 
     fun isDemoDataEnabled(context: Context): Boolean =
@@ -349,7 +367,7 @@ object Settings {
      * gespeicherten Werte ändern, ohne zu speichern.
      */
     fun getManualCountries(context: Context): Set<String> =
-        prefs(context).getStringSet(KEY_MANUAL_COUNTRIES, null)
+        prefs(context).getStringSet(KEY_MANUAL_COUNTRIES + userSuffix(context), null)
             ?.map { it.trim().uppercase() }
             ?.toSet()
             .orEmpty()
@@ -358,7 +376,7 @@ object Settings {
         val codes = value.map { it.trim().uppercase() }
             .filter { it.length == 2 && it.all { c -> c in 'A'..'Z' } }
             .toSet()
-        prefs(context).edit().putStringSet(KEY_MANUAL_COUNTRIES, codes).apply()
+        prefs(context).edit().putStringSet(KEY_MANUAL_COUNTRIES + userSuffix(context), codes).apply()
         notifyManualCountriesChanged()
     }
 
@@ -370,7 +388,7 @@ object Settings {
      * Flugzeugsymbol auf der Länderliste bleiben davon unberührt.
      */
     fun getHiddenCountries(context: Context): Set<String> =
-        prefs(context).getStringSet(KEY_HIDDEN_COUNTRIES, null)
+        prefs(context).getStringSet(KEY_HIDDEN_COUNTRIES + userSuffix(context), null)
             ?.map { it.trim().uppercase() }
             ?.toSet()
             .orEmpty()
@@ -379,8 +397,33 @@ object Settings {
         val codes = value.map { it.trim().uppercase() }
             .filter { it.length == 2 && it.all { c -> c in 'A'..'Z' } }
             .toSet()
-        prefs(context).edit().putStringSet(KEY_HIDDEN_COUNTRIES, codes).apply()
+        prefs(context).edit().putStringSet(KEY_HIDDEN_COUNTRIES + userSuffix(context), codes).apply()
         notifyManualCountriesChanged()
+    }
+
+    /**
+     * Löscht alle Profileinstellungen eines Nutzers (Name, Avatar, Rolle,
+     * Fluggesellschaft, Arbeitsposition, abgehakte Länder). Der Platz bleibt
+     * bestehen. Siehe [clearActiveUserProfile] für den aktiven Nutzer.
+     */
+    fun clearProfileForUser(context: Context, userId: Int) {
+        val s = suffixFor(userId)
+        prefs(context).edit()
+            .remove(KEY_PROFILE_NAME + s)
+            .remove(KEY_AVATAR + s)
+            .remove(KEY_AIRLINE + s)
+            .remove(KEY_ROLE + s)
+            .remove(KEY_CREW_FUNCTION + s)
+            .remove(KEY_PREFERRED_CLASS + s)
+            .remove(KEY_MANUAL_COUNTRIES + s)
+            .remove(KEY_HIDDEN_COUNTRIES + s)
+            .apply()
+        notifyManualCountriesChanged()
+    }
+
+    /** Löscht die Profileinstellungen des aktiven Nutzers, der Platz bleibt. */
+    fun clearActiveUserProfile(context: Context) {
+        clearProfileForUser(context, Users.activeId(context))
     }
 
     /**

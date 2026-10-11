@@ -80,6 +80,7 @@ class ProfileFragment : Fragment() {
         updateNameMode()
 
         binding.headerSectionProfile.setOnClickListener { openSection("profile") }
+        binding.headerSectionUsers.setOnClickListener { openSection("users") }
         binding.headerSectionCustomization.setOnClickListener { openSection("customization") }
         binding.headerSectionData.setOnClickListener { openSection("data") }
         binding.headerSectionDevelopment.setOnClickListener { openSection("development") }
@@ -133,7 +134,7 @@ class ProfileFragment : Fragment() {
         val frame = binding.avatarTile
         val icon = binding.avatarPreview
         if (value == Settings.AVATAR_FILE) {
-            val file = File(requireContext().filesDir, ProfileAvatar.FILE_NAME)
+            val file = File(requireContext().filesDir, ProfileAvatar.fileName(requireContext()))
             val bmp = if (file.exists()) BitmapFactory.decodeFile(file.absolutePath) else null
             if (bmp != null) {
                 frame.backgroundTintList = ColorStateList.valueOf(
@@ -246,7 +247,7 @@ class ProfileFragment : Fragment() {
             val decoded = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return
             val scaled = Bitmap.createScaledBitmap(decoded, 512, 512, true)
             if (decoded != scaled) decoded.recycle()
-            File(requireContext().filesDir, ProfileAvatar.FILE_NAME).outputStream().use { out ->
+            File(requireContext().filesDir, ProfileAvatar.fileName(requireContext())).outputStream().use { out ->
                 scaled.compress(Bitmap.CompressFormat.PNG, 100, out)
             }
             scaled.recycle()

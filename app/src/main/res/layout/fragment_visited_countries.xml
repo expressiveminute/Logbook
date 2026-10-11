@@ -7,7 +7,9 @@
     android:background="?android:attr/colorBackground"
     tools:context=".VisitedCountriesFragment">
 
-    <!-- Kopfleiste: gleiches Muster wie auf der Länderliste der Rubbelkarte. -->
+    <!-- Kopfleiste: gleiches Muster wie auf der Länderliste der Rubbelkarte,
+         rechts zusätzlich eine Lupe. Sie blendet beim Suchen ein Feld über den
+         Titel, das sich von rechts nach links über die Titelfläche öffnet. -->
     <LinearLayout
         android:id="@+id/header"
         android:layout_width="match_parent"
@@ -29,29 +31,68 @@
             app:iconSize="24dp"
             app:iconTint="?attr/colorOnSurface" />
 
-        <LinearLayout
+        <FrameLayout
+            android:id="@+id/header_search_container"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:layout_weight="1"
-            android:orientation="vertical">
+            android:clipChildren="true">
 
-            <TextView
-                android:id="@+id/tv_visited_countries_title"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:id="@+id/ll_visited_countries_title"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/countries_title"
-                android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
-                android:textStyle="bold" />
+                android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/tv_visited_countries_subtitle"
-                android:layout_width="wrap_content"
+                <TextView
+                    android:id="@+id/tv_visited_countries_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/countries_title"
+                    android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_visited_countries_subtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    tools:text="5 Länder besucht" />
+            </LinearLayout>
+
+            <!-- Suchfeld, das beim Tippen auf die Lupe über den Titel gleitet. -->
+            <EditText
+                android:id="@+id/et_country_search"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                tools:text="5 Länder besucht" />
-        </LinearLayout>
+                android:layout_gravity="center_vertical"
+                android:background="?attr/colorSurfaceContainerLow"
+                android:hint="@string/visited_countries_search_hint"
+                android:imeOptions="actionSearch"
+                android:importantForAutofill="no"
+                android:inputType="text"
+                android:maxLines="1"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="6dp"
+                android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+                android:visibility="gone"
+                tools:visibility="visible"
+                tools:text="Deu" />
+        </FrameLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_visited_countries_search"
+            style="?attr/materialIconButtonStyle"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="4dp"
+            app:backgroundTint="@android:color/transparent"
+            app:contentDescription="@string/visited_countries_search_open"
+            app:icon="@drawable/ic_search"
+            app:iconSize="24dp"
+            app:iconTint="?attr/colorOnSurface" />
     </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView

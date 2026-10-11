@@ -65,21 +65,38 @@
             android:visibility="gone" />
     </LinearLayout>
 
+    <!-- Zahl der angeflogenen Flughäfen und Flüge, zwischen Kopfzeile und Karte.
+         Der Abstand nach oben und unten ist gleich groß. -->
+    <TextView
+        android:id="@+id/tv_country_stats"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="12dp"
+        android:gravity="center"
+        android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/header"
+        tools:text="3 Flughäfen · 5 Flüge" />
+
     <!-- Karte des Landes mit Flughäfen und Verbindungen. -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/country_map_card"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="8dp"
         app:cardBackgroundColor="?android:attr/colorBackground"
         app:cardCornerRadius="16dp"
         app:cardElevation="0dp"
         app:strokeColor="?attr/colorOutlineVariant"
         app:strokeWidth="1dp"
-        app:layout_constraintBottom_toTopOf="@id/tv_country_stats"
+        app:layout_constraintBottom_toTopOf="@id/tv_country_airport_detail"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/header">
+        app:layout_constraintTop_toBottomOf="@id/tv_country_stats">
 
         <FrameLayout
             android:layout_width="match_parent"
@@ -118,17 +135,21 @@
         </FrameLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Zahl der angeflogenen Flughäfen und Flüge. -->
+    <!-- Detailtext des angeklickten Flughafens; ohne Auswahl bleibt er leer. -->
     <TextView
-        android:id="@+id/tv_country_stats"
+        android:id="@+id/tv_country_airport_detail"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="16dp"
-        android:layout_marginBottom="24dp"
         android:gravity="center"
-        android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+        android:paddingTop="8dp"
+        android:paddingBottom="24dp"
+        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        tools:text="3 Flughäfen · 5 Flüge" />
+        tools:text="MUC · München&#10;12 Flüge&#10;Top Verbindungen nach FRA · LHR · CDG"
+        tools:visibility="visible" />
 </androidx.constraintlayout.widget.ConstraintLayout>

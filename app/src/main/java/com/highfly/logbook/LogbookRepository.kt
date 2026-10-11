@@ -11,43 +11,57 @@ object LogbookRepository {
     private var appContext: Context? = null
     private var cache: List<LogbookEntry>? = null
 
+    /** Nutzerplatz, für den [db] gerade geöffnet ist. */
+    private var openUserId: Int = 1
+
     fun init(context: Context) {
-        if (db != null) return
-        appContext = context.applicationContext
-        if (!Settings.isDemoMigrationDone(context.applicationContext)) {
-            Settings.setDemoDataEnabled(context.applicationContext, false)
-            Settings.setDemoMigrationDone(context.applicationContext)
+        if (appContext != null) return
+        val app = context.applicationContext
+        appContext = app
+        if (!Settings.isDemoMigrationDone(app)) {
+            Settings.setDemoDataEnabled(app, false)
+            Settings.setDemoMigrationDone(app)
         }
-        db = LogbookDatabase(context)
-        demoDb = LogbookDatabase(context, DEMO_DATABASE_NAME)
+        demoDb = LogbookDatabase(app, DEMO_DATABASE_NAME)
         // Die Demodatenbank wird neu aufgebaut, wenn sie leer ist oder der
         // Datensatz inzwischen in einer anderen Fassung vorliegt. Sonst bliebe
         // nach einem Update der alte, beim ersten Start angelegte Bestand
         // stehen - ein neuer Datensatz kaeme nie an.
         if (demoDb?.count() == 0 ||
-            Settings.getDemoDataVersion(context) != DemoData.VERSION
+            Settings.getDemoDataVersion(app) != DemoData.VERSION
         ) {
-            demoDb?.replaceAll(DemoData.entries(context))
-            Settings.setDemoDataVersion(context, DemoData.VERSION)
+            demoDb?.replaceAll(DemoData.entries(app))
+            Settings.setDemoDataVersion(app, DemoData.VERSION)
         }
-        Thread {
-            try {
-                val entries = activeDb()?.getAll()?.toList() ?: return@Thread
-                val changed = mutableListOf<LogbookEntry>()
-                for (e in entries) {
-                    val fc = e.fromCountry?.takeIf { it.isNotBlank() }
-                        ?: AirportData.country(appContext ?: context, e.fromAirport)
-                    val tc = e.toCountry?.takeIf { it.isNotBlank() }
-                        ?: AirportData.country(appContext ?: context, e.toAirport)
-                    if (fc != e.fromCountry || tc != e.toCountry) {
-                        changed += e.copy(fromCountry = fc, toCountry = tc)
-                    }
-                }
-                changed.forEach { activeDb()?.update(it) }
-            } catch (e: Exception) {
-                // Fehlende Länder-Rückmeldung ist nicht kritisch
-            }
-        }.start()
+        openUserDatabase(app)
+        enrichCountriesAsync(app)
+    }
+
+    /**
+     * Oeffnet die Datenbank des aktiven Nutzers. Beim Wechsel wird die vorige
+     * geschlossen und der Zwischenspeicher verworfen, damit wirklich das Logbuch
+     * des neuen Nutzers angezeigt wird.
+     */
+    @Synchronized
+    fun switchUser(context: Context) {
+        val app = context.applicationContext
+        openUserDatabase(app)
+        enrichCountriesAsync(app)
+    }
+
+    @Synchronized
+    private fun openUserDatabase(app: Context) {
+        val id = Users.activeId(app)
+        if (db != null && openUserId == id) return
+        db?.close()
+        db = LogbookDatabase(app, LogbookDatabase.databaseNameFor(id))
+        openUserId = id
+        cache = null
+    }
+
+    @Synchronized
+    private fun ensureOpen(app: Context) {
+        if (db == null) openUserDatabase(app)
     }
 
     private fun activeDb(): LogbookDatabase? =
@@ -103,9 +117,117 @@ object LogbookRepository {
         invalidate()
     }
 
+    /**
+     * Liest die Eintraege eines bestimmten Nutzers aus seinem echten Logbuch.
+     * Fuer Import/Export: auch ein Nutzer, der gerade nicht aktiv ist, laesst
+     * sich so auslesen, ohne dass der aktive Nutzer gewechselt wird. Bei
+     * aktivierten Demodaten gilt das echte Logbuch, nicht die Demobank.
+     */
+    @Synchronized
+    fun entriesForUser(context: Context, userId: Int): List<LogbookEntry> {
+        val app = context.applicationContext
+        ensureOpen(app)
+        if (userId == openUserId) {
+            return db?.getAll()?.sortedByDescending { it.date } ?: emptyList()
+        }
+        val tmp = LogbookDatabase(app, LogbookDatabase.databaseNameFor(userId))
+        return try {
+            tmp.getAll().sortedByDescending { it.date }
+        } finally {
+            tmp.close()
+        }
+    }
+
+    /** Ersetzt alle Eintraege eines bestimmten Nutzers (Import, Überschreiben). */
+    @Synchronized
+    fun replaceAllForUser(context: Context, userId: Int, entries: List<LogbookEntry>) {
+        val app = context.applicationContext
+        ensureOpen(app)
+        if (userId == openUserId) {
+            db?.replaceAll(entries)
+            invalidate()
+        } else {
+            val tmp = LogbookDatabase(app, LogbookDatabase.databaseNameFor(userId))
+            try {
+                tmp.replaceAll(entries)
+            } finally {
+                tmp.close()
+            }
+        }
+    }
+
+    /** Fuegt Eintraege zum Logbuch eines bestimmten Nutzers hinzu (Import, Ergänzen). */
+    @Synchronized
+    fun addEntriesForUser(context: Context, userId: Int, entries: List<LogbookEntry>) {
+        val app = context.applicationContext
+        ensureOpen(app)
+        if (userId == openUserId) {
+            entries.forEach { db?.insert(it) }
+            invalidate()
+        } else {
+            val tmp = LogbookDatabase(app, LogbookDatabase.databaseNameFor(userId))
+            try {
+                entries.forEach { tmp.insert(it) }
+            } finally {
+                tmp.close()
+            }
+        }
+    }
+
+    /**
+     * Leert das echte Logbuch des aktiven Nutzers (nicht die Demodatenbank).
+     * Fuer die Danger Zone "Daten dieses Nutzers loeschen".
+     */
+    @Synchronized
+    fun clearActiveUserData(context: Context) {
+        val app = context.applicationContext
+        ensureOpen(app)
+        db?.replaceAll(emptyList())
+        invalidate()
+    }
+
+    /**
+     * Schliesst alle Verbindungen, damit ein Werksreset die Datenbankdateien
+     * loeschen kann. [init] oeffnet danach alles neu.
+     */
+    @Synchronized
+    fun close() {
+        db?.close()
+        db = null
+        demoDb?.close()
+        demoDb = null
+        appContext = null
+        cache = null
+        openUserId = 1
+    }
+
     @Synchronized
     fun invalidate() {
         cache = null
+    }
+
+    private fun enrichCountriesAsync(context: Context) {
+        Thread {
+            try {
+                val entries = activeDb()?.getAll()?.toList() ?: return@Thread
+                val changed = mutableListOf<LogbookEntry>()
+                for (e in entries) {
+                    val fc = e.fromCountry?.takeIf { it.isNotBlank() }
+                        ?: AirportData.country(context, e.fromAirport)
+                    val tc = e.toCountry?.takeIf { it.isNotBlank() }
+                        ?: AirportData.country(context, e.toAirport)
+                    if (fc != e.fromCountry || tc != e.toCountry) {
+                        changed += e.copy(fromCountry = fc, toCountry = tc)
+                    }
+                }
+                if (changed.isNotEmpty()) {
+                    changed.forEach { activeDb()?.update(it) }
+                    invalidate()
+                }
+            } catch (e: Exception) {
+                // Fehlende Länder-Rückmeldung ist nicht kritisch
+            }
+        }.start()
     }
 
     fun getYears(): List<Int> =

@@ -547,9 +547,47 @@ class ImportFragment : Fragment() {
         if (ImportSession.entries.isEmpty()) return
         val mode = ImportSession.mode ?: return
         val ready = ImportSession.entries.map { it.copy(id = null) }
+        // Ab zwei Nutzern zuerst fragen, in wessen Logbuch die Daten kommen.
+        // Der Import läuft immer auf dem echten Logbuch, nie auf der
+        // Demodatenbank.
+        val ids = Users.ids(requireContext())
+        if (ids.size > 1) {
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.import_choose_user_title)
+                .setItems(ids.map { Users.label(requireContext(), it) }.toTypedArray()) { _, which ->
+                    confirmImport(mode, ids[which], ready)
+                }
+                .setNegativeButton(R.string.discard_cancel, null)
+                .show()
+        } else {
+            confirmImport(mode, ids.first(), ready)
+        }
+    }
+
+    /**
+     * Überschreiben ersetzt wirklich alles: Die Ziel-Datenbank wird geleert
+     * und die Passphrase DANGER ZONE muss getippt werden, bevor es losgeht.
+     * Ergänzen fügt nur hinzu und verlangt keine Passphrase.
+     */
+    private fun confirmImport(mode: ImportMode, userId: Int, ready: List<LogbookEntry>) {
+        if (mode != ImportMode.OVERWRITE) {
+            performImport(mode, userId, ready)
+            return
+        }
+        PassphraseConfirm.show(
+            context = requireContext(),
+            titleRes = R.string.import_overwrite_confirm_title,
+            message = getString(R.string.import_overwrite_confirm_message),
+            phrase = PassphraseConfirm.PHRASE_DANGER_ZONE,
+            confirmRes = R.string.import_overwrite_confirm_action,
+            onConfirmed = { performImport(mode, userId, ready) }
+        )
+    }
+
+    private fun performImport(mode: ImportMode, userId: Int, ready: List<LogbookEntry>) {
         when (mode) {
-            ImportMode.OVERWRITE -> LogbookRepository.replaceAll(ready)
-            ImportMode.APPEND -> LogbookRepository.addEntries(ready)
+            ImportMode.OVERWRITE -> LogbookRepository.replaceAllForUser(requireContext(), userId, ready)
+            ImportMode.APPEND -> LogbookRepository.addEntriesForUser(requireContext(), userId, ready)
         }
         ImportSession.reset()
         Toast.makeText(requireContext(), R.string.import_implement_done, Toast.LENGTH_SHORT).show()

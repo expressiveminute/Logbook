@@ -265,6 +265,48 @@
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/content_users"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tv_users_hint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
+                android:text="@string/users_hint"
+                android:textAppearance="?attr/textAppearanceBodyMedium"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:visibility="gone" />
+
+            <!-- Die Zeilen werden zur Laufzeit aus [Users.ids] aufgebaut,
+                 siehe SettingsSectionFragment.renderUsers. -->
+            <LinearLayout
+                android:id="@+id/content_users_list"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <LinearLayout style="@style/SettingsRow">
+
+                <TextView
+                    style="@style/SettingsRowLabel"
+                    android:text="@string/users_add" />
+
+                <LinearLayout style="@style/SettingsRowValue">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_add_user"
+                        style="@style/SettingsActionButton"
+                        android:text="@string/users_add_action" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
             android:id="@+id/content_themes"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -484,6 +526,57 @@
                         android:id="@+id/btn_import"
                         style="@style/SettingsActionButton"
                         android:text="@string/data_import" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Danger Zone: Beide Aktionen benötigen die Passphrase FLIGHTS,
+                 siehe [PassphraseConfirm]. Der Strich trennt sie sichtbar von
+                 Export/Import ab, damit nichts versehentlich daneben gerät. -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="12dp"
+                android:background="?attr/colorOutlineVariant" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
+                android:text="@string/danger_zone_title"
+                android:textAppearance="?attr/textAppearanceTitleSmall"
+                android:textColor="?attr/colorError"
+                android:textStyle="bold" />
+
+            <LinearLayout style="@style/SettingsRow">
+
+                <TextView
+                    style="@style/SettingsRowLabel"
+                    android:contentDescription="@string/danger_delete_user_subtitle"
+                    android:text="@string/danger_delete_user_label" />
+
+                <LinearLayout style="@style/SettingsRowValue">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_delete_user"
+                        style="@style/SettingsActionButton"
+                        android:text="@string/danger_delete_user_action" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout style="@style/SettingsRow">
+
+                <TextView
+                    style="@style/SettingsRowLabel"
+                    android:contentDescription="@string/danger_reset_subtitle"
+                    android:text="@string/danger_reset_label" />
+
+                <LinearLayout style="@style/SettingsRowValue">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_factory_reset"
+                        style="@style/SettingsActionButton"
+                        android:text="@string/danger_reset_action" />
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>

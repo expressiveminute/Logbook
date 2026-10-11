@@ -8,9 +8,12 @@ import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
 import android.graphics.Color
+import androidx.core.content.ContextCompat
 import androidx.core.view.doOnPreDraw
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
@@ -51,6 +54,9 @@ class EntriesFragment : Fragment(), ImeVisibilityAware {
     private var dataLoaded = false
     private var loadGeneration = 0
     private var scrollToEntryId: Long? = null
+
+    /** Suchfeld rechts neben der Lupe offen oder zu. */
+    private var searchActive = false
 
     private val searchHandler = Handler(Looper.getMainLooper())
     private var searchRunnable: Runnable? = null
@@ -159,6 +165,10 @@ class EntriesFragment : Fragment(), ImeVisibilityAware {
     private fun consumePresetAirport() {
         val airport = arguments?.getString("airportFilter").orEmpty().trim().uppercase()
         if (airport.isBlank()) return
+        // Das Feld ist zugeklappt, solange nicht gesucht wird. Damit der
+        // uebergebene Flughafen sichtbar bleibt, klappen wir es auf - ohne
+        // Tastatur, die Seite wurde ja gerade erst geoeffnet.
+        openSearch(showKeyboard = false)
         if (binding.etEntrySearch.text?.toString()?.trim()?.uppercase() != airport) {
             binding.etEntrySearch.setText(airport)
         }
@@ -167,6 +177,9 @@ class EntriesFragment : Fragment(), ImeVisibilityAware {
     }
 
     private fun setupSearch() {
+        binding.btnEntrySearch.setOnClickListener {
+            if (searchActive) closeSearch() else openSearch(showKeyboard = true)
+        }
         binding.etEntrySearch.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
@@ -177,6 +190,76 @@ class EntriesFragment : Fragment(), ImeVisibilityAware {
                 searchHandler.postDelayed(runnable, 250)
             }
         })
+        binding.etEntrySearch.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_SEARCH ||
+                actionId == EditorInfo.IME_ACTION_DONE
+            ) {
+                hideKeyboard()
+                true
+            } else {
+                false
+            }
+        }
+    }
+
+    /**
+     * Klappt das Suchfeld rechts neben der Lupe auf. Der Filter weicht dabei,
+     * damit das Feld die volle rechte Haelfte bekommt, und taucht beim
+     * Schliessen wieder auf. Das Feld gleitet von rechts nach links ein.
+     */
+    private fun openSearch(showKeyboard: Boolean) {
+        if (searchActive) return
+        searchActive = true
+        binding.tileEntryFilter.visibility = View.GONE
+        val field = binding.entrySearchField
+        field.visibility = View.VISIBLE
+        field.alpha = 0f
+        field.translationX = resources.displayMetrics.widthPixels.toFloat()
+        field.doOnPreDraw {
+            val view = _binding ?: return@doOnPreDraw
+            if (!searchActive) return@doOnPreDraw
+            val distance = view.entrySearchField.width.toFloat().coerceAtLeast(1f)
+            view.entrySearchField.translationX = distance
+            view.entrySearchField.animate()
+                .translationX(0f).alpha(1f).setDuration(220).start()
+        }
+        binding.ivEntrySearch.setImageResource(R.drawable.ic_close)
+        binding.ivEntrySearch.contentDescription = getString(R.string.entries_search_close)
+        if (showKeyboard) {
+            binding.etEntrySearch.requestFocus()
+            ContextCompat.getSystemService(requireContext(), InputMethodManager::class.java)
+                ?.showSoftInput(binding.etEntrySearch, InputMethodManager.SHOW_IMPLICIT)
+        }
+    }
+
+    /** Klappt das Suchfeld wieder zu und raeumt die Suche ab. */
+    private fun closeSearch() {
+        if (!searchActive) return
+        searchActive = false
+        val field = binding.entrySearchField
+        binding.etEntrySearch.clearFocus()
+        hideKeyboard()
+        val distance = field.width.toFloat().coerceAtLeast(1f)
+        field.animate()
+            .translationX(distance)
+            .alpha(0f)
+            .setDuration(200)
+            .withEndAction {
+                val view = _binding ?: return@withEndAction
+                view.entrySearchField.visibility = View.GONE
+                view.entrySearchField.translationX = 0f
+                view.entrySearchField.alpha = 1f
+                view.etEntrySearch.setText("")
+            }
+            .start()
+        binding.tileEntryFilter.visibility = View.VISIBLE
+        binding.ivEntrySearch.setImageResource(R.drawable.ic_search)
+        binding.ivEntrySearch.contentDescription = getString(R.string.entries_search_open)
+    }
+
+    private fun hideKeyboard() {
+        ContextCompat.getSystemService(requireContext(), InputMethodManager::class.java)
+            ?.hideSoftInputFromWindow(binding.etEntrySearch.windowToken, 0)
     }
 
     private fun renderEntries() {

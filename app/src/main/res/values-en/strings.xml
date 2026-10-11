@@ -249,6 +249,8 @@
     <string name="entries_title">Entries</string>
     <string name="entries_search_hint">Search</string>
     <string name="entries_no_results">No entries found</string>
+    <string name="entries_search_open">Search entries</string>
+    <string name="entries_search_close">Close search</string>
     <string name="entries_filter_desc">Filter</string>
     <string name="entries_month">%1$s %2$d</string>
     <string name="entries_upcoming">Upcoming</string>
@@ -350,6 +352,13 @@
     <string name="country_detail_focus">Show all flown-to airports</string>
     <string name="country_detail_empty">No flight data for this country yet.</string>
     <string name="country_detail_map_desc">Map of %1$s with %2$d airports</string>
+    <plurals name="country_detail_top_routes">
+        <item quantity="one">Top connection to %1$s</item>
+        <item quantity="other">Top connections to %1$s</item>
+    </plurals>
+    <string name="visited_countries_search_hint">Search country</string>
+    <string name="visited_countries_search_open">Search countries</string>
+    <string name="visited_countries_search_close">Close search</string>
 
     <!-- Travel buddies: the evaluation behind the dashboard tile -->
     <string name="travel_buddies_title">Travel buddies</string>
@@ -465,4 +474,41 @@
     <string name="welcome_discovery_feature2_body">Colours in every country you visited and shows your progress around the world.</string>
     <string name="settings_welcome_tour">Welcome tour</string>
     <string name="settings_welcome_tour_action">Start tour</string>
+
+    <!-- Users: multiple logbooks, switch in settings -->
+    <string name="settings_section_users">Users</string>
+    <string name="users_add">Add user</string>
+    <string name="users_add_action">Add</string>
+    <string name="users_remove">Remove</string>
+    <string name="users_remove_title">Remove user?</string>
+    <string name="users_remove_message">Do you want to remove %1$s with all flights, profile and photo permanently?</string>
+    <string name="users_remove_confirm">Remove</string>
+    <string name="users_active">Active</string>
+    <string name="users_default_name">User %1$d</string>
+    <string name="users_entry_named">User %1$d · %2$s</string>
+    <string name="users_hint">Each user has their own logbook and profile. Tap a row to switch users.</string>
+
+    <!-- Passphrase confirmation and danger zone -->
+    <string name="passphrase_hint">Enter passphrase</string>
+    <string name="danger_zone_title">Danger Zone</string>
+    <string name="danger_delete_user_label">Delete this user\'s data</string>
+    <string name="danger_delete_user_subtitle">Permanently delete all flights and profile settings of the active user</string>
+    <string name="danger_delete_user_action">Delete</string>
+    <string name="danger_delete_user_title">Delete data?</string>
+    <string name="danger_delete_user_message">All flights and profile settings of %1$s will be deleted permanently. The slot stays. Type FLIGHTS to confirm.</string>
+    <string name="danger_delete_user_confirm">Delete data</string>
+    <string name="danger_delete_user_done">Data deleted</string>
+    <string name="danger_reset_label">Factory reset</string>
+    <string name="danger_reset_subtitle">Delete all users, flights, settings and photos and set up the app anew</string>
+    <string name="danger_reset_action">Reset</string>
+    <string name="danger_reset_title">Factory reset?</string>
+    <string name="danger_reset_message">All users, flights, settings and uploaded photos will be deleted permanently. The app then starts as on first launch. Type FLIGHTS to confirm.</string>
+    <string name="danger_reset_confirm">Reset</string>
+
+    <!-- Import/export per user -->
+    <string name="import_choose_user_title">Import for which user?</string>
+    <string name="export_choose_user_title">Export for which user?</string>
+    <string name="import_overwrite_confirm_title">Confirm overwrite</string>
+    <string name="import_overwrite_confirm_message">All existing entries will be deleted and replaced with the imported data. Type DANGER ZONE to confirm.</string>
+    <string name="import_overwrite_confirm_action">Overwrite</string>
 </resources>

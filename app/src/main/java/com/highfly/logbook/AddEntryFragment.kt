@@ -790,12 +790,13 @@ private fun clearSuggestedRoute() {
     }
 
     /**
-     * Normalisiert den Flugzeugtyp so, dass nur der erste Buchstabe groß und der
-     * Rest klein geschrieben wird, z. B. "A320", "B737" oder "Atr72".
+     * Normalisiert den Flugzeugtyp so, dass nur der erste Buchstabe sicher
+     * groß steht; alles danach bleibt wie getippt (klein oder groß), z. B.
+     * "A320", "B737", "ATR72" oder "Atr72".
      */
     private fun formatAircraftType(input: String): String {
         if (input.isEmpty()) return input
-        return input.first().uppercaseChar() + input.substring(1).lowercase()
+        return input.first().uppercaseChar() + input.substring(1)
     }
 
     /**

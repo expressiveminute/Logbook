@@ -264,6 +264,13 @@ class LogbookDatabase(context: Context, name: String = DATABASE_NAME) :
         const val DATABASE_NAME = "logbook.db"
         const val DATABASE_VERSION = 7
 
+        /**
+         * Datenbankname eines Nutzerplatzes. Nutzer 1 benutzt die bisherige
+         * Datei, damit bestehende Installationen ihr Logbuch behalten.
+         */
+        fun databaseNameFor(userId: Int): String =
+            if (userId <= 1) DATABASE_NAME else "logbook_user$userId.db"
+
         const val TABLE_ENTRIES = "entries"
         const val COL_ID = "_id"
         const val COL_DATE = "date"

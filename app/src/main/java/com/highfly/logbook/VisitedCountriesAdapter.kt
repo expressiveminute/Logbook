@@ -14,14 +14,35 @@ class VisitedCountriesAdapter(
     private val onCountryClick: (String) -> Unit
 ) : RecyclerView.Adapter<VisitedCountriesAdapter.ViewHolder>() {
 
+    /** Alle Länder; daran messen sich Rangzeichen und Hintergrundbalken. */
+    private var allItems: List<VisitedCountries.Item> = emptyList()
+
+    /** Sichtbare Länder; bei aktiver Suche sind es die Treffer. */
     private var items: List<VisitedCountries.Item> = emptyList()
 
     /** Meistbesuchtes Land der Liste; daran misst der Hintergrundbalken. */
     private var maxFlights = 0
 
+    private var query = ""
+
     fun submit(list: List<VisitedCountries.Item>) {
-        items = list
+        allItems = list
         maxFlights = list.maxOfOrNull { it.flights } ?: 0
+        applyQuery()
+    }
+
+    /** Filtert die Liste nach [query]; ein leerer Suchtext zeigt alles. */
+    fun setQuery(value: String) {
+        query = value
+        applyQuery()
+    }
+
+    private fun applyQuery() {
+        items = if (query.isBlank()) {
+            allItems
+        } else {
+            allItems.filter { it.name.contains(query, ignoreCase = true) }
+        }
         notifyDataSetChanged()
     }
 
@@ -48,7 +69,9 @@ class VisitedCountriesAdapter(
         }
 
         fun bind(item: VisitedCountries.Item) {
-            val rank = VisitedCountries.rankOf(item, items)
+            // Der Rang bezieht sich immer auf die komplette Liste, damit die
+            // Medaille auch bei aktiver Suche zum echten Listenplatz passt.
+            val rank = VisitedCountries.rankOf(item, allItems)
             binding.badgeVisitedCountryRank.setRank(rank)
             // Hintergrundbalken: Anteil der Flugzahl am meistbesuchten Land.
             binding.visitedCountryBar.setFraction(

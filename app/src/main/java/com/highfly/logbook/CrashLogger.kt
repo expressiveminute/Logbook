@@ -33,6 +33,11 @@ object CrashLogger {
     fun logFile(): File? =
         logDir?.let { File(it, LOG_FILE_NAME) }
 
+    /** Entfernt die Protokolldatei (Werksreset). */
+    fun clear() {
+        logFile()?.delete()
+    }
+
     fun exists(): Boolean =
         logFile()?.exists() == true && (logFile()?.length() ?: 0L) > 0L
 

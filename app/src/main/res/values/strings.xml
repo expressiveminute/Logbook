@@ -253,6 +253,8 @@
     <string name="entries_title">Einträge</string>
     <string name="entries_search_hint">Suchen</string>
     <string name="entries_no_results">Keine Einträge gefunden</string>
+    <string name="entries_search_open">Einträge durchsuchen</string>
+    <string name="entries_search_close">Suche schließen</string>
     <string name="entries_filter_desc">Filter</string>
     <string name="entries_month">%1$s %2$d</string>
     <string name="entries_upcoming">Upcoming</string>
@@ -355,6 +357,13 @@
     <string name="country_detail_focus">Alle angeflogenen Flughäfen anzeigen</string>
     <string name="country_detail_empty">Für dieses Land liegen noch keine Flugdaten vor.</string>
     <string name="country_detail_map_desc">Karte von %1$s mit %2$d Flughäfen</string>
+    <plurals name="country_detail_top_routes">
+        <item quantity="one">Top Verbindung nach %1$s</item>
+        <item quantity="other">Top Verbindungen nach %1$s</item>
+    </plurals>
+    <string name="visited_countries_search_hint">Land suchen</string>
+    <string name="visited_countries_search_open">Länder durchsuchen</string>
+    <string name="visited_countries_search_close">Suche schließen</string>
 
     <!-- Reisebuddies: Auswertung der Kachel auf dem Dashboard -->
     <string name="travel_buddies_title">Reisebuddies</string>
@@ -471,4 +480,41 @@
     <string name="welcome_discovery_feature2_body">Färbt jedes besuchte Land ein und zeigt deinen Fortschritt auf der Welt.</string>
     <string name="settings_welcome_tour">Willkommens-Tour</string>
     <string name="settings_welcome_tour_action">Tour starten</string>
+
+    <!-- Nutzer: mehrere Logbücher, Wechsel in den Einstellungen -->
+    <string name="settings_section_users">Nutzer</string>
+    <string name="users_add">Nutzer hinzufügen</string>
+    <string name="users_add_action">Hinzufügen</string>
+    <string name="users_remove">Entfernen</string>
+    <string name="users_remove_title">Nutzer entfernen?</string>
+    <string name="users_remove_message">Möchtest du %1$s mit allen Flügen, Profil und Foto unwiderruflich entfernen?</string>
+    <string name="users_remove_confirm">Entfernen</string>
+    <string name="users_active">Aktiv</string>
+    <string name="users_default_name">Nutzer %1$d</string>
+    <string name="users_entry_named">Nutzer %1$d · %2$s</string>
+    <string name="users_hint">Jeder Nutzer hat ein eigenes Logbuch und Profil. Tippe eine Zeile an, um den Nutzer zu wechseln.</string>
+
+    <!-- Passphrase-Bestätigung und Danger Zone -->
+    <string name="passphrase_hint">Passphrase eingeben</string>
+    <string name="danger_zone_title">Danger Zone</string>
+    <string name="danger_delete_user_label">Daten dieses Nutzers löschen</string>
+    <string name="danger_delete_user_subtitle">Alle Flüge und Profileinstellungen des aktiven Nutzers unwiderruflich löschen</string>
+    <string name="danger_delete_user_action">Löschen</string>
+    <string name="danger_delete_user_title">Daten löschen?</string>
+    <string name="danger_delete_user_message">Alle Flüge und Profileinstellungen von %1$s werden unwiderruflich gelöscht. Der Platz bleibt bestehen. Tippe FLIGHTS, um zu bestätigen.</string>
+    <string name="danger_delete_user_confirm">Daten löschen</string>
+    <string name="danger_delete_user_done">Daten gelöscht</string>
+    <string name="danger_reset_label">Werksreset</string>
+    <string name="danger_reset_subtitle">Alle Nutzer, Flüge, Einstellungen und Fotos löschen und die App neu einrichten</string>
+    <string name="danger_reset_action">Zurücksetzen</string>
+    <string name="danger_reset_title">Werksreset?</string>
+    <string name="danger_reset_message">Alle Nutzer, Flüge, Einstellungen und hochgeladenen Fotos werden unwiderruflich gelöscht. Die App startet danach wie beim ersten Mal. Tippe FLIGHTS, um zu bestätigen.</string>
+    <string name="danger_reset_confirm">Zurücksetzen</string>
+
+    <!-- Import/Export je Nutzer -->
+    <string name="import_choose_user_title">Für welchen Nutzer importieren?</string>
+    <string name="export_choose_user_title">Für welchen Nutzer exportieren?</string>
+    <string name="import_overwrite_confirm_title">Überschreiben bestätigen</string>
+    <string name="import_overwrite_confirm_message">Alle vorhandenen Einträge werden gelöscht und durch die importierten Daten ersetzt. Tippe DANGER ZONE, um zu bestätigen.</string>
+    <string name="import_overwrite_confirm_action">Überschreiben</string>
 </resources>

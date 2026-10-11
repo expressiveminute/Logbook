@@ -536,19 +536,21 @@
 
                     <!-- Der Knopf fuellt die ganze Spaltenhoehe, damit er genauso gross
                      anzutippen ist wie die Kachel daneben. Sein Text steht
-                     mittig, aber mit demselben oberen Innenabstand wie die
-                     Karten contentPaddingTop: Der gibt oben Platz fuer die
-                     Beschriftung, die beim Tippen ueber die Kachel ragt, und
-                     schiebt deren Mitte dadurch um die Haelfte nach unten. Ohne
-                     diesen Innenabstand stuende "- Rueckflug -" genau so weit
-                     oben wie die Kachel daneben zu hoch. -->
+                     mittig. Der obere Innenabstand rueckt ihn um die Haelfte
+                     nach unten, wie die Karten contentPaddingTop die Kachel
+                     daneben: Nur so steht der Text auf der Hoehe des
+                     Flugnummernfelds und nicht mit dessen Beschriftungsplatz
+                     darueber zu hoch. Der Wert ist gegenueber dem Kartenrand
+                     um 1dp verringert, weil das "g" in "- Rueckflug -" eine
+                     Unterlaenge hat und der Text damit sonst tiefer haengt als
+                     die Ziffern des Feldes daneben. -->
                     <TextView
                         android:id="@+id/tv_add_return"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:background="?attr/selectableItemBackground"
                         android:gravity="center"
-                        android:paddingTop="12dp"
+                        android:paddingTop="11dp"
                         android:text="@string/return_flight_add"
                         android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                         android:textColor="?attr/colorPrimary"

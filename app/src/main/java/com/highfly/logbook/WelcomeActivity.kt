@@ -646,7 +646,7 @@ class WelcomeActivity : AppCompatActivity() {
         val icon = pageBinding.welcomeAvatarPreview
         val value = Settings.getAvatar(this)
         if (value == Settings.AVATAR_FILE) {
-            val file = File(filesDir, ProfileAvatar.FILE_NAME)
+            val file = File(filesDir, ProfileAvatar.fileName(this))
             val bitmap = if (file.exists()) BitmapFactory.decodeFile(file.absolutePath) else null
             if (bitmap != null) {
                 setIconInset(icon, 0)
@@ -728,7 +728,7 @@ class WelcomeActivity : AppCompatActivity() {
             val decoded = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return
             val scaled = Bitmap.createScaledBitmap(decoded, 512, 512, true)
             if (decoded != scaled) decoded.recycle()
-            File(filesDir, ProfileAvatar.FILE_NAME).outputStream().use { out ->
+            File(filesDir, ProfileAvatar.fileName(this)).outputStream().use { out ->
                 scaled.compress(Bitmap.CompressFormat.PNG, 100, out)
             }
             scaled.recycle()

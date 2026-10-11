@@ -26,17 +26,37 @@ object ImportProcessor {
         val b = AirportData.location(context, to)
         if (a != null && b != null && from != to) {
             val km = GeoMath.distanceKm(a, b).roundToInt()
-            result = result.copy(
-                distanceKm = km,
-                flightMinutes = GeoMath.flightMinutes(km.toDouble()),
-                fromCountry = result.fromCountry?.takeIf { it.isNotBlank() }
-                    ?: AirportData.country(context, from),
-                toCountry = result.toCountry?.takeIf { it.isNotBlank() }
-                    ?: AirportData.country(context, to)
+            result = merged(
+                result,
+                km,
+                GeoMath.flightMinutes(km.toDouble()),
+                AirportData.country(context, from),
+                AirportData.country(context, to)
             )
         }
         return result
     }
+
+    /**
+     * Fuegt die errechneten Werte in den Eintrag ein, ohne vorhandene Werte
+     * zu ueberschreiben. Ein Wert aus der CSV-Datei (Entfernung, Flugzeit,
+     * Laender) hat Vorrang; nur was fehlt, wird ergaenzt.
+     *
+     * Reine Funktion ohne Android-Zugriff, damit sie sich im Unit-Test
+     * pruefen laesst.
+     */
+    fun merged(
+        entry: LogbookEntry,
+        distanceKm: Int?,
+        flightMinutes: Int?,
+        fromCountry: String?,
+        toCountry: String?
+    ): LogbookEntry = entry.copy(
+        distanceKm = entry.distanceKm ?: distanceKm,
+        flightMinutes = entry.flightMinutes ?: flightMinutes,
+        fromCountry = entry.fromCountry?.takeIf { it.isNotBlank() } ?: fromCountry,
+        toCountry = entry.toCountry?.takeIf { it.isNotBlank() } ?: toCountry
+    )
 
     fun hasConflict(context: Context, entry: LogbookEntry): Boolean {
         val from = entry.fromAirport.trim().uppercase()
