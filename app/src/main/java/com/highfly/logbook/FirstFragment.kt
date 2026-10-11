@@ -496,6 +496,9 @@ class FirstFragment : Fragment() {
         container.findViewById<TextView>(R.id.tv_moon_value).apply {
             TileValueAnimator.animate(this, buildValueText(DashboardStats.Value(DashboardStats.factorText(distance.moonTrips), "×")))
         }
+        container.findViewById<TextView>(R.id.tv_sun_value).apply {
+            TileValueAnimator.animate(this, buildValueText(DashboardStats.Value(DashboardStats.factorText(distance.sunTrips), "×")))
+        }
     }
 
     private fun openTimeTile() {

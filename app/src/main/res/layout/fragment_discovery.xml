@@ -54,24 +54,21 @@
             tools:text="2026" />
     </LinearLayout>
 
-    <ScrollView
-        android:id="@+id/discovery_scroll"
+    <!-- RecyclerView statt ScrollView: Die Zeilen werden recycelt, damit nur
+         die sichtbaren Kacheln existieren und die Liste auch mit vielen
+         Einträgen flüssig scrollt. -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/discovery_list"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginTop="4dp"
+        android:clipToPadding="false"
+        android:paddingHorizontal="16dp"
+        android:paddingBottom="24dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/header">
-
-        <LinearLayout
-            android:id="@+id/discovery_list"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingHorizontal="16dp"
-            android:paddingBottom="24dp" />
-    </ScrollView>
+        app:layout_constraintTop_toBottomOf="@id/header" />
 
     <TextView
         android:id="@+id/tv_discovery_empty"

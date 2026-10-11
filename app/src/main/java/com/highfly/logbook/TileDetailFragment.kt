@@ -35,6 +35,9 @@ class TileDetailFragment : Fragment() {
     /** Nach was die Layover-Balken geordnet sind, Standard: Anzahl. */
     private var layoverSort: ChartData.LayoverSort = ChartData.LayoverSort.ANZAHL
 
+    /** Nach was Hangar (Flugzeugtypen und Registrierungen) geordnet wird. */
+    private var hangarSort: ChartData.HangarSort = ChartData.HangarSort.ANZAHL
+
     /** Reiseart, nach der die Kachel "Reiseklasse" ihre Klassen zeigt. */
     private var classTravelType: String = ClassTravelType.DEFAULT
 
@@ -71,6 +74,10 @@ class TileDetailFragment : Fragment() {
         }
         savedInstanceState?.getString(KEY_LAYOVER_QUERY)?.let { layoverQuery = it }
         layoverSearchOpen = savedInstanceState?.getBoolean(KEY_LAYOVER_SEARCH_OPEN) ?: false
+        savedInstanceState?.getString(KEY_HANGAR_SORT)?.let { name ->
+            hangarSort = ChartData.HangarSort.entries
+                .firstOrNull { it.name == name } ?: hangarSort
+        }
 
         binding.btnBack.setOnClickListener {
             findNavController().navigateUp()
@@ -483,7 +490,45 @@ class TileDetailFragment : Fragment() {
     }
 
     private fun renderAircraftRegistrations() {
-        val types = ChartData.aircraftBars(requireContext())
+        setupHangarSort()
+        renderHangar()
+    }
+
+    /**
+     * Sortierung der Hangar-Seite als diskreter Text oben rechts, wie die
+     * Layover-Sortierung. Standard ist "Anzahl"; "Entfernung" ordnet
+     * Flugzeugtypen und Registrierungen nach den geflogenen Kilometern. Ein
+     * Wechsel zeichnet beide Diagramme neu.
+     */
+    private fun setupHangarSort() {
+        binding.aircraftSortContainer.visibility = View.VISIBLE
+        binding.tvAircraftSort.text = hangarSortLabel()
+        binding.tvAircraftSort.setOnClickListener { anchor ->
+            val options = ChartData.HangarSort.entries
+            FilterPopupMenu.showOptions(
+                requireContext(),
+                anchor,
+                options.map { it.name },
+                options.map { hangarSortLabel(it) },
+                hangarSort.name
+            ) { key ->
+                val selected = ChartData.HangarSort.entries.firstOrNull { it.name == key }
+                if (selected != null && selected != hangarSort) {
+                    hangarSort = selected
+                    binding.tvAircraftSort.text = hangarSortLabel()
+                    renderHangar()
+                }
+            }
+        }
+    }
+
+    private fun hangarSortLabel(sort: ChartData.HangarSort = hangarSort): String = when (sort) {
+        ChartData.HangarSort.ANZAHL -> getString(R.string.hangar_sort_count)
+        ChartData.HangarSort.ENTFERNUNG -> getString(R.string.hangar_sort_distance)
+    }
+
+    private fun renderHangar() {
+        val types = ChartData.aircraftBars(requireContext(), hangarSort)
         renderScrollableColumnChart(
             types,
             binding.aircraftChart,
@@ -491,12 +536,17 @@ class TileDetailFragment : Fragment() {
             binding.barAircraftAxis,
             binding.tvAircraftTitle
         )
-        val registrations = ChartData.barChart(requireContext(), "aircraftreg")
+        val registrations = ChartData.hangarBars(requireContext(), hangarSort) { it.registration }
         renderBars(registrations)
         binding.tvRegistrationsTitle.visibility =
             if (registrations.isEmpty()) View.GONE else View.VISIBLE
         binding.tvEmpty.visibility =
             if (types.isEmpty() && registrations.isEmpty()) View.VISIBLE else View.GONE
+        // Ohne etwas zum Sortieren verschwindet der Filter aus dem Header wie
+        // die Sortierzeile bei der Layover-Kachel; ueber dem Leertext haette er
+        // nichts zu ordnen.
+        binding.aircraftSortContainer.visibility =
+            if (types.isEmpty() && registrations.isEmpty()) View.GONE else View.VISIBLE
     }
 
     private fun renderScrollableColumnChart(
@@ -509,11 +559,27 @@ class TileDetailFragment : Fragment() {
         if (bars.isEmpty()) return
         val chartHeight =
             (resources.displayMetrics.heightPixels * COLUMN_CHART_HEIGHT_FACTOR).roundToInt()
-        val chartItems = bars.map { MonthBarChartView.Item(it.label, it.count) }
+        val chartItems = bars.map {
+            MonthBarChartView.Item(it.label, it.count, it.countLabel)
+        }
 
-        chart.setLeadingSpace(axis.layoutParams.width)
-        chart.setPlotHeight(chartHeight)
         chart.setItems(chartItems)
+        // Die Achsenmaske waechst mit ihrer Beschriftung: Die Kilometerwerte
+        // der Hangar-Kachel sind vielstellig und passen nicht in die schmale
+        // Standardbreite. Das Diagramm bekommt denselben linken Rand, damit
+        // die ueberlagerte Achse und die gezeichnete Achse deckungsgleich
+        // bleiben.
+        val axisWidth = maxOf(
+            (AXIS_WIDTH_DP * resources.displayMetrics.density).toInt(),
+            chart.axisLabelWidthPx()
+        )
+        val axisParams = axis.layoutParams
+        if (axisParams.width != axisWidth) {
+            axisParams.width = axisWidth
+            axis.layoutParams = axisParams
+        }
+        chart.setLeadingSpace(axisWidth)
+        chart.setPlotHeight(chartHeight)
 
         axis.setContentVisible(false)
         axis.setPlotHeight(chartHeight)
@@ -690,6 +756,7 @@ class TileDetailFragment : Fragment() {
         outState.putString(KEY_LAYOVER_SORT, layoverSort.name)
         outState.putString(KEY_LAYOVER_QUERY, layoverQuery)
         outState.putBoolean(KEY_LAYOVER_SEARCH_OPEN, layoverSearchOpen)
+        outState.putString(KEY_HANGAR_SORT, hangarSort.name)
     }
 
     override fun onDestroyView() {
@@ -707,6 +774,9 @@ class TileDetailFragment : Fragment() {
         /** Anteil der Bildschirmhoehe, den die Diagrammflaeche einnimmt. */
         const val COLUMN_CHART_HEIGHT_FACTOR = 0.33f
 
+        /** Schmale Mindestbreite der festen y-Achsenmaske der Spaltendiagramme. */
+        const val AXIS_WIDTH_DP = 28
+
         /** Grenzen der gemeinsamen Schriftgrösse der beiden Code-Kacheln. */
         const val LAYOVER_CODE_MIN_SP = 14
         const val LAYOVER_CODE_MAX_SP = 28
@@ -719,6 +789,9 @@ class TileDetailFragment : Fragment() {
 
         /** Schlüssel dafür, ob das Layover-Suchfeld ausgeklappt ist. */
         const val KEY_LAYOVER_SEARCH_OPEN = "layoverSearchOpen"
+
+        /** Schlüssel für die gemerkte Hangar-Sortierung im Zustand. */
+        const val KEY_HANGAR_SORT = "hangarSort"
 
         /** Dauer der Aufklapp-/Einklappanimation des Suchfelds. */
         const val SEARCH_ANIMATION_MS = 220L

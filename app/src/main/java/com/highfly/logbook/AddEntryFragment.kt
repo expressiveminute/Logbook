@@ -6,6 +6,7 @@ import android.graphics.Color
 import android.graphics.Rect
 import android.os.Bundle
 import android.text.Editable
+import android.text.InputFilter
 import android.text.SpannableString
 import android.text.Spanned
 import android.text.TextWatcher
@@ -824,6 +825,13 @@ private fun clearSuggestedRoute() {
     }
 
     private fun setupAirportAutoAdvance() {
+        // Drei Zeichen, oder vier, wenn der Code mit X beginnt (geschlossener
+        // Flughafen wie "XMUC" für München-Riem). Der Filter ersetzt die reine
+        // Längengrenze aus dem Layout, weil die vom ersten Zeichen abhängt.
+        val lengthFilter = airportCodeLengthFilter()
+        binding.etAirportFrom.filters = arrayOf(lengthFilter)
+        binding.etAirportTo.filters = arrayOf(lengthFilter)
+
         binding.etAirportFrom.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
@@ -843,7 +851,7 @@ private fun clearSuggestedRoute() {
                 // Code dagegen aus der Routenvorschlag-Liste geschrieben, gehoert
                 // der Fokus noch dem Kästchen der Flugnummer und die Tastatur
                 // darf weder springen noch aufgehen.
-                if (s.length == 3 && binding.etAirportFrom.hasFocus()) {
+                if (isAirportCodeComplete(s.toString()) && binding.etAirportFrom.hasFocus()) {
                     focusAndShowKeyboard(binding.etAirportTo)
                 }
                 autoFillRouteData()
@@ -966,8 +974,38 @@ private fun clearSuggestedRoute() {
         )
     }
 
+    /**
+     * Längengrenze für ein Flughafenfeld: drei Zeichen, oder vier, wenn das
+     * erste Zeichen "X" ist. So passt "X"+Dreilettercode (geschlossener
+     * Flughafen) hinein, ohne dass ein offener Code vier Stellen bekommen kann.
+     * Ein echter IATA-Code hat immer genau drei Zeichen, deshalb ist das
+     * eindeutig. Gibt "" zurück, um eine zu lange Eingabe zu verwerfen.
+     */
+    private fun airportCodeLengthFilter(): InputFilter = InputFilter { source, start, end, dest, dstart, dend ->
+        val added = source.subSequence(start, end).toString()
+        val combined = dest.subSequence(0, dstart).toString() + added +
+            dest.subSequence(dend, dest.length).toString()
+        val limit = if (combined.startsWith("X", ignoreCase = true)) 4 else 3
+        if (combined.length <= limit) null else ""
+    }
+
+    /**
+     * Ist der Flughafencode fertig eingetippt, sodass der Fokus weiterspringen
+     * darf? Drei Zeichen sind fertig; beginnt der Code mit "X", kann noch ein
+     * viertes folgen – es sei denn, die drei Zeichen sind bereits ein echter
+     * offener Flughafen (z. B. "XAP").
+     */
+    private fun isAirportCodeComplete(code: String): Boolean = when {
+        code.length == 4 -> code[0].uppercaseChar() == 'X'
+        code.length == 3 -> code[0].uppercaseChar() != 'X' ||
+            AirportData.location(requireContext(), code) != null
+        else -> false
+    }
+
     private fun validateAirport(code: String, check: ImageView) {
-        val exists = code.length == 3 &&
+        // Gültig ist ein bekannter offener Code (drei Zeichen) oder ein
+        // bekannter geschlossener Code ("X" + Dreilettercode).
+        val exists = (code.length == 3 || AirportData.isClosedCode(code)) &&
             AirportData.location(requireContext(), code) != null
         if (exists) {
             val wasVisible = check.visibility == View.VISIBLE
@@ -1020,7 +1058,9 @@ private fun clearSuggestedRoute() {
         if (prefilling) return
         val from = binding.etAirportFrom.text?.toString()?.trim().orEmpty()
         val to = binding.etAirportTo.text?.toString()?.trim().orEmpty()
-        if (from.length != 3 || to.length != 3 || from == to) return
+        val fromComplete = from.length == 3 || AirportData.isClosedCode(from)
+        val toComplete = to.length == 3 || AirportData.isClosedCode(to)
+        if (!fromComplete || !toComplete || from == to) return
         val a = AirportData.location(requireContext(), from) ?: return
         val b = AirportData.location(requireContext(), to) ?: return
         val km = GeoMath.distanceKm(a, b)

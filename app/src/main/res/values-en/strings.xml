@@ -17,16 +17,17 @@
     <string name="tile_layover">Layover</string>
     <string name="tile_class">Travel class</string>
     <string name="tile_travel_type">Travel type</string>
-    <string name="tile_aircraft_reg">A/C type &amp; registarion</string>
+    <string name="tile_aircraft_reg">Hangar</string>
     <string name="tile_countries">Countries</string>
     <string name="tile_flights_singular">Flight</string>
     <string name="tile_airlines_singular">Airline</string>
     <string name="tile_routes_singular">Airport route</string>
-    <string name="tile_aircraft_reg_singular">A/C type &amp; registarion</string>
+    <string name="tile_aircraft_reg_singular">Hangar</string>
     <string name="tile_countries_singular">Country</string>
     <string name="tile_function">Function</string>
     <string name="tile_earth_orbits">Earth orbits</string>
     <string name="tile_moon">To the moon</string>
+    <string name="tile_sun">To the sun</string>
     <string name="tile_reisebuddy">Travel buddies</string>
     <string name="tile_co2">CO₂ balance</string>
     <string name="co2_tonnes_unit">Tonnes</string>
@@ -42,6 +43,11 @@
     <string name="time_detail_all_flights">All Flights</string>
     <string name="time_route_flights">%1$d flights</string>
     <string name="tile_detail_registrations">Registrations</string>
+    <!-- Sorting on the hangar page (aircraft types and registrations):
+         "Count" orders by number of flights, "Distance" by the kilometres
+         flown. -->
+    <string name="hangar_sort_count">Count</string>
+    <string name="hangar_sort_distance">Distance</string>
     <string name="continent_europe">Europe</string>
     <string name="continent_asia">Asia</string>
     <string name="continent_north_america">North America</string>

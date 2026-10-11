@@ -36,7 +36,8 @@ object DashboardStats {
         val shortestRoute: String?,
         val shortestKm: Int?,
         val earthOrbits: Double,
-        val moonTrips: Double
+        val moonTrips: Double,
+        val sunTrips: Double
     )
 
     /**
@@ -81,6 +82,8 @@ object DashboardStats {
 
     private val earthCircumferenceKm = 40075.0
     private val moonDistanceKm = 384400.0
+    // Mittlere Entfernung Erde-Sonne, eine astronomische Einheit (AE).
+    private val sunDistanceKm = 149_600_000.0
 
     fun distanceDetails(context: Context, entries: List<LogbookEntry>): DistanceDetails {
         val withDistance = flyingEntries(entries).filter { it.distanceKm != null }
@@ -92,6 +95,7 @@ object DashboardStats {
         val shortest = distances.minOrNull()
         val earthOrbits = totalKm / earthCircumferenceKm
         val moonFlights = totalKm / moonDistanceKm
+        val sunFlights = totalKm / sunDistanceKm
         return DistanceDetails(
             totalKm = totalKm,
             avgKm = avgKm,
@@ -100,7 +104,8 @@ object DashboardStats {
             shortestRoute = shortest?.let { km -> routeOf(withDistance, km) },
             shortestKm = shortest,
             earthOrbits = earthOrbits,
-            moonTrips = moonFlights
+            moonTrips = moonFlights,
+            sunTrips = sunFlights
         )
     }
 

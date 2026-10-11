@@ -7,6 +7,7 @@ import org.json.JSONObject
 object AirportData {
 
     private const val TAG = "AirportData"
+    private const val CLOSED_ASSET = "airports/airports_closed.json"
 
     data class GeoLocation(val lat: Double, val lon: Double)
 
@@ -48,6 +49,28 @@ object AirportData {
         } catch (e: Exception) {
             Log.e(TAG, "Konnte Flughafen-Länder nicht laden", e)
         }
+        // Geschlossene Flughäfen stehen unter "X" + damaligem Dreilettercode
+        // (z. B. "XMUC" für München-Riem). Sie liegen in einem eigenen Asset,
+        // damit der Generator der offenen Bestände sie nicht überschreibt.
+        try {
+            val json = context.assets.open(CLOSED_ASSET)
+                .bufferedReader()
+                .use { it.readText() }
+            val root = JSONObject(json)
+            val keys = root.keys()
+            while (keys.hasNext()) {
+                val code = keys.next()
+                val entry = root.getJSONObject(code)
+                val lat = entry.optDouble("lat", Double.NaN)
+                val lon = entry.optDouble("lon", Double.NaN)
+                if (!lat.isNaN() && !lon.isNaN()) {
+                    airports[code] = GeoLocation(lat, lon)
+                }
+                entry.optString("iso").takeIf(String::isNotBlank)?.let { countries[code] = it }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Konnte geschlossene Flughäfen nicht laden", e)
+        }
         byIata = airports
         countryByIata = countries
     }
@@ -61,6 +84,15 @@ object AirportData {
         ensureLoaded(context)
         return countryByIata?.get(iata.uppercase())
     }
+
+    /**
+     * Sieht der Code wie ein geschlossener Flughafen aus: vier Zeichen, die mit
+     * "X" beginnen? Ein echter IATA-Code hat immer genau drei Zeichen, deshalb
+     * kollidiert "X"+Code nie mit einem offenen Flughafen. Reine Formprüfung,
+     * ohne Abgleich mit dem Asset.
+     */
+    fun isClosedCode(iata: String): Boolean =
+        iata.length == 4 && iata[0].uppercaseChar() == 'X'
 
     fun flagEmoji(iso2: String): String {
         val letters = iso2.uppercase().filter { it in 'A'..'Z' }.take(2)

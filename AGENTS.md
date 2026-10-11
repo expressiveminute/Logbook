@@ -35,6 +35,29 @@ Release-APKs sind mit `*.apk`/`*.idsig` in `.gitignore` und werden nicht committ
 Update ("inkompatible Signatur"). Ein Wechsel auf `backups/logbook/logbook-release.keystore` wäre
 sinnvoller, ist aber nur als großer Versionssprung möglich.
 
+## Flughäfen und geschlossene Flughäfen
+
+Flughäfen sind reine Assets unter `app/src/main/assets/airports/`: `airports.json`
+(IATA → `[lat,lon]`), `airports_countries.json` (IATA → ISO) und `airport_names.json`
+(IATA → Name/Stadt). `AirportData` und `AirportNames` laden sie zur Laufzeit in Maps; ein
+`LogbookEntry` speichert nur den Code als Text.
+
+Ein **geschlossener** Flughafen bekommt ein `X` vor seinen damaligen Dreilettercode
+(München-Riem → `XMUC`). Ein offener Flughafen behält seinen Code (der neue Flughafen München
+bleibt `MUC`). Da ein echter IATA-Code immer genau drei Zeichen hat, kollidiert `X`+Code nie
+mit einem offenen Flughafen. Die geschlossenen stehen in `airports_closed.json` und werden beim
+Laden an die bestehenden Maps angehängt, sodass Koordinaten, Land, Name, Distanz, Karte und
+Import automatisch funktionieren. Erzeugt wird die Datei von `tools/build_closed_airports.py`. Die damaligen Codes kommen
+hauptsächlich aus dem `keywords`-Feld des OurAirports-Bestands – OurAirports hat die entfernten
+IATA-Codes dorthin verschoben (Riem: `"EDDM, MUC, XMUC"`). Ein echter, ehemaliger Code ist
+eindeutig, kommt also nur auf einer Anlage vor; Wörter wie `OIL`/`AFB` fallen dadurch heraus.
+Weitervergebene Codes (der Code gehört heute einem anderen Flughafen, z. B. `MUC`) stehen in der
+handgepflegten Liste `REASSIGNED`. Ein älterer OurAirports-Snapshot (z. B. von 2021), dessen
+geschlossene Zeilen den damaligen Code direkt führten, lässt sich zusätzlich über `--old`
+einspielen – der Generator ordnet ihn per `ident`, notfalls per Koordinate, zu. Die FROM/TO-
+Felder in *Neuer Flug* erlauben vier Zeichen nur, wenn das erste `X` ist
+(`AddEntryFragment.airportCodeLengthFilter`).
+
 ## Einstellungen – Aufbau nicht eigenmächtig ändern
 
 Jede Einstellung ist eine Zeile in `fragment_settings_section.xml`: **links** steht immer die

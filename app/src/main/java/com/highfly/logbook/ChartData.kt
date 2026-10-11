@@ -23,6 +23,13 @@ object ChartData {
     /** Womit die Balken der Layover-Kachel gemessen und sortiert werden. */
     enum class LayoverSort { ANZAHL, DAUER }
 
+    /**
+     * Womit die Balken der Hangar-Kachel (Flugzeugtypen und Registrierungen)
+     * gemessen und sortiert werden. [ANZAHL] zaehlt die Fluege, [ENTFERNUNG]
+     * summiert die geflogenen Kilometer.
+     */
+    enum class HangarSort { ANZAHL, ENTFERNUNG }
+
     private data class TravelType(val resId: Int, val canonical: String, val aliases: List<String>)
 
     private data class ClassType(val resId: Int, val canonical: String, val aliases: List<String>)
@@ -321,13 +328,81 @@ object ChartData {
             .map { (label, count) -> Bar(label, count) }
             .sortedWith(compareByDescending<Bar> { it.count }.thenBy { it.label })
 
-    fun aircraftBars(context: Context): List<Bar> =
-        aircraftBars(periodFiltered(context))
+    fun aircraftBars(context: Context, sort: HangarSort = HangarSort.ANZAHL): List<Bar> =
+        hangarBars(context, sort) { it.aircraftType }
 
-    fun aircraftBars(entries: List<LogbookEntry>): List<Bar> =
-        countBy(entries) { it.aircraftType }
-            .map { (label, count) -> Bar(label, count) }
+    fun aircraftBars(
+        entries: List<LogbookEntry>,
+        sort: HangarSort = HangarSort.ANZAHL
+    ): List<Bar> = hangarBars(entries, sort) { it.aircraftType }
+
+    /**
+     * Balken der Hangar-Kachel ueber den Zeitraum der Einstellungen: je
+     * Flugzeugtyp oder Registrierung ein Balken. [selector] waehlt die Gruppe,
+     * [sort], ob nach Zahl der Fluege oder nach Entfernung geordnet wird.
+     */
+    fun hangarBars(
+        context: Context,
+        sort: HangarSort,
+        selector: (LogbookEntry) -> String?
+    ): List<Bar> = withDistanceLabels(
+        context,
+        hangarBars(periodFiltered(context), sort, selector),
+        sort
+    )
+
+    /**
+     * Balken der Hangar-Kachel: je Gruppe ein Balken. Nach [HangarSort.ANZAHL]
+     * zaehlt jeder Eintrag als ein Flug, nach [HangarSort.ENTFERNUNG] die
+     * Summe der geflogenen Kilometer. Eintraege ohne erfasste Entfernung
+     * zaehlen dort mit null Kilometern, der Typ bleibt als Balken mit dem Wert
+     * 0 sichtbar, weil er ja geflogen wurde. Sortiert wird absteigend nach dem
+     * dargestellten Wert und bei Gleichstand nach der Beschriftung.
+     */
+    fun hangarBars(
+        entries: List<LogbookEntry>,
+        sort: HangarSort,
+        selector: (LogbookEntry) -> String?
+    ): List<Bar> {
+        val values: Map<String, Int> = when (sort) {
+            HangarSort.ANZAHL -> countBy(entries) { selector(it) }
+            HangarSort.ENTFERNUNG -> distanceBy(entries, selector)
+        }
+        return values.map { (label, value) -> Bar(label, value) }
             .sortedWith(compareByDescending<Bar> { it.count }.thenBy { it.label })
+    }
+
+    /**
+     * Haengt den Balken im Entfernung-Modus die Kilometer als Wert an. Im
+     * Anzahl-Modus bleibt die reine Zahl. So zeigt die Wertbeschriftung immer
+     * denselben Messwert wie die Balkenlaenge.
+     */
+    private fun withDistanceLabels(
+        context: Context,
+        bars: List<Bar>,
+        sort: HangarSort
+    ): List<Bar> = if (sort == HangarSort.ENTFERNUNG) {
+        bars.map { it.copy(countLabel = DashboardStats.kmText(context, it.count)) }
+    } else {
+        bars
+    }
+
+    /**
+     * Summe der Entfernung je Gruppe in Kilometern. Nur Eintraege mit
+     * erfasster Entfernung zaehlen; fehlt sie, geht der Eintrag mit null ein,
+     * bleibt aber als Gruppe erhalten.
+     */
+    private fun distanceBy(
+        entries: List<LogbookEntry>,
+        selector: (LogbookEntry) -> String?
+    ): Map<String, Int> {
+        val km = LinkedHashMap<String, Int>()
+        entries.forEach { entry ->
+            val label = selector(entry)?.takeIf(String::isNotBlank) ?: return@forEach
+            km[label] = (km[label] ?: 0) + (entry.distanceKm ?: 0)
+        }
+        return km
+    }
 
     /**
      * Längster bzw. kürzester Einzelflug des Zeitraums als einzelner Balken:

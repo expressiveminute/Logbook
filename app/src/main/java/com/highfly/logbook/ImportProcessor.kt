@@ -42,7 +42,7 @@ object ImportProcessor {
         val from = entry.fromAirport.trim().uppercase()
         val to = entry.toAirport.trim().uppercase()
         if (from.isBlank() || to.isBlank() || from == to) return true
-        if (from.length != 3 || to.length != 3) return true
+        if (!isPlausibleCode(from) || !isPlausibleCode(to)) return true
         return AirportData.location(context, from) == null || AirportData.location(context, to) == null
     }
 
@@ -60,8 +60,8 @@ object ImportProcessor {
             return context.getString(R.string.import_conflict_same_airport)
         }
         val invalid = listOfNotNull(
-            from.takeIf { it.length != 3 || AirportData.location(context, it) == null },
-            to.takeIf { it.length != 3 || AirportData.location(context, it) == null }
+            from.takeIf { !isPlausibleCode(it) || AirportData.location(context, it) == null },
+            to.takeIf { !isPlausibleCode(it) || AirportData.location(context, it) == null }
         )
         if (invalid.isNotEmpty()) {
             return context.getString(
@@ -71,4 +71,12 @@ object ImportProcessor {
         }
         return null
     }
+
+    /**
+     * Sieht der Code wie ein Flughafencode aus? Drei Zeichen, oder vier, wenn
+     * das erste "X" ist ("X" + Dreilettercode, geschlossener Flughafen).
+     * Reine Formprüfung; ob es den Flughafen gibt, prüft der Aufrufer.
+     */
+    private fun isPlausibleCode(code: String): Boolean =
+        code.length == 3 || AirportData.isClosedCode(code)
 }

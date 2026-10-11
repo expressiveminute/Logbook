@@ -123,6 +123,14 @@ class InputTile @JvmOverloads constructor(
     /** Ohne Rahmen und Beschriftung, siehe [setBare]. */
     private var bare = false
 
+    /**
+     * Natürliche Höhe des Feldes aus dem letzten Vermessen, ohne dass es auf
+     * die Kachel gestreckt wurde. Sie bestimmt die senkrechte Lage: Der Wert
+     * steht mittig in der Kachel, wenn sein eigener Kasten auf der Kachelmitte
+     * liegt - nicht, wenn er bis zum Kachelboden reicht.
+     */
+    private var fieldNaturalHeight = 0
+
     private val frame = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeWidth = STROKE_WIDTH_DP * resources.displayMetrics.density
@@ -334,44 +342,21 @@ class InputTile @JvmOverloads constructor(
         ?: MaterialColors.getColor(this, R.attr.colorOutlineVariant)
 
     /**
-     * Steht der Text des Feldes mittig in seinem Kasten? Dann gehört ihm die
-     * ganze Kachel, damit er in der Kachelmitte steht und nicht unter der Kerze
-     * verschoben ist. Nur Felder, die ihren Text oben beginnen - die
-     * mehrzeiligen Notizen und der Reisebegleiter -, kommen unter die
-     * Beschriftung.
+     * Oberkante des Feldes in der Kerbe, wenn das Feld [naturalHeight] hoch ist.
      *
-     * Gelesen wird die Schwerkraft des Feldes selbst, weil sie entscheidet, wo
-     * sein Text in seinem Kasten steht. Ein Feld ohne Schwerkraft beginnt oben,
-     * alles andere zählt als mittig.
+     * Der Wert soll mittig in der Kachel stehen. Das Feld hat dazu seine
+     * natürliche Höhe und wird als Ganzes auf der Kachelmitte gehalten; es bis
+     * zum Kachelboden zu strecken verschöbe den Text nach unten. In der Kerbe
+     * bleibt die Beschriftung oben - ein Wert, der das Feld füllt, ragt
+     * höchstens bis an ihren unteren Rand.
+     *
+     * In einer nackten Kachel gibt es keine Beschriftung und keinen Versatz;
+     * das Feld füllt die ganze Kachel.
      */
-    private fun View?.centersValue(): Boolean {
-        val gravity = (this as? TextView)?.gravity ?: return true
-        return when (gravity and Gravity.VERTICAL_GRAVITY_MASK) {
-            Gravity.TOP, Gravity.NO_GRAVITY -> false
-            else -> true
-        }
-    }
-
-    /**
-     * Oberkante des Feldes unter der Kerbe, in [labelHeight] Pixeln gemessen.
-     *
-     * Die Beschriftung sitzt mit ihrer Mitte auf der oberen Kachelkante und
-     * ragt zur Hälfte nach oben heraus - ihr unterer Rand liegt also in der
-     * Kachel, und erst darunter beginnt der Platz, den das Feld einnehmen
-     * darf. Ein zentrierter Wert wird deshalb unter diesem Rand zentriert und
-     * nicht hinter der Beschriftung: Zentrierte man ihn über die ganze
-     * Kachel, verschwende die Beschriftung ihren halben Platz nach oben und
-     * der Inhalt stünde optisch zu hoch - die Reisebuddy-Chips wirkten
-     * gedrückt, obwohl sie mittig vermessen sind.
-     *
-     * Inhalt, der oben beginnt, bekommt zusätzlich den Kerbenabstand, damit
-     * er die Beschriftung nicht berührt. In einer nackten Kachel gibt es
-     * keine Beschriftung und damit auch keinen Versatz.
-     */
-    private fun fieldTop(labelHeight: Int): Int = when {
-        bare -> paddingTop
-        fieldView.centersValue() -> paddingTop + (height - (fieldView?.measuredHeight ?: 0)) / 2
-        else -> paddingTop + labelHeight / 2 + notchGap
+    private fun notchedFieldTop(naturalHeight: Int): Int {
+        val available = height - paddingTop - paddingBottom
+        val free = (available - naturalHeight) / 2
+        return paddingTop + free.coerceAtLeast(0)
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -404,6 +389,9 @@ class InputTile @JvmOverloads constructor(
             MeasureSpec.makeMeasureSpec(innerWidth, MeasureSpec.EXACTLY),
             MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED),
         )
+        // Natürliche Höhe merken: sie ist der Kasten, der auf der Kachelmitte
+        // gehalten wird, damit der Wert mittig steht.
+        if (notched || bare) fieldNaturalHeight = field?.measuredHeight ?: 0
         // Der Wert, der mittig in der Kachel stehen soll, braucht die Kerbe
         // zweimal: einmal oben für die Beschriftung, einmal als halbe Höhe des
         // Werts, damit sein Text sie nicht berührt. Ein Wert, der oben beginnt,
@@ -417,14 +405,17 @@ class InputTile @JvmOverloads constructor(
         }
         val height = max(resolveSize(wanted, heightMeasureSpec), suggestedMinimumHeight)
 
-        // Für zentrierten Text in einer Kachel mit Kerbe: das Feld soll
-        // vollständig den Bereich zwischen unterem Rand der halbragenden
-        // Beschriftung und dem Kachelboden füllen. Der Text wird innerhalb
-        // dieses Blocks (gravity=center_vertical) exakt mittig ausgerichtet.
-        // Dadurch steht er optisch in der Mitte der gesamten Kachel.
-        if (field != null && (notched || bare)) {
-            val top = fieldTop(labelHeight)
-            val fieldHeight = (height - paddingBottom - top).coerceAtLeast(0)
+        // In der Kerbe bleibt das Feld auf seiner natürlichen Höhe; es wird nur
+        // neu vermessen, damit die endgültige Breite und die Kachelhöhe in seine
+        // Grösse eingehen. Gestreckt wird es nicht mehr - sonst stünde sein Text
+        // nicht mehr mittig. In einer nackten Kachel füllt es die ganze Höhe.
+        if (field != null && notched) {
+            field.measure(
+                MeasureSpec.makeMeasureSpec(innerWidth, MeasureSpec.EXACTLY),
+                MeasureSpec.makeMeasureSpec(fieldNaturalHeight, MeasureSpec.EXACTLY),
+            )
+        } else if (field != null && bare) {
+            val fieldHeight = (height - paddingTop - paddingBottom).coerceAtLeast(0)
             field.measure(
                 MeasureSpec.makeMeasureSpec(innerWidth, MeasureSpec.EXACTLY),
                 MeasureSpec.makeMeasureSpec(fieldHeight, MeasureSpec.EXACTLY),
@@ -474,10 +465,21 @@ class InputTile @JvmOverloads constructor(
         val field = fieldView
         val notchedNow = floating && !bare
         if (field != null && field.visibility != GONE) {
-            if (notchedNow || bare) {
-                val top = fieldTop(label?.measuredHeight ?: 0)
-                val bottomEdge = height - paddingBottom
-                field.layout(paddingLeft, top, width - paddingRight, bottomEdge)
+            if (bare) {
+                field.layout(
+                    paddingLeft, paddingTop,
+                    width - paddingRight, height - paddingBottom,
+                )
+            } else if (notchedNow) {
+                // Rückfall auf die zuletzt vermessene Höhe, falls das Feld erst
+                // in diesem Durchgang sichtbar wurde und noch keine natürliche
+                // Höhe festgehalten ist.
+                val natural = fieldNaturalHeight.takeIf { it > 0 } ?: field.measuredHeight
+                val top = notchedFieldTop(natural)
+                field.layout(
+                    paddingLeft, top,
+                    width - paddingRight, top + natural,
+                )
             } else {
                 field.layout(paddingLeft, paddingTop, width - paddingRight, height - paddingBottom)
             }

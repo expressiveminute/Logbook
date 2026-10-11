@@ -366,13 +366,12 @@ class WorldMapFragment : Fragment() {
             val polyline = Polyline().apply {
                 setPoints(route.points)
                 outlinePaint.color = routeColor
-                // Ohne Auswahl alle gleich stark. Mit Auswahl treten die
-                // Strecken des Flughafens hervor, der Rest tritt zurück.
-                // Bewusst dünn: die Linien liegen dicht beieinander und
-                // sollen die Flughafen-Badges nicht verdecken.
-                val highlighted = selected == null
-                outlinePaint.strokeWidth = (if (highlighted) 0.9f else 0.5f) * density
-                outlinePaint.alpha = if (highlighted) 255 else 130
+                // Die Linien behalten immer dieselbe Staerke - auch mit
+                // Auswahl, die nur entscheidet, welche Strecken ueberhaupt
+                // gezeichnet werden. Frueher wurden die Linien bei Auswahl
+                // duenner, das nahm der sichtbaren Verbindung ihre Wirkung.
+                outlinePaint.strokeWidth = 0.9f * density
+                outlinePaint.alpha = 255
                 outlinePaint.style = Paint.Style.STROKE
             }
             mv.overlays.add(polyline)

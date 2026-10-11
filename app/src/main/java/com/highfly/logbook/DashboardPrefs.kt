@@ -149,7 +149,7 @@ object DashboardPrefs {
         Tile(
             "aircraftreg",
             R.string.tile_aircraft_reg,
-            R.drawable.ic_aircraft,
+            R.drawable.ic_hangar,
             nameSingularRes = R.string.tile_aircraft_reg_singular
         ),
         Tile(

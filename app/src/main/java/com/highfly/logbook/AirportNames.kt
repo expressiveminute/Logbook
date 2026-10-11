@@ -13,6 +13,7 @@ object AirportNames {
 
     private const val TAG = "AirportNames"
     private const val ASSET = "airports/airport_names.json"
+    private const val CLOSED_ASSET = "airports/airports_closed.json"
 
     /**
      * @param cityDe Deutsche Schreibweise der Stadt, wenn sie sich vom
@@ -43,6 +44,27 @@ object AirportNames {
                         city = fields.optString("c").takeIf(String::isNotBlank),
                         cityDe = fields.optString("d").takeIf(String::isNotBlank)
                     )
+                }
+                // Geschlossene Flughäfen ("X" + damaliger Dreilettercode, z. B.
+                // "XMUC") ergänzen, damit auch ihre Detailseite Name und Stadt
+                // zeigt. Sie liegen in einem eigenen Asset.
+                try {
+                    val closedText = context.assets.open(CLOSED_ASSET)
+                        .bufferedReader()
+                        .use { it.readText() }
+                    val closedRoot = JSONObject(closedText)
+                    val closedKeys = closedRoot.keys()
+                    while (closedKeys.hasNext()) {
+                        val code = closedKeys.next()
+                        val fields = closedRoot.getJSONObject(code)
+                        result[code] = Info(
+                            name = fields.optString("n").takeIf(String::isNotBlank),
+                            city = fields.optString("c").takeIf(String::isNotBlank),
+                            cityDe = fields.optString("d").takeIf(String::isNotBlank)
+                        )
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Namen geschlossener Flughäfen konnten nicht geladen werden", e)
                 }
                 result
             } catch (e: Exception) {

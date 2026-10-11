@@ -45,11 +45,14 @@
             android:layout_weight="1">
 
             <!-- Hintergrundbalken erst ab dem Ländernamen; Medaille und Flagge
-                 links bleiben untermalt. -->
+                 links bleiben untermalt. Der Balken ist höher als die zwei
+                 Textzeilen, damit Name und Flugzahl oben und unten Luft zum
+                 Balkenrand haben. -->
             <com.highfly.logbook.VisitedCountryBarView
                 android:id="@+id/visited_country_bar"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
                 android:importantForAccessibility="no" />
 
             <LinearLayout

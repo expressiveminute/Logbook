@@ -131,6 +131,26 @@ class CountryDetailModelTest {
     }
 
     @Test
+    fun analyze_zaehltDieBeruehrungenJeFlughafen() {
+        // Jeder Eintrag zählt für die Flughäfen im Land: Ausflug (TXL),
+        // Heimflug (FRA) und Inlandsflug (beide Enden).
+        val result = CountryDetailModel.analyze(
+            listOf(
+                entry("TXL", "CDG"),
+                entry("CDG", "FRA"),
+                entry("FRA", "TXL"),
+                entry("FRA", "CDG")
+            ),
+            DE, ::countryOf, ::location
+        )
+        val counts = result.airports.associate { it.iata to it.count }
+        // FRA: Heimflug, Inlandsflug, Ausflug; TXL: Ausflug und Inlandsflug.
+        assertEquals(3, counts["FRA"])
+        assertEquals(2, counts["TXL"])
+        assertNull(counts["CDG"])
+    }
+
+    @Test
     fun analyze_laesstFlughaefenOhneKoordinatenWeg() {
         val result = CountryDetailModel.analyze(
             listOf(entry("FRA", "XXX")),

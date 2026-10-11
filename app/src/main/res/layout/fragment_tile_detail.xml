@@ -92,6 +92,42 @@
                         android:src="@drawable/ic_auto_awesome"
                         app:tint="?attr/colorOnSecondaryContainer" />
                 </com.google.android.material.card.MaterialCardView>
+
+                <!-- Sortierung der Hangar-Seite oben rechts im Header, als
+                     diskreter Text wie die Filterwoerter ueber den Kacheln des
+                     Dashboards: die Beschriftung steht links neben dem
+                     anklickbaren Wort. Nur bei der Kachel "Hangar" sichtbar. -->
+                <LinearLayout
+                    android:id="@+id/aircraft_sort_container"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:visibility="gone"
+                    tools:visibility="visible">
+
+                    <TextView
+                        android:id="@+id/tv_aircraft_sort_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:labelFor="@id/tv_aircraft_sort"
+                        android:maxLines="2"
+                        android:text="@string/layover_sort_label"
+                        android:textAppearance="?attr/textAppearanceBodyMedium" />
+
+                    <TextView
+                        android:id="@+id/tv_aircraft_sort"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:padding="8dp"
+                        android:textAppearance="?attr/textAppearanceBodyMedium"
+                        android:textColor="?attr/colorPrimary"
+                        tools:text="@string/hangar_sort_count" />
+                </LinearLayout>
             </LinearLayout>
 
             <TextView

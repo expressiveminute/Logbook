@@ -8,6 +8,7 @@ import android.text.TextPaint
 import android.util.AttributeSet
 import android.view.View
 import com.google.android.material.color.MaterialColors
+import java.util.Locale
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.log10
@@ -22,7 +23,16 @@ class MonthBarChartView @JvmOverloads constructor(
     attrs: AttributeSet? = null
 ) : View(context, attrs) {
 
-    data class Item(val label: String, val count: Int)
+    data class Item(
+        val label: String,
+        val count: Int,
+        /**
+         * Text, der statt [count] ueber dem Balken steht, wenn der Balken
+         * einen anderen Messwert als eine blosse Anzahl darstellt (z. B. eine
+         * Entfernung in Kilometern). `null` zeigt [count] als Zahl.
+         */
+        val valueLabel: String? = null
+    )
 
     private val items = mutableListOf<Item>()
 
@@ -151,12 +161,19 @@ class MonthBarChartView @JvmOverloads constructor(
         }
 
         updateAxis()
-        val widest = (0..axisMax step axisStep)
-            .maxOf { axisLabelPaint.measureText(it.toString()) }
+        val widest = axisTickWidth()
         leftPadding = maxOf(widest + dp(8), leadingSpace)
 
         val widestLabel = items.maxOf { monthPaint.measureText(it.label) }
-        val columnWidth = maxOf(dp(columnWidthDp), widestLabel + dp(12))
+        // Auch der Wert ueber dem Balken braucht Platz: grosse Zahlen (z. B.
+        // Kilometer) sind breiter als die Beschriftung und wuerden sonst in
+        // die Nachbarspalte laufen.
+        val widestValue = items.maxOf { valuePaint.measureText(valueLabelOf(it)) }
+        val columnWidth = maxOf(
+            dp(columnWidthDp),
+            widestLabel + dp(12),
+            widestValue + dp(12)
+        )
 
         val contentWidth =
             (items.size * columnWidth + leftPadding + rightPadding).toInt()
@@ -192,6 +209,29 @@ class MonthBarChartView @JvmOverloads constructor(
         return (nice * base).toInt().coerceAtLeast(1)
     }
 
+    /**
+     * Breite in Pixeln, die die y-Achsenbeschriftung der aktuellen Daten
+     * braucht. Die ueberlagerte Achsenmaske richtet ihre Breite danach, damit
+     * auch grosse Werte (z. B. Kilometer) nicht abgeschnitten werden.
+     */
+    fun axisLabelWidthPx(): Int {
+        if (items.isEmpty()) return 0
+        updateAxis()
+        return (axisTickWidth() + dp(8)).toInt()
+    }
+
+    private fun axisTickWidth(): Float =
+        (0..axisMax step axisStep).maxOf { axisLabelPaint.measureText(tickText(it)) }
+
+    /**
+     * Zahl mit Tausenderzeichen, wie sie auch die Kacheln zeigen (z. B.
+     * "1.234.567"). Kleine Zahlen bleiben dabei unveraendert.
+     */
+    private fun tickText(value: Int): String =
+        String.format(Locale.GERMANY, "%,d", value)
+
+    private fun valueLabelOf(item: Item): String = item.valueLabel ?: tickText(item.count)
+
     override fun onDraw(canvas: Canvas) {
         if (items.isEmpty()) return
 
@@ -209,7 +249,7 @@ class MonthBarChartView @JvmOverloads constructor(
                 canvas.drawLine(axisX, y, plotRight, y, gridPaint)
             }
             canvas.drawText(
-                tick.toString(),
+                tickText(tick),
                 tickLabelX,
                 centeredBaseline(y, axisLabelPaint),
                 axisLabelPaint
@@ -242,7 +282,7 @@ class MonthBarChartView @JvmOverloads constructor(
                 canvas.drawRoundRect(rect, radius, radius, barPaint)
 
                 canvas.drawText(
-                    item.count.toString(),
+                    valueLabelOf(item),
                     centerX,
                     barTop - dp(4),
                     valuePaint

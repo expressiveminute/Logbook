@@ -128,6 +128,8 @@ class CountryDetailFragment : Fragment() {
         val from = location(route.from) ?: return null
         val to = location(route.to) ?: return null
         return CountryRouteMapView.RouteLine(
+            from = route.from,
+            to = route.to,
             points = unwrapLongitudes(GeoMath.greatCircleArc(from, to)),
             count = route.count
         )

@@ -18,7 +18,9 @@ object CountryDetailModel {
     data class AirportMarker(
         val iata: String,
         val lat: Double,
-        val lon: Double
+        val lon: Double,
+        /** Zahl der Einträge, die diesen Flughafen berühren; bestimmt, welche Badges oben liegen. */
+        val count: Int = 0
     )
 
     /**
@@ -68,6 +70,7 @@ object CountryDetailModel {
     ): Result {
         val target = iso2.trim().uppercase()
         val markers = LinkedHashMap<String, AirportMarker>()
+        val markerCounts = LinkedHashMap<String, Int>()
         val domesticCounts = LinkedHashMap<Pair<String, String>, Int>()
         val intlCounts = LinkedHashMap<Pair<String, String>, Int>()
         var flights = 0
@@ -85,10 +88,16 @@ object CountryDetailModel {
             if (touches) flights++
 
             if (fromIso == target) {
-                fromLoc?.let { markers.putIfAbsent(from, AirportMarker(from, it.lat, it.lon)) }
+                fromLoc?.let {
+                    markers.putIfAbsent(from, AirportMarker(from, it.lat, it.lon))
+                    markerCounts[from] = (markerCounts[from] ?: 0) + 1
+                }
             }
             if (toIso == target) {
-                toLoc?.let { markers.putIfAbsent(to, AirportMarker(to, it.lat, it.lon)) }
+                toLoc?.let {
+                    markers.putIfAbsent(to, AirportMarker(to, it.lat, it.lon))
+                    markerCounts[to] = (markerCounts[to] ?: 0) + 1
+                }
             }
             if (fromLoc == null || toLoc == null) continue
 
@@ -118,7 +127,9 @@ object CountryDetailModel {
             )
 
         return Result(
-            airports = markers.values.sortedBy { it.iata },
+            airports = markers.values
+                .map { it.copy(count = markerCounts[it.iata] ?: 0) }
+                .sortedBy { it.iata },
             domestic = routes(domesticCounts, international = false),
             international = routes(intlCounts, international = true),
             flights = flights

@@ -37,13 +37,24 @@ class CountryRouteMapView @JvmOverloads constructor(
 ) : MapView(context, attrs) {
 
     /** Eine geflogene Verbindung als Großkreis-Bogen, [points] schon entfaltet. */
-    data class RouteLine(val points: List<GeoPoint>, val count: Int)
+    data class RouteLine(
+        val from: String,
+        val to: String,
+        val points: List<GeoPoint>,
+        val count: Int
+    )
 
     private var country: CountryShapes.Country? = null
     private var airports: List<CountryDetailModel.AirportMarker> = emptyList()
     private var domestic: List<RouteLine> = emptyList()
     private var international: List<RouteLine> = emptyList()
     private var focus: CountryDetailModel.GeoBox? = null
+
+    /** Angeklickter Flughafen, dessen Verbindungen hervorgehoben werden. */
+    private var selectedAirport: String? = null
+
+    /** Zoomstufe der Länderansicht; dorthin kehrt die Karte ohne Auswahl zurück. */
+    private var countryMinZoom: Double = 1.0
 
     private var fitted = false
     private val layoutListener = ViewTreeObserver.OnGlobalLayoutListener {
@@ -58,6 +69,13 @@ class CountryRouteMapView @JvmOverloads constructor(
     private val accentColor by lazy {
         MaterialColors.getColor(
             this, com.google.android.material.R.attr.colorPrimary
+        )
+    }
+
+    /** Grau für die zurücktretenden Verbindungen bei aktiver Auswahl. */
+    private val mutedColor by lazy {
+        MaterialColors.getColor(
+            this, com.google.android.material.R.attr.colorOnSurfaceVariant
         )
     }
 
@@ -107,6 +125,7 @@ class CountryRouteMapView @JvmOverloads constructor(
         this.airports = airports
         this.domestic = domestic
         this.international = international
+        selectedAirport = null
         fitted = false
         rebuildOverlays()
         fitWhenReady()
@@ -122,13 +141,101 @@ class CountryRouteMapView @JvmOverloads constructor(
      * kommt aus [CountryDetailModel.focusBounds] und umschließt nur die
      * Flughäfen - nicht das ganze Land mit seinen Überseegebieten, deren
      * Umrisse den Ausschnitt sonst winzig machten. Weiter hereinzoomen kann
-     * der Nutzer danach selbst.
+     * der Nutzer danach selbst. Eine aktive Flughafen-Auswahl wird dabei
+     * aufgehoben: Der Knopf führt zurück zur Länderansicht.
      */
     fun zoomToFocus() {
         val box = focus ?: return
         if (width <= 0 || height <= 0) return
+        if (selectedAirport != null) {
+            selectedAirport = null
+            minZoomLevel = countryMinZoom
+            rebuildOverlays()
+        }
         zoomToBoundingBox(
             BoundingBox(box.maxLat, box.maxLon, box.minLat, box.minLon),
+            true,
+            (24 * resources.displayMetrics.density).toInt()
+        )
+        invalidate()
+    }
+
+    /** Reaktion auf einen Tipp auf ein Flughafen-Badge. */
+    private fun handleAirportTap(code: String) {
+        if (selectedAirport == code) {
+            // Nochmal getippt: Auswahl aufheben, zurück zur Länderansicht.
+            selectedAirport = null
+            minZoomLevel = countryMinZoom
+            rebuildOverlays()
+            zoomToFocus()
+        } else {
+            // Neuer Flughafen: seine Verbindungen hervorheben und so weit
+            // herauszoomen, dass alle sichtbar sind.
+            selectedAirport = code
+            rebuildOverlays()
+            fitToSelectedAirport()
+        }
+        invalidate()
+    }
+
+    /**
+     * Zoomt heraus, bis alle Verbindungen des ausgewählten Flughafens im Bild
+     * sind. Die Box umschließt die kompletten Bögen der betroffenen Routen;
+     * Längengrade über die Datumslinie werden um den Flughafen herum
+     * eingeordnet, damit auch Strecken bis zur Antipode zusammenhängend
+     * erscheinen.
+     */
+    private fun fitToSelectedAirport() {
+        val selected = selectedAirport ?: return
+        if (width <= 0 || height <= 0) return
+        val routes = (domestic + international).filter {
+            it.from == selected || it.to == selected
+        }
+        if (routes.isEmpty()) return
+        val reference = airports.firstOrNull { it.iata == selected }?.lon ?: return
+
+        var west = Double.MAX_VALUE
+        var east = -Double.MAX_VALUE
+        var north = -Double.MAX_VALUE
+        var south = Double.MAX_VALUE
+        for (route in routes) {
+            for (point in route.points) {
+                val lon = unwind(point.longitude, reference)
+                if (lon < west) west = lon
+                if (lon > east) east = lon
+                if (point.latitude > north) north = point.latitude
+                if (point.latitude < south) south = point.latitude
+            }
+        }
+        if (west == Double.MAX_VALUE) return
+        if (east - west < SELECTION_MIN_SPAN) east = west + SELECTION_MIN_SPAN
+        if (north - south < SELECTION_MIN_SPAN) north = south + SELECTION_MIN_SPAN
+        // Überschreitet die Box die Datumslinie, wird sie um 360 Grad in die
+        // sichtbare Welt [-180, 180] geschoben; sonst schrumpfte sie beim
+        // Beschneiden auf einen winzigen Streifen am Kartenrand.
+        var center = (west + east) / 2.0
+        while (center > 180.0) {
+            west -= 360.0
+            east -= 360.0
+            center -= 360.0
+        }
+        while (center < -180.0) {
+            west += 360.0
+            east += 360.0
+            center += 360.0
+        }
+        west = west.coerceIn(-180.0, 180.0)
+        east = east.coerceIn(-180.0, 180.0)
+        if (west >= east) east = (west + 1.0).coerceAtMost(180.0)
+        north = north.coerceIn(-85.0, 85.0)
+        south = south.coerceIn(-85.0, 85.0)
+        if (south >= north) north = (south + 1.0).coerceAtMost(85.0)
+
+        // Für die Verbindungen darf die Karte weiter herauszoomen als für das
+        // Land; [zoomToFocus] stellt die Länderansicht wieder her.
+        minZoomLevel = 1.0
+        zoomToBoundingBox(
+            BoundingBox(north, east, south, west),
             true,
             (24 * resources.displayMetrics.density).toInt()
         )
@@ -148,7 +255,10 @@ class CountryRouteMapView @JvmOverloads constructor(
                 domestic = domestic,
                 international = international,
                 accent = accentColor,
-                density = resources.displayMetrics.density
+                muted = mutedColor,
+                density = resources.displayMetrics.density,
+                selection = selectedAirport,
+                onAirportTap = { handleAirportTap(it) }
             )
         )
         invalidate()
@@ -187,6 +297,7 @@ class CountryRouteMapView @JvmOverloads constructor(
         // Ausschnitt ist auf das Land gerichtet, herauszoomen brächte nur
         // fremde Teile der Weltkarte ins Bild.
         minZoomLevel = zoomLevelDouble
+        countryMinZoom = zoomLevelDouble
         invalidate()
     }
 
@@ -273,7 +384,10 @@ class CountryRouteMapView @JvmOverloads constructor(
         private val domestic: List<RouteLine>,
         private val international: List<RouteLine>,
         private val accent: Int,
-        private val density: Float
+        private val muted: Int,
+        private val density: Float,
+        private val selection: String?,
+        private val onAirportTap: (String) -> Unit
     ) : Overlay() {
 
         private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -293,9 +407,33 @@ class CountryRouteMapView @JvmOverloads constructor(
             strokeWidth = 1.3f * density
             strokeCap = Paint.Cap.ROUND
         }
-        private val stubPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        /** Hervorgehoben: die Verbindungen des angeklickten Flughafens. */
+        private val selectedRoutePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = accent
             alpha = 255
+            style = Paint.Style.STROKE
+            strokeWidth = 1.8f * density
+            strokeCap = Paint.Cap.ROUND
+        }
+        /** Ausgegraut: alle übrigen Verbindungen, solange eine Auswahl steht. */
+        private val mutedRoutePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = muted
+            alpha = 140
+            style = Paint.Style.STROKE
+            strokeWidth = 1.3f * density
+            strokeCap = Paint.Cap.ROUND
+        }
+        private val stubPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = accent
+            alpha = STUB_START_ALPHA
+            style = Paint.Style.STROKE
+            strokeWidth = 1.5f * density
+            strokeCap = Paint.Cap.ROUND
+        }
+        /** Ausgegrauter Stummel für die übrigen Auslandsflüge bei Auswahl. */
+        private val mutedStubPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = muted
+            alpha = STUB_START_ALPHA
             style = Paint.Style.STROKE
             strokeWidth = 1.5f * density
             strokeCap = Paint.Cap.ROUND
@@ -315,6 +453,13 @@ class CountryRouteMapView @JvmOverloads constructor(
             strokeWidth = 1.5f * density
             alpha = 200
         }
+        /** Ring um den ausgewählten Flughafen, damit er sofort auffällt. */
+        private val selectedBadgeRing = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = accent
+            alpha = 255
+            style = Paint.Style.STROKE
+            strokeWidth = 2f * density
+        }
         private val reusePoint = Point()
 
         override fun draw(canvas: Canvas, mapView: MapView, shadow: Boolean) {
@@ -323,7 +468,39 @@ class CountryRouteMapView @JvmOverloads constructor(
 
             drawCountry(canvas, projection)
             drawRoutes(canvas, mapView, projection)
-            drawAirports(canvas, mapView, projection)
+            drawAirports(canvas, projection)
+            drawDestinationBadges(canvas, projection)
+        }
+
+        /** Tipp auf ein Badge wählt den Flughafen aus, ein zweiter hebt es auf. */
+        override fun onSingleTapConfirmed(
+            event: android.view.MotionEvent,
+            mapView: MapView
+        ): Boolean {
+            if (airports.isEmpty()) return false
+            val hit = 40f * density
+            var best: String? = null
+            var bestDist = Float.MAX_VALUE
+            for (airport in airports) {
+                mapView.projection.toPixels(GeoPoint(airport.lat, airport.lon), reusePoint)
+                val dx = event.x - reusePoint.x
+                val dy = event.y - reusePoint.y
+                val dist = hypot(dx, dy)
+                if (dist <= hit && dist < bestDist) {
+                    best = airport.iata
+                    bestDist = dist
+                }
+            }
+            if (best != null) {
+                onAirportTap(best)
+                return true
+            }
+            // Tipp auf die freie Karte bei aktiver Auswahl beendet diese.
+            if (selection != null) {
+                onAirportTap(selection)
+                return true
+            }
+            return false
         }
 
         /** Land in Akzentfarbe hervorheben, wenn Umrisse vorliegen. */
@@ -350,28 +527,55 @@ class CountryRouteMapView @JvmOverloads constructor(
             canvas.drawPath(path, stroke)
         }
 
-        /** Inlandsrouten ganz, Auslandsflüge als kurze, verblassende Linie. */
+        /**
+         * Inlandsrouten ganz, Auslandsflüge als kurze, verblassende Linie.
+         * Mit Auswahl werden die Verbindungen des angeklickten Flughafens -
+         * Inland wie Ausland - komplett und betont gezeichnet, ihre Ziele im
+         * Ausland als Badges. Alle übrigen Verbindungen bleiben sichtbar,
+         * treten aber ausgegraut zurück.
+         */
         private fun drawRoutes(
             canvas: Canvas,
             mapView: MapView,
             projection: org.osmdroid.views.Projection
         ) {
+            val selected = selection
             for (route in domestic) {
-                drawFullLine(canvas, projection, route.points)
+                val isSelectedRoute = selected != null &&
+                    (route.from == selected || route.to == selected)
+                drawFullLine(
+                    canvas, projection, route,
+                    when {
+                        isSelectedRoute -> selectedRoutePaint
+                        selected == null -> routePaint
+                        else -> mutedRoutePaint
+                    }
+                )
             }
             if (international.isEmpty()) return
             val stubLen = (minOf(mapView.width, mapView.height) * STUB_SCREEN_FRACTION)
                 .coerceIn(MIN_STUB_DP * density, MAX_STUB_DP * density)
             for (route in international) {
-                drawFadingStub(canvas, projection, route.points, stubLen)
+                val isSelectedRoute = selected != null &&
+                    (route.from == selected || route.to == selected)
+                if (isSelectedRoute) {
+                    drawFullLine(canvas, projection, route, selectedRoutePaint)
+                } else {
+                    drawFadingStub(
+                        canvas, projection, route.points, stubLen,
+                        if (selected == null) stubPaint else mutedStubPaint
+                    )
+                }
             }
         }
 
         private fun drawFullLine(
             canvas: Canvas,
             projection: org.osmdroid.views.Projection,
-            points: List<GeoPoint>
+            route: RouteLine,
+            paint: Paint
         ) {
+            val points = route.points
             if (points.size < 2) return
             val path = Path()
             var started = false
@@ -382,7 +586,7 @@ class CountryRouteMapView @JvmOverloads constructor(
                 if (started) path.lineTo(x, y) else path.moveTo(x, y)
                 started = true
             }
-            canvas.drawPath(path, routePaint)
+            canvas.drawPath(path, paint)
         }
 
         /**
@@ -395,7 +599,8 @@ class CountryRouteMapView @JvmOverloads constructor(
             canvas: Canvas,
             projection: org.osmdroid.views.Projection,
             points: List<GeoPoint>,
-            stubLen: Float
+            stubLen: Float,
+            paint: Paint
         ) {
             if (points.size < 2) return
             projection.toPixels(points[0], reusePoint)
@@ -415,10 +620,10 @@ class CountryRouteMapView @JvmOverloads constructor(
                     // Endpunkt interpolieren, damit der Stummel nicht über das
                     // Ziel hinausläuft und alle Abschnitte gleichmäßig dimmen.
                     val t = ((stubLen - covered) / segment).coerceIn(0f, 1f)
-                    drawSegment(canvas, prevX, prevY, prevX + dx * t, prevY + dy * t, 1f)
+                    drawSegment(canvas, prevX, prevY, prevX + dx * t, prevY + dy * t, 1f, paint)
                     return
                 }
-                drawSegment(canvas, prevX, prevY, x, y, next / stubLen)
+                drawSegment(canvas, prevX, prevY, x, y, next / stubLen, paint)
                 prevX = x
                 prevY = y
                 covered = next
@@ -432,45 +637,126 @@ class CountryRouteMapView @JvmOverloads constructor(
             y1: Float,
             x2: Float,
             y2: Float,
-            fade: Float
+            fade: Float,
+            paint: Paint
         ) {
-            stubPaint.alpha = (STUB_START_ALPHA * (1f - fade.coerceIn(0f, 1f))).toInt()
-            canvas.drawLine(x1, y1, x2, y2, stubPaint)
+            paint.alpha = (STUB_START_ALPHA * (1f - fade.coerceIn(0f, 1f))).toInt()
+            canvas.drawLine(x1, y1, x2, y2, paint)
         }
 
-        /** Die angeflogenen Flughäfen als Badges mit IATA-Code. */
+        /**
+         * Die angeflogenen Flughäfen des Landes als Badges mit IATA-Code.
+         * Häufig angeflogene liegen zuletzt, damit sie bei überlappenden
+         * Badges obenauf liegen; der ausgewählte Flughafen ganz zuletzt.
+         */
         private fun drawAirports(
             canvas: Canvas,
-            mapView: MapView,
             projection: org.osmdroid.views.Projection
         ) {
             if (airports.isEmpty()) return
             badgeLabel.color = readableOn(accent)
-            val fm = badgeLabel.fontMetrics
-            val textHeight = fm.descent - fm.ascent
-            val padX = 3f * density
-            val padY = 1.5f * density
-
-            // Nach Code geordnet, damit sich überlappende Badges stabil legen.
-            for (airport in airports) {
-                projection.toPixels(GeoPoint(airport.lat, airport.lon), reusePoint)
-                val sx = reusePoint.x.toFloat()
-                val sy = reusePoint.y.toFloat()
-                val textWidth = badgeLabel.measureText(airport.iata)
-                val badgeWidth = textWidth + 2 * padX
-                val badgeHeight = textHeight + 2 * padY
-                val left = sx - badgeWidth / 2
-                val top = sy - badgeHeight / 2
-                val radius = badgeHeight / 2
-                canvas.drawRoundRect(left, top, left + badgeWidth, top + badgeHeight, radius, radius, badgeFill)
-                canvas.drawRoundRect(left, top, left + badgeWidth, top + badgeHeight, radius, radius, badgeRing)
-                canvas.drawText(
-                    airport.iata,
-                    sx - textWidth / 2,
-                    sy - (fm.descent + fm.ascent) / 2,
-                    badgeLabel
+            val ordered = airports.sortedWith(
+                compareBy<CountryDetailModel.AirportMarker> {
+                    if (it.iata == selection) 1 else 0
+                }.thenBy { it.count }.thenBy { it.iata }
+            )
+            for (airport in ordered) {
+                val iata = airport.iata
+                drawBadge(
+                    canvas, projection, airport.lat, airport.lon, iata,
+                    highlighted = iata == selection
                 )
             }
+        }
+
+        /**
+         * Die Ziele des ausgewählten Flughafens im Ausland als Badges, damit
+         * die vollständig gezeichneten Verbindungen einen Namen tragen.
+         * Jede entfaltete Route endet (oder beginnt) beim angeklickten
+         * Flughafen; das jeweilige andere Ende wird um ±360 Grad zurück auf
+         * die sichtbare Welt gelegt.
+         */
+        private fun drawDestinationBadges(
+            canvas: Canvas,
+            projection: org.osmdroid.views.Projection
+        ) {
+            val selected = selection ?: return
+            val destinations = LinkedHashMap<String, GeoPoint>()
+            for (route in international) {
+                when (selected) {
+                    route.from -> destinations.putIfAbsent(
+                        route.to, normalizedEndpoint(route.points, last = true)
+                    )
+                    route.to -> destinations.putIfAbsent(
+                        route.from, normalizedEndpoint(route.points, last = false)
+                    )
+                }
+            }
+            if (destinations.isEmpty()) return
+            badgeLabel.color = readableOn(accent)
+            for ((code, point) in destinations) {
+                drawBadge(
+                    canvas, projection, point.latitude, point.longitude, code,
+                    highlighted = false
+                )
+            }
+        }
+
+        /** Ein Badge mit IATA-Code; [highlighted] bekommt einen Akzentring. */
+        private fun drawBadge(
+            canvas: Canvas,
+            projection: org.osmdroid.views.Projection,
+            lat: Double,
+            lon: Double,
+            code: String,
+            highlighted: Boolean
+        ) {
+            projection.toPixels(GeoPoint(lat, lon), reusePoint)
+            val sx = reusePoint.x.toFloat()
+            val sy = reusePoint.y.toFloat()
+            val fm = badgeLabel.fontMetrics
+            val textHeight = fm.descent - fm.ascent
+            val textWidth = badgeLabel.measureText(code)
+            val padX = 3f * density
+            val padY = 1.5f * density
+            val badgeWidth = textWidth + 2 * padX
+            val badgeHeight = textHeight + 2 * padY
+            val left = sx - badgeWidth / 2
+            val top = sy - badgeHeight / 2
+            val radius = badgeHeight / 2
+            if (highlighted) {
+                val extra = 3f * density
+                canvas.drawRoundRect(
+                    left - extra,
+                    top - extra,
+                    left + badgeWidth + extra,
+                    top + badgeHeight + extra,
+                    radius + extra,
+                    radius + extra,
+                    selectedBadgeRing
+                )
+            }
+            canvas.drawRoundRect(left, top, left + badgeWidth, top + badgeHeight, radius, radius, badgeFill)
+            canvas.drawRoundRect(left, top, left + badgeWidth, top + badgeHeight, radius, radius, badgeRing)
+            canvas.drawText(
+                code,
+                sx - textWidth / 2,
+                sy - (fm.descent + fm.ascent) / 2,
+                badgeLabel
+            )
+        }
+
+        /**
+         * Erster oder letzter Punkt eines entfalteten Bogens, zurück auf die
+         * sichtbare Welt [-180, 180] gelegt - das ist der reale Ort des
+         * Zielflughafens.
+         */
+        private fun normalizedEndpoint(points: List<GeoPoint>, last: Boolean): GeoPoint {
+            val point = if (last) points.last() else points.first()
+            var lon = point.longitude
+            while (lon > 180.0) lon -= 360.0
+            while (lon < -180.0) lon += 360.0
+            return GeoPoint(point.latitude, lon)
         }
 
         private fun readableOn(bg: Int): Int {
@@ -495,5 +781,8 @@ class CountryRouteMapView @JvmOverloads constructor(
         /** Unter- und Obergrenze des Stummels in dp. */
         const val MIN_STUB_DP = 66f
         const val MAX_STUB_DP = 240f
+
+        /** Mindestausdehnung der Verbindungs-Box für die Auswahl (Grad). */
+        const val SELECTION_MIN_SPAN = 4.0
     }
 }

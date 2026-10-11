@@ -1,26 +1,24 @@
 package com.highfly.logbook
 
-import android.content.res.Configuration
-import android.graphics.ColorMatrix
-import android.graphics.ColorMatrixColorFilter
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
-import android.widget.TextView
 import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.highfly.logbook.databinding.FragmentDiscoveryBinding
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.time.format.TextStyle
 import java.util.Locale
 
 /**
  * Zeigt alle Flugstrecken, die im gewählten Jahr zum ersten Mal geflogen
  * wurden: absteigend nach Datum, nach Monaten gruppiert. Beim Öffnen der Seite
  * ist immer das laufende Jahr eingestellt.
+ *
+ * Die Liste ist ein RecyclerView: Die Kacheln werden recycelt, damit nur die
+ * sichtbaren Zeilen existieren und die Seite auch mit vielen Einträgen flüssig
+ * scrollt.
  */
 class DiscoveryFragment : Fragment() {
 
@@ -29,23 +27,7 @@ class DiscoveryFragment : Fragment() {
 
     private var loadGeneration = 0
 
-    private val isDarkMode: Boolean
-        get() = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
-            Configuration.UI_MODE_NIGHT_YES
-
-    /** Logos sind oft dunkel; im Dunkelmodus werden sie aufgehellt. */
-    private val darkLogoFilter by lazy {
-        ColorMatrixColorFilter(
-            ColorMatrix(
-                floatArrayOf(
-                    1.5f, 0f, 0f, 0f, 45f,
-                    0f, 1.5f, 0f, 0f, 45f,
-                    0f, 0f, 1.5f, 0f, 45f,
-                    0f, 0f, 0f, 1f, 0f,
-                )
-            )
-        )
-    }
+    private lateinit var adapter: DiscoveryAdapter
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -57,6 +39,11 @@ class DiscoveryFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        binding.discoveryList.layoutManager = LinearLayoutManager(requireContext())
+        binding.discoveryList.setHasFixedSize(true)
+        adapter = DiscoveryAdapter(requireContext())
+        binding.discoveryList.adapter = adapter
 
         binding.btnDiscoveryYear.setOnClickListener { showYearPicker() }
     }
@@ -90,6 +77,14 @@ class DiscoveryFragment : Fragment() {
         val appContext = requireContext().applicationContext
         Thread {
             val months = DiscoveryRoutes.byMonth(LogbookRepository.getFlownEntries(), year)
+            // Logos im Hintergrund dekodieren, damit das Binden der Zeilen im
+            // Hauptthread nur noch auf den Cache zugreift und beim Scrollen
+            // nichts nachgeladen werden muss.
+            months.asSequence()
+                .flatMap { it.routes.asSequence() }
+                .mapNotNull { it.airline }
+                .distinct()
+                .forEach { AirlineCatalog.loadLogo(appContext, it) }
             view?.post {
                 if (generation != loadGeneration || _binding == null) return@post
                 binding.discoveryProgress.visibility = View.GONE
@@ -99,93 +94,14 @@ class DiscoveryFragment : Fragment() {
     }
 
     private fun render(months: List<DiscoveryMonth>) {
-        val container = binding.discoveryList
-        container.removeAllViews()
         if (months.isEmpty()) {
             binding.discoveryList.visibility = View.GONE
             binding.tvDiscoveryEmpty.visibility = View.VISIBLE
-            return
-        }
-        binding.tvDiscoveryEmpty.visibility = View.GONE
-        container.visibility = View.VISIBLE
-
-        months.forEach { discoveryMonth ->
-            val monthView = layoutInflater.inflate(
-                R.layout.item_discovery_month, container, false
-            )
-            val month = discoveryMonth.month
-            monthView.findViewById<TextView>(R.id.tv_discovery_month).text = getString(
-                R.string.discovery_month,
-                month.month.getDisplayName(TextStyle.FULL, Locale.getDefault()),
-                month.year
-            )
-            container.addView(monthView)
-
-            discoveryMonth.routes.forEach { route ->
-                container.addView(createRouteView(route, container))
-            }
-        }
-    }
-
-    private fun createRouteView(route: RouteDiscovery, parent: ViewGroup): View {
-        val view = layoutInflater.inflate(R.layout.item_discovery_route, parent, false)
-        view.findViewById<TextView>(R.id.tv_discovery_date).text = dateText(route)
-        view.findViewById<TextView>(R.id.tv_discovery_aircraft).apply {
-            text = aircraftText(route)
-            visibility = if (text.isEmpty()) View.GONE else View.VISIBLE
-        }
-
-        val logo = view.findViewById<ImageView>(R.id.iv_discovery_airline)
-        val livery = route.airline?.let { AirlineCatalog.loadLogo(requireContext(), it) }
-        if (livery != null) {
-            logo.setImageBitmap(livery)
-            logo.colorFilter = if (isDarkMode) darkLogoFilter else null
-            logo.visibility = View.VISIBLE
         } else {
-            logo.setImageBitmap(null)
-            logo.visibility = View.GONE
+            binding.tvDiscoveryEmpty.visibility = View.GONE
+            binding.discoveryList.visibility = View.VISIBLE
         }
-
-        val map = view.findViewById<RouteMiniMapView>(R.id.discovery_map)
-        val from = AirportData.location(requireContext(), route.from)
-        val to = AirportData.location(requireContext(), route.to)
-        if (from == null || to == null) {
-            map.visibility = View.GONE
-        } else {
-            map.contentDescription = getString(
-                R.string.discovery_map_desc, route.from, route.to
-            )
-            map.setRoute(from, to, route.from, route.to)
-        }
-        return view
-    }
-
-    /**
-     * Bei einem Hin- und Rückflug stehen beide Daten in der Zeile, sonst nur
-     * das Datum des Erstdurchflugs. Fahren Hin- und Rückflug am selben Tag,
-     * wird das Datum nur einmal angezeigt.
-     */
-    private fun dateText(route: RouteDiscovery): String {
-        val outbound = route.date.format(DATE_FORMAT)
-        val back = route.returnDate?.format(DATE_FORMAT) ?: return outbound
-        if (back == outbound) return outbound
-        return getString(R.string.discovery_date_range, outbound, back)
-    }
-
-    /**
-     * Flugzeugtyp und Registrierung des Erstdurchflugs, jeweils nur wenn im
-     * Eintrag hinterlegt. Ohne Angaben bleibt die Zeile leer.
-     */
-    private fun aircraftText(route: RouteDiscovery): String {
-        val type = route.aircraftType
-        val registration = route.registration
-        return when {
-            !type.isNullOrEmpty() && !registration.isNullOrEmpty() ->
-                getString(R.string.discovery_aircraft, type, registration)
-            !type.isNullOrEmpty() -> type
-            !registration.isNullOrEmpty() -> registration
-            else -> ""
-        }
+        adapter.submit(months)
     }
 
     /**
@@ -216,9 +132,5 @@ class DiscoveryFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
-    }
-
-    private companion object {
-        val DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
     }
 }
