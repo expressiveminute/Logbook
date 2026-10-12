@@ -42,7 +42,7 @@ class MainActivity : AppCompatActivity() {
     private var appliedThemeMode: String? = null
 
     override fun attachBaseContext(newBase: Context) {
-        val localized = LocaleUtils.applyLocale(newBase, Settings.LANG_DE)
+        val localized = LocaleUtils.applyLocale(newBase, Settings.getLanguage(newBase))
         super.attachBaseContext(
             LocaleUtils.applyTextScale(localized, Settings.isCompactText(localized))
         )

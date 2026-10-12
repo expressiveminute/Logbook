@@ -77,6 +77,22 @@ Das Erscheinungsbild hat drei Werte (`Settings.THEME_MODE_SYSTEM/LIGHT/DARK`) un
 Handy. Vor dem Umstauf lag hier nur ein Ja/Nein-Wert im Schlüssel `dark_mode`; solange der
 Schlüssel gesetzt ist, hat er Vorrang, damit eine installierte App ihr Aussehen behält.
 
+Die Sprache der App hat zwei Werte (`Settings.LANG_DE`/`LANG_EN`) und steht unter dem Schlüssel
+`language`; Standard ist Deutsch, damit eine bestehende Installation ihre Sprache behält. Die
+Anzeigetexte liegen vollständig in `values` (deutsch) und `values-en` (englisch). Angewandt wird
+die Sprache in `LogbookApplication`, `MainActivity` und `WelcomeActivity` über
+`LocaleUtils.applyLocale`, das zusätzlich `Locale.setDefault` setzt, damit auch Monatsnamen,
+Ländernamen und Dezimal-/Tausendertrennzeichen mitgehen. Für Zahlen und Datumsformate im Code
+gibt es `Settings.language(context)` (statt fest `Locale.GERMANY`). Beim Umschalten ruft
+`SettingsSectionFragment.applyLanguage` zusätzlich `AppCompatDelegate.setApplicationLocales` auf;
+damit das sofort greift, hat ein App Bundle die Sprachressourcen nicht aufzuteilen
+(`bundle { language { enableSplit = false } }` in `app/build.gradle.kts`).
+
+Die beiden Auswahlfelder *Standard-Zeitraum* und *Standard-Zeitanzeige* tragen bewusst
+`android:saveEnabled="false"`, weil ihr Text bei jedem Aufbau neu aus den Einstellungen kommt.
+Ohne das stellt die Ansicht beim Activity-Neubau (z. B. beim Sprachwechsel) ihren alten,
+anderssprachigen Text wieder her.
+
 ## Tastatur/Insets – nicht regressieren
 
 `MainActivity` verwaltet die Tastatur selbst, weil im Edge-to-Edge-Modus die Fenstergröße nicht

@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?android:attr/colorBackground"
+    tools:context=".AirportDetailFragment">
+
+    <!-- Kopfleiste: bleibt beim Scrollen stehen, deshalb liegt sie ausserhalb
+         der ScrollView. Gleiches Muster wie auf der Layover-Detailseite. -->
+    <LinearLayout
+        android:id="@+id/header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?android:attr/colorBackground"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_back"
+            style="?attr/materialIconButtonStyle"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            app:icon="@drawable/ic_arrow_back"
+            app:iconTint="?attr/colorOnSurface"
+            app:iconSize="24dp"
+            app:backgroundTint="@android:color/transparent"
+            app:contentDescription="@string/btn_back" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/airport_detail_title"
+                android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_detail_subtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:fillViewport="true"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/header">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="16dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="32dp">
+
+            <!-- Kopfbereich: Dreilettercode mittig fett, darunter Name, darunter
+                 Stadt und Land mit der Flagge dahinter. -->
+            <TextView
+                android:id="@+id/tv_airport_code"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:gravity="center"
+                android:textAppearance="@style/TextAppearance.Material3.DisplayMedium"
+                android:textStyle="bold"
+                tools:text="MUC" />
+
+            <TextView
+                android:id="@+id/tv_airport_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:gravity="center"
+                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:visibility="gone"
+                tools:text="Munich Airport" />
+
+            <!-- Ortszeile mit Flagge. Etwas grösser als BodyMedium, weil die
+                 Flagge darin sonst zu klein wirkt. -->
+            <TextView
+                android:id="@+id/tv_airport_city_country"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:gravity="center"
+                android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:visibility="gone"
+                tools:text="München, Deutschland 🇩🇪" />
+
+            <!-- Kenndaten über der Karte: IATA, ICAO, Höhe und Koordinaten.
+                 Die Zeilen entstehen pro Wert aus item_airport_fact.xml. -->
+            <LinearLayout
+                android:id="@+id/facts_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:orientation="vertical" />
+
+            <!-- Karte nach dem Vorbild der Länderseite: der Flughafen als
+                 hervorgehobenes Badge, alle Verbindungen als Großkreisbögen,
+                 die Ziele als Badges. Frei bedienbar wie die Länderseite. -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/country_map_card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:visibility="gone"
+                app:cardBackgroundColor="?android:attr/colorBackground"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeColor="?attr/colorOutlineVariant"
+                app:strokeWidth="1dp"
+                tools:visibility="visible">
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="320dp">
+
+                    <com.highfly.logbook.CountryRouteMapView
+                        android:id="@+id/airport_map"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent" />
+
+                    <!-- Holt in einer Animation alle Strecken ins Bild, die
+                         vom Flughafen ausgehen. -->
+                    <com.google.android.material.floatingactionbutton.FloatingActionButton
+                        android:id="@+id/fab_airport_zoom_out"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="bottom|end"
+                        android:layout_margin="12dp"
+                        android:contentDescription="@string/airport_map_zoom_out"
+                        android:visibility="gone"
+                        app:fabCustomSize="44dp"
+                        app:maxImageSize="24dp"
+                        app:srcCompat="@drawable/ic_zoom_out"
+                        tools:visibility="visible" />
+                </FrameLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Zahl der Verbindungen ab diesem Flughafen, unter der Karte. -->
+            <TextView
+                android:id="@+id/tv_airport_connections"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:gravity="center"
+                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                android:visibility="gone"
+                tools:text="12 Verbindungen ab MUC"
+                tools:visibility="visible" />
+        </LinearLayout>
+    </ScrollView>
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -9,7 +9,6 @@ import androidx.navigation.fragment.findNavController
 import com.highfly.logbook.databinding.FragmentFlightsMonthsBinding
 import java.time.Month
 import java.time.format.TextStyle
-import java.util.Locale
 
 class FlightsMonthsFragment : Fragment() {
 
@@ -40,7 +39,7 @@ class FlightsMonthsFragment : Fragment() {
 
         val items = Month.values().map { month ->
             MonthBarChartView.Item(
-                month.getDisplayName(TextStyle.SHORT, Locale.GERMANY),
+                month.getDisplayName(TextStyle.SHORT, Settings.language(requireContext())),
                 counts[month.value - 1]
             )
         }

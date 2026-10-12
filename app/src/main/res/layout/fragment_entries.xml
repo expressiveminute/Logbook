@@ -7,12 +7,14 @@
     android:background="?android:attr/colorBackground"
     android:orientation="vertical">
 
-    <!-- Kopfzeile der Einträge als eine Zeile: links der Titel (mit dem
-         Zurückpfeil, wenn die Seite von der Karte kommt), mittig die Lupe,
-         rechts der Filter. Alles steht fest über der Liste und scrollt nicht
-         mit. Über die Lupe klappt rechts daneben das Suchfeld auf, das die
-         frühere breite Suchkachel ersetzt und so den Einträgen mehr Platz
-         lässt. -->
+    <!-- Kopfzeile der Einträge nach dem Vorbild der Länderliste: links der
+         Titel (mit dem Zurückpfeil, wenn die Seite von der Karte kommt), mittig
+         die Lupe, rechts der Filter. Alles steht fest über der Liste und
+         scrollt nicht mit. Die drei Schaltflächen sind - wie auf der
+         Länderliste - flache, transparente Icon-Buttons ohne Kachelhintergrund.
+         Ein Tipp auf die Lupe schiebt das Suchfeld über den ganzen Kopf bis an
+         den Filter; nur der Filter bleibt rechts sichtbar, die Lupe faehrt an
+         den rechten Feldrand und wird dort zum Schliessen-X. -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/entries_header"
         android:layout_width="match_parent"
@@ -36,12 +38,11 @@
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:visibility="gone"
-                app:backgroundTint="?attr/colorSurfaceContainerHigh"
+                app:backgroundTint="@android:color/transparent"
                 app:contentDescription="@string/btn_back"
                 app:icon="@drawable/ic_arrow_back"
                 app:iconSize="24dp"
                 app:iconTint="?attr/colorOnSurface"
-                app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Button.Circle"
                 tools:visibility="visible" />
 
             <TextView
@@ -53,96 +54,69 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Lupe, mittig auf der Bildschirmbreite. Ein Tipp klappt das
-             Suchfeld rechts daneben auf bzw. wieder zu. -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/btn_entry_search"
+        <!-- Suchfeld nach dem Vorbild der Länderliste: ein schlichtes Feld ohne
+             Rahmen. Beim Tippen auf die Lupe schiebt es sich von rechts über den
+             ganzen Kopf bis an den Filter; der rechte Innenabstand haelt Platz
+             fuer das Schliessen-X frei. -->
+        <EditText
+            android:id="@+id/et_entry_search"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="4dp"
+            android:background="?attr/colorSurfaceContainerLow"
+            android:hint="@string/entries_search_hint"
+            android:imeOptions="actionSearch"
+            android:importantForAutofill="no"
+            android:inputType="text"
+            android:maxLines="1"
+            android:paddingStart="16dp"
+            android:paddingEnd="48dp"
+            android:paddingVertical="6dp"
+            android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/tile_entry_filter"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="MUC"
+            tools:visibility="visible" />
+
+        <!-- Filter, rechts in derselben Zeile - ebenfalls als flacher,
+             transparenter Icon-Button. Er bleibt auch bei offener Suche
+             sichtbar. Ein aktiver Filter färbt das Symbol in der Akzentfarbe
+             (siehe EntriesFragment.updateFilterIcon). -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/tile_entry_filter"
+            style="?attr/materialIconButtonStyle"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:clickable="true"
-            android:focusable="true"
-            app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="0dp"
+            app:backgroundTint="@android:color/transparent"
+            app:contentDescription="@string/entries_filter_desc"
+            app:icon="@drawable/ic_filter"
+            app:iconSize="24dp"
+            app:iconTint="?attr/colorOnSurfaceVariant"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- Lupe, mittig auf der Bildschirmbreite - wie die Lupe der
+             Länderliste ein flacher, transparenter Icon-Button. Sie liegt über
+             dem Suchfeld und faehrt beim Oeffnen an dessen rechten Rand. Ein
+             Tipp klappt das Suchfeld auf bzw. wieder zu. -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_entry_search"
+            style="?attr/materialIconButtonStyle"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            app:backgroundTint="@android:color/transparent"
+            app:contentDescription="@string/entries_search_open"
+            app:icon="@drawable/ic_search"
+            app:iconSize="24dp"
+            app:iconTint="?attr/colorOnSurface"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full"
-            app:strokeColor="?attr/colorOutlineVariant"
-            app:strokeWidth="1dp">
-
-            <ImageView
-                android:id="@+id/iv_entry_search"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:layout_gravity="center"
-                android:contentDescription="@string/entries_search_open"
-                android:src="@drawable/ic_search"
-                app:tint="?attr/colorOnSurfaceVariant" />
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- Filter, rechts in derselben Zeile. -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/tile_entry_filter"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:clickable="true"
-            android:focusable="true"
-            app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="0dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full"
-            app:strokeColor="?attr/colorOutlineVariant"
-            app:strokeWidth="1dp">
-
-            <ImageView
-                android:id="@+id/iv_filter_icon"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:layout_gravity="center"
-                android:contentDescription="@string/entries_filter_desc"
-                android:src="@drawable/ic_filter" />
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- Suchfeld, das beim Tippen auf die Lupe von rechts nach links über
-             die Fläche des Filters gleitet. -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/entry_search_field"
-            android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:visibility="gone"
-            app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="0dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@id/btn_entry_search"
-            app:layout_constraintTop_toTopOf="parent"
-            app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full"
-            app:strokeColor="?attr/colorOutlineVariant"
-            app:strokeWidth="1dp"
-            tools:visibility="visible">
-
-            <EditText
-                android:id="@+id/et_entry_search"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_vertical"
-                android:background="@null"
-                android:hint="@string/entries_search_hint"
-                android:imeOptions="actionSearch"
-                android:inputType="text"
-                android:maxLines="1"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:singleLine="true"
-                android:textColor="?attr/colorOnSurface"
-                android:textColorHint="?attr/colorOnSurfaceVariant" />
-        </com.google.android.material.card.MaterialCardView>
+            app:layout_constraintTop_toTopOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <FrameLayout

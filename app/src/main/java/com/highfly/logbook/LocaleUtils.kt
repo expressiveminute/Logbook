@@ -3,6 +3,7 @@ package com.highfly.logbook
 import android.content.Context
 import android.content.res.Configuration
 import android.os.LocaleList
+import java.util.Locale
 
 object LocaleUtils {
 
@@ -11,10 +12,19 @@ object LocaleUtils {
     private const val MIN_FONT_SCALE = 0.85f
 
     fun applyLocale(context: Context, languageTag: String): Context {
+        // Auch die Prozess-Standardsprache folgt der App-Sprache, damit
+        // überall dieselben Monatsnamen, Dezimaltrennzeichen und Datumsformate
+        // gelten. Das geschieht hier beim Anmelden des Contexts und beim
+        // Umschalten in den Einstellungen (siehe SettingsSectionFragment).
+        Locale.setDefault(localeFor(languageTag))
         val config = Configuration(context.resources.configuration)
         config.setLocales(LocaleList.forLanguageTags(languageTag))
         return context.createConfigurationContext(config)
     }
+
+    /** Sprache zu einem Tag; unbekannte Tags fallen auf Deutsch zurück. */
+    private fun localeFor(languageTag: String): Locale =
+        if (languageTag == Settings.LANG_EN) Locale.ENGLISH else Locale.GERMANY
 
     /**
      * Skaliert die Schrift für die gesamte App. Die Systemschrift bleibt

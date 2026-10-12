@@ -367,11 +367,21 @@ class BarChartView @JvmOverloads constructor(
         return room.coerceAtLeast(0f)
     }
 
-    private fun rankFor(index: Int): Int =
-        items.map { it.count }.distinct().count { it > items[index].count } + 1
+    /**
+     * Rang eines Balkens: 1 für den größten Wert, dann absteigend. Balken mit
+     * dem Wert 0 tragen keinen Rang (0), weil sie nur gefundene, aber nie
+     * angeflogene Flughäfen der Suche sind - eine Medaille für "nichts
+     * geflogen" wäre irreführend.
+     */
+    private fun rankFor(index: Int): Int {
+        val value = items[index].count
+        if (value <= 0) return 0
+        return items.map { it.count }.distinct().count { it > value } + 1
+    }
 
     private fun rankWidth(index: Int): Float {
         val rank = rankFor(index)
+        if (rank <= 0) return 0f
         return when {
             rank <= 3 -> medalRadius * 2f
             rank <= 10 -> countPaint.measureText("$rank.")
@@ -382,6 +392,7 @@ class BarChartView @JvmOverloads constructor(
     private fun drawRank(canvas: Canvas, index: Int, barTop: Float, barBottom: Float) {
         if (!showRanks) return
         val rank = rankFor(index)
+        if (rank <= 0) return
         if (rank <= 3) {
             val (color, rim) = when (rank) {
                 1 -> MEDAL_GOLD to MEDAL_GOLD_RIM

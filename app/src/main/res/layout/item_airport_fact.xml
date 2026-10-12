@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Eine Zeile der Flughafen-Kenndaten: links die Beschriftung, rechts der
+     Wert. Die Beschriftung hat eine feste Breite, damit die Werte untereinander
+     an derselben Stelle beginnen. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:baselineAligned="false"
+    android:orientation="horizontal"
+    android:paddingVertical="10dp">
+
+    <TextView
+        android:id="@+id/tv_fact_label"
+        android:layout_width="96dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="12dp"
+        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        tools:text="ICAO" />
+
+    <TextView
+        android:id="@+id/tv_fact_value"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:gravity="end"
+        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+        android:textColor="?attr/colorOnSurface"
+        android:textStyle="bold"
+        tools:text="EDDM" />
+</LinearLayout>

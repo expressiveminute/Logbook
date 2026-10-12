@@ -58,10 +58,10 @@ object Co2Calculator {
         return distance * factorPerKm(distance) * aircraftMultiplier(entry.aircraftType)
     }
 
-    fun tonnesText(tonnes: Double): String = when {
-        tonnes < 10 -> String.format(Locale.GERMANY, "%,.2f", tonnes)
-        tonnes < 1000 -> String.format(Locale.GERMANY, "%,.1f", tonnes)
-        else -> String.format(Locale.GERMANY, "%,.0f", tonnes)
+    fun tonnesText(tonnes: Double, locale: Locale = Locale.GERMANY): String = when {
+        tonnes < 10 -> String.format(locale, "%,.2f", tonnes)
+        tonnes < 1000 -> String.format(locale, "%,.1f", tonnes)
+        else -> String.format(locale, "%,.0f", tonnes)
     }
 
     private fun distanceKm(entry: LogbookEntry): Double? {

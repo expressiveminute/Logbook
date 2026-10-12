@@ -154,6 +154,9 @@
         <action
             android:id="@+id/action_tile_detail_to_layover_detail"
             app:destination="@id/nav_layover_detail" />
+        <action
+            android:id="@+id/action_tile_detail_to_airport_detail"
+            app:destination="@id/nav_airport_detail" />
     </fragment>
 
     <fragment
@@ -170,6 +173,19 @@
         <action
             android:id="@+id/action_layover_detail_to_add_entry"
             app:destination="@id/nav_add_entry" />
+    </fragment>
+
+    <!-- Detailseite eines Flughafens aus der Kachel "Flughäfen": Kenndaten
+         und Kartenausschnitt des Landes mit Marker. -->
+    <fragment
+        android:id="@+id/nav_airport_detail"
+        android:name="com.highfly.logbook.AirportDetailFragment"
+        tools:layout="@layout/fragment_airport_detail">
+
+        <argument
+            android:name="code"
+            app:argType="string"
+            android:defaultValue="" />
     </fragment>
 
     <fragment

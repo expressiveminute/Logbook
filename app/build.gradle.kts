@@ -15,8 +15,8 @@ android {
         // Muss zum GitHub-Release passen. versionCode MUSS bei jedem Release
         // steigen, sonst erkennt Obtainium kein Update (oder Android blockt
         // es als Downgrade).
-        versionCode = 18
-        versionName = "0.0.18"
+        versionCode = 19
+        versionName = "0.0.19"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -41,6 +41,14 @@ android {
     buildFeatures {
         buildConfig = true
         viewBinding = true
+    }
+    bundle {
+        language {
+            // Die App schaltet die Sprache zur Laufzeit selbst um. Ein App
+            // Bundle darf die Sprachressourcen deshalb nicht nach Sprache
+            // aufteilen, sonst fehlt die gerade gewählte Sprache.
+            enableSplit = false
+        }
     }
 }
 

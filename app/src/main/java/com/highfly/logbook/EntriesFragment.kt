@@ -1,5 +1,6 @@
 package com.highfly.logbook
 
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -12,7 +13,6 @@ import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
-import android.graphics.Color
 import androidx.core.content.ContextCompat
 import androidx.core.view.doOnPreDraw
 import androidx.fragment.app.Fragment
@@ -203,28 +203,33 @@ class EntriesFragment : Fragment(), ImeVisibilityAware {
     }
 
     /**
-     * Klappt das Suchfeld rechts neben der Lupe auf. Der Filter weicht dabei,
-     * damit das Feld die volle rechte Haelfte bekommt, und taucht beim
-     * Schliessen wieder auf. Das Feld gleitet von rechts nach links ein.
+     * Klappt das Suchfeld auf. Es schiebt sich von rechts ueber den ganzen Kopf
+     * bis an den Filter; nur der Filter bleibt rechts sichtbar. Die Lupe faehrt
+     * dabei an den rechten Feldrand und wird dort zum Schliessen-X.
      */
     private fun openSearch(showKeyboard: Boolean) {
         if (searchActive) return
         searchActive = true
-        binding.tileEntryFilter.visibility = View.GONE
-        val field = binding.entrySearchField
+        val field = binding.etEntrySearch
         field.visibility = View.VISIBLE
         field.alpha = 0f
         field.translationX = resources.displayMetrics.widthPixels.toFloat()
         field.doOnPreDraw {
             val view = _binding ?: return@doOnPreDraw
             if (!searchActive) return@doOnPreDraw
-            val distance = view.entrySearchField.width.toFloat().coerceAtLeast(1f)
-            view.entrySearchField.translationX = distance
-            view.entrySearchField.animate()
+            val distance = view.etEntrySearch.width.toFloat().coerceAtLeast(1f)
+            view.etEntrySearch.translationX = distance
+            view.etEntrySearch.animate()
                 .translationX(0f).alpha(1f).setDuration(220).start()
+            // Die Lupe sitzt sonst mittig; beim Oeffnen faehrt sie an den
+            // rechten Rand des Suchfelds und wird dort zum Schliessen-X.
+            val target = view.etEntrySearch.right -
+                view.btnEntrySearch.width - view.btnEntrySearch.left
+            view.btnEntrySearch.animate()
+                .translationX(target.toFloat()).setDuration(220).start()
         }
-        binding.ivEntrySearch.setImageResource(R.drawable.ic_close)
-        binding.ivEntrySearch.contentDescription = getString(R.string.entries_search_close)
+        binding.btnEntrySearch.setIconResource(R.drawable.ic_close)
+        binding.btnEntrySearch.contentDescription = getString(R.string.entries_search_close)
         if (showKeyboard) {
             binding.etEntrySearch.requestFocus()
             ContextCompat.getSystemService(requireContext(), InputMethodManager::class.java)
@@ -236,8 +241,8 @@ class EntriesFragment : Fragment(), ImeVisibilityAware {
     private fun closeSearch() {
         if (!searchActive) return
         searchActive = false
-        val field = binding.entrySearchField
-        binding.etEntrySearch.clearFocus()
+        val field = binding.etEntrySearch
+        field.clearFocus()
         hideKeyboard()
         val distance = field.width.toFloat().coerceAtLeast(1f)
         field.animate()
@@ -246,15 +251,16 @@ class EntriesFragment : Fragment(), ImeVisibilityAware {
             .setDuration(200)
             .withEndAction {
                 val view = _binding ?: return@withEndAction
-                view.entrySearchField.visibility = View.GONE
-                view.entrySearchField.translationX = 0f
-                view.entrySearchField.alpha = 1f
+                view.etEntrySearch.visibility = View.GONE
+                view.etEntrySearch.translationX = 0f
+                view.etEntrySearch.alpha = 1f
                 view.etEntrySearch.setText("")
             }
             .start()
-        binding.tileEntryFilter.visibility = View.VISIBLE
-        binding.ivEntrySearch.setImageResource(R.drawable.ic_search)
-        binding.ivEntrySearch.contentDescription = getString(R.string.entries_search_open)
+        // Die Lupe kehrt aus dem rechten Feldrand in die Mitte zurueck.
+        binding.btnEntrySearch.animate().translationX(0f).setDuration(200).start()
+        binding.btnEntrySearch.setIconResource(R.drawable.ic_search)
+        binding.btnEntrySearch.contentDescription = getString(R.string.entries_search_open)
     }
 
     private fun hideKeyboard() {
@@ -564,24 +570,23 @@ class EntriesFragment : Fragment(), ImeVisibilityAware {
         refresh()
     }
 
+    /**
+     * Der Filter ist wie die Lupe und der Zurückpfeil ein flacher,
+     * transparenter Icon-Button. Einen aktiven Filter erkennt man an der
+     * Akzentfarbe des Symbols.
+     */
     private fun updateFilterIcon() {
         val accent = MaterialColors.getColor(
             binding.root, com.google.android.material.R.attr.colorPrimary
         )
-        val surfaceContainerLow = MaterialColors.getColor(
-            binding.root, com.google.android.material.R.attr.colorSurfaceContainerLow
-        )
         val onSurfaceVariant = MaterialColors.getColor(
             binding.root, com.google.android.material.R.attr.colorOnSurfaceVariant
         )
-        val outlineVariant = MaterialColors.getColor(
-            binding.root, com.google.android.material.R.attr.colorOutlineVariant
+        binding.tileEntryFilter.setIconTint(
+            ColorStateList.valueOf(
+                if (activeFilters.isActive()) accent else onSurfaceVariant
+            )
         )
-
-        val active = activeFilters.isActive()
-        binding.tileEntryFilter.setCardBackgroundColor(if (active) accent else surfaceContainerLow)
-        binding.tileEntryFilter.strokeColor = if (active) accent else outlineVariant
-        binding.ivFilterIcon.setColorFilter(if (active) Color.WHITE else onSurfaceVariant)
     }
 
     private fun openEdit(entry: LogbookEntry) {

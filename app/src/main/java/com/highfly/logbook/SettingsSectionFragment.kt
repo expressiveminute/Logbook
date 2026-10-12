@@ -20,6 +20,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
+import androidx.core.os.LocaleListCompat
 import androidx.core.view.doOnLayout
 import androidx.core.view.isVisible
 import androidx.navigation.fragment.findNavController
@@ -30,6 +31,7 @@ import com.highfly.logbook.databinding.FragmentSettingsSectionBinding
 import com.highfly.logbook.databinding.ItemUserRowBinding
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 import kotlin.math.floor
 import kotlin.math.min
 
@@ -251,6 +253,8 @@ class SettingsSectionFragment : Fragment() {
     }
 
     private fun setupCustomization() {
+        binding.langDeTile.setOnClickListener { applyLanguage(Settings.LANG_DE) }
+        binding.langEnTile.setOnClickListener { applyLanguage(Settings.LANG_EN) }
         updateLanguageTiles()
         setupDefaultPeriodDropdown()
         setupDefaultTimeUnitDropdown()
@@ -552,7 +556,25 @@ class SettingsSectionFragment : Fragment() {
     }
 
     private fun updateLanguageTiles() {
-        highlight(binding.langDeTile, binding.langDeLabel, true)
+        val language = Settings.getLanguage(requireContext())
+        highlight(binding.langDeTile, binding.langDeLabel, language == Settings.LANG_DE)
+        highlight(binding.langEnTile, binding.langEnLabel, language == Settings.LANG_EN)
+    }
+
+    /**
+     * Übernimmt die Sprache der App. [AppCompatDelegate.setApplicationLocales]
+     * baut alle Activities neu auf, sodass die neue Sprache sofort überall
+     * gilt; die Standardsprache des Prozesses folgt, damit auch Zahlen- und
+     * Datumsformate umstellen.
+     */
+    private fun applyLanguage(language: String) {
+        if (Settings.getLanguage(requireContext()) == language) return
+        Settings.setLanguage(requireContext(), language)
+        Locale.setDefault(if (language == Settings.LANG_EN) Locale.ENGLISH else Locale.GERMANY)
+        AppCompatDelegate.setApplicationLocales(
+            LocaleListCompat.forLanguageTags(language)
+        )
+        updateLanguageTiles()
     }
 
     private fun confirmRoleSwitch(role: Role, label: TextView) {

@@ -30,6 +30,11 @@ import kotlin.math.hypot
  * Anders als [LayoverCountryMapView] ist diese Karte frei bedienbar: Der
  * Nutzer kann zoomen und verschieben, darf aber nicht weiter herauszoomen als
  * die Ansicht, die das Land anfangs füllt.
+ *
+ * Dieselbe Karte dient der Flughafen-Detailseite ohne [country]: Dort startet
+ * sie über [focusAirportClose] dicht am Flughafen, damit die abgehenden
+ * Strecken zu sehen sind; [zoomToRoutes] holt anschließend alle Verbindungen
+ * animiert ins Bild.
  */
 class CountryRouteMapView @JvmOverloads constructor(
     context: Context,
@@ -52,6 +57,12 @@ class CountryRouteMapView @JvmOverloads constructor(
 
     /** Angeklickter Flughafen, dessen Verbindungen hervorgehoben werden. */
     private var selectedAirport: String? = null
+
+    /**
+     * Enger Anfangsausschnitt der Flughafen-Detailseite. Ist er gesetzt,
+     * startet die Karte dicht am Flughafen statt auf der ganzen Strecke.
+     */
+    private var initialBox: BoundingBox? = null
 
     /**
      * Meldet der Länderseite den angeklickten Flughafen (null, sobald keiner
@@ -141,6 +152,55 @@ class CountryRouteMapView @JvmOverloads constructor(
     /** Setzt den Fokus für [zoomToFocus]; null blendet den Knopf aus. */
     fun setFocus(box: CountryDetailModel.GeoBox?) {
         focus = box
+    }
+
+    /**
+     * Startet dicht am gewählten Flughafen: nur seine nächste Umgebung ist zu
+     * sehen, die Verbindungen laufen aus dem Bild heraus. [zoomToRoutes] holt
+     * später alle Verbindungen ins Bild. Wird nach [setData] aufgerufen.
+     */
+    fun focusAirportClose(code: String, spanDegrees: Double = CLOSE_SPAN_DEGREES) {
+        selectedAirport = code
+        val airport = airports.firstOrNull { it.iata == code }
+        initialBox = airport?.let { closeBox(it, spanDegrees) }
+        fitted = false
+        rebuildOverlays()
+        fitWhenReady()
+        invalidate()
+    }
+
+    /**
+     * Zoomt animiert auf alle Verbindungen des gewählten Flughafens - der
+     * Herauszoom-Knopf der Flughafen-Detailseite.
+     */
+    fun zoomToRoutes() {
+        if (selectedAirport == null || width <= 0 || height <= 0) return
+        minZoomLevel = 1.0
+        fitToSelectedAirport()
+        invalidate()
+    }
+
+    /** Enger Kasten um einen Flughafen, notfalls an die Datumslinie gelegt. */
+    private fun closeBox(
+        airport: CountryDetailModel.AirportMarker,
+        span: Double
+    ): BoundingBox {
+        var west = airport.lon - span
+        var east = airport.lon + span
+        if (west < -180.0) {
+            west = -180.0
+            east = -180.0 + 2 * span
+        }
+        if (east > 180.0) {
+            east = 180.0
+            west = 180.0 - 2 * span
+        }
+        return BoundingBox(
+            (airport.lat + span).coerceAtMost(85.0),
+            east,
+            (airport.lat - span).coerceAtLeast(-85.0),
+            west
+        )
     }
 
     /**
@@ -300,14 +360,24 @@ class CountryRouteMapView @JvmOverloads constructor(
 
     private fun fitToCountry() {
         if (fitted || width <= 0 || height <= 0) return
-        val box = bounds() ?: return
+        val close = initialBox
+        val box = close ?: bounds() ?: return
         fitted = true
+        if (close != null) {
+            // Die Flughafen-Detailseite startet dicht am Flughafen; die Sperre
+            // muss vorher fallen, sonst bliebe die enge Ansicht am alten
+            // Maßstab hängen. Der Nutzer darf danach herauszoomen, der Knopf
+            // holt alle Verbindungen ins Bild.
+            minZoomLevel = 1.0
+        }
         zoomToBoundingBox(box, false, (24 * resources.displayMetrics.density).toInt())
-        // Nicht weiter herauszoomen als die eingangs gezeigte Füllung: Der
-        // Ausschnitt ist auf das Land gerichtet, herauszoomen brächte nur
-        // fremde Teile der Weltkarte ins Bild.
-        minZoomLevel = zoomLevelDouble
-        countryMinZoom = zoomLevelDouble
+        if (close == null) {
+            // Nicht weiter herauszoomen als die eingangs gezeigte Füllung: Der
+            // Ausschnitt ist auf das Land gerichtet, herauszoomen brächte nur
+            // fremde Teile der Weltkarte ins Bild.
+            minZoomLevel = zoomLevelDouble
+            countryMinZoom = zoomLevelDouble
+        }
         invalidate()
     }
 
@@ -851,5 +921,8 @@ class CountryRouteMapView @JvmOverloads constructor(
 
         /** Mindestausdehnung der Verbindungs-Box für die Auswahl (Grad). */
         const val SELECTION_MIN_SPAN = 4.0
+
+        /** Enger Anfangsausschnitt der Flughafen-Detailseite (Grad). */
+        const val CLOSE_SPAN_DEGREES = 3.5
     }
 }

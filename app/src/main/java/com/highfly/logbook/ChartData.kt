@@ -88,7 +88,7 @@ object ChartData {
     )
 
     private val BAR_CHART_TILES = setOf(
-        "flights", "routes", "airlines", "layover", "aircraftreg", "countries"
+        "flights", "routes", "flightroutes", "airlines", "layover", "aircraftreg", "countries"
     )
     private val PIE_CHART_TILES = setOf("class", "traveltype", "function")
 
@@ -159,8 +159,8 @@ object ChartData {
             }
         }
         val counts: Map<String, Int> = when (tileId) {
-            "flights" -> flightsPerPeriod(entries, key)
-            "routes" -> countBy(entries) { routeOf(it) }
+            "flights" -> flightsPerPeriod(entries, key, context)
+            "flightroutes" -> countBy(entries) { routeOf(it) }
             "airlines" -> countBy(entries) { it.airline }
             "aircraftreg" -> countBy(entries) { it.registration }
             "countries" -> countBy(entries) { it.toCountry }
@@ -624,11 +624,19 @@ object ChartData {
             Settings.getDefaultPeriodKey(context)
         )
 
-    private fun flightsPerPeriod(entries: List<LogbookEntry>, periodKey: String): Map<String, Int> {
+    private fun flightsPerPeriod(
+        entries: List<LogbookEntry>,
+        periodKey: String,
+        context: Context
+    ): Map<String, Int> {
+        val locale = Settings.language(context)
+        val english = Settings.getLanguage(context) == Settings.LANG_EN
         val formatter = when {
-            periodKey == "all" -> DateTimeFormatter.ofPattern("yyyy", Locale.GERMANY)
-            periodKey == "this_month" -> DateTimeFormatter.ofPattern("d. MMM", Locale.GERMANY)
-            else -> DateTimeFormatter.ofPattern("MMM yyyy", Locale.GERMANY)
+            periodKey == "all" -> DateTimeFormatter.ofPattern("yyyy", locale)
+            periodKey == "this_month" -> DateTimeFormatter.ofPattern(
+                if (english) "MMM d" else "d. MMM", locale
+            )
+            else -> DateTimeFormatter.ofPattern("MMM yyyy", locale)
         }
         return entries.groupingBy { it.date.format(formatter) }.eachCount()
     }

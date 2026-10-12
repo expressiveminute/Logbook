@@ -9,7 +9,6 @@ import androidx.navigation.fragment.findNavController
 import com.highfly.logbook.databinding.FragmentFlightsYearBinding
 import java.time.Month
 import java.time.format.TextStyle
-import java.util.Locale
 
 class FlightsYearFragment : Fragment() {
 
@@ -45,7 +44,7 @@ class FlightsYearFragment : Fragment() {
         binding.barChartYearMonths.setItems(
             Month.values().map { month ->
                 MonthBarChartView.Item(
-                    month.getDisplayName(TextStyle.SHORT, Locale.GERMANY),
+                    month.getDisplayName(TextStyle.SHORT, Settings.language(requireContext())),
                     monthCounts[month.value - 1]
                 )
             }
@@ -91,7 +90,10 @@ class FlightsYearFragment : Fragment() {
     }
 
     private fun countText(count: Int): String =
-        getString(R.string.flights_year_total, String.format(Locale.GERMANY, "%,d", count))
+        getString(
+            R.string.flights_year_total,
+            String.format(Settings.language(requireContext()), "%,d", count)
+        )
 
     override fun onDestroyView() {
         super.onDestroyView()

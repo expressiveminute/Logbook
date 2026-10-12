@@ -6,9 +6,9 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.text.TextPaint
 import android.util.AttributeSet
+import android.view.MotionEvent
 import android.view.View
 import com.google.android.material.color.MaterialColors
-import java.util.Locale
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.log10
@@ -35,6 +35,8 @@ class MonthBarChartView @JvmOverloads constructor(
     )
 
     private val items = mutableListOf<Item>()
+
+    private var onItemClickListener: ((Int) -> Unit)? = null
 
     private val density get() = resources.displayMetrics.density
 
@@ -148,6 +150,48 @@ class MonthBarChartView @JvmOverloads constructor(
         invalidate()
     }
 
+    /** Klick auf eine Spalte melden (z. B. Flughafen), wie bei [BarChartView]. */
+    fun setOnItemClickListener(listener: (Int) -> Unit) {
+        onItemClickListener = listener
+        isClickable = listener != null
+    }
+
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        if (onItemClickListener == null) return super.onTouchEvent(event)
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> return true
+            MotionEvent.ACTION_UP -> {
+                val index = indexAt(event.x)
+                if (index != null) {
+                    performClick()
+                    onItemClickListener?.invoke(index)
+                }
+                return true
+            }
+        }
+        return super.onTouchEvent(event)
+    }
+
+    override fun performClick(): Boolean {
+        super.performClick()
+        return true
+    }
+
+    /** Spalte unter [x], gerechnet wie beim Zeichnen über die Spaltenbreite. */
+    private fun indexAt(x: Float): Int? {
+        if (items.isEmpty()) return null
+        val axisX = if (contentVisible) leftPadding else width - dp(1)
+        val plotWidth = (width - rightPadding - axisX).coerceAtLeast(0f)
+        if (plotWidth <= 0f) return null
+        val slotWidth = plotWidth / items.size
+        for (index in items.indices) {
+            val centerX = axisX + slotWidth * (index + 0.5f)
+            val half = slotWidth / 2f
+            if (x >= centerX - half && x <= centerX + half) return index
+        }
+        return null
+    }
+
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val widthMode = MeasureSpec.getMode(widthMeasureSpec)
         if (items.isEmpty()) {
@@ -228,7 +272,7 @@ class MonthBarChartView @JvmOverloads constructor(
      * "1.234.567"). Kleine Zahlen bleiben dabei unveraendert.
      */
     private fun tickText(value: Int): String =
-        String.format(Locale.GERMANY, "%,d", value)
+        String.format(Settings.language(context), "%,d", value)
 
     private fun valueLabelOf(item: Item): String = item.valueLabel ?: tickText(item.count)
 

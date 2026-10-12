@@ -41,16 +41,24 @@ class TileDetailFragment : Fragment() {
     /** Reiseart, nach der die Kachel "Reiseklasse" ihre Klassen zeigt. */
     private var classTravelType: String = ClassTravelType.DEFAULT
 
-    /** Suchtext der Layover-Kachel: Dreilettercode oder Stadt. */
-    private var layoverQuery: String = ""
+    /** Wessen Balken das Suchfeld oben im Kopf gerade filtert. */
+    private enum class SearchMode { LAYOVER, AIRPORT }
 
-    /** Ob das Suchfeld der Layover-Kachel ausgeklappt ist. */
-    private var layoverSearchOpen = false
+    private var searchMode = SearchMode.LAYOVER
+
+    /** Suchtext der Layover- und der Flughäfen-Kachel: Dreilettercode oder Stadt. */
+    private var searchQuery: String = ""
+
+    /** Ob das Suchfeld oben im Kopf ausgeklappt ist. */
+    private var searchOpen = false
 
     /** Alle Layover-Balken vor der Suche, damit die Eingabe nur filtern muss. */
     private var layoverAllBars: List<ChartData.Bar> = emptyList()
 
-    /** Laufende Aufklapp-/Einklappanimation des Layover-Suchfelds. */
+    /** Alle Flughäfen-Balken vor der Suche, damit die Eingabe nur filtern muss. */
+    private var airportAllBars: List<ChartData.Bar> = emptyList()
+
+    /** Laufende Aufklapp-/Einklappanimation des Suchfelds. */
     private var searchAnimator: ValueAnimator? = null
 
     override fun onCreateView(
@@ -72,8 +80,8 @@ class TileDetailFragment : Fragment() {
             layoverSort = ChartData.LayoverSort.entries
                 .firstOrNull { it.name == name } ?: layoverSort
         }
-        savedInstanceState?.getString(KEY_LAYOVER_QUERY)?.let { layoverQuery = it }
-        layoverSearchOpen = savedInstanceState?.getBoolean(KEY_LAYOVER_SEARCH_OPEN) ?: false
+        savedInstanceState?.getString(KEY_SEARCH_QUERY)?.let { searchQuery = it }
+        searchOpen = savedInstanceState?.getBoolean(KEY_SEARCH_OPEN) ?: false
         savedInstanceState?.getString(KEY_HANGAR_SORT)?.let { name ->
             hangarSort = ChartData.HangarSort.entries
                 .firstOrNull { it.name == name } ?: hangarSort
@@ -105,7 +113,7 @@ class TileDetailFragment : Fragment() {
                 renderPie(ChartData.functionSlices(requireContext()))
             }
             tileId == "routes" -> {
-                renderRoutes()
+                renderAirports()
             }
             tileId == "aircraftreg" -> {
                 renderAircraftRegistrations()
@@ -151,7 +159,7 @@ class TileDetailFragment : Fragment() {
         setupLayoverZeroSection()
         renderLayoverExtremes()
         renderLayoverSort()
-        setupLayoverSearch()
+        setupTileSearch(SearchMode.LAYOVER)
         renderLayoverBars()
     }
 
@@ -222,11 +230,11 @@ class TileDetailFragment : Fragment() {
      * fuer die gefilterte Auswahl.
      */
     private fun applyLayoverFilter() {
-        val query = layoverQuery.trim()
+        val query = searchQuery.trim()
         val matching = if (query.isEmpty()) {
             layoverAllBars
         } else {
-            layoverAllBars.filter { layoverMatches(it.label, query) }
+            layoverAllBars.filter { airportMatches(it.label, query) }
         }
         val (bars, zeroBars) = ChartData.splitLayoverZeroDuration(matching)
 
@@ -252,29 +260,48 @@ class TileDetailFragment : Fragment() {
     }
 
     /**
-     * Lupe links auf der Sortierzeile: Ein Tipp klappt rechts daneben das
+     * Lupe oben im Kopf, rechts im Header: Ein Tipp klappt links daneben das
      * Suchfeld aus, ein zweiter wieder ein und hebt den Filter auf. Gesucht
-     * wird nach dem Flughafencode und nach der Stadt.
+     * wird nach dem Flughafencode und nach der Stadt - je nach Kachel filtert
+     * die Eingabe die Layover- oder die Flughäfen-Balken.
      */
-    private fun setupLayoverSearch() {
+    private fun setupTileSearch(mode: SearchMode) {
+        searchMode = mode
+        binding.ivSearch.visibility = View.VISIBLE
+        binding.ivSearch.contentDescription = getString(
+            if (mode == SearchMode.LAYOVER) R.string.layover_search_desc
+            else R.string.airport_search_desc
+        )
+        binding.etSearch.setHint(
+            if (mode == SearchMode.LAYOVER) R.string.layover_search_hint
+            else R.string.airport_search_hint
+        )
         // Text vor dem Beobachter setzen: die wiederhergestellte Suche soll
         // nicht schon hier, sondern erst beim Zeichnen der Balken greifen.
-        binding.etLayoverSearch.setText(layoverQuery)
-        binding.etLayoverSearch.addTextChangedListener(object : TextWatcher {
+        binding.etSearch.setText(searchQuery)
+        binding.etSearch.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) {
-                layoverQuery = s?.toString().orEmpty()
-                applyLayoverFilter()
+                searchQuery = s?.toString().orEmpty()
+                applySearchFilter()
             }
         })
-        binding.ivLayoverSearch.setOnClickListener {
-            toggleLayoverSearch(!layoverSearchOpen)
+        binding.ivSearch.setOnClickListener {
+            toggleSearch(!searchOpen)
         }
-        if (layoverSearchOpen) {
-            binding.etLayoverSearch.visibility = View.VISIBLE
-            binding.etLayoverSearch.alpha = 1f
-            setLayoverSearchProgress(1f)
+        if (searchOpen) {
+            binding.etSearch.visibility = View.VISIBLE
+            binding.etSearch.alpha = 1f
+            setSearchProgress(1f)
+        }
+    }
+
+    /** Filtert je nach Kachel die Layover- oder die Flughäfen-Balken. */
+    private fun applySearchFilter() {
+        when (searchMode) {
+            SearchMode.LAYOVER -> applyLayoverFilter()
+            SearchMode.AIRPORT -> applyAirportFilter()
         }
     }
 
@@ -282,7 +309,7 @@ class TileDetailFragment : Fragment() {
      * Trifft die Suche den Flughafen - ueber den Code, die Stadt oder die
      * deutsche Schreibweise der Stadt (z. B. "Muenchen" fuer MUC).
      */
-    private fun layoverMatches(code: String, query: String): Boolean {
+    private fun airportMatches(code: String, query: String): Boolean {
         if (code.contains(query, ignoreCase = true)) return true
         val info = AirportNames.get(requireContext(), code) ?: return false
         if (info.city?.contains(query, ignoreCase = true) == true) return true
@@ -291,35 +318,35 @@ class TileDetailFragment : Fragment() {
 
     /**
      * Klappt das Suchfeld aus oder ein. Beim Oeffnen waechst es aus der Lupe
-     * heraus nach rechts, beim Schliessen laeuft es rueckwaerts und leert die
-     * Suche erst am Ende - so springt die Liste nicht schon waehrend der
-     * Animation auf den vollen Bestand zurueck.
+     * heraus nach links ueber den Titel, beim Schliessen laeuft es rueckwaerts
+     * und leert die Suche erst am Ende - so springt die Liste nicht schon
+     * waehrend der Animation auf den vollen Bestand zurueck.
      */
-    private fun toggleLayoverSearch(open: Boolean) {
+    private fun toggleSearch(open: Boolean) {
         searchAnimator?.cancel()
-        layoverSearchOpen = open
+        searchOpen = open
         if (open) {
-            binding.etLayoverSearch.visibility = View.VISIBLE
-            binding.etLayoverSearch.requestFocus()
-            binding.etLayoverSearch.post {
-                if (_binding != null) showLayoverKeyboard()
+            binding.etSearch.visibility = View.VISIBLE
+            binding.etSearch.requestFocus()
+            binding.etSearch.post {
+                if (_binding != null) showSearchKeyboard()
             }
         } else {
-            hideLayoverKeyboard()
+            hideSearchKeyboard()
         }
         searchAnimator = ValueAnimator.ofFloat(if (open) 0f else 1f, if (open) 1f else 0f)
             .apply {
                 duration = SEARCH_ANIMATION_MS
                 addUpdateListener { animation ->
-                    setLayoverSearchProgress(animation.animatedValue as Float)
+                    setSearchProgress(animation.animatedValue as Float)
                 }
                 addListener(object : AnimatorListenerAdapter() {
                     override fun onAnimationEnd(animation: Animator) {
                         if (!open) {
-                            binding.etLayoverSearch.visibility = View.GONE
+                            binding.etSearch.visibility = View.GONE
                             // Leeren loest den Beobachter aus und zeigt wieder
                             // alle Balken.
-                            binding.etLayoverSearch.setText("")
+                            binding.etSearch.setText("")
                         }
                     }
                 })
@@ -329,30 +356,30 @@ class TileDetailFragment : Fragment() {
 
     /**
      * Oeffnungsgrad des Suchfelds als gegenlaeufige Gewichte: Bei 0 traegt der
-     * Leerraum den Rest und das Feld bleibt ohne Breite, bei 1 fuellt das Feld
-     * den Platz zwischen Lupe und Sortierauswahl. Die Auswahl am rechten Rand
+     * Titel den Rest und das Feld bleibt ohne Breite, bei 1 fuellt das Feld
+     * den Platz bis zur Lupe und der Titel verschwindet. Die Lupe rechts
      * bleibt dabei stehen.
      */
-    private fun setLayoverSearchProgress(progress: Float) {
-        val field = binding.etLayoverSearch
+    private fun setSearchProgress(progress: Float) {
+        val field = binding.etSearch
         if (progress > 0f) field.visibility = View.VISIBLE
         field.alpha = progress
         val fieldParams = field.layoutParams as LinearLayout.LayoutParams
         fieldParams.weight = progress
         field.requestLayout()
-        val spacerParams = binding.layoverSortSpacer.layoutParams as LinearLayout.LayoutParams
-        spacerParams.weight = 1f - progress
-        binding.layoverSortSpacer.requestLayout()
+        val titleParams = binding.titleGroup.layoutParams as LinearLayout.LayoutParams
+        titleParams.weight = 1f - progress
+        binding.titleGroup.requestLayout()
     }
 
-    private fun showLayoverKeyboard() {
+    private fun showSearchKeyboard() {
         requireContext().getSystemService(InputMethodManager::class.java)
-            ?.showSoftInput(binding.etLayoverSearch, InputMethodManager.SHOW_IMPLICIT)
+            ?.showSoftInput(binding.etSearch, InputMethodManager.SHOW_IMPLICIT)
     }
 
-    private fun hideLayoverKeyboard() {
+    private fun hideSearchKeyboard() {
         requireContext().getSystemService(InputMethodManager::class.java)
-            ?.hideSoftInputFromWindow(binding.etLayoverSearch.windowToken, 0)
+            ?.hideSoftInputFromWindow(binding.etSearch.windowToken, 0)
     }
 
     /**
@@ -478,15 +505,177 @@ class TileDetailFragment : Fragment() {
         )
     }
 
-    private fun renderRoutes() {
-        renderScrollableColumnChart(
-            ChartData.airportBars(requireContext()),
-            binding.airportsChart,
-            binding.barAirports,
-            binding.barAirportsAxis,
-            null
+    /**
+     * Kachel "Flughäfen": Kompass mit den Extrem-Flughäfen, Höhen-Grafik mit
+     * dem niedrigsten und höchsten Flughafen, darunter die Flughäfen als
+     * Balkenliste von oben nach unten mit Medaillen wie die anderen Kacheln.
+     * Das Diagramm der Flugrouten liegt in der eigenen Kachel "flightroutes".
+     * Ein Tipp auf einen Balken oder auf einen Code im Kompass beziehungsweise
+     * in der Höhen-Grafik öffnet die Detailseite des Flughafens.
+     */
+    private fun renderAirports() {
+        val entries = ChartData.periodFiltered(requireContext())
+        binding.compassView.setOnAirportClickListener { openAirportDetail(it) }
+        binding.altitudeView.setOnAirportClickListener { openAirportDetail(it) }
+        setupAirportCompass(entries)
+        setupAirportAltitude(entries)
+        airportAllBars = ChartData.airportBars(requireContext())
+        setupTileSearch(SearchMode.AIRPORT)
+        applyAirportFilter()
+    }
+
+    /**
+     * Zeichnet die Flughäfen-Liste erneut. Ohne Sucheingabe stehen die
+     * angeflogenen Flughäfen mit ihrer Zahl an Starts und Landungen. Mit
+     * Sucheingabe wird der gesamte gespeicherte Flughafenbestand durchsucht -
+     * nach Stadt, IATA- und ICAO-Code - sodass auch nie angeflogene Flughäfen
+     * erscheinen (dann mit dem Wert 0). Ein Tipp auf eine Zeile öffnet die
+     * Detailseite des Flughafens. Trifft die Eingabe nichts, bleibt nur der
+     * Hinweis und die Liste verschwindet.
+     */
+    private fun applyAirportFilter() {
+        val query = searchQuery.trim()
+        val bars = if (query.isEmpty()) {
+            airportAllBars
+        } else {
+            val counts = airportAllBars.associate { it.label.uppercase() to it.count }
+            AirportDirectory.search(requireContext(), query, AIRPORT_SEARCH_LIMIT).map {
+                ChartData.Bar(it.iata, counts[it.iata.uppercase()] ?: 0)
+            }
+        }
+
+        binding.tvEmpty.setText(
+            if (query.isEmpty()) R.string.chart_empty else R.string.airport_search_empty
         )
-        renderBars(ChartData.barChart(requireContext(), "routes"))
+        if (bars.isEmpty()) {
+            binding.tvEmpty.visibility = View.VISIBLE
+            binding.barChart.visibility = View.GONE
+            binding.barChart.setItems(emptyList())
+            return
+        }
+        binding.tvEmpty.visibility = View.GONE
+        binding.barChart.visibility = View.VISIBLE
+        // Medaillen für die ersten drei Plätze, Wert neben dem Balken - wie
+        // die anderen Balkenkacheln des Dashboards.
+        binding.barChart.setShowRanks(true)
+        binding.barChart.setValueInsideBar(false)
+        binding.barChart.setOnItemClickListener { index ->
+            openAirportDetail(bars.getOrNull(index)?.label)
+        }
+        binding.barChart.setItems(
+            bars.map { BarChartView.Item(it.label, it.count, it.subLabel, it.countLabel) }
+        )
+    }
+
+    /** Detailseite eines Flughafens, wie sie ein Klick in der Kachel öffnet. */
+    private fun openAirportDetail(label: String?) {
+        val code = label?.trim()?.uppercase()
+        if (code.isNullOrBlank()) return
+        findNavController().navigate(
+            R.id.action_tile_detail_to_airport_detail,
+            bundleOf(AirportDetailFragment.ARG_CODE to code)
+        )
+    }
+
+    /** Ein berührter Flughafen mit Koordinate, Höhe und Kurzname. */
+    private data class AirportSite(
+        val code: String,
+        val lat: Double,
+        val lon: Double,
+        val meters: Int?,
+        val label: String
+    )
+
+    /**
+     * Alle Flughäfen der Flüge des Zeitraums (Abflug und Ziel), mit Standort
+     * aus [AirportData] und Stadt/Name aus [AirportNames]. Flughäfen ohne
+     * bekannte Koordinate fallen heraus.
+     */
+    private fun airportSites(entries: List<LogbookEntry>): List<AirportSite> {
+        val context = requireContext()
+        return entries.flatMap { listOf(it.fromAirport, it.toAirport) }
+            .filter { it.isNotBlank() }
+            .distinct()
+            .mapNotNull { raw ->
+                val code = raw.uppercase()
+                val location = AirportData.location(context, code)
+                    ?: return@mapNotNull null
+                val info = AirportNames.get(context, code)
+                val label = info?.cityDe ?: info?.city ?: info?.name ?: code
+                AirportSite(
+                    code,
+                    location.lat,
+                    location.lon,
+                    AirportData.elevationMeters(context, code),
+                    label
+                )
+            }
+    }
+
+    /**
+     * Kompass befüllen: Mitte der häufigste Abflughafen (meiste Starts),
+     * Norden der nördlichste, Süden der südlichste, Westen der westlichste,
+     * Osten der östlichste Flughafen des Datensatzes. Derselbe Flughafen darf
+     * mehrere Positionen belegen, dann wiederholt sich sein Code.
+     */
+    private fun setupAirportCompass(entries: List<LogbookEntry>) {
+        val context = requireContext()
+        val sites = airportSites(entries)
+        val fromCounts = entries.mapNotNull { it.fromAirport.takeIf(String::isNotBlank) }
+            .groupingBy { it.uppercase() }
+            .eachCount()
+        val topFrom = fromCounts.entries
+            .sortedWith(
+                compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key }
+            )
+            .firstOrNull()
+            ?.key
+        val centerInfo = topFrom?.let { top ->
+            val info = AirportNames.get(context, top)
+            CompassView.Airport(top, info?.cityDe ?: info?.city ?: info?.name ?: top)
+        }
+        if (centerInfo == null || sites.isEmpty()) {
+            binding.compassView.visibility = View.GONE
+            return
+        }
+        val north = sites.maxWithOrNull(compareBy<AirportSite> { it.lat }.thenBy { it.code })
+        val south = sites.minWithOrNull(compareBy<AirportSite> { it.lat }.thenBy { it.code })
+        val west = sites.minWithOrNull(compareBy<AirportSite> { it.lon }.thenBy { it.code })
+        val east = sites.maxWithOrNull(compareBy<AirportSite> { it.lon }.thenBy { it.code })
+        binding.compassView.visibility = View.VISIBLE
+        binding.compassView.setAirports(
+            center = centerInfo,
+            north = north?.let { CompassView.Airport(it.code, it.label) },
+            south = south?.let { CompassView.Airport(it.code, it.label) },
+            west = west?.let { CompassView.Airport(it.code, it.label) },
+            east = east?.let { CompassView.Airport(it.code, it.label) }
+        )
+    }
+
+    /**
+     * Höhen-Grafik befüllen: unten der niedrigstgelegene Flughafen (Höhe über
+     * N.N.), oben auf der Bergspitze der höchstgelegene. Ohne mindestens zwei
+     * bekannte Höhen bleibt die Grafik verborgen, damit sie nicht leer läuft.
+     */
+    private fun setupAirportAltitude(entries: List<LogbookEntry>) {
+        try {
+            val context = requireContext()
+            val allSites = airportSites(entries)
+            val sites = allSites.filter { it.meters != null }
+            val byMeters = compareBy<AirportSite> { it.meters ?: 0 }.thenBy { it.code }
+            val lowest = sites.minWithOrNull(byMeters)
+            val highest = sites.maxWithOrNull(byMeters)
+            if (lowest == null || highest == null || lowest.code == highest.code) {
+                binding.altitudeView.visibility = View.GONE
+                return
+            }
+            binding.altitudeView.visibility = View.VISIBLE
+            binding.altitudeView.setAltitudeAirports(
+                AirportAltitudeView.Airport(lowest.code, lowest.label, lowest.meters),
+                AirportAltitudeView.Airport(highest.code, highest.label, highest.meters)
+            )
+        } catch (e: Exception) {
+        }
     }
 
     private fun renderAircraftRegistrations() {
@@ -748,14 +937,14 @@ class TileDetailFragment : Fragment() {
     }
 
     /**
-     * Merkt die Layover-Sortierung und die Layover-Suche ueber eine
-     * Neuerstellung der Seite hinweg.
+     * Merkt die Layover-Sortierung und die Suche ueber eine Neuerstellung der
+     * Seite hinweg.
      */
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putString(KEY_LAYOVER_SORT, layoverSort.name)
-        outState.putString(KEY_LAYOVER_QUERY, layoverQuery)
-        outState.putBoolean(KEY_LAYOVER_SEARCH_OPEN, layoverSearchOpen)
+        outState.putString(KEY_SEARCH_QUERY, searchQuery)
+        outState.putBoolean(KEY_SEARCH_OPEN, searchOpen)
         outState.putString(KEY_HANGAR_SORT, hangarSort.name)
     }
 
@@ -777,6 +966,13 @@ class TileDetailFragment : Fragment() {
         /** Schmale Mindestbreite der festen y-Achsenmaske der Spaltendiagramme. */
         const val AXIS_WIDTH_DP = 28
 
+        /**
+         * Obergrenze der Suchtreffer in der Flughäfen-Kachel. Der Bestand
+         * umfasst knapp neuntausend Flughäfen; ohne Grenze würde eine kurze
+         * Eingabe die Liste endlos lang machen.
+         */
+        const val AIRPORT_SEARCH_LIMIT = 40
+
         /** Grenzen der gemeinsamen Schriftgrösse der beiden Code-Kacheln. */
         const val LAYOVER_CODE_MIN_SP = 14
         const val LAYOVER_CODE_MAX_SP = 28
@@ -784,11 +980,11 @@ class TileDetailFragment : Fragment() {
         /** Schlüssel für die gemerkte Layover-Sortierung im Zustand. */
         const val KEY_LAYOVER_SORT = "layoverSort"
 
-        /** Schlüssel für die gemerkte Layover-Suche im Zustand. */
-        const val KEY_LAYOVER_QUERY = "layoverQuery"
+        /** Schlüssel für die gemerkte Suche im Zustand. */
+        const val KEY_SEARCH_QUERY = "searchQuery"
 
-        /** Schlüssel dafür, ob das Layover-Suchfeld ausgeklappt ist. */
-        const val KEY_LAYOVER_SEARCH_OPEN = "layoverSearchOpen"
+        /** Schlüssel dafür, ob das Suchfeld oben im Kopf ausgeklappt ist. */
+        const val KEY_SEARCH_OPEN = "searchOpen"
 
         /** Schlüssel für die gemerkte Hangar-Sortierung im Zustand. */
         const val KEY_HANGAR_SORT = "hangarSort"

@@ -13,10 +13,16 @@ object AirportData {
 
     private var byIata: Map<String, GeoLocation>? = null
     private var countryByIata: Map<String, String>? = null
+    private var elevationByIataM: Map<String, Int>? = null
+    private var icaoByIata: Map<String, String>? = null
 
     @Synchronized
     private fun ensureLoaded(context: Context) {
-        if (byIata != null && countryByIata != null) return
+        if (byIata != null && countryByIata != null &&
+            elevationByIataM != null && icaoByIata != null
+        ) {
+            return
+        }
         val airports = mutableMapOf<String, GeoLocation>()
         val countries = mutableMapOf<String, String>()
         try {
@@ -71,8 +77,26 @@ object AirportData {
         } catch (e: Exception) {
             Log.e(TAG, "Konnte geschlossene Flughäfen nicht laden", e)
         }
+        // Höhe über N.N. je IATA-Code (in Metern) für die "Flughäfen"-Kachel:
+        // sie zeigt den niedrigsten und den höchsten Flughafen des Datensatzes.
+        val elevations = mutableMapOf<String, Int>()
+        try {
+            val json = context.assets.open("airports/airport_elevation.json")
+                .bufferedReader()
+                .use { it.readText() }
+            val root = JSONObject(json)
+            val keys = root.keys()
+            while (keys.hasNext()) {
+                val iata = keys.next()
+                elevations[iata] = root.optInt(iata)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Konnte Flughafen-Höhen nicht laden", e)
+        }
         byIata = airports
         countryByIata = countries
+        elevationByIataM = elevations
+        icaoByIata = loadIcao(context)
     }
 
     fun location(context: Context, iata: String): GeoLocation? {
@@ -83,6 +107,47 @@ object AirportData {
     fun country(context: Context, iata: String): String? {
         ensureLoaded(context)
         return countryByIata?.get(iata.uppercase())
+    }
+
+    /** Höhe des Flughafens über N.N. in Metern; `null` bei unbekannter Höhe. */
+    fun elevationMeters(context: Context, iata: String): Int? {
+        ensureLoaded(context)
+        return elevationByIataM?.get(iata.uppercase())
+    }
+
+    /** ICAO-Code des Flughafens; `null`, wenn kein ICAO bekannt ist. */
+    fun icao(context: Context, iata: String): String? {
+        ensureLoaded(context)
+        return icaoByIata?.get(iata.uppercase())
+    }
+
+    /**
+     * Alle gespeicherten Flughafencodes (offene und geschlossene). Grundlage
+     * für die Suche der Flughäfen-Kachel, die auch nie angeflogene Flughäfen
+     * findet.
+     */
+    fun iataCodes(context: Context): Set<String> {
+        ensureLoaded(context)
+        return byIata?.keys ?: emptySet()
+    }
+
+    /** Lädt die ICAO-Codes je IATA-Code aus dem eigenen Asset. */
+    private fun loadIcao(context: Context): Map<String, String> {
+        val icao = mutableMapOf<String, String>()
+        try {
+            val json = context.assets.open("airports/airport_icao.json")
+                .bufferedReader()
+                .use { it.readText() }
+            val root = JSONObject(json)
+            val keys = root.keys()
+            while (keys.hasNext()) {
+                val iata = keys.next()
+                icao[iata] = root.getString(iata)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Konnte Flughafen-ICAO-Codes nicht laden", e)
+        }
+        return icao
     }
 
     /**

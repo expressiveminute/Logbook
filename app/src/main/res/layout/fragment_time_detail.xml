@@ -7,6 +7,54 @@
     android:background="?android:attr/colorBackground"
     tools:context=".TimeDetailFragment">
 
+    <!-- Kopfleiste: gleiches Muster wie auf der Länder-Seite. Sie liegt
+         ausserhalb der ScrollView, damit sie beim Scrollen oben bleibt. -->
+    <LinearLayout
+        android:id="@+id/header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_back"
+            style="?attr/materialIconButtonStyle"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            app:backgroundTint="@android:color/transparent"
+            app:contentDescription="@string/btn_back"
+            app:icon="@drawable/ic_arrow_back"
+            app:iconSize="24dp"
+            app:iconTint="?attr/colorOnSurface" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_detail_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/tile_time"
+                android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_detail_subtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                tools:text="Zeitraum: Gesamt" />
+        </LinearLayout>
+    </LinearLayout>
+
     <ScrollView
         android:layout_width="0dp"
         android:layout_height="0dp"
@@ -14,57 +62,15 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toBottomOf="@id/header">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:paddingHorizontal="16dp"
-            android:paddingVertical="16dp"
+            android:paddingTop="12dp"
             android:paddingBottom="32dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_back"
-                    style="?attr/materialIconButtonStyle"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    app:backgroundTint="@android:color/transparent"
-                    app:contentDescription="@string/btn_back"
-                    app:icon="@drawable/ic_arrow_back"
-                    app:iconSize="24dp"
-                    app:iconTint="?attr/colorOnSurface" />
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:id="@+id/tv_detail_title"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/tile_time"
-                        android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/tv_detail_subtitle"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textAppearance="@style/TextAppearance.Material3.BodySmall"
-                        android:textColor="?attr/colorOnSurfaceVariant"
-                        tools:text="Zeitraum: Gesamt" />
-                </LinearLayout>
-            </LinearLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"

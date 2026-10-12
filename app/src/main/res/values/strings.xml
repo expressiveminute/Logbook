@@ -5,6 +5,7 @@
     <string name="tile_time">Zeit</string>
     <string name="tile_time_unit_h">Stunden</string>
     <string name="tile_time_unit_d">Tage</string>
+    <string name="tile_time_unit_w">Wochen</string>
     <string name="tile_time_unit_mo">Monate</string>
     <string name="tile_time_unit_y">Jahre</string>
     <string name="tile_time_in_hours">in Stunden</string>
@@ -13,7 +14,8 @@
     <string name="tile_time_in_years">in Jahren</string>
     <string name="tile_airlines">Fluggesellschaften</string>
     <string name="tile_world_map">Weltkarte</string>
-    <string name="tile_routes">Flughäfen/-routen</string>
+    <string name="tile_routes">Flughäfen</string>
+    <string name="tile_flight_routes">Flugrouten</string>
     <string name="tile_layover">Layover</string>
     <string name="tile_class">Reiseklasse</string>
     <string name="tile_travel_type">Reiseart</string>
@@ -21,7 +23,14 @@
     <string name="tile_countries">Länder</string>
     <string name="tile_flights_singular">Flug</string>
     <string name="tile_airlines_singular">Fluggesellschaft</string>
-    <string name="tile_routes_singular">Flughäfen/-routen</string>
+    <string name="tile_routes_singular">Flughafen</string>
+    <string name="tile_flight_routes_singular">Flugroute</string>
+    <string name="compass_north">N</string>
+    <string name="compass_south">S</string>
+    <string name="compass_west">W</string>
+    <string name="compass_east">O</string>
+    <string name="airport_altitude_caption">%1$s m ü. N.N.</string>
+    <string name="airport_altitude_caption_below">%1$s m unter N.N.</string>
     <string name="tile_aircraft_reg_singular">Hangar</string>
     <string name="tile_countries_singular">Land</string>
     <string name="tile_function">Funktion</string>
@@ -57,8 +66,11 @@
     <string name="continent_antarctica">Antarktis</string>
     <string name="continent_unknown">Sonstige</string>
     <string name="distance_furthest_label">Längster Flug:</string>
-    <string name="distance_avg_label">Durchschnittliche Fluglänge:</string>
+    <string name="distance_avg_label">Ø Fluglänge:</string>
     <string name="distance_shortest_label">Kürzester Flug:</string>
+    <string name="time_longest_label">Längster Flug:</string>
+    <string name="time_avg_label">Ø Flugzeit:</string>
+    <string name="time_shortest_label">Kürzester Flug:</string>
     <string name="distance_none">–</string>
     <string name="placeholder_no_function">Platzhalter — noch keine Funktion</string>
     <string name="dashboard_edit">Dashboard bearbeiten</string>
@@ -128,6 +140,7 @@
     <string name="settings_default_time_unit">Standard-Zeitanzeige</string>
     <string name="settings_language">Sprache</string>
     <string name="settings_lang_de">Deutsch</string>
+    <string name="settings_lang_en">Englisch</string>
     <string name="settings_compact_text">Kompakte Schrift</string>
     <string name="settings_compact_text_subtitle">Kleinere Schrift, damit auf kleinen Displays mehr Text passt</string>
     <string name="settings_section_data">Daten</string>
@@ -200,6 +213,7 @@
     <string name="layover_label">Layover</string>
     <string name="flight_distance_label">Flugdistanz</string>
     <string name="flight_distance_hint">km</string>
+    <string name="flight_distance_nm_hint">nm</string>
     <string name="flight_time_label">Flugzeit</string>
     <string name="flight_time_hint">min</string>
     <string name="airline_label">Fluggesellschaft</string>
@@ -251,7 +265,7 @@
     <string name="class_label">Klasse</string>
     <string name="entries_empty">Noch keine Einträge</string>
     <string name="entries_title">Einträge</string>
-    <string name="entries_search_hint">Suchen</string>
+    <string name="entries_search_hint">Suche nach ...</string>
     <string name="entries_no_results">Keine Einträge gefunden</string>
     <string name="entries_search_open">Einträge durchsuchen</string>
     <string name="entries_search_close">Suche schließen</string>
@@ -286,6 +300,29 @@
     <string name="layover_search_desc">Layover suchen</string>
     <string name="layover_search_hint">Code oder Stadt</string>
     <string name="layover_search_empty">Keine Layover gefunden</string>
+    <!-- Lupe und Suchfeld der Flughäfen-Kachel: gesucht wird im gesamten
+         gespeicherten Flughafenbestand nach Stadt, IATA- und ICAO-Code. -->
+    <string name="airport_search_desc">Flughäfen suchen</string>
+    <string name="airport_search_hint">Stadt, IATA oder ICAO</string>
+    <string name="airport_search_empty">Keine Flughäfen gefunden</string>
+    <!-- Detailseite eines Flughafens aus der Kachel "Flughäfen". -->
+    <string name="airport_detail_title">Flughafen</string>
+    <string name="airport_fact_iata">IATA</string>
+    <string name="airport_fact_icao">ICAO</string>
+    <string name="airport_fact_elevation">Höhe</string>
+    <string name="airport_fact_coordinates">Koordinaten</string>
+    <!-- Karte der Flughafen-Detailseite mit allen Verbindungen; %1$s ist der
+         Dreilettercode. -->
+    <string name="airport_map_desc">Karte mit den Verbindungen ab %1$s</string>
+    <!-- Herauszoom-Knopf unten rechts auf der Karte: holt alle vom Flughafen
+         ausgehenden Strecken ins Bild. -->
+    <string name="airport_map_zoom_out">Alle Verbindungen anzeigen</string>
+    <!-- Zahl der Verbindungen ab einem Flughafen, unter der Karte. %1$d ist
+         die Anzahl, %2$s der Dreilettercode. -->
+    <plurals name="airport_detail_connections">
+        <item quantity="one">%1$d Verbindung ab %2$s</item>
+        <item quantity="other">%1$d Verbindungen ab %2$s</item>
+    </plurals>
     <!-- Kopf der eingeklappten Gruppe mit den Flughaefen, fuer die im
          Dauer-Modus keine Layoverdauer erfasst ist (0 Stunden). %1$d ist ihre
          Anzahl. -->

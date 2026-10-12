@@ -410,6 +410,16 @@
                             style="@style/SettingsTileLabel"
                             android:text="@string/settings_lang_de" />
                     </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/lang_en_tile"
+                        style="@style/SettingsTile">
+
+                        <TextView
+                            android:id="@+id/lang_en_label"
+                            style="@style/SettingsTileLabel"
+                            android:text="@string/settings_lang_en" />
+                    </com.google.android.material.card.MaterialCardView>
                 </LinearLayout>
             </LinearLayout>
 
@@ -429,6 +439,10 @@
                         android:layout_height="wrap_content"
                         app:endIconMode="dropdown_menu">
 
+                        <!-- saveEnabled=false: Der Text wird bei jedem Aufbau neu
+                             aus den Einstellungen gesetzt. Sonst stellt die Ansicht
+                             beim Sprachwechsel ihren alten (anderssprachigen) Text
+                             wieder her und überschreibt die Übersetzung. -->
                         <com.google.android.material.textfield.MaterialAutoCompleteTextView
                             android:id="@+id/default_period_dropdown"
                             style="@style/SettingsTextField.EditText"
@@ -436,6 +450,7 @@
                             android:layout_height="wrap_content"
                             android:gravity="center"
                             android:inputType="none"
+                            android:saveEnabled="false"
                             android:textSize="14sp" />
                     </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>
@@ -457,6 +472,7 @@
                         android:layout_height="wrap_content"
                         app:endIconMode="dropdown_menu">
 
+                        <!-- saveEnabled=false, siehe Standard-Zeitraum oben. -->
                         <com.google.android.material.textfield.MaterialAutoCompleteTextView
                             android:id="@+id/default_time_unit_dropdown"
                             style="@style/SettingsTextField.EditText"
@@ -464,6 +480,7 @@
                             android:layout_height="wrap_content"
                             android:gravity="center"
                             android:inputType="none"
+                            android:saveEnabled="false"
                             android:textSize="14sp" />
                     </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>

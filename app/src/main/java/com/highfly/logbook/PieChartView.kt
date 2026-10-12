@@ -12,7 +12,6 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.animation.DecelerateInterpolator
 import com.google.android.material.color.MaterialColors
-import java.util.Locale
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.hypot
@@ -226,7 +225,7 @@ class PieChartView @JvmOverloads constructor(
                 legendValuePaint.color = valueColor
                 val percent = Math.round(100f * slice.value / total)
                 val valueText = String.format(
-                    Locale.GERMANY, "%d (%d %%)", slice.value, percent
+                    Settings.language(context), "%d (%d %%)", slice.value, percent
                 )
                 canvas.drawText(valueText, width - sidePadding, baseline, legendValuePaint)
             }

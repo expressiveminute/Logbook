@@ -11,7 +11,6 @@ import android.view.animation.DecelerateInterpolator
 import android.widget.TextView
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
-import java.util.Locale
 
 /**
  * Zählt Kachel- und Diagrammwerte sichtbar von 0 auf ihren Zielwert hoch.
@@ -62,7 +61,7 @@ object TileValueAnimator {
 
         val formatter = DecimalFormat(
             "#,##0",
-            DecimalFormatSymbols.getInstance(Locale.GERMANY)
+            DecimalFormatSymbols.getInstance(Settings.language(tv.context))
         ).apply {
             minimumFractionDigits = parts.decimals
             maximumFractionDigits = parts.decimals

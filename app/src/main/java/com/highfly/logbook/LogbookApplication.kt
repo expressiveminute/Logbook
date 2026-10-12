@@ -8,7 +8,7 @@ import androidx.core.os.LocaleListCompat
 class LogbookApplication : Application() {
 
     override fun attachBaseContext(base: Context) {
-        val localized = LocaleUtils.applyLocale(base, Settings.LANG_DE)
+        val localized = LocaleUtils.applyLocale(base, Settings.getLanguage(base))
         super.attachBaseContext(
             LocaleUtils.applyTextScale(localized, Settings.isCompactText(localized))
         )
@@ -19,7 +19,9 @@ class LogbookApplication : Application() {
 
         CrashLogger.init(this)
         LogbookRepository.init(this)
-        AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(Settings.LANG_DE))
+        AppCompatDelegate.setApplicationLocales(
+            LocaleListCompat.forLanguageTags(Settings.getLanguage(this))
+        )
 
         Thread {
             AirportData.location(this, "MUC")

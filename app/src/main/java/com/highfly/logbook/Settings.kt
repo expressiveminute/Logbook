@@ -4,11 +4,15 @@ import android.content.Context
 import android.content.SharedPreferences
 import java.lang.ref.WeakReference
 import java.time.LocalDate
+import java.util.Locale
 import java.util.concurrent.CopyOnWriteArrayList
 
 object Settings {
 
     const val LANG_DE = "de"
+    const val LANG_EN = "en"
+
+    val LANG_OPTIONS = listOf(LANG_DE, LANG_EN)
 
     const val CITY_LANG_NATIVE = "native"
     const val CITY_LANG_EN = "en"
@@ -66,6 +70,7 @@ object Settings {
     private const val KEY_MAP_ORIENTATION = "map_orientation"
     private const val KEY_DISCOVERY_YEAR = "discovery_year"
     private const val KEY_COMPACT_TEXT = "compact_text"
+    private const val KEY_LANGUAGE = "language"
     private const val KEY_MANUAL_COUNTRIES = "manual_countries"
     private const val KEY_HIDDEN_COUNTRIES = "hidden_countries"
     private const val KEY_WELCOME_SEEN = "welcome_seen"
@@ -284,6 +289,24 @@ object Settings {
     fun setCompactText(context: Context, value: Boolean) {
         prefs(context).edit().putBoolean(KEY_COMPACT_TEXT, value).apply()
     }
+
+    /**
+     * Sprache der App, "de" oder "en". Standard ist Deutsch, damit eine
+     * bestehende Installation ihre bisherige Sprache behält.
+     */
+    fun getLanguage(context: Context): String =
+        prefs(context).getString(KEY_LANGUAGE, LANG_DE)
+            ?.takeIf { it in LANG_OPTIONS }
+            ?: LANG_DE
+
+    fun setLanguage(context: Context, value: String) {
+        require(value in LANG_OPTIONS)
+        prefs(context).edit().putString(KEY_LANGUAGE, value).apply()
+    }
+
+    /** Sprache der App als [Locale] für Zahlen- und Datumsformate. */
+    fun language(context: Context): Locale =
+        if (getLanguage(context) == LANG_EN) Locale.ENGLISH else Locale.GERMANY
 
     /**
      * Ob die Willkommens-Tour schon einmal durchlaufen oder übersprungen wurde.

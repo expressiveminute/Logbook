@@ -187,7 +187,7 @@ class LayoverDetailFragment : Fragment() {
 
     /** Ganzzahl mit Tausendertrennzeichen, wie überall sonst in der App. */
     private fun number(value: Int): String =
-        String.format(Locale.GERMANY, "%,d", value)
+        String.format(Settings.language(requireContext()), "%,d", value)
 
     /** Einheiten-Teil mit einer Nachkommastelle und passendem Singular/Plural. */
     private fun part(resId: Int, value: Double): String =
