@@ -138,9 +138,21 @@ class CompassView @JvmOverloads constructor(
         val eastText = resources.getString(R.string.compass_east)
 
         // Reihenfolge von innen nach aussen: Nadelende, dann mit etwas Abstand
-        // der Buchstabe der Himmelsrichtung, daneben der Dreilettercode.
-        val letterRadius = r + dp(16f)
-        val codeRadius = r + dp(40f)
+        // der Buchstabe der Himmelsrichtung, daneben mit deutlich mehr Abstand
+        // der Dreilettercode. Der Code sitzt so weit draussen wie der Platz
+        // zulässt, damit er auf schmalen Geräten nicht seitlich abgeschnitten
+        // wird (siehe [clampCodeRadius]).
+        val letterRadius = r + dp(LETTER_OFFSET_DP)
+        val codeHalfWidth = listOfNotNull(north, south, west, east)
+            .maxOfOrNull { codePaint.measureText(it.code) / 2f }
+            ?: (codePaint.measureText("XXX") / 2f)
+        val codeRadius = clampCodeRadius(
+            letterRadius,
+            dp(CODE_GAP_DP),
+            width / 2f,
+            codeHalfWidth,
+            dp(CODE_MARGIN_DP)
+        )
         drawDirection(canvas, northText, north?.code, cx, cy - letterRadius, cx, cy - codeRadius)
         drawDirection(canvas, southText, south?.code, cx, cy + letterRadius, cx, cy + codeRadius)
         drawDirection(canvas, westText, west?.code, cx - letterRadius, cy, cx - codeRadius, cy)
@@ -254,14 +266,45 @@ class CompassView @JvmOverloads constructor(
 
     private fun sp(value: Float): Float = value * resources.displayMetrics.scaledDensity
 
-    private companion object {
+    companion object {
         /** Halbe Breite der Nadel an ihrem breitesten Punkt. */
-        const val NEEDLE_HALF_WIDTH_DP = 7.5f
+        private const val NEEDLE_HALF_WIDTH_DP = 7.5f
 
         /** Wo die Nadel beginnt, als Anteil der Nadellänge ab der Mitte. */
-        const val NEEDLE_ROOT_FRACTION = 0.36f
+        private const val NEEDLE_ROOT_FRACTION = 0.36f
 
         /** Lage des breitesten Punkts als Anteil der sichtbaren Nadellänge. */
-        const val NEEDLE_SHOULDER_FRACTION = 0.34f
+        private const val NEEDLE_SHOULDER_FRACTION = 0.34f
+
+        /** Abstand des Richtungsbuchstabens vom Nadelende. */
+        private const val LETTER_OFFSET_DP = 8f
+
+        /** Gewünschter Abstand zwischen Richtungsbuchstabe und Dreilettercode. */
+        private const val CODE_GAP_DP = 40f
+
+        /** Mindestabstand des Dreilettercodes zum seitlichen Bildrand. */
+        private const val CODE_MARGIN_DP = 4f
+
+        /**
+         * Radius, auf dem der Dreilettercode sitzt: der Radius des
+         * Richtungsbuchstabens [letterRadius] plus der gewünschte Abstand [gap].
+         * Weil die Codes links und rechts der Kompassrose stehen, wird der
+         * Radius bei Bedarf so weit hereingeholt, dass der breiteste Code
+         * ([codeHalfWidth] ist seine halbe Textbreite) samt [margin] noch in
+         * die halbe Ansichtsbreite [halfWidth] passt. So bleibt der Abstand auf
+         * breiten Geräten gross und der Code auf schmalen trotzdem vollständig
+         * sichtbar.
+         */
+        @JvmStatic
+        fun clampCodeRadius(
+            letterRadius: Float,
+            gap: Float,
+            halfWidth: Float,
+            codeHalfWidth: Float,
+            margin: Float
+        ): Float {
+            val maxRadius = halfWidth - codeHalfWidth - margin
+            return (letterRadius + gap).coerceAtMost(maxRadius).coerceAtLeast(letterRadius)
+        }
     }
 }

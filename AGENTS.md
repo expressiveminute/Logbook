@@ -61,13 +61,76 @@ Felder in *Neuer Flug* erlauben vier Zeichen nur, wenn das erste `X` ist
 ## Karte „CO₂-Ausgleich"
 
 Die Seite zeigt die nötige Pflanzfläche als Kreis in **echtem Maßstab** (Radius in Metern aus
-der Fläche) auf einer offline gezeichneten Karte. Weil der Ausschnitt dabei sehr eng wird,
-liegen unter `assets/cities_near.json` Ankerorte im Umkreis von 100 km um die Flughäfen
-Frankfurt (FRA) und München (MUC); `NearbyCities` lädt sie, die Karte zeichnet die größten
-davon mit Namen. Erzeugt wird die Datei von `tools/build_cities_near.py` aus GeoNames
-`cities5000` (Stadtteile, feature code `PPLX`, fallen heraus; deutsche/englische Schreibweise
-kommt aus `cities.json`). Unten links zeigt ein Maßband (`ScaleBar`) die abgedeckte Entfernung
-an – nur diese eine Karte nutzt beides.
+der Fläche) auf einer offline gezeichneten Karte. Damit auch das Umfeld zu sehen ist, füllt der
+Wald nur rund 1/4 der kürzeren Bildschirmkante (`FOREST_ZOOM_MARGIN`). Weil der Ausschnitt trotzdem
+sehr eng wird, liegen unter `assets/cities_near.json` Ankerorte im Umkreis von 100 km um die
+Flughäfen Frankfurt (FRA) und München (MUC); `NearbyCities` lädt sie, die Karte zeichnet die
+größten davon mit Namen. Orte außerhalb des Bildes erscheinen als Randhinweis mit Pfeil in
+Blickrichtung und Entfernung am Bildrand (`CityEdgeHints`). Erzeugt wird die Datei von
+`tools/build_cities_near.py` aus GeoNames `cities5000` (Stadtteile, feature code `PPLX`, fallen
+heraus; deutsche/englische Schreibweise kommt aus `cities.json`). Unten links zeigt ein Maßband
+(`ScaleBar`) die abgedeckte Entfernung an – nur diese eine Karte nutzt beides.
+
+### Luftbilder (amtliche Orthophotos, umkehrbar)
+
+Damit sich der Waldkreis auch ohne Straßen einordnen lässt, legt die Karte für **nur diese
+beiden Ausschnitte** (FRA, MUC) ein amtliches Luftbild (DOP20) unter den Wald: `Orthophotos`
+lädt `assets/orthophotos/<CODE>.webp` samt Randkoordinaten (`<CODE>.json`), `OrthophotoOverlay`
+zeichnet es über Land und Grenzen, aber unter Wald, Orten und Kennzeichen. Bei kleiner
+Zoomstufe (Landesansicht, `< OrthophotoOverlay.MIN_ZOOM`) ist der Ausschnitt nur ein Punkt und
+bleibt aus. Liegt das Bild über dem ganzen Ausschnitt, entfällt der eingefärbte Landesumriss
+(`ForestOverlay.drawCountry`), sonst läge ein Farbton über dem Foto. Andere Flughäfen haben kein
+Bild und verhalten sich wie bisher.
+
+Erzeugt werden die Bilder von `tools/build_orthophotos.py` (Parameter `--box-km`, `--pixels`,
+`--only`): Hessen für FRA über `he_dop_rgb` (dl-de/zero-2.0, keine Nennung nötig), Bayern für MUC
+über `by_dop20c` (CC BY 4.0, Nennung nötig – daher der Nachweis unter der Karte). Beide Dienste
+drosseln schnelle Abfragen (HTTP 404/502); das Skript kachelt und wartet. Der hessische Dienst
+bricht oberhalb von rund 1024 px pro Anfrage ab, deshalb dort 1024er-Kacheln. Der Ausschnitt ist
+rund 12 km groß bei 2048 px (gut 6 m/px, bewusst grob). Quelle und Größe prüft
+`OrthophotosAssetTest`.
+
+**Rückbau** (das Merkmal ist bewusst in sich geschlossen): `Orthophotos.ENABLED` auf `false`
+setzen schaltet es ohne weitere Änderung ab (kein Bild, kein Nachweis, keine Ladezeit). Zum
+vollständigen Entfernen: `Orthophotos.kt`, `OrthophotoOverlay.kt` und den Ordner
+`app/src/main/assets/orthophotos/` löschen, `tools/build_orthophotos.py` löschen, in
+`Co2OffsetMapView.kt` die Zeilen mit `orthophotoOverlay` (Feld, `loadOrthophoto`, die Zeile in
+`rebuildOverlays`, die Wache in `drawCountry`) entfernen, `OrthophotosAssetTest.kt` löschen und
+im Layout/den Strings die drei `co2_offset_credit_*`-Zeilen bzw. `tv_co2_attribution`
+zurücknehmen.
+
+## Seite „Distanz"
+
+Die Kachel *Distanz* öffnet `DistanceDetailFragment`. Oben stehen der längste und der kürzeste
+Flug des Zeitraums als `RouteMiniMapView`, deren Strecke sich einmal aufbaut
+(`playRouteAnimation`: Teilstrecke bis zum Fortschritt, Flugzeug an der Spitze). Danach fliegt das
+Flugzeug die fertige Strecke wiederholt in der tatsächlichen Flugrichtung ab – von der Herkunft zum
+Ziel, nie in die Gegenrichtung (`PlanePhase.CRUISING`), damit die Animation nur die wirkliche Strecke
+zeigt. Ohne Animation bleibt die Karte das Standbild der Eintragsliste
+(`fraction = null` setzt das Flugzeug in die Mitte).
+
+Darunter zeigen drei `SpaceDistanceView`-Bilder Erdumrundungen (Erde mit kreisendem Flugzeug, ohne
+Ende), Weg zum Mond (Erde und Mond, Flugzeug pendelt) und Weg zur
+Sonne (Erde und Sonne). Erde und Mond bzw. Sonne sitzen in beiden Bildern an derselben Stelle und
+sind gleich groß (`EARTH_CX/CY`, `PARTNER_CX/CY`). Alle vier Fluganimationen – der Dauerflug auf der
+Strecke, Erdumrundung, Mond und Sonne – teilen sich dieselbe Dauer `PLANE_ANIM_MS`, laufen also
+gleich schnell. Das
+Flugzeug der Sonne wandert ehrlich nur bis zu dem Bruchteil, den die Flüge abdecken – der ist winzig,
+deshalb stehen darunter die Prozente „erreicht/verbleibend" und die Kilometer „geflogen/verbleibend".
+Die Kontinente sind ein grob
+vereinfachter Umriss aus `assets/world_land.json` (dieselbe Datei wie die Streckenkarte), kein
+feines Küstenbild.
+
+Die Abschnitte werden nacheinander eingeblendet: erst nach der Strecke des längsten Flugs die des
+kürzesten, danach die drei Grafiken; jede Zahl zählt erst beim Erscheinen ihres Abschnitts hoch. Die
+Grafik-Abschnitte folgen einander im festen `REVEAL_MS`-Takt, unabhängig von den Animationsdauern.
+Die
+endlosen Animationen pausieren mit `onWindowVisibilityChanged`, wenn die Seite in den Hintergrund
+geht.
+
+Der Abstand zwischen dem Richtungsbuchstaben und dem Dreilettercode auf dem Kompass (`CompassView`)
+wird vergrößert, ohne den Code abzuschneiden: `clampCodeRadius()` holt den Code auf schmalen
+Geräten so weit herein, wie der Platz es zulässt.
 
 ## Einstellungen – Aufbau nicht eigenmächtig ändern
 

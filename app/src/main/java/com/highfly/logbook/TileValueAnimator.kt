@@ -11,6 +11,7 @@ import android.view.animation.DecelerateInterpolator
 import android.widget.TextView
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
+import java.util.Locale
 
 /**
  * Zählt Kachel- und Diagrammwerte sichtbar von 0 auf ihren Zielwert hoch.
@@ -36,11 +37,13 @@ object TileValueAnimator {
     private val animators = mutableListOf<ValueAnimator>()
     private val finalTexts = mutableMapOf<TextView, CharSequence>()
 
-    private data class AnimatedParts(val number: Double, val decimals: Int, val suffix: String)
+    internal data class AnimatedParts(val number: Double, val decimals: Int, val suffix: String)
 
     /**
      * Zählt den führenden Zahlenwert eines Wertes von 0 auf den Zielwert hoch.
-     * Erkennbare Formate (deutsch): "22", "73,3", "884,234", "1.234", "10 (5%)".
+     * Erkennbare Formate richten sich nach der App-Sprache: deutsch "22",
+     * "73,3", "884,234", "1.234", englisch "22", "73.3", "1,234.56"; dazu
+     * Anhänge wie "10 (5%)" oder "0,951 ×".
      *
      * Ein gestylter Anhang wie "(5 %)" oder "×" (kleiner, anderfarbig, siehe
      * [FirstFragment.buildValueText]) bleibt während des Zählens ausgeblendet
@@ -53,7 +56,7 @@ object TileValueAnimator {
             tv.text = finalText ?: ""
             return
         }
-        val parts = parseAnimated(finalText.toString())
+        val parts = parseAnimated(finalText.toString(), Settings.language(tv.context))
         if (parts == null) {
             tv.text = finalText
             return
@@ -183,28 +186,36 @@ object TileValueAnimator {
         finalTexts.clear()
     }
 
-    private fun parseAnimated(text: String): AnimatedParts? {
+    /**
+     * Zerlegt den Zieltext in Zahl und Anhang. Das Trennzeichen richtet sich
+     * nach [locale]: Deutsch schreibt Komma als Dezimal- und Punkt als
+     * Tausenderzeichen, Englisch umgekehrt. Ohne diese Unterscheidung würde die
+     * Zahl im englischen "0.951" als 951 gelesen und falsch hochgezählt.
+     */
+    internal fun parseAnimated(text: String, locale: Locale): AnimatedParts? {
         val normalized = text.replace("\u00A0", " ").replace("\u2009", " ")
         val rawMatch = Regex("^[0-9., ]*").find(normalized)?.value ?: return null
         if (rawMatch.isEmpty()) return null
         val match = rawMatch.trim()
         val suffix = normalized.substring(rawMatch.length)
 
-        // Deutsch: ',' ist IMMER das Dezimaltrennzeichen, '.' nur Tausender-
-        // trenner ("1.234,567"). Ohne ',' ist die Zahl ganzzahlig.
-        val comma = match.lastIndexOf(',')
-        if (comma >= 0) {
-            val decimals = match.length - 1 - comma
-            val intPart = match.substring(0, comma).replace(".", "")
+        val symbols = DecimalFormatSymbols.getInstance(locale)
+        val decimal = symbols.decimalSeparator
+        val grouping = symbols.groupingSeparator
+
+        val decimalIndex = match.lastIndexOf(decimal)
+        if (decimalIndex >= 0) {
+            val decimals = match.length - 1 - decimalIndex
+            val intPart = match.substring(0, decimalIndex).replace(grouping.toString(), "")
             val intValue = intPart.toLongOrNull() ?: return null
             var value = intValue.toDouble()
             if (decimals > 0) {
-                val fracValue = match.substring(comma + 1).toLongOrNull() ?: return null
+                val fracValue = match.substring(decimalIndex + 1).toLongOrNull() ?: return null
                 value += fracValue / Math.pow(10.0, decimals.toDouble())
             }
             return AnimatedParts(value, decimals, suffix)
         }
-        val value = match.replace(".", "").toLongOrNull() ?: return null
+        val value = match.replace(grouping.toString(), "").toLongOrNull() ?: return null
         return AnimatedParts(value.toDouble(), 0, suffix)
     }
 }

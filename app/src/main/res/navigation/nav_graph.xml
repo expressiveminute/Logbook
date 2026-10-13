@@ -26,6 +26,9 @@
             android:id="@+id/action_dashboard_to_time_detail"
             app:destination="@id/nav_time_detail" />
         <action
+            android:id="@+id/action_dashboard_to_distance_detail"
+            app:destination="@id/nav_distance_detail" />
+        <action
             android:id="@+id/action_dashboard_to_travel_buddies"
             app:destination="@id/nav_travel_buddies" />
         <action
@@ -231,6 +234,13 @@
         android:id="@+id/nav_time_detail"
         android:name="com.highfly.logbook.TimeDetailFragment"
         tools:layout="@layout/fragment_time_detail" />
+
+    <!-- Detailseite der Kachel "Distanz": animierte Strecken des längsten und
+         kürzesten Flugs sowie Erdumrundungen, Mond- und Sonnenweg. -->
+    <fragment
+        android:id="@+id/nav_distance_detail"
+        android:name="com.highfly.logbook.DistanceDetailFragment"
+        tools:layout="@layout/fragment_distance_detail" />
 
     <fragment
         android:id="@+id/nav_travel_buddies"

@@ -323,15 +323,38 @@
             android:textColor="?attr/colorOnSurfaceVariant"
             tools:text="1 Hektar ≈ 1.000 Bäume · Waldradius ≈ 273 m" />
 
-        <TextView
-            android:id="@+id/tv_co2_football"
+        <!-- Fußballfelder und (darunter) der Quellennachweis der Luftbilder.
+             Der untere Abstand sitzt am Container, damit er gleich bleibt,
+             egal ob der Nachweis sichtbar ist. -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
             android:layout_marginBottom="16dp"
-            android:gravity="center"
-            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            tools:text="Das entspricht ungefähr 3 Fußballfeldern" />
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_co2_football"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:gravity="center"
+                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                tools:text="Das entspricht ungefähr 3 Fußballfeldern" />
+
+            <!-- Quellennachweis der amtlichen Luftbilder; nur sichtbar, wenn
+                 das Merkmal in Orthophotos.ENABLED aktiv ist. -->
+            <TextView
+                android:id="@+id/tv_co2_attribution"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:gravity="center"
+                android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:visibility="gone"
+                tools:text="Luftbild: © Bayerische Vermessungsverwaltung (CC BY 4.0)"
+                tools:visibility="visible" />
+        </LinearLayout>
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

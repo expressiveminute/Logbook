@@ -36,6 +36,11 @@ import kotlin.math.sqrt
  * Die darauf gezeichneten Bäume sind reine Optik: Sie zeigen, dass die Fläche
  * bewaldet wäre, haben aber keine Zählfunktion. Die Zahl der Symbole ist fest
  * ([DECORATIVE_TREES]) und steht in keinem Verhältnis zur echten Baumzahl.
+ *
+ * Weil der Ausschnitt um den Flughafen sehr eng ist, reicht er oft über keine
+ * Stadt hinweg. Die Ankerorte aus `cities_near.json` liegen dann außerhalb des
+ * Bildes; sie werden als Hinweis mit Pfeil und Entfernung an den Bildrand
+ * gesetzt ([drawEdgeHints]), damit trotzdem ablesbar bleibt, wo etwas liegt.
  */
 class Co2OffsetMapView @JvmOverloads constructor(
     context: Context,
@@ -44,6 +49,11 @@ class Co2OffsetMapView @JvmOverloads constructor(
 
     private val landOverlay = OfflineLandOverlay(context)
     private val borderOverlay = OfflineBorderOverlay(context)
+
+    /** Amtliches Luftbild des Flughafens (nur FRA und MUC); sonst leer. */
+    private val orthophotoOverlay = OrthophotoOverlay()
+    private var orthophotoRequest = 0
+
     private var loadThread: Thread? = null
     private var fitted = false
 
@@ -144,6 +154,7 @@ class Co2OffsetMapView @JvmOverloads constructor(
         scaleLocale = Settings.language(context)
         progress = 0f
         animator.cancel()
+        loadOrthophoto(code)
         rebuildOverlays()
         if (fit) {
             fitted = false
@@ -275,9 +286,34 @@ class Co2OffsetMapView @JvmOverloads constructor(
         overlayManager.overlays().clear()
         if (landOverlay.isLoaded) overlayManager.overlays().add(landOverlay)
         if (borderOverlay.isLoaded) overlayManager.overlays().add(borderOverlay)
+        // Über Land und Grenzen, aber unter Wald, Orten und Kennzeichen.
+        if (orthophotoOverlay.orthophoto != null) overlayManager.overlays().add(orthophotoOverlay)
         overlayManager.overlays().add(ForestOverlay(density = resources.displayMetrics.density))
         overlayManager.overlays().add(ScaleBarOverlay(density = resources.displayMetrics.density))
         invalidate()
+    }
+
+    /**
+     * Lädt das Luftbild des Flughafens im Hintergrund und legt es auf die
+     * Karte. Nur FRA und MUC haben eines; sonst bleibt die Karte wie bisher.
+     */
+    private fun loadOrthophoto(code: String) {
+        if (!Orthophotos.isSupported(code)) {
+            orthophotoOverlay.orthophoto = null
+            return
+        }
+        if (orthophotoOverlay.orthophoto?.code == code.uppercase()) return
+        val request = ++orthophotoRequest
+        val appContext = context.applicationContext
+        Thread {
+            val photo = Orthophotos.load(appContext, code)
+            post {
+                if (request != orthophotoRequest) return@post
+                orthophotoOverlay.orthophoto = photo
+                rebuildOverlays()
+                invalidate()
+            }
+        }.start()
     }
 
     /**
@@ -360,10 +396,27 @@ class Co2OffsetMapView @JvmOverloads constructor(
             strokeWidth = 2.4f * density
             strokeJoin = Paint.Join.ROUND
         }
+        private val edgeLabel = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            textSize = EDGE_HINT_TEXT_DP * density
+            color = if (isDark) Color.rgb(226, 232, 240) else Color.rgb(38, 44, 40)
+        }
+        private val edgeHalo = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            textSize = EDGE_HINT_TEXT_DP * density
+            color = if (isDark) Color.argb(170, 12, 18, 24) else Color.argb(180, 255, 255, 255)
+            style = Paint.Style.STROKE
+            strokeWidth = 2.4f * density
+            strokeJoin = Paint.Join.ROUND
+        }
+        private val hintFill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = accentColor
+            alpha = 235
+            style = Paint.Style.FILL
+        }
 
         private val reusePoint = Point()
         private val cityPoint = Point()
         private val treePath = Path()
+        private val hintPath = Path()
 
         override fun draw(canvas: Canvas, mapView: MapView, shadow: Boolean) {
             if (shadow) return
@@ -387,6 +440,9 @@ class Co2OffsetMapView @JvmOverloads constructor(
 
         /** Das Land mit der Akzentfarbe hervorheben, wenn Umrisse vorliegen. */
         private fun drawCountry(canvas: Canvas, projection: org.osmdroid.views.Projection) {
+            // Liegt das Luftbild über dem ganzen Ausschnitt, zeigt es das Land
+            // bereits; ein Farbton darüber wäre nur ein Schleier.
+            if (orthophotoOverlay.coversViewport(this@Co2OffsetMapView)) return
             val shape = country ?: return
             val path = Path()
             for (ring in shape.rings) {
@@ -493,10 +549,10 @@ class Co2OffsetMapView @JvmOverloads constructor(
         }
 
         /**
-         * Ankerorte aus `cities_near.json`, die gerade im Bild liegen. Sie geben
-         * dem engen Kartenausschnitt Anhaltspunkte ("wo ist was"). Gezeichnet
-         * werden nur die größten Orte; Beschriftungen, die sich überlagern oder
-         * den Flughafen-Badge verdecken würden, bleiben weg.
+         * Ankerorte aus `cities_near.json`. Orte im Bild bekommen ihren Namen
+         * wie bisher ([drawCityLabels]); Orte außerhalb werden als Hinweis an
+         * den Bildrand gesetzt ([drawEdgeHints]), damit der enge Ausschnitt um
+         * die Waldfläche trotzdem Anhaltspunkte bietet ("wo ist was").
          */
         private fun drawCities(
             canvas: Canvas,
@@ -509,15 +565,39 @@ class Co2OffsetMapView @JvmOverloads constructor(
             val h = height.toFloat()
             if (w <= 0f || h <= 0f) return
 
-            val candidates = ArrayList<Candidate>(nearbyCities.size)
+            val visible = ArrayList<Candidate>(nearbyCities.size)
+            val hidden = ArrayList<Candidate>(nearbyCities.size)
             for (city in nearbyCities) {
                 projection.toPixels(GeoPoint(city.lat, city.lon), cityPoint)
                 val x = cityPoint.x.toFloat()
                 val y = cityPoint.y.toFloat()
-                if (x in 0f..w && y in 0f..h) candidates.add(Candidate(city, x, y))
+                if (!x.isFinite() || !y.isFinite()) continue
+                if (x in 0f..w && y in 0f..h) {
+                    visible.add(Candidate(city, x, y))
+                } else {
+                    hidden.add(Candidate(city, x, y))
+                }
             }
-            if (candidates.isEmpty()) return
-            candidates.sortByDescending { it.city.population }
+            visible.sortByDescending { it.city.population }
+
+            val occupied = drawCityLabels(canvas, visible, w, centerX, centerY)
+            drawEdgeHints(canvas, hidden, w, h, occupied)
+        }
+
+        /**
+         * Beschriftet die Orte im Bild. Gezeichnet werden nur die größten; was
+         * sich überlagert oder den Flughafen-Badge verdecken würde, bleibt weg.
+         * Liefert die belegten Rechtecke, damit die Randhinweise nicht mit
+         * ihnen zusammenstoßen.
+         */
+        private fun drawCityLabels(
+            canvas: Canvas,
+            candidates: List<Candidate>,
+            w: Float,
+            centerX: Float,
+            centerY: Float
+        ): List<RectF> {
+            if (candidates.isEmpty()) return emptyList()
 
             val fm = cityLabel.fontMetrics
             val gap = CITY_LABEL_GAP_DP * density
@@ -566,6 +646,87 @@ class Co2OffsetMapView @JvmOverloads constructor(
                 canvas.drawText(name, textX, baseline, cityHalo)
                 canvas.drawText(name, textX, baseline, cityLabel)
             }
+            return placed
+        }
+
+        /**
+         * Hinweise am Kartenrand: Orte, die außerhalb des Bildes liegen, werden
+         * mit einem kleinen Pfeil in Blickrichtung und ihrer Entfernung an den
+         * Bildrand gesetzt. Gezeigt werden nur die nächsten Orte
+         * ([MAX_EDGE_HINTS]); was mit einer Beschriftung im Bild oder einem
+         * anderen Hinweis zusammenstößt, bleibt weg.
+         */
+        private fun drawEdgeHints(
+            canvas: Canvas,
+            hidden: List<Candidate>,
+            w: Float,
+            h: Float,
+            occupied: List<RectF>
+        ) {
+            if (hidden.isEmpty()) return
+            val margin = EDGE_HINT_MARGIN_DP * density
+            val left = margin
+            val top = margin
+            val right = w - margin
+            val bottom = h - margin
+            if (right <= left || bottom <= top) return
+
+            val fm = edgeLabel.fontMetrics
+            val textHeight = fm.descent - fm.ascent
+            val marker = EDGE_HINT_MARKER_DP * density
+            val gap = EDGE_HINT_GAP_DP * density
+            val pad = 2f * density
+            val placed = ArrayList<RectF>(MAX_EDGE_HINTS)
+
+            val ordered = hidden.sortedBy { distanceMeters(it.city) }
+            for (candidate in ordered) {
+                if (placed.size >= MAX_EDGE_HINTS) break
+                val name = candidate.city.displayName(cityLanguage)
+                if (name.isEmpty()) continue
+                val edge = CityEdgeHints.clamp(candidate.x, candidate.y, left, top, right, bottom)
+                if (edge.onScreen) continue
+
+                val text = name + " " + ScaleBar.distanceText(
+                    distanceMeters(candidate.city), scaleLocale
+                )
+                val textWidth = edgeLabel.measureText(text)
+                // Die Beschriftung nach innen versetzen; der Pfeil steht am Rand.
+                val textLeft = (edge.x - edge.dirX * (marker + gap) - textWidth / 2f)
+                    .coerceIn(pad, maxOf(pad, w - pad - textWidth))
+                val centerY = edge.y - edge.dirY * (marker + gap + textHeight / 2f)
+                val boxTop = (centerY - textHeight / 2f)
+                    .coerceIn(pad, maxOf(pad, h - pad - textHeight))
+                val box = RectF(
+                    textLeft - pad, boxTop - pad,
+                    textLeft + textWidth + pad, boxTop + textHeight + pad
+                )
+                if (placed.any { RectF.intersects(it, box) }) continue
+                if (occupied.any { RectF.intersects(it, box) }) continue
+
+                drawHintMarker(canvas, edge, marker)
+                val baseline = boxTop - fm.ascent
+                canvas.drawText(text, textLeft, baseline, edgeHalo)
+                canvas.drawText(text, textLeft, baseline, edgeLabel)
+                placed.add(box)
+            }
+        }
+
+        /** Pfeil am Bildrand, der in Richtung des Ortes zeigt. */
+        private fun drawHintMarker(canvas: Canvas, edge: CityEdgeHints.Edge, size: Float) {
+            val half = size / 2f
+            val tipX = edge.x + edge.dirX * half
+            val tipY = edge.y + edge.dirY * half
+            val baseX = edge.x - edge.dirX * half
+            val baseY = edge.y - edge.dirY * half
+            // Senkrechte zur Blickrichtung spannt die Grundseite auf.
+            val perpX = -edge.dirY
+            val perpY = edge.dirX
+            hintPath.reset()
+            hintPath.moveTo(tipX, tipY)
+            hintPath.lineTo(baseX + perpX * half, baseY + perpY * half)
+            hintPath.lineTo(baseX - perpX * half, baseY - perpY * half)
+            hintPath.close()
+            canvas.drawPath(hintPath, hintFill)
         }
 
         /** Badge mit dem IATA-Code des Flughafens, über der Ausgleichsfläche. */
@@ -707,6 +868,13 @@ class Co2OffsetMapView @JvmOverloads constructor(
         return 1f + c3 * u * u * u + c1 * u * u
     }
 
+    /** Luftlinie vom Flughafen zum Ankerort in Metern (für die Randhinweise). */
+    private fun distanceMeters(city: NearbyCity): Double =
+        GeoMath.distanceKm(
+            AirportData.GeoLocation(airportLat, airportLon),
+            AirportData.GeoLocation(city.lat, city.lon)
+        ) * 1000.0
+
     /** Ein Ankerort mit seiner Position auf dem Bildschirm. */
     private class Candidate(val city: NearbyCity, val x: Float, val y: Float)
 
@@ -741,7 +909,7 @@ class Co2OffsetMapView @JvmOverloads constructor(
         const val ZOOM_PADDING_DP = 24
 
         /** Der Wald füllt etwa 1/MARGIN der kürzeren Bildschirmkante. */
-        const val FOREST_ZOOM_MARGIN = 2.2
+        const val FOREST_ZOOM_MARGIN = 4.0
 
         /** Ein Hektar in Quadratmetern. */
         const val SQUARE_METERS_PER_HECTARE = 10_000.0
@@ -763,6 +931,13 @@ class Co2OffsetMapView @JvmOverloads constructor(
         const val CITY_LABEL_GAP_DP = 3f
         const val CITY_MIN_DISTANCE_DP = 26f
         const val MAX_CITY_LABELS = 10
+
+        /** Randhinweise: Schrift, Pfeil, Abstand zum Rand und Höchstzahl. */
+        const val EDGE_HINT_TEXT_DP = 9f
+        const val EDGE_HINT_MARKER_DP = 8f
+        const val EDGE_HINT_GAP_DP = 4f
+        const val EDGE_HINT_MARGIN_DP = 6f
+        const val MAX_EDGE_HINTS = 6
 
         /** Um den Flughafen-Badge bleibt dieser Bereich frei von Städtenamen (dp). */
         const val BADGE_RESERVE_HALF_W_DP = 18f

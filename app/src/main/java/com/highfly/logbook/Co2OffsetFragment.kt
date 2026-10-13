@@ -194,6 +194,7 @@ class Co2OffsetFragment : Fragment() {
             view.fabCo2Replay.visibility = View.GONE
             view.fabCo2Zoom.visibility = View.GONE
             view.llCo2Stats.visibility = View.GONE
+            view.tvCo2Attribution.visibility = View.GONE
             view.tvCo2OffsetSubtitle.text = ""
             return
         }
@@ -237,6 +238,14 @@ class Co2OffsetFragment : Fragment() {
             getString(R.string.co2_offset_radius, radiusText(result.hectares, appLocale))
         ).joinToString(" · ")
         view.tvCo2Football.text = footballText(result.hectares, appLocale)
+
+        // Quellennachweis des Luftbilds, sofern für den Flughafen eines vorliegt
+        // (nur FRA und MUC). Bayern verlangt als CC-BY-4.0-Daten die Nennung.
+        val creditRes = Orthophotos.creditRes(result.airport.iata)
+        view.tvCo2Attribution.text = creditRes?.let {
+            getString(R.string.co2_offset_credit_label, getString(it))
+        }
+        view.tvCo2Attribution.visibility = if (creditRes != null) View.VISIBLE else View.GONE
 
         view.co2Map.setScene(
             shape,

@@ -45,4 +45,34 @@ class DashboardStatsSunTest {
         assertEquals("1,000", DashboardStats.factorText(1.0))
         assertEquals("0,003", DashboardStats.factorText(384400.0 / 149_600_000.0))
     }
+
+    @Test
+    fun sonnenProzent_passtZumWegfaktor() {
+        // Volle AE: 100 % erreicht, nichts bleibt.
+        val full = DashboardStats.sunPercentReached(149_600_000)
+        assertEquals(100.0, full, 1e-9)
+        // Ein Bruchteil: der Faktor mal 100.
+        val teil = DashboardStats.sunPercentReached(149_600)
+        assertEquals(
+            DashboardStats.distanceDetails(context, listOf(entry(km = 149_600))).sunTrips * 100.0,
+            teil,
+            1e-9
+        )
+        // Ohne Kilometer ist noch nichts geschafft.
+        assertEquals(0.0, DashboardStats.sunPercentReached(0), 1e-9)
+    }
+
+    @Test
+    fun sonnenReststrecke_ergaenztDieGeflogenenKilometer() {
+        // Geflogene plus verbleibende Kilometer ergeben genau eine AE.
+        assertEquals(
+            DashboardStats.SUN_DISTANCE_KM,
+            DashboardStats.sunRemainingKm(149_600) + 149_600
+        )
+        // Voll geflogen bleibt nichts uebrig.
+        assertEquals(0, DashboardStats.sunRemainingKm(DashboardStats.SUN_DISTANCE_KM))
+        // Ueber eine AE hinaus wird nicht negativ.
+        assertEquals(0, DashboardStats.sunRemainingKm(DashboardStats.SUN_DISTANCE_KM + 5_000))
+        assertEquals(DashboardStats.SUN_DISTANCE_KM, DashboardStats.sunRemainingKm(0))
+    }
 }

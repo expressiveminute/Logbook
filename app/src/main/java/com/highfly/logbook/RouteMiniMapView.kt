@@ -1,5 +1,8 @@
 package com.highfly.logbook
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.ValueAnimator
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Canvas
@@ -13,6 +16,7 @@ import android.util.AttributeSet
 import android.util.Log
 import android.util.TypedValue
 import android.view.View
+import android.view.animation.LinearInterpolator
 import androidx.core.content.ContextCompat
 import com.google.android.material.color.MaterialColors
 import org.json.JSONObject
@@ -63,6 +67,29 @@ class RouteMiniMapView @JvmOverloads constructor(
 
         /** Kantenlänge des Flugzeugsymbols auf der Strecke. */
         const val PLANE_SIZE_DP = 16f
+
+        /** Dauer, in der die Strecke einmal gezeichnet wird. */
+        const val ROUTE_ANIM_MS = 1800L
+
+        /**
+         * Dauer eines vollen Animationslaufs. Alle vier Fluganimationen der
+         * Distanz-Seite – der Dauerflug auf der Strecke, die Erdumrundung, der
+         * Weg zum Mond und der Weg zur Sonne – laufen in diesem Tempo, damit
+         * keine schneller wirkt als die andere.
+         */
+        const val PLANE_ANIM_MS = 10000L
+
+        /**
+         * Stützpunkt-Index, bis zu dem bei [fraction] der Strecke gezeichnet
+         * wird. Die Stützstellen des Großkreises liegen gleichmäßig, deshalb
+         * genügt der lineare Anteil. Der Wert zeigt immer auf einen echten
+         * Punkt, nie hinter das Ende der Strecke.
+         */
+        @JvmStatic
+        fun progressIndex(count: Int, fraction: Float): Int {
+            if (count < 2) return 0
+            return ((count - 1) * fraction.coerceIn(0f, 1f)).toInt().coerceIn(0, count - 1)
+        }
 
         /**
          * Drehwinkel in Grad für ein nach Norden zeigendes Flugzeugsymbol, das
@@ -219,6 +246,21 @@ class RouteMiniMapView @JvmOverloads constructor(
     private var toLabel: String? = null
     private var cityLanguage: String = Settings.CITY_LANG_NATIVE
 
+    /**
+     * In welcher Phase die Streckenanimation steckt. Ohne Animation (Vorgabe)
+     * zeichnet [PlanePhase.IDLE] die volle Strecke mit dem Flugzeug in der
+     * Mitte; das ist das Bild in der Eintragsliste. [PlanePhase.DRAWING] baut
+     * die Strecke auf, [PlanePhase.CRUISING] lässt das Flugzeug danach die
+     * fertige Strecke in der tatsächlichen Flugrichtung abfliegen.
+     */
+    private enum class PlanePhase { IDLE, DRAWING, CRUISING }
+
+    private var planePhase = PlanePhase.IDLE
+    private var routeProgress = 1f
+    private var cruiseProgress = 0f
+    private var drawAnimator: ValueAnimator? = null
+    private var cruiseAnimator: ValueAnimator? = null
+
     /** Puffer zum Entrollen der Ringe, wird wiederverwendet. */
     private var ringBuffer = FloatArray(0)
 
@@ -251,8 +293,101 @@ class RouteMiniMapView @JvmOverloads constructor(
         toLabel = toCode
         cityLanguage = Settings.getCityLabelLanguage(context)
         projection = null
+        stopAnimators()
+        planePhase = PlanePhase.IDLE
+        routeProgress = 1f
+        cruiseProgress = 0f
         requestDetails()
         invalidate()
+    }
+
+    /**
+     * Zeichnet die Strecke einmal von Anfang bis Ende und lässt das
+     * Flugzeugsymbol danach die fertige Strecke in der tatsächlichen
+     * Flugrichtung abfliegen. [onEnd] läuft nach dem Aufbau, damit die Seite
+     * darauf ihre nächste Grafik einblenden kann.
+     */
+    fun playRouteAnimation(onEnd: (() -> Unit)? = null) {
+        stopAnimators()
+        planePhase = PlanePhase.DRAWING
+        routeProgress = 0f
+        invalidate()
+        var cancelled = false
+        val animator = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = ROUTE_ANIM_MS
+            interpolator = LinearInterpolator()
+            addUpdateListener {
+                routeProgress = it.animatedValue as Float
+                invalidate()
+            }
+            addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationCancel(animation: Animator) {
+                    cancelled = true
+                }
+
+                override fun onAnimationEnd(animation: Animator) {
+                    if (drawAnimator === animation) drawAnimator = null
+                    if (cancelled) return
+                    onEnd?.invoke()
+                    // Danach fliegt das Flugzeug weiter, wie beim Mond.
+                    startCruise()
+                }
+            })
+            start()
+        }
+        drawAnimator = animator
+    }
+
+    /**
+     * Lässt das Flugzeug die fertige Strecke wiederholt in der tatsächlichen
+     * Flugrichtung abfliegen: von der Herkunft zum Ziel, nie in die
+     * Gegenrichtung.
+     */
+    private fun startCruise() {
+        planePhase = PlanePhase.CRUISING
+        cruiseProgress = 0f
+        val animator = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = PLANE_ANIM_MS
+            interpolator = LinearInterpolator()
+            repeatCount = ValueAnimator.INFINITE
+            addUpdateListener {
+                cruiseProgress = it.animatedValue as Float
+                invalidate()
+            }
+        }
+        animator.start()
+        cruiseAnimator = animator
+    }
+
+    /** Beendet die laufende Streckenanimation ohne [onEnd] auszulösen. */
+    fun cancelRouteAnimation() {
+        stopAnimators()
+        planePhase = PlanePhase.IDLE
+        routeProgress = 1f
+        cruiseProgress = 0f
+        invalidate()
+    }
+
+    private fun stopAnimators() {
+        drawAnimator?.cancel()
+        drawAnimator = null
+        cruiseAnimator?.cancel()
+        cruiseAnimator = null
+    }
+
+    /**
+     * Im Hintergrund pausieren, im Vordergrund weiterfliegen: Der Dauerflug
+     * läuft endlos und soll nicht unsichtbar weiter zeichnen.
+     */
+    override fun onWindowVisibilityChanged(visibility: Int) {
+        super.onWindowVisibilityChanged(visibility)
+        if (planePhase != PlanePhase.CRUISING) return
+        if (visibility == VISIBLE) {
+            if (cruiseAnimator == null) startCruise()
+        } else {
+            cruiseAnimator?.cancel()
+            cruiseAnimator = null
+        }
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -285,8 +420,22 @@ class RouteMiniMapView @JvmOverloads constructor(
         if (rings != null) drawLand(canvas, rings, projection)
         drawBorders(canvas, projection)
         drawCities(canvas, projection, startRect, endRect)
-        drawRoute(canvas, points, projection)
-        drawPlane(canvas, points, projection)
+        when (planePhase) {
+            PlanePhase.IDLE -> {
+                drawRoute(canvas, points, projection, 1f)
+                drawPlane(canvas, points, projection, null)
+            }
+            PlanePhase.DRAWING -> {
+                drawRoute(canvas, points, projection, routeProgress)
+                drawPlane(canvas, points, projection, routeProgress)
+            }
+            PlanePhase.CRUISING -> {
+                // Volle Strecke; das Flugzeug fliegt sie wiederholt in der
+                // tatsächlichen Flugrichtung ab (SCL nach FRA, nie zurück).
+                drawRoute(canvas, points, projection, 1f)
+                drawPlane(canvas, points, projection, cruiseProgress)
+            }
+        }
         drawBadges(canvas, points, projection, startRect, endRect)
         canvas.restore()
     }
@@ -428,12 +577,36 @@ class RouteMiniMapView @JvmOverloads constructor(
         }
     }
 
-    private fun drawRoute(canvas: Canvas, points: FloatArray, projection: Projection) {
+    private fun drawRoute(
+        canvas: Canvas,
+        points: FloatArray,
+        projection: Projection,
+        fraction: Float
+    ) {
+        val count = points.size / 2
         routePath.reset()
-        for (i in points.indices step 2) {
-            val x = projection.x(points[i].toDouble())
-            val y = projection.y(points[i + 1].toDouble())
-            if (i == 0) routePath.moveTo(x, y) else routePath.lineTo(x, y)
+        if (count < 2) return
+        val pos = (count - 1) * fraction.coerceIn(0f, 1f)
+        val last = progressIndex(count, fraction)
+        routePath.moveTo(
+            projection.x(points[0].toDouble()),
+            projection.y(points[1].toDouble())
+        )
+        for (i in 1..last) {
+            routePath.lineTo(
+                projection.x(points[i * 2].toDouble()),
+                projection.y(points[i * 2 + 1].toDouble())
+            )
+        }
+        // Den letzten Abschnitt anteilig zeichnen, damit die Spitze mit dem
+        // Flugzeugsymbol wandert statt in Stützstellen zu springen.
+        if (last < count - 1) {
+            val t = (pos - last).coerceIn(0f, 1f)
+            val ax = projection.x(points[last * 2].toDouble())
+            val ay = projection.y(points[last * 2 + 1].toDouble())
+            val bx = projection.x(points[(last + 1) * 2].toDouble())
+            val by = projection.y(points[(last + 1) * 2 + 1].toDouble())
+            routePath.lineTo(ax + (bx - ax) * t, ay + (by - ay) * t)
         }
         // Nur der Akzentstrich. Ein heller Halo darunter legte sich als weisse
         // Abstufung neben die Strecke, die wie eine zweite Linie aussah.
@@ -441,35 +614,54 @@ class RouteMiniMapView @JvmOverloads constructor(
     }
 
     /**
-     * Setzt ein Flugzeugsymbol auf die Mitte der Strecke, das in Fahrtrichtung
-     * zeigt: Von MUC nach BOS ist es nach rechts gedreht, auf dem Rückweg nach
-     * links.
+     * Setzt das Flugzeugsymbol auf die Strecke, in Flugrichtung gedreht: Von
+     * MUC nach BOS zeigt es nach rechts, also vom Abflug zum Ziel.
      *
-     * Die Richtung kommt aus der Tangente der Strecke an der Mittelstelle, also
-     * aus den Bildschirmkoordinaten des Stützpunkts davor und danach. Ein
-     * Abflug und Ziel an derselben Stelle liefern nur zwei Stützstellen und
-     * damit keine Tangente - dann bleibt die Strecke ohne Symbol.
+     * [fraction] ist die Stelle entlang der Strecke: 0 am Abflug, 1 am Ziel;
+     * `null` setzt das Symbol in die Mitte, wie in der Eintragsliste. Die
+     * Richtung kommt aus der Tangente zwischen dem Stützpunkt davor und danach,
+     * damit das Symbol im Verlauf sitzt.
      */
-    private fun drawPlane(canvas: Canvas, points: FloatArray, projection: Projection) {
+    private fun drawPlane(
+        canvas: Canvas,
+        points: FloatArray,
+        projection: Projection,
+        fraction: Float?
+    ) {
         val drawable = plane ?: return
         val count = points.size / 2
         if (count < 3) return
-        val mitte = mitte(count)
-
-        val x = projection.x(points[mitte * 2].toDouble())
-        val y = projection.y(points[mitte * 2 + 1].toDouble())
-        val dx = projection.x(points[(mitte + 1) * 2].toDouble()) - projection.x(
-            points[(mitte - 1) * 2].toDouble()
+        val pos = if (fraction == null) {
+            count / 2f
+        } else {
+            (count - 1) * fraction.coerceIn(0f, 1f)
+        }
+        val index = pos.toInt().coerceIn(0, count - 1)
+        val t = pos - index
+        val next = (index + 1).coerceAtMost(count - 1)
+        val prev = (index - 1).coerceAtLeast(0)
+        val x = lerp(
+            projection.x(points[index * 2].toDouble()),
+            projection.x(points[next * 2].toDouble()),
+            t
         )
-        val dy = projection.y(points[(mitte + 1) * 2 + 1].toDouble()) - projection.y(
-            points[(mitte - 1) * 2 + 1].toDouble()
+        val y = lerp(
+            projection.y(points[index * 2 + 1].toDouble()),
+            projection.y(points[next * 2 + 1].toDouble()),
+            t
         )
+        val dx = projection.x(points[next * 2].toDouble()) -
+            projection.x(points[prev * 2].toDouble())
+        val dy = projection.y(points[next * 2 + 1].toDouble()) -
+            projection.y(points[prev * 2 + 1].toDouble())
         if (dx == 0f && dy == 0f) return
 
         val size = PLANE_SIZE_DP * density
         val rotation = planeRotation(dx, dy)
         drawSymbol(canvas, drawable, x, y, size, rotation)
     }
+
+    private fun lerp(a: Float, b: Float, t: Float): Float = a + (b - a) * t
 
     /** Zeichnet [drawable] quadratisch um ([x], [y]) herum, um [rotation] gedreht. */
     private fun drawSymbol(

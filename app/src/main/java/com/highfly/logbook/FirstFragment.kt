@@ -601,6 +601,11 @@ class FirstFragment : Fragment() {
             id == "flights" -> {
                 findNavController().navigate(R.id.action_dashboard_to_flights_year)
             }
+            id == "distance" -> {
+                // Die Distanz-Kachel öffnet die Distanzseite mit den animierten
+                // Strecken und den Grafiken zu Erdumrundungen, Mond und Sonne.
+                findNavController().navigate(R.id.action_dashboard_to_distance_detail)
+            }
             id == "reisebuddy" -> {
                 findNavController().navigate(R.id.action_dashboard_to_travel_buddies)
             }

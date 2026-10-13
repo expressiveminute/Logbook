@@ -82,10 +82,25 @@ object DashboardStats {
 
     private val earthCircumferenceKm = 40075.0
     private val moonDistanceKm = 384400.0
-    // Mittlere Entfernung Erde-Sonne, eine astronomische Einheit (AE).
-    private val sunDistanceKm = 149_600_000.0
     // Eine nautische Meile (nm) entspricht 1,852 Kilometern.
     private const val NAUTICAL_MILE_KM = 1.852
+
+    /** Mittlere Entfernung Erde–Sonne in Kilometern (eine astronomische Einheit). */
+    const val SUN_DISTANCE_KM = 149_600_000
+
+    // Dieselbe Strecke als Fließkommazahl für die Faktor-Rechnung.
+    private val sunDistanceKm = SUN_DISTANCE_KM.toDouble()
+
+    /**
+     * Anteil der Strecke zur Sonne in Prozent, den [totalKm] abdeckt. Die
+     * Distanz-Detailseite zeigt damit "erreicht" und "verbleibend"; der
+     * Faktor [DistanceDetails.sunTrips] ist derselbe Anteil, nur als Vielfaches
+     * einer astronomischen Einheit statt in Prozent.
+     */
+    fun sunPercentReached(totalKm: Int): Double = totalKm / sunDistanceKm * 100.0
+
+    /** Strecke zur Sonne in Kilometern, die noch fehlt (nie negativ). */
+    fun sunRemainingKm(totalKm: Int): Int = (SUN_DISTANCE_KM - totalKm).coerceAtLeast(0)
 
     fun distanceDetails(context: Context, entries: List<LogbookEntry>): DistanceDetails {
         val withDistance = flyingEntries(entries).filter { it.distanceKm != null }

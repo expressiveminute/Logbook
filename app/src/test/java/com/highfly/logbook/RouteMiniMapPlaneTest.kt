@@ -52,4 +52,19 @@ class RouteMiniMapPlaneTest {
             assertTrue("Anzahl $anzahl", mitte in 1 until anzahl)
         }
     }
+
+    @Test
+    fun fortschrittZeigtImmerAufGueltigenStuetzpunkt() {
+        // Am Anfang der erste, am Ende der letzte Punkt, dazwischen linear.
+        assertEquals(0, RouteMiniMapView.progressIndex(49, 0f))
+        assertEquals(48, RouteMiniMapView.progressIndex(49, 1f))
+        assertEquals(24, RouteMiniMapView.progressIndex(49, 0.5f))
+        // Rundungsfehler und Werte ausserhalb 0..1 duerfen nicht aus der
+        // Strecke laufen.
+        assertEquals(0, RouteMiniMapView.progressIndex(49, -3f))
+        assertEquals(48, RouteMiniMapView.progressIndex(49, 4f))
+        // Zu kurze Strecken liefern weiterhin einen gueltigen Index.
+        assertEquals(0, RouteMiniMapView.progressIndex(0, 0.5f))
+        assertEquals(0, RouteMiniMapView.progressIndex(1, 0.5f))
+    }
 }
