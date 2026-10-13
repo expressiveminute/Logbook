@@ -31,6 +31,9 @@
         <action
             android:id="@+id/action_dashboard_to_visited_countries"
             app:destination="@id/nav_visited_countries" />
+        <action
+            android:id="@+id/action_dashboard_to_co2_offset"
+            app:destination="@id/nav_co2_offset" />
     </fragment>
 
     <fragment
@@ -233,4 +236,12 @@
         android:id="@+id/nav_travel_buddies"
         android:name="com.highfly.logbook.TravelBuddyFragment"
         tools:layout="@layout/fragment_travel_buddies" />
+
+    <!-- Seite "CO₂-Ausgleich": Karte des Abfluglands mit dem meistgenutzten
+         Flughafen und dem animierten Wald. Sie öffnet die CO₂-Kachel des
+         Dashboards. -->
+    <fragment
+        android:id="@+id/nav_co2_offset"
+        android:name="com.highfly.logbook.Co2OffsetFragment"
+        tools:layout="@layout/fragment_co2_offset" />
 </navigation>

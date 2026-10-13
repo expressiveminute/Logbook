@@ -593,6 +593,11 @@ class FirstFragment : Fragment() {
             id == "worldmap" -> {
                 findNavController().navigate(R.id.action_dashboard_to_world_map)
             }
+            id == "co2" -> {
+                // Die CO₂-Kachel öffnet die Ausgleichsseite: Karte des
+                // Abfluglands mit dem animierten Wald in der nötigen Fläche.
+                findNavController().navigate(R.id.action_dashboard_to_co2_offset)
+            }
             id == "flights" -> {
                 findNavController().navigate(R.id.action_dashboard_to_flights_year)
             }

@@ -58,6 +58,17 @@ einspielen – der Generator ordnet ihn per `ident`, notfalls per Koordinate, zu
 Felder in *Neuer Flug* erlauben vier Zeichen nur, wenn das erste `X` ist
 (`AddEntryFragment.airportCodeLengthFilter`).
 
+## Karte „CO₂-Ausgleich"
+
+Die Seite zeigt die nötige Pflanzfläche als Kreis in **echtem Maßstab** (Radius in Metern aus
+der Fläche) auf einer offline gezeichneten Karte. Weil der Ausschnitt dabei sehr eng wird,
+liegen unter `assets/cities_near.json` Ankerorte im Umkreis von 100 km um die Flughäfen
+Frankfurt (FRA) und München (MUC); `NearbyCities` lädt sie, die Karte zeichnet die größten
+davon mit Namen. Erzeugt wird die Datei von `tools/build_cities_near.py` aus GeoNames
+`cities5000` (Stadtteile, feature code `PPLX`, fallen heraus; deutsche/englische Schreibweise
+kommt aus `cities.json`). Unten links zeigt ein Maßband (`ScaleBar`) die abgedeckte Entfernung
+an – nur diese eine Karte nutzt beides.
+
 ## Einstellungen – Aufbau nicht eigenmächtig ändern
 
 Jede Einstellung ist eine Zeile in `fragment_settings_section.xml`: **links** steht immer die
