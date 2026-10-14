@@ -253,6 +253,9 @@ class SettingsSectionFragment : Fragment() {
     }
 
     private fun setupCustomization() {
+        binding.btnEditDashboard.setOnClickListener {
+            findNavController().navigate(R.id.action_settings_section_to_dashboard_edit)
+        }
         binding.langDeTile.setOnClickListener { applyLanguage(Settings.LANG_DE) }
         binding.langEnTile.setOnClickListener { applyLanguage(Settings.LANG_EN) }
         updateLanguageTiles()

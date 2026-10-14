@@ -124,6 +124,9 @@ feines Küstenbild.
 Die Abschnitte werden nacheinander eingeblendet: erst nach der Strecke des längsten Flugs die des
 kürzesten, danach die drei Grafiken; jede Zahl zählt erst beim Erscheinen ihres Abschnitts hoch. Die
 Grafik-Abschnitte folgen einander im festen `REVEAL_MS`-Takt, unabhängig von den Animationsdauern.
+Weil die Seite dabei nach unten wächst, führt `scrollIntoView` (aus `reveal`, erst nach dem
+Neuvermessen per `doOnLayout`) jeweils so weit nach, dass der neue Abschnitt zu sehen ist – bei
+einem Abschnitt, der höher als der Bildbereich ist, bleibt dessen Oberkante oben stehen.
 Die
 endlosen Animationen pausieren mit `onWindowVisibilityChanged`, wenn die Seite in den Hintergrund
 geht.

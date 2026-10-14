@@ -397,6 +397,21 @@
 
                 <TextView
                     style="@style/SettingsRowLabel"
+                    android:text="@string/settings_dashboard_layout" />
+
+                <LinearLayout style="@style/SettingsRowValue">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_edit_dashboard"
+                        style="@style/SettingsActionButton"
+                        android:text="@string/dashboard_edit_action" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout style="@style/SettingsRow">
+
+                <TextView
+                    style="@style/SettingsRowLabel"
                     android:text="@string/settings_language" />
 
                 <LinearLayout style="@style/SettingsRowValue">

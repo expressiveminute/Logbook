@@ -129,7 +129,15 @@
         <action
             android:id="@+id/action_settings_section_to_import"
             app:destination="@id/nav_import" />
+        <action
+            android:id="@+id/action_settings_section_to_dashboard_edit"
+            app:destination="@id/nav_dashboard_edit" />
     </fragment>
+
+    <fragment
+        android:id="@+id/nav_dashboard_edit"
+        android:name="com.highfly.logbook.DashboardEditFragment"
+        tools:layout="@layout/fragment_dashboard_edit" />
 
     <fragment
         android:id="@+id/nav_import"

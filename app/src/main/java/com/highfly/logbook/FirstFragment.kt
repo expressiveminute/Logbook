@@ -170,8 +170,21 @@ class FirstFragment : Fragment() {
         }
         container.visibility = View.VISIBLE
 
-        val role = Settings.getRole(requireContext())
-        rows.forEachIndexed { rowIndex, rowIds ->
+        val context = requireContext()
+        val spans = DashboardPrefs.spansWithDefaults(context)
+        val scale = DashboardPrefs.readScale(context)
+        // Das Raster selbst bleibt fest; die Grösse verkleinert nur die Kacheln
+        // in ihrer Zelle (siehe [tileContainer.scaleX] weiter unten).
+        binding.dashboardContent.setPadding(
+            dp(GRID_PADDING_DP), dp(GRID_PADDING_DP),
+            dp(GRID_PADDING_DP), dp(GRID_PADDING_DP)
+        )
+
+        val role = Settings.getRole(context)
+        // Die Zeilenaufteilung folgt immer den aktuellen Kachelbreiten, damit
+        // eine geänderte Grösse sofort stimmt.
+        val packedRows = DashboardPrefs.packRows(rows.flatten(), spans)
+        packedRows.forEachIndexed { rowIndex, rowIds ->
             // Kacheln, die zur Rolle nicht passen (Layover, Funktion), fehlen
             // hier ganz; die Spalten richten sich nur nach den sichtbaren.
             val visibleIds = rowIds.filter { DashboardPrefs.isTileAvailable(it, role) }
@@ -182,7 +195,7 @@ class FirstFragment : Fragment() {
             // Zaehlt nur tatsaechlich sichtbare Kacheln, damit eine
             // ausgeblendete Kachel die Spalten danach nicht verschiebt.
             var column = 0
-            visibleIds.forEachIndexed { index, tileId ->
+            visibleIds.forEach { tileId ->
                 val isDistance = tileId == "distance"
                 val isCo2 = tileId == "co2"
                 val isTime = tileId == "time"
@@ -284,6 +297,7 @@ class FirstFragment : Fragment() {
 
                 val card = tileContainer.findViewById<com.google.android.material.card.MaterialCardView>(R.id.tile_card)
                 card.tag = tileId
+                card.radius = dp(CARD_RADIUS_DP).toFloat()
                 DashboardTileColors.apply(
                     card,
                     DashboardPrefs.TilePosition(rowIndex, column)
@@ -296,14 +310,28 @@ class FirstFragment : Fragment() {
                     }
                 }
 
-                val params = LinearLayout.LayoutParams(0, tileHeight(tile), 1f)
-                params.topMargin = dp(8)
-                if (visibleIds.size > 1) {
-                    params.rightMargin =
-                        if (index < visibleIds.lastIndex) dp(4) else dp(0)
-                }
+                // Die Kachelbreite folgt ihrer Spaltenzahl (1..3). Kacheln, die
+                // nicht mehr in die laufende Zeile passen, hat [packRows] schon
+                // in die nächste Zeile geschoben.
+                val span = DashboardPrefs.spanOf(spans, tileId)
+                val params = LinearLayout.LayoutParams(0, tileHeight(tile), span.toFloat())
+                // Vorläufige Verkleinerung; die Aussenkanten der Breite werden
+                // nach dem Vermessen spaltenweise angeglichen (siehe
+                // [applyHorizontalScale]). Die Höhe schrumpft gleichmässig.
+                tileContainer.scaleX = scale
+                tileContainer.scaleY = scale
                 row.addView(tileContainer, params)
                 column++
+            }
+            // Fehlende Spalten bleiben leer: die Kacheln behalten ihre Breite,
+            // statt sich über die ganze Zeile zu strecken.
+            val remaining = DashboardPrefs.SPAN_FULL -
+                visibleIds.sumOf { DashboardPrefs.spanOf(spans, it) }
+            if (remaining > 0) {
+                row.addView(
+                    View(requireContext()),
+                    LinearLayout.LayoutParams(0, 1, remaining.toFloat())
+                )
             }
             container.addView(row)
         }
@@ -316,7 +344,8 @@ class FirstFragment : Fragment() {
         container.viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
             override fun onGlobalLayout() {
                 container.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                resizeStatTiles(container)
+                resizeStatTiles(container, spans)
+                applyHorizontalScale(container, scale)
                 fitTileTopValues(container)
                 updateFabVisibility()
             }
@@ -326,14 +355,13 @@ class FirstFragment : Fragment() {
     /**
      * Feste Kachelhöhen wachsen mit der Systemschrift: Bei grosser Schrift
      * passt der Inhalt sonst nicht mehr in die Kachel und wird abgeschnitten.
+     * Die vom Nutzer gewählte Kachel-Grösse wirkt nicht hier, sondern als
+     * gleichmässiges Schrumpfen der fertigen Kachel.
      */
     private fun tileHeight(tile: DashboardPrefs.Tile): Int =
-        dp((tile.heightDp * fontScale()).roundToInt())
+        dp((tile.heightDp * DashboardTileScaling.fontScale(requireView())).roundToInt())
 
-    private fun fontScale(): Float =
-        resources.configuration.fontScale.coerceIn(1f, MAX_TILE_FONT_SCALE)
-
-    private fun resizeStatTiles(container: LinearLayout) {
+    private fun resizeStatTiles(container: LinearLayout, spans: Map<String, Int>) {
         for (i in 0 until container.childCount) {
             val row = container.getChildAt(i) as? LinearLayout ?: continue
             for (j in 0 until row.childCount) {
@@ -346,7 +374,7 @@ class FirstFragment : Fragment() {
                 if (tileId == "co2") {
                     // Full width, but as flat as a regular (square) tile.
                     val target = maxOf(
-                        (tileContainer.width - dp(8)) / 3,
+                        tileContainer.width / 3,
                         dp(88),
                         minHeight
                     )
@@ -357,13 +385,38 @@ class FirstFragment : Fragment() {
                     }
                     continue
                 }
-                if (tile.span > 1) continue
+                // Nur die kleinen (ursprünglich einspaltigen) Kacheln sind so
+                // hoch wie eine Spalte breit ist. Dadurch bleibt die Höhe
+                // erhalten, wenn eine Kachel auf 2 oder 3 Spalten verbreitert
+                // wird. Die vollbreiten Kacheln behalten ihre eigene Höhe.
+                if (DashboardPrefs.defaultSpan(tileId) != 1) continue
                 val params = tileContainer.layoutParams
-                val target = maxOf(tileContainer.width, minHeight)
+                val target = maxOf(row.width / 3, minHeight)
                 if (params.height != target) {
                     params.height = target
                     tileContainer.layoutParams = params
                 }
+            }
+        }
+    }
+
+    /**
+     * Gleicht die Aussenbreite aller Kacheln an. Statt jede Kachel um denselben
+     * Anteil ihrer eigenen Breite zu verkleinern (was eine 3-Spalten-Kachel
+     * dreimal so stark schrumpfen liesse wie eine 1-Spalten-Kachel), rückt jede
+     * Kachel an jeder Seite um eine halbe Spalte mal (1 - [scale]) nach innen.
+     * So ist eine 3-Spalten-Kachel genau so breit wie drei 1-Spalten-Kacheln
+     * samt ihren Zwischenräumen.
+     */
+    private fun applyHorizontalScale(container: LinearLayout, scale: Float) {
+        if (container.width == 0) return
+        val column = container.width / 3f
+        for (i in 0 until container.childCount) {
+            val row = container.getChildAt(i) as? LinearLayout ?: continue
+            for (j in 0 until row.childCount) {
+                val tile = row.getChildAt(j) as? ViewGroup ?: continue
+                if (tile.width == 0) continue
+                tile.scaleX = (1f - (1f - scale) * column / tile.width).coerceIn(0f, 1f)
             }
         }
     }
@@ -632,8 +685,11 @@ class FirstFragment : Fragment() {
         (value * resources.displayMetrics.density).toInt()
 
     private companion object {
-        /** Obergrenze fuer die Schrift-Skalierung der Kachelhöhen. */
-        const val MAX_TILE_FONT_SCALE = 1.4f
+        /** Fester Aussenrand des Dashboards; das Raster bleibt unverändert. */
+        const val GRID_PADDING_DP = 16
+
+        /** Feste Eckenrundung der Kacheln. */
+        const val CARD_RADIUS_DP = 16
 
         /** Platz, den der Hinweis auf geplante Fluege rechts beansprucht. */
     }

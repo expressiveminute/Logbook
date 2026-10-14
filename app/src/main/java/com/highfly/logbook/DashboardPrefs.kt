@@ -241,15 +241,164 @@ object DashboardPrefs {
         listOf("co2")
     )
 
+    /**
+     * Grenzen und Standard der globalen Kachel-Grösse, siehe [readScale].
+     *
+     * Die Grösse ist der Anteil der Rasterzelle, den die Kachel füllt: 100 %
+     * heisst, dass die Kacheln ohne Zwischenraum aneinanderstossen, darunter
+     * schrumpfen sie gleichmässig in ihrer Zelle. Standard ist 95 %.
+     */
+    const val MIN_SCALE = 0.85f
+    const val MAX_SCALE = 1.00f
+    const val DEFAULT_SCALE = 0.95f
+
+    /**
+     * Der Schieber rechnet in ganzen Prozent (85..100, Schritt 1). Eine krumme
+     * Schrittweite wie 0,01 lässt Material den letzten Rastpunkt verlieren:
+     * `1,0f - 0,85f` ergibt als Fliesskommazahl 0,14999998, geteilt durch 0,01
+     * also 14,999998 – Material zeichnet dann 15 statt 16 Punkte und verteilt
+     * sie über die ganze Breite. Der Regler läge zwischen den Punkten. Ganze
+     * Zahlen treffen das Raster exakt.
+     */
+    const val MIN_PERCENT = 85
+    const val MAX_PERCENT = 100
+    const val DEFAULT_PERCENT = 95
+
     private const val PREF_NAME = "dashboard_layout"
     private const val KEY_TILES = "tiles_standard_v14"
+    private const val KEY_SPANS = "tile_spans_v1"
+    private const val KEY_SCALE = "tile_scale_v1"
     private const val ROW_SEPARATOR = ";"
+    private const val SPAN_SEPARATOR = "="
 
     private fun prefs(context: Context): SharedPreferences =
         context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
 
     fun tileById(id: String): Tile =
         CATALOG.firstOrNull { it.id == id } ?: CATALOG.first()
+
+    /** Standardbreite einer Kachel in Spalten (1..[SPAN_FULL]). */
+    fun defaultSpan(tileId: String): Int = tileById(tileId).span.coerceIn(1, SPAN_FULL)
+
+    /**
+     * Die vom Nutzer gewählten Kachelbreiten (Spalten 1..[SPAN_FULL]). Nur
+     * Kacheln mit einer eigenen Breite stehen hier; alle anderen nutzen ihren
+     * Standard aus dem [CATALOG].
+     */
+    fun readSpans(context: Context): Map<String, Int> {
+        val stored = prefs(context).getString(KEY_SPANS, null) ?: return emptyMap()
+        val result = mutableMapOf<String, Int>()
+        stored.split(ROW_SEPARATOR).forEach { part ->
+            val pair = part.split(SPAN_SEPARATOR)
+            if (pair.size != 2) return@forEach
+            val id = pair[0]
+            if (CATALOG.none { it.id == id }) return@forEach
+            val span = pair[1].toIntOrNull() ?: return@forEach
+            result[id] = span.coerceIn(1, SPAN_FULL)
+        }
+        return result
+    }
+
+    fun writeSpans(context: Context, spans: Map<String, Int>) {
+        // Nur abweichende Breiten speichern; unveränderte Kacheln bleiben beim
+        // Standard aus dem CATALOG und übernehmen spätere Änderungen daran.
+        val clean = spans
+            .filterKeys { id -> CATALOG.any { it.id == id } }
+            .mapValues { (_, value) -> value.coerceIn(1, SPAN_FULL) }
+            .filter { (id, value) -> value != defaultSpan(id) }
+        prefs(context).edit().putString(
+            KEY_SPANS,
+            clean.entries.joinToString(ROW_SEPARATOR) {
+                "${it.key}$SPAN_SEPARATOR${it.value}"
+            }
+        ).apply()
+    }
+
+    /** Breite aller Kacheln inklusive Standard, fertig zum Zeichnen. */
+    fun spansWithDefaults(context: Context): Map<String, Int> {
+        val stored = readSpans(context)
+        return CATALOG.associate { it.id to (stored[it.id] ?: defaultSpan(it.id)) }
+    }
+
+    fun spanOf(spans: Map<String, Int>, tileId: String): Int =
+        (spans[tileId] ?: defaultSpan(tileId)).coerceIn(1, SPAN_FULL)
+
+    /**
+     * Globale Kachel-Grösse: der Anteil der Rasterzelle, den eine Kachel füllt.
+     * Bei 1.0 stossen die Kacheln ohne Zwischenraum aneinander, darunter
+     * schrumpfen sie gleichmässig in ihrer Zelle, während das Raster selbst
+     * unverändert bleibt.
+     *
+     * Der Wert wird auf das Raster des Schiebers gerundet: Ein früher einmal
+     * frei gezogener Wert (etwa 1.0214286) liegt sonst nicht auf einem
+     * Vielfachen der Schrittweite und der Schieber stürzt beim Aufbau ab.
+     */
+    fun readScale(context: Context): Float =
+        snapScale(prefs(context).getFloat(KEY_SCALE, DEFAULT_SCALE))
+
+    fun writeScale(context: Context, value: Float) {
+        prefs(context).edit()
+            .putFloat(KEY_SCALE, snapScale(value))
+            .apply()
+    }
+
+    /** Prozentwert des Schiebers (85..100) zu einer Kachel-Grösse. */
+    fun scaleToPercent(scale: Float): Int =
+        (scale * 100f).roundToInt().coerceIn(MIN_PERCENT, MAX_PERCENT)
+
+    /** Kachel-Grösse zu einem Prozentwert des Schiebers. */
+    fun percentToScale(percent: Int): Float =
+        percent.coerceIn(MIN_PERCENT, MAX_PERCENT) / 100f
+
+    /** Rundet eine Grösse auf ganze Prozent und begrenzt sie. */
+    fun snapScale(value: Float): Float = percentToScale(scaleToPercent(value))
+
+    /** Reihenfolge der sichtbaren Kacheln, zeilenweise gelesen. */
+    fun readFlat(context: Context): List<String> = readRows(context).flatten()
+
+    /**
+     * Schreibt die flache Reihenfolge als Zeilen. Fortlaufend werden bis zu
+     * [SPAN_FULL] Spalten gefüllt; passt eine Kachel nicht mehr hinein, beginnt
+     * eine neue Zeile. Eine Zeile, die nicht ganz aufgeht, lässt die restlichen
+     * Spalten leer; die Kacheln behalten ihre Breite.
+     */
+    fun writeFlat(context: Context, flat: List<String>, spans: Map<String, Int>) {
+        writeRows(context, packRows(flat, spans))
+    }
+
+    /** Gruppiert die flache Reihenfolge zu Zeilen von höchstens [SPAN_FULL] Spalten. */
+    fun packRows(flat: List<String>, spans: Map<String, Int>): List<List<String>> {
+        val result = mutableListOf<List<String>>()
+        var current = mutableListOf<String>()
+        var columns = 0
+        for (id in flat) {
+            if (CATALOG.none { it.id == id }) continue
+            val span = spanOf(spans, id)
+            if (columns + span > SPAN_FULL) {
+                result.add(current)
+                current = mutableListOf()
+                columns = 0
+            }
+            current.add(id)
+            columns += span
+            if (columns == SPAN_FULL) {
+                result.add(current)
+                current = mutableListOf()
+                columns = 0
+            }
+        }
+        if (current.isNotEmpty()) result.add(current)
+        return result
+    }
+
+    /** Setzt Layout und Grösse auf den Standard zurück. */
+    fun resetToDefault(context: Context) {
+        writeRows(context, DEFAULT_ROWS)
+        prefs(context).edit()
+            .remove(KEY_SPANS)
+            .remove(KEY_SCALE)
+            .apply()
+    }
 
     /**
      * Ob eine Kachel zur Rolle passt. Layover und Funktion sind reine
@@ -274,8 +423,9 @@ object DashboardPrefs {
         val rows = stored.split(ROW_SEPARATOR)
             .map { row -> row.split(",").filter { it.isNotBlank() } }
             .filter { it.isNotEmpty() }
-        val cleanedRows = cleanRows(rows)
-        return if (cleanedRows.isEmpty()) DEFAULT_ROWS else cleanedRows
+        // Fehlt der Schlüssel, gilt der Standard; ist er vorhanden, aber leer,
+        // hat der Nutzer alle Kacheln ausgeblendet - dann bleibt das Raster leer.
+        return cleanRows(rows)
     }
 
     fun writeRows(context: Context, rows: List<List<String>>) {

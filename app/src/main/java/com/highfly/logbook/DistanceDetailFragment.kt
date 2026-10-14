@@ -11,6 +11,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.core.view.doOnLayout
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.color.MaterialColors
@@ -236,6 +237,33 @@ class DistanceDetailFragment : Fragment() {
         view.visibility = View.VISIBLE
         view.alpha = 0f
         view.animate().alpha(1f).setDuration(300).start()
+        scrollIntoView(view)
+    }
+
+    /**
+     * Schiebt einen gerade eingeblendeten Abschnitt ins Bild. Die Seite wächst
+     * beim Öffnen Stück für Stück nach unten; ohne das Nachführen bliebe der
+     * untere Teil ausserhalb des Bildschirms. Nach dem Einblenden (also nach dem
+     * Neuvermessen) wird so weit gescrollt, dass der Abschnitt vollständig zu
+     * sehen ist. Ist er höher als der Bildbereich, bleibt seine Oberkante oben
+     * stehen, damit Überschrift und Grafik sichtbar sind.
+     */
+    private fun scrollIntoView(view: View) {
+        val scroll = binding.scrollView
+        view.doOnLayout {
+            if (_binding == null) return@doOnLayout
+            val viewport = scroll.height
+            if (viewport == 0) return@doOnLayout
+            // Schon komplett sichtbar: nicht unnötig nachführen.
+            if (view.bottom <= scroll.scrollY + viewport) return@doOnLayout
+            val sectionHeight = view.bottom - view.top
+            val target = if (sectionHeight <= viewport) {
+                view.bottom - viewport
+            } else {
+                view.top
+            }
+            scroll.smoothScrollTo(0, target.coerceAtLeast(0))
+        }
     }
 
     /**
