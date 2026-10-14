@@ -124,6 +124,12 @@
         android:layout_height="0dp"
         android:layout_weight="1">
 
+        <!-- Dekorative Flugzeuge als Unterlage: Sie fliegen hinter der Liste
+             und tauchen in den Lücken zwischen den Kacheln auf. -->
+        <com.highfly.logbook.PlaneBackgroundView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/entries_list"
             android:layout_width="match_parent"

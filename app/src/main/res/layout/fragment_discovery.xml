@@ -7,6 +7,16 @@
     android:background="?android:attr/colorBackground"
     tools:context=".DiscoveryFragment">
 
+    <!-- Dekorative Flugzeuge als Unterlage: Sie fliegen hinter Liste und Kopf
+         und tauchen in den Lücken zwischen den Kacheln auf. -->
+    <com.highfly.logbook.PlaneBackgroundView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
     <LinearLayout
         android:id="@+id/header"
         android:layout_width="match_parent"

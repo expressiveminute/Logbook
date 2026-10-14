@@ -135,6 +135,39 @@ Der Abstand zwischen dem Richtungsbuchstaben und dem Dreilettercode auf dem Komp
 wird vergrößert, ohne den Code abzuschneiden: `clampCodeRadius()` holt den Code auf schmalen
 Geräten so weit herein, wie der Platz es zulässt.
 
+## Hintergrund-Flugzeuge (Einträge, Discovery, Dashboard)
+
+Die drei Seiten *Einträge*, *Discovery* und *Dashboard* legen als erste Kindansicht eine
+`PlaneBackgroundView` unter ihren Inhalt. Sie zeichnet kleine Flugzeuge, die langsam in großen
+Kurven über den Bildschirm ziehen und eine gestrichelte Spur hinterlassen, die verblasst. Die
+Ansicht ist reine Unterlage und weder anklickbar noch fokussierbar – Tippen geht ungehindert an
+die Liste bzw. die Kacheln. Sichtbar werden die Flugzeuge deshalb nur in den Lücken, Rändern und
+Abständen zwischen den Kacheln.
+
+Jede Bahn ist eine zufällige kubische Bézier-Kurve von einem Bildrand zum gegenüberliegenden, in
+`PATH_SAMPLES` Stützstellen zerlegt. Start- und Zielrand liegen gegenüber (`(startEdge + 2) % 4`).
+Die beiden Kontrollpunkte weichen unabhängig seitlich aus (`curveControls`, Ausschlag `CURVE_BEND`
+der Sehnenlänge): gleiche Richtung ergibt einen Bogen, entgegengesetzte eine S-Kurve mit zwei
+Bögen, sodass die Flieger deutlich geschwungen und aus jeder Richtung fliegen und das Bild an der
+anderen Seite verlassen. Beim Öffnen der Seite starten `INITIAL_PLANE_COUNT` Flugzeuge
+sofort (nur winzig versetzt) und verteilt über alle vier Ränder; neue kommen später aus einem
+gerade freien Rand (`pickEdge`), damit sie möglichst aus verschiedenen Richtungen einfliegen.
+Höchstens `MAX_PLANES` = 6 sind gleichzeitig unterwegs, alle teilen die Grundgeschwindigkeit
+`PLANE_SPEED_PX_PER_S`. Die Spur besteht aus zeitgestempelten Punkten und wird in `TRAIL_CHUNKS`
+Blöcke geteilt gezeichnet, jeder Block mit dem Verblassungsgrad seines jüngsten Punktes; nach
+`TRAIL_FADE_MS` ist ein Punkt verschwunden. Weil die Flugzeuge langsam sind, wird die Spur dadurch
+sehr lang und bleibt lange stehen.
+
+Die Animation läuft nur, solange die Ansicht sichtbar ist (`onWindowVisibilityChanged`), und
+schweigt, wenn der Nutzer Systemanimationen abgeschaltet hat
+(`Settings.Global.ANIMATOR_DURATION_SCALE` = 0). Die reine Geometrie – `cubicPoint`, `sampleCubic`,
+`pointAt`, `planeRotation`, `pathLength` im Companion – prüft `PlaneBackgroundViewTest`.
+
+**Rückbau:** Die drei `<com.highfly.logbook.PlaneBackgroundView …>`-Einträge aus
+`fragment_entries.xml`, `fragment_discovery.xml` und `fragment_first.xml` entfernen, dann
+`PlaneBackgroundView.kt` und `PlaneBackgroundViewTest.kt` löschen. `ic_flight` wird auch
+andernorts verwendet und bleibt.
+
 ## Einstellungen – Aufbau nicht eigenmächtig ändern
 
 Jede Einstellung ist eine Zeile in `fragment_settings_section.xml`: **links** steht immer die
