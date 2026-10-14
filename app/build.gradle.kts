@@ -15,8 +15,8 @@ android {
         // Muss zum GitHub-Release passen. versionCode MUSS bei jedem Release
         // steigen, sonst erkennt Obtainium kein Update (oder Android blockt
         // es als Downgrade).
-        versionCode = 20
-        versionName = "0.0.20"
+        versionCode = 21
+        versionName = "0.0.21"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
