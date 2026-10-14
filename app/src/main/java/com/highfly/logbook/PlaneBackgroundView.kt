@@ -42,14 +42,25 @@ class PlaneBackgroundView @JvmOverloads constructor(
     attrs: AttributeSet? = null
 ) : View(context, attrs) {
 
-    /** Ein aufgezeichneter Punkt der verblassenden Spur mit seinem Alter. */
-    private class TrailPoint(val x: Float, val y: Float, val timestamp: Long)
+    /**
+     * Ein aufgezeichneter Punkt der verblassenden Spur mit seinem Alter. [dist]
+     * ist die Strecke vom Bahnanfang bis hierher und dient als fester Anker für
+     * das Strichmuster, siehe [drawTrail].
+     */
+    private class TrailPoint(
+        val x: Float,
+        val y: Float,
+        val timestamp: Long,
+        val dist: Float
+    )
 
     /** Ein Flugzeug samt seiner festen Bahn und der bisherigen Spur. */
     private class Plane(
-        val startTime: Long,
+        var startTime: Long,
         val durationMs: Long,
         val points: FloatArray,
+        /** Kumulierte Strecke bis zu jeder Stützstelle, für [arcLengthAt]. */
+        val cumulative: FloatArray,
         val startEdge: Int,
         val trail: MutableList<TrailPoint> = ArrayList(),
         var lastTrailAt: Long = 0L,
@@ -74,6 +85,10 @@ class PlaneBackgroundView @JvmOverloads constructor(
     private val planeBounds = Rect()
     private val trailPath = Path()
 
+    /** Strichmuster der Spur (an, aus) und dessen Gesamtlänge. */
+    private var dashIntervals = FloatArray(0)
+    private var dashPeriod = 1f
+
     private val trailPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeCap = Paint.Cap.ROUND
@@ -95,9 +110,9 @@ class PlaneBackgroundView @JvmOverloads constructor(
             com.google.android.material.R.attr.colorOnSurfaceVariant
         )
         trailPaint.strokeWidth = 1.2f * density
-        trailPaint.pathEffect = DashPathEffect(
-            floatArrayOf(3f * density, 3.5f * density), 0f
-        )
+        dashIntervals = floatArrayOf(3f * density, 3.5f * density)
+        dashPeriod = dashIntervals.sum()
+        trailPaint.pathEffect = DashPathEffect(dashIntervals, 0f)
     }
 
     override fun onAttachedToWindow() {
@@ -136,12 +151,11 @@ class PlaneBackgroundView @JvmOverloads constructor(
         planes.clear()
         val now = SystemClock.uptimeMillis()
         lastSpawnAt = now
-        // Beim Öffnen der Seite sofort einfliegen: Die Startflugzeuge beginnen
-        // fast gleichzeitig am Rand (nur winzig versetzt) und kommen dabei aus
-        // verschiedenen Richtungen.
+        // Beim Öffnen der Seite starten mehrere Flugzeuge verteilt über alle
+        // vier Ränder (siehe [addPlane], das den Anflug-Vorsprung setzt).
         val offset = random.nextInt(4)
         repeat(INITIAL_PLANE_COUNT) { i ->
-            addPlane(now - random.nextInt(INITIAL_STAGGER_MS), (offset + i) % 4)
+            addPlane(now, (offset + i) % 4)
         }
 
         animator?.cancel()
@@ -195,9 +209,19 @@ class PlaneBackgroundView @JvmOverloads constructor(
         false
     }
 
-    private fun addPlane(startTime: Long, startEdge: Int) {
+    private fun addPlane(now: Long, startEdge: Int) {
         if (width == 0 || height == 0) return
-        planes.add(createPlane(startTime, startEdge))
+        val plane = createPlane(startEdge)
+        // Die Bahn beginnt ausserhalb des Bildes ([edgePoint] mit Rand).
+        // [entryFraction] nennt den Anteil, bei dem sie das Bild betritt; der
+        // Vorsprung zieht die Startzeit so weit zurück, dass das Flugzeug rund
+        // [ENTER_DELAY_MS] nach dem Erscheinen am Rand einfliegt statt erst
+        // nach der ganzen Anflugstrecke.
+        val entry = entryFraction(plane.points, width.toFloat(), height.toFloat()) *
+            plane.durationMs
+        val delay = ENTER_DELAY_MS + random.nextInt(ENTER_STAGGER_MS)
+        plane.startTime = now + delay - entry.toLong()
+        planes.add(plane)
     }
 
     /**
@@ -205,9 +229,9 @@ class PlaneBackgroundView @JvmOverloads constructor(
      * beide außerhalb des Bildes. Die beiden Kontrollpunkte werden unabhängig
      * senkrecht zur Verbindung verschoben, wodurch große Bögen und S-Kurven
      * entstehen. Die Bahn kommt deshalb aus jeder Himmelsrichtung und verlässt
-     * das Bild an der gegenüberliegenden Seite.
+     * das Bild an der gegenüberliegenden Seite. Die Startzeit setzt [addPlane].
      */
-    private fun createPlane(startTime: Long, startEdge: Int): Plane {
+    private fun createPlane(startEdge: Int): Plane {
         val w = width.toFloat()
         val h = height.toFloat()
         val margin = max(w, h) * 0.12f
@@ -236,13 +260,15 @@ class PlaneBackgroundView @JvmOverloads constructor(
         val points = sampleCubic(
             start[0], start[1], c1x, c1y, c2x, c2y, end[0], end[1], PATH_SAMPLES
         )
+        val cumulative = cumulativeLengths(points)
 
         val speed = PLANE_SPEED_PX_PER_S * (0.8f + random.nextFloat() * 0.4f)
-        val duration = max(MIN_DURATION_MS, (pathLength(points) / speed * 1000f).toLong())
+        val duration = max(MIN_DURATION_MS, (cumulative.last() / speed * 1000f).toLong())
         return Plane(
-            startTime = startTime,
+            startTime = 0L,
             durationMs = duration,
             points = points,
+            cumulative = cumulative,
             startEdge = startEdge
         )
     }
@@ -269,7 +295,12 @@ class PlaneBackgroundView @JvmOverloads constructor(
             plane.angle = planeRotation(plane.points, plane.progress)
 
             if (plane.progress < 1f && now - plane.lastTrailAt >= TRAIL_SAMPLE_MS) {
-                plane.trail.add(TrailPoint(pos[0], pos[1], now))
+                plane.trail.add(
+                    TrailPoint(
+                        pos[0], pos[1], now,
+                        arcLengthAt(plane.cumulative, plane.progress)
+                    )
+                )
                 plane.lastTrailAt = now
             } else if (plane.progress >= 1f) {
                 plane.active = false
@@ -312,6 +343,11 @@ class PlaneBackgroundView @JvmOverloads constructor(
      * Zeichnet die Spur in einigen Blöcken. Jeder Block bekommt den
      * Verblassungsgrad seines jüngsten Punktes, sodass die Linie vom Flugzeug
      * nach hinten weich ausläuft. Wenige Blöcke genügen und sparen Zeichenaufrufe.
+     *
+     * Das Strichmuster ist an der Bahn verankert: Der Muster-Offset kommt aus
+     * der Strecke vom Bahnanfang bis zum Blockbeginn ([TrailPoint.dist]). Ohne
+     * diesen Anker begönne das Muster an jeder, sich ständig verschiebenden
+     * Blockgrenze neu und die Striche würden wandern.
      */
     private fun drawTrail(canvas: Canvas, plane: Plane, now: Long) {
         val trail = plane.trail
@@ -324,6 +360,10 @@ class PlaneBackgroundView @JvmOverloads constructor(
             val life = 1f - (now - newest.timestamp).toFloat() / TRAIL_FADE_MS
             val alpha = (life.coerceIn(0f, 1f) * TRAIL_MAX_ALPHA).toInt()
             if (alpha > 0) {
+                trailPaint.pathEffect = DashPathEffect(
+                    dashIntervals,
+                    trail[start].dist % dashPeriod
+                )
                 trailPath.reset()
                 trailPath.moveTo(trail[start].x, trail[start].y)
                 for (i in start + 1 until end) {
@@ -427,6 +467,74 @@ class PlaneBackgroundView @JvmOverloads constructor(
         }
 
         /**
+         * Kumulierte Strecke bis zu jeder Stützstelle von [points]; das letzte
+         * Element ist die Gesamtlänge. Dient als fester Bezug für das
+         * Strichmuster der Spur.
+         */
+        fun cumulativeLengths(points: FloatArray): FloatArray {
+            val count = points.size / 2
+            val result = FloatArray(count)
+            for (i in 1 until count) {
+                result[i] = result[i - 1] + hypot(
+                    points[i * 2] - points[(i - 1) * 2],
+                    points[i * 2 + 1] - points[(i - 1) * 2 + 1]
+                )
+            }
+            return result
+        }
+
+        /**
+         * Strecke vom Bahnanfang bis zum Anteil [fraction] (0..1), linear
+         * zwischen den kumulierten Längen [cumulative] interpoliert.
+         */
+        fun arcLengthAt(cumulative: FloatArray, fraction: Float): Float {
+            val last = cumulative.size - 1
+            if (last <= 0) return 0f
+            val pos = fraction.coerceIn(0f, 1f) * last
+            val index = pos.toInt().coerceIn(0, last - 1)
+            val t = pos - index
+            return cumulative[index] + (cumulative[index + 1] - cumulative[index]) * t
+        }
+
+        /**
+         * Anteil (0..1) der Bahn [points], bei dem sie erstmals das Rechteck
+         * `0..width` / `0..height` betritt. Die Bahn beginnt ausserhalb des
+         * Bildes; mit diesem Wert lässt sich die Startzeit so wählen, dass ein
+         * Flugzeug erst nach der gewünschten Zeit sichtbar wird.
+         */
+        fun entryFraction(points: FloatArray, width: Float, height: Float): Float {
+            val count = points.size / 2
+            if (count < 2) return 0f
+            for (i in 1 until count) {
+                val x1 = points[i * 2]
+                val y1 = points[i * 2 + 1]
+                if (x1 < 0f || x1 > width || y1 < 0f || y1 > height) continue
+                val x0 = points[(i - 1) * 2]
+                val y0 = points[(i - 1) * 2 + 1]
+                return (i - 1 + entryT(x0, y0, x1, y1, width, height)) / (count - 1f)
+            }
+            return 0f
+        }
+
+        /** Anteil auf dem Abschnitt `(x0,y0)->(x1,y1)`, ab dem er im Bild liegt. */
+        private fun entryT(
+            x0: Float, y0: Float, x1: Float, y1: Float,
+            width: Float, height: Float
+        ): Float {
+            val tx = when {
+                x0 < 0f -> (0f - x0) / (x1 - x0)
+                x0 > width -> (width - x0) / (x1 - x0)
+                else -> 0f
+            }
+            val ty = when {
+                y0 < 0f -> (0f - y0) / (y1 - y0)
+                y0 > height -> (height - y0) / (y1 - y0)
+                else -> 0f
+            }
+            return max(tx, ty).coerceIn(0f, 1f)
+        }
+
+        /**
          * Position auf [points] bei [fraction] (0..1), linear zwischen den
          * beiden benachbarten Stützstellen; Ergebnis `[x, y]`.
          */
@@ -459,11 +567,14 @@ class PlaneBackgroundView @JvmOverloads constructor(
             )
         }
 
-        /** Zum Start bereits unterwegs, alle aus verschiedenen Richtungen. */
+        /** Zahl der Flugzeuge, die beim Öffnen der Seite starten. */
         private const val INITIAL_PLANE_COUNT = 6
 
-        /** Winziger Versatz der Startflugzeuge (ms); sie fliegen sofort ein. */
-        private const val INITIAL_STAGGER_MS = 100
+        /** Nach dieser Zeit (ms) soll ein Flugzeug am Rand erscheinen. */
+        private const val ENTER_DELAY_MS = 1000L
+
+        /** Kleiner zusätzlicher Versatz beim Einflug (ms). */
+        private const val ENTER_STAGGER_MS = 150
 
         /** Abstand zwischen zwei neuen Flugzeugen (ms). */
         private const val SPAWN_INTERVAL_MS = 2500L

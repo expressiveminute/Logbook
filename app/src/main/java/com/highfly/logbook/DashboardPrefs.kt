@@ -353,6 +353,35 @@ object DashboardPrefs {
     /** Rundet eine Grösse auf ganze Prozent und begrenzt sie. */
     fun snapScale(value: Float): Float = percentToScale(scaleToPercent(value))
 
+    /**
+     * Waagerechter Skalierungsfaktor einer Kachel. Statt jede Kachel um
+     * denselben Anteil ihrer eigenen Breite zu verkleinern, rückt jede Kachel
+     * an jeder Seite um eine halbe Spalte mal (1 - [scale]) nach innen. So ist
+     * eine 3-Spalten-Kachel genau so breit wie drei 1-Spalten-Kacheln samt
+     * ihren Zwischenräumen.
+     *
+     * @param tileWidth Breite der Kachel in Pixel
+     * @param column Breite einer Rasterspalte in Pixel
+     */
+    fun horizontalScale(tileWidth: Float, column: Float, scale: Float): Float =
+        if (tileWidth <= 0f) {
+            scale
+        } else {
+            (1f - (1f - scale) * column / tileWidth).coerceIn(0f, 1f)
+        }
+
+    /**
+     * Waagerechter Gegenfaktor für einen runden Inhalt (Weltkugel-Vorschau,
+     * Kreisdiagramm) in einer Kachel. Senkrecht schrumpft jede Kachel
+     * gleichmässig um [scale], waagerecht aber um [horizontalScale] - bei
+     * breiten Kacheln deutlich weniger. Ungleichmässig skaliert würde der Kreis
+     * oval. Der Gegenfaktor lässt beide Achsen wieder gleich erscheinen.
+     */
+    fun roundContentCompensation(tileWidth: Float, column: Float, scale: Float): Float {
+        val horizontal = horizontalScale(tileWidth, column, scale)
+        return if (horizontal <= 0f) 1f else (scale / horizontal).coerceIn(0f, 1f)
+    }
+
     /** Reihenfolge der sichtbaren Kacheln, zeilenweise gelesen. */
     fun readFlat(context: Context): List<String> = readRows(context).flatten()
 

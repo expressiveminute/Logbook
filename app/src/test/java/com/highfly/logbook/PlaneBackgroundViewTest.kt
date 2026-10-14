@@ -116,6 +116,49 @@ class PlaneBackgroundViewTest {
     }
 
     @Test
+    fun kumulierteLaengen_endenMitDerGesamtlaenge() {
+        val points = floatArrayOf(0f, 0f, 30f, 40f, 30f, 80f)
+        val cumulative = PlaneBackgroundView.cumulativeLengths(points)
+        assertEquals(0f, cumulative[0], 0.001f)
+        assertEquals(50f, cumulative[1], 0.001f)
+        assertEquals(90f, cumulative[2], 0.001f)
+        assertEquals(PlaneBackgroundView.pathLength(points), cumulative.last(), 0.001f)
+    }
+
+    @Test
+    fun streckeBisAnteil_interpoliertZwischenDenStuetzstellen() {
+        val cumulative = floatArrayOf(0f, 10f, 30f)
+        assertEquals(0f, PlaneBackgroundView.arcLengthAt(cumulative, 0f), 0.001f)
+        assertEquals(30f, PlaneBackgroundView.arcLengthAt(cumulative, 1f), 0.001f)
+        assertEquals(5f, PlaneBackgroundView.arcLengthAt(cumulative, 0.25f), 0.001f)
+        assertEquals(20f, PlaneBackgroundView.arcLengthAt(cumulative, 0.75f), 0.001f)
+    }
+
+    @Test
+    fun eintritt_insBild_liegtGenauAufDerGrenze() {
+        // Bahn von oberhalb (y = -10) nach unterhalb, Kreuzen der Oberkante
+        // bei y = 0 genau in der Mitte des ersten Abschnitts.
+        val points = floatArrayOf(0f, -10f, 0f, 10f, 0f, 110f)
+        val fraction = PlaneBackgroundView.entryFraction(points, 100f, 100f)
+        assertEquals(0.25f, fraction, 0.001f)
+        val entry = PlaneBackgroundView.pointAt(points, fraction)
+        assertEquals(0f, entry[1], 0.001f)
+    }
+
+    @Test
+    fun eintritt_beginntImBild_beiNull() {
+        val points = floatArrayOf(10f, 10f, 20f, 20f, 30f, 30f)
+        assertEquals(0f, PlaneBackgroundView.entryFraction(points, 100f, 100f), 0.001f)
+    }
+
+    @Test
+    fun eintritt_ganzAusserhalb_bleibtEndlich() {
+        val points = floatArrayOf(-10f, -10f, -20f, -20f)
+        // Kein Punkt im Bild: der Wert bleibt bei 0, ohne Ausnahme.
+        assertEquals(0f, PlaneBackgroundView.entryFraction(points, 100f, 100f), 0.001f)
+    }
+
+    @Test
     fun flugrichtung_zeigtInFahrtrichtung() {
         // Nach Osten (rechts): Drehung 90 Grad wie auf der Streckenkarte.
         val east = floatArrayOf(0f, 0f, 100f, 0f)

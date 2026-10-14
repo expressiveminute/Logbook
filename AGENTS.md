@@ -149,19 +149,25 @@ Jede Bahn ist eine zufällige kubische Bézier-Kurve von einem Bildrand zum gege
 Die beiden Kontrollpunkte weichen unabhängig seitlich aus (`curveControls`, Ausschlag `CURVE_BEND`
 der Sehnenlänge): gleiche Richtung ergibt einen Bogen, entgegengesetzte eine S-Kurve mit zwei
 Bögen, sodass die Flieger deutlich geschwungen und aus jeder Richtung fliegen und das Bild an der
-anderen Seite verlassen. Beim Öffnen der Seite starten `INITIAL_PLANE_COUNT` Flugzeuge
-sofort (nur winzig versetzt) und verteilt über alle vier Ränder; neue kommen später aus einem
-gerade freien Rand (`pickEdge`), damit sie möglichst aus verschiedenen Richtungen einfliegen.
-Höchstens `MAX_PLANES` = 6 sind gleichzeitig unterwegs, alle teilen die Grundgeschwindigkeit
-`PLANE_SPEED_PX_PER_S`. Die Spur besteht aus zeitgestempelten Punkten und wird in `TRAIL_CHUNKS`
-Blöcke geteilt gezeichnet, jeder Block mit dem Verblassungsgrad seines jüngsten Punktes; nach
-`TRAIL_FADE_MS` ist ein Punkt verschwunden. Weil die Flugzeuge langsam sind, wird die Spur dadurch
-sehr lang und bleibt lange stehen.
+anderen Seite verlassen. Beim Öffnen der Seite starten `INITIAL_PLANE_COUNT` Flugzeuge verteilt
+über alle vier Ränder (nur winzig versetzt); neue kommen später aus einem gerade freien Rand
+(`pickEdge`), damit sie möglichst aus verschiedenen Richtungen einfliegen. Weil der Bahnanfang um
+den Rand ausserhalb des Bildes liegt, bekommt jede Bahn in `addPlane` per `entryFraction` einen
+Vorsprung: Die Startzeit wird so weit zurückgezogen, dass das Flugzeug rund
+`ENTER_DELAY_MS` (eine Sekunde) nach dem Erscheinen sichtbar am Rand einfliegt statt erst
+nach der ganzen Anflugstrecke. Höchstens `MAX_PLANES` = 6 sind gleichzeitig unterwegs, alle teilen
+die Grundgeschwindigkeit `PLANE_SPEED_PX_PER_S`. Die Spur besteht aus zeitgestempelten Punkten und
+wird in `TRAIL_CHUNKS` Blöcke geteilt gezeichnet, jeder Block mit dem Verblassungsgrad seines
+jüngsten Punktes; nach `TRAIL_FADE_MS` ist ein Punkt verschwunden. Das Strichmuster ist über
+`TrailPoint.dist` (Strecke vom Bahnanfang, `arcLengthAt`) am Anfang der Bahn verankert, sonst
+begänne es an jeder wandernden Blockgrenze neu und die Striche würden mitlaufen. Weil die Flugzeuge
+langsam sind, wird die Spur dadurch sehr lang und bleibt lange stehen.
 
 Die Animation läuft nur, solange die Ansicht sichtbar ist (`onWindowVisibilityChanged`), und
 schweigt, wenn der Nutzer Systemanimationen abgeschaltet hat
 (`Settings.Global.ANIMATOR_DURATION_SCALE` = 0). Die reine Geometrie – `cubicPoint`, `sampleCubic`,
-`pointAt`, `planeRotation`, `pathLength` im Companion – prüft `PlaneBackgroundViewTest`.
+`pointAt`, `planeRotation`, `pathLength`, `cumulativeLengths`, `arcLengthAt`, `entryFraction` im
+Companion – prüft `PlaneBackgroundViewTest`.
 
 **Rückbau:** Die drei `<com.highfly.logbook.PlaneBackgroundView …>`-Einträge aus
 `fragment_entries.xml`, `fragment_discovery.xml` und `fragment_first.xml` entfernen, dann

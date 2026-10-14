@@ -327,7 +327,7 @@ class DashboardEditFragment : Fragment() {
         val column = grid.width / 3f
         eachCard { card ->
             if (card.width == 0) return@eachCard
-            card.scaleX = (1f - (1f - scale) * column / card.width).coerceIn(0f, 1f)
+            card.scaleX = DashboardPrefs.horizontalScale(card.width.toFloat(), column, scale)
         }
     }
 

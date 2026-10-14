@@ -416,8 +416,34 @@ class FirstFragment : Fragment() {
             for (j in 0 until row.childCount) {
                 val tile = row.getChildAt(j) as? ViewGroup ?: continue
                 if (tile.width == 0) continue
-                tile.scaleX = (1f - (1f - scale) * column / tile.width).coerceIn(0f, 1f)
+                val width = tile.width.toFloat()
+                tile.scaleX = DashboardPrefs.horizontalScale(width, column, scale)
+                // Waagerecht schrumpft eine Kachel anders stark als senkrecht;
+                // runde Inhalte brauchen deshalb einen Gegenfaktor, sonst
+                // werden sie oval (siehe [keepRoundContentCircular]).
+                keepRoundContentCircular(
+                    tile,
+                    DashboardPrefs.roundContentCompensation(width, column, scale)
+                )
             }
+        }
+    }
+
+    /**
+     * Hält die runden Inhalte einer Kachel (Weltkugel-Vorschau, Kreisdiagramm)
+     * wirklich rund. Die Kachel wird waagerecht um einen anderen Faktor
+     * geschrumpft als senkrecht, wodurch ein Kreis zur Ellipse würde. Der
+     * Inhalt bekommt den Gegenfaktor auf der Breite, sodass beide Achsen gleich
+     * stark erscheinen. Bei einspaltigen Kacheln ist der Faktor 1.
+     */
+    private fun keepRoundContentCircular(tile: ViewGroup, compensation: Float) {
+        val factor = compensation.coerceIn(0f, 1f)
+        tile.findViewById<WorldMapPreviewView>(R.id.tile_worldmap_preview)?.let {
+            if (it.visibility == View.VISIBLE) it.scaleX = factor
+        }
+        tile.findViewById<PieChartView>(R.id.tile_pie_chart)?.let {
+            // Nur ohne Legende ist das Diagramm ein reiner Kreis.
+            if (it.visibility == View.VISIBLE && !it.showLegend) it.scaleX = factor
         }
     }
 

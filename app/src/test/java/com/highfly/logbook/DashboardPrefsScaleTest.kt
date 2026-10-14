@@ -45,4 +45,40 @@ class DashboardPrefsScaleTest {
         val ticks = (DashboardPrefs.MAX_PERCENT - DashboardPrefs.MIN_PERCENT) / 1 + 1
         assertEquals(16, ticks)
     }
+
+    @Test
+    fun horizontalScale_insetsEachTileByHalfAColumn() {
+        // Eine einspaltige Kachel schrumpft proportional, eine volle Breite nur
+        // um eine halbe Spalte je Seite.
+        val column = 120f
+        assertEquals(0.85f, DashboardPrefs.horizontalScale(column, column, 0.85f), 0.0001f)
+        assertEquals(0.95f, DashboardPrefs.horizontalScale(3 * column, column, 0.85f), 0.0001f)
+    }
+
+    @Test
+    fun roundContentCompensation_keepsBothAxesEqual() {
+        // Nach dem Gegenfaktor erscheint ein runder Inhalt auf beiden Achsen
+        // mit der senkrechten Kachelgrösse [scale], wird also nicht oval.
+        val column = 120f
+        for (scale in listOf(0.85f, 0.9f, 0.95f, 1f)) {
+            for (span in 1..3) {
+                val width = span * column
+                val horizontal = DashboardPrefs.horizontalScale(width, column, scale)
+                val compensation =
+                    DashboardPrefs.roundContentCompensation(width, column, scale)
+                assertEquals(scale, horizontal * compensation, 0.0001f)
+            }
+        }
+    }
+
+    @Test
+    fun roundContentCompensation_isOneForSingleColumnTile() {
+        // Einspaltige (quadratische) Kacheln brauchen keinen Ausgleich.
+        val column = 120f
+        assertEquals(
+            1f,
+            DashboardPrefs.roundContentCompensation(column, column, 0.85f),
+            0.0001f
+        )
+    }
 }
