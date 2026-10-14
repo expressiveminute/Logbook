@@ -116,6 +116,9 @@
     <string name="dashboard_filter_only_private">Private Only</string>
     <string name="dashboard_filter_separator">•</string>
     <string name="dashboard_filter_selected">Selected</string>
+    <!-- Header: second line "function · employer" and the story button. -->
+    <string name="dashboard_header_subtitle">%1$s · %2$s</string>
+    <string name="dashboard_story_play">Play</string>
     <string name="period_all">All</string>
     <string name="period_all_range">All Time</string>
     <string name="period_this_month">This Month</string>

@@ -116,6 +116,9 @@
     <string name="dashboard_filter_only_private">Nur Privat</string>
     <string name="dashboard_filter_separator">•</string>
     <string name="dashboard_filter_selected">Ausgewählt</string>
+    <!-- Kopfzeile: zweite Zeile "Funktion · Arbeitgeber" und der Story-Knopf. -->
+    <string name="dashboard_header_subtitle">%1$s · %2$s</string>
+    <string name="dashboard_story_play">Play</string>
     <string name="period_all">Gesamt</string>
     <!-- Im Filter der Kachelzeile ausgeschrieben, dort steht der ganze Zeitraum. -->
     <string name="period_all_range">Gesamter Zeitraum</string>

@@ -147,10 +147,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * Kopfzeile des Dashboards: Ein Besatzungsmitglied sieht neben dem Avatar
-     * seine Funktion und die ausgeschriebene Fluggesellschaft, ein Fluggast
-     * nur den Avatar mittig ohne Beschriftung. Alle Werte kommen aus den
-     * Einstellungen und werden hier bei jedem Aufkommen neu gelesen.
+     * Kopfzeile des Dashboards: links der Avatar, daneben der Name des Nutzers
+     * und darunter bei Besatzung die Funktion mit dem Arbeitgeber, durch einen
+     * Punkt getrennt. Ein Fluggast hat keine Funktion und keinen Arbeitgeber,
+     * dort bleibt die zweite Zeile leer. Alle Werte kommen aus den Einstellungen
+     * und werden hier bei jedem Aufkommen neu gelesen.
      *
      * Beim Avatar wird wie auf der Profilseite unterschieden: Ein
      * hochgeladenes Foto fuellt den Kreis voll aus und behaelt seine Farben,
@@ -174,17 +175,26 @@ class MainActivity : AppCompatActivity() {
             )
         }
 
-        if (Settings.getRole(this).isCrew) {
-            // "Funktion" meint die Bordfunktion der Besatzung.
-            binding.llDashboardAvatarLabels.visibility = View.VISIBLE
-            binding.tvDashboardFunction.text = Settings.selectedCrewFunctionLabel(this)
+        val crew = Settings.getRole(this).isCrew
+        val name = Settings.getProfileName(this).trim()
+        binding.tvDashboardName.text = name.ifBlank {
+            getString(if (crew) R.string.role_crew else R.string.role_passenger)
+        }
+
+        if (crew) {
+            val function = Settings.selectedCrewFunctionLabel(this)
             val code = Settings.getAirline(this).trim().uppercase()
-            binding.tvDashboardAirline.text = AirlineCatalog.name(this, code) ?: code
-            binding.tvDashboardAirline.visibility =
-                if (code.isEmpty()) View.GONE else View.VISIBLE
+            val employer = AirlineCatalog.name(this, code) ?: code
+            binding.tvDashboardSubtitle.text = if (employer.isBlank()) {
+                function
+            } else {
+                getString(R.string.dashboard_header_subtitle, function, employer)
+            }
+            binding.tvDashboardSubtitle.visibility = View.VISIBLE
         } else {
-            // Fluggast: nur der Avatar mittig, ohne Beschriftung daneben.
-            binding.llDashboardAvatarLabels.visibility = View.GONE
+            // Fluggast: nur der Name, ohne Funktion und Arbeitgeber.
+            binding.tvDashboardSubtitle.text = ""
+            binding.tvDashboardSubtitle.visibility = View.GONE
         }
     }
 

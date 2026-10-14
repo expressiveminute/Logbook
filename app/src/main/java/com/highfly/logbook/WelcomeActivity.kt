@@ -587,8 +587,12 @@ class WelcomeActivity : AppCompatActivity() {
     }
 
     private fun applyCrewFunction(key: String) {
-        if (Settings.getCrewFunction(this) == key) return
-        Settings.setCrewFunction(this, key)
+        if (Settings.getCrewFunction(this) != key) {
+            Settings.setCrewFunction(this, key)
+        }
+        // Auch dann neu zeichnen, wenn die Funktion schon die eingestellte war:
+        // Erst das Antippen nimmt sie in [chosenSteps] auf, und ohne das
+        // Neuzeichnen bliebe die Kachel unmarkiert ("es passiert nichts").
         updateCrewFunctionTiles()
     }
 
@@ -605,8 +609,11 @@ class WelcomeActivity : AppCompatActivity() {
     }
 
     private fun applyPreferredClass(index: Int) {
-        if (Settings.getPreferredClassIndex(this) == index) return
-        Settings.setPreferredClassIndex(this, index)
+        if (Settings.getPreferredClassIndex(this) != index) {
+            Settings.setPreferredClassIndex(this, index)
+        }
+        // Wie bei der Funktion: erst das Antippen markiert die Kachel, deshalb
+        // auch bei unverändertem Wert neu zeichnen.
         updatePreferredClassTiles()
     }
 

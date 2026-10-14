@@ -24,71 +24,85 @@
             app:contentInsetStart="0dp"
             app:contentInsetStartWithNavigation="0dp">
 
-            <!-- Kopfzeile des Dashboards: der runde Avatar aus den Einstellungen
-                 mit der Funktion und der ausgeschriebenen Fluggesellschaft
-                 rechts daneben. Die Zeile steht mittig, der Abstand zwischen
-                 Kreis und Text zieht den Avatar etwas nach links und den Text
-                 nach rechts. Ein Fluggast sieht nur den Avatar, ohne die
-                 Textspalte daneben. -->
+            <!-- Kopfzeile des Dashboards: links der runde Avatar aus den
+                 Einstellungen, rechts daneben der Name des Nutzers und
+                 darunter Funktion und Arbeitgeber, durch einen Punkt getrennt.
+                 Ganz rechts sitzt der "Play"-Knopf, der später die Flug-Story
+                 abspielt. Ein Fluggast hat keine Funktion und keinen
+                 Arbeitgeber, dort bleibt die zweite Zeile leer. -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
                 android:paddingStart="16dp"
                 android:paddingTop="8dp"
-                android:paddingEnd="16dp"
+                android:paddingEnd="12dp"
                 android:paddingBottom="4dp">
 
+                <FrameLayout
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    android:background="@drawable/bg_avatar_circle">
+
+                    <ImageView
+                        android:id="@+id/iv_dashboard_avatar"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:importantForAccessibility="no"
+                        android:padding="18dp"
+                        android:scaleType="fitCenter" />
+                </FrameLayout>
+
                 <LinearLayout
-                    android:layout_width="wrap_content"
+                    android:id="@+id/ll_dashboard_avatar_labels"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
+                    android:layout_marginStart="16dp"
+                    android:layout_weight="1"
                     android:gravity="center_vertical"
-                    android:orientation="horizontal">
+                    android:orientation="vertical">
 
-                    <FrameLayout
-                        android:layout_width="72dp"
-                        android:layout_height="72dp"
-                        android:background="@drawable/bg_avatar_circle">
-
-                        <ImageView
-                            android:id="@+id/iv_dashboard_avatar"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:importantForAccessibility="no"
-                            android:padding="18dp"
-                            android:scaleType="fitCenter" />
-                    </FrameLayout>
-
-                    <LinearLayout
-                        android:id="@+id/ll_dashboard_avatar_labels"
-                        android:layout_width="wrap_content"
+                    <TextView
+                        android:id="@+id/tv_dashboard_name"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="32dp"
-                        android:gravity="center_vertical"
-                        android:orientation="vertical">
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textStyle="bold" />
 
-                        <!-- Die Funktion ist hervorgehoben, die Fluggesellschaft
-                             darunter bleibt in normaler Schrift. -->
-                        <TextView
-                            android:id="@+id/tv_dashboard_function"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
-                            android:textColor="?attr/colorOnSurface"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:id="@+id/tv_dashboard_airline"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:ellipsize="end"
-                            android:maxLines="1"
-                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-                            android:textColor="?attr/colorOnSurfaceVariant" />
-                    </LinearLayout>
+                    <!-- "Funktion · Arbeitgeber"; beim Fluggast ausgeblendet. -->
+                    <TextView
+                        android:id="@+id/tv_dashboard_subtitle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                        android:textColor="?attr/colorOnSurfaceVariant" />
                 </LinearLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_dashboard_story"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="8dp"
+                    android:insetBottom="0dp"
+                    android:insetTop="0dp"
+                    android:minWidth="0dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="12dp"
+                    android:text="@string/dashboard_story_play"
+                    android:textAppearance="?attr/textAppearanceLabelLarge"
+                    app:cornerRadius="12dp"
+                    app:icon="@drawable/ic_play"
+                    app:iconGravity="textEnd"
+                    app:iconPadding="6dp"
+                    app:iconTint="?attr/colorOnSecondaryContainer" />
             </LinearLayout>
         </com.google.android.material.appbar.MaterialToolbar>
 
