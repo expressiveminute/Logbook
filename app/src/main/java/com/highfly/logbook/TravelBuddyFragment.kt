@@ -54,13 +54,11 @@ class TravelBuddyFragment : Fragment() {
     private fun load() {
         val generation = ++loadGeneration
         val appContext = requireContext().applicationContext
-        val periodKey = Settings.getDefaultPeriodKey(appContext)
         val locale = resources.configuration.locales[0]
 
         Thread {
-            val entries = DashboardStats.filterForPeriod(
-                LogbookRepository.getFlownEntries(), periodKey
-            )
+            // Dieselbe Auswahl wie die Kachel: Flugart und Zeitraum.
+            val entries = DashboardStats.dashboardEntries(appContext)
             val buddies = TravelBuddyStats.build(entries, java.text.Collator.getInstance(locale))
             val flights = TravelBuddyStats.flightsWithBuddy(entries)
             view?.post {

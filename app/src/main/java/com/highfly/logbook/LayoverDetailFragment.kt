@@ -51,10 +51,14 @@ class LayoverDetailFragment : Fragment() {
             findNavController().navigateUp()
         }
         binding.tvDetailSubtitle.text = getString(
-            R.string.tile_detail_period,
+            R.string.tile_detail_period_flight_type,
             PeriodOptions.label(
                 requireContext(),
                 Settings.getDefaultPeriodKey(requireContext())
+            ),
+            FlightTypeOptions.label(
+                requireContext(),
+                Settings.getFlightTypeFilterKey(requireContext())
             )
         )
 
@@ -129,7 +133,7 @@ class LayoverDetailFragment : Fragment() {
      */
     private fun renderLayoverTime() {
         val hours = ChartData.layoverHoursTotal(
-            ChartData.periodFiltered(requireContext()),
+            DashboardStats.dashboardEntries(requireContext()),
             code
         )
         binding.layoverTimeContainer.visibility = View.VISIBLE
@@ -211,7 +215,7 @@ class LayoverDetailFragment : Fragment() {
         binding.timelineRoot.visibility = View.GONE
         binding.tvEmpty.visibility = View.GONE
         val entries = ChartData.layoverHistoryNewestFirst(
-            ChartData.periodFiltered(requireContext()),
+            DashboardStats.dashboardEntries(requireContext()),
             code
         )
         if (entries.isEmpty()) {

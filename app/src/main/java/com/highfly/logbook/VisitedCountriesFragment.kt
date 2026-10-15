@@ -107,7 +107,7 @@ class VisitedCountriesFragment : Fragment() {
             val items = shapes?.let { list ->
                 VisitedCountries.build(
                     countries = list,
-                    entries = LogbookRepository.getFlownEntries(),
+                    entries = DashboardStats.dashboardEntries(appContext),
                     german = useGermanNames(locale),
                     collator = Collator.getInstance(locale),
                     countryOf = { AirportData.country(appContext, it) }

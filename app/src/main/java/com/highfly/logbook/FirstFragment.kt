@@ -116,14 +116,10 @@ class FirstFragment : Fragment() {
 
         val appContext = requireContext().applicationContext
         Thread {
-            val key = Settings.getDefaultPeriodKey(appContext)
-            val typeKey = Settings.getFlightTypeFilterKey(appContext)
-            // Beide Filter der Zeile oben wirken auf jede Kachel: Erst die
-            // Flugart, dann der Zeitraum - beide schraenken die Menge nur ein.
-            val entries = DashboardStats.filterForPeriod(
-                FlightTypeOptions.filter(LogbookRepository.getFlownEntries(), typeKey),
-                key
-            )
+            // Beide Filter der Zeile oben wirken auf jede Kachel und auf jede
+            // Seite dahinter: Flugart und Zeitraum zusammen, siehe
+            // [DashboardStats.dashboardEntries].
+            val entries = DashboardStats.dashboardEntries(appContext)
             val time = DashboardStats.flightMinutes(entries)
             val values = DashboardStats.values(appContext, entries)
             val distance = DashboardStats.distanceDetails(appContext, entries)

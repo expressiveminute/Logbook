@@ -68,6 +68,23 @@ object DashboardStats {
     }
 
     /**
+     * Die Einträge, die das Dashboard gerade zeigt: erst nach Flugart
+     * ("Alle Flüge", "Nur Dienstlich", "Nur Privat"), dann nach dem gewählten
+     * Zeitraum. Beide Filter der Zeile über dem Dashboard wirken deshalb
+     * gleich: auf jede Kachel und auf jede Seite dahinter (Balken, Listen,
+     * Karten, Summen). So stimmt die Zahl auf der Kachel immer mit dem Inhalt
+     * überein, den ein Tipp darauf öffnet.
+     */
+    fun dashboardEntries(context: Context): List<LogbookEntry> =
+        filterForPeriod(
+            FlightTypeOptions.filter(
+                LogbookRepository.getFlownEntries(),
+                Settings.getFlightTypeFilterKey(context)
+            ),
+            Settings.getDefaultPeriodKey(context)
+        )
+
+    /**
      * Anzahl der Strecken, die im Jahr [year] zum ersten Mal geflogen wurden.
      *
      * Eine Entdeckung ist immer relativ zur Gesamtheit aller Einträge: Eine

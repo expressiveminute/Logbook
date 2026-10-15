@@ -39,11 +39,12 @@ class TimeDetailFragment : Fragment() {
         val context = requireContext()
         binding.tvDetailTitle.text = getString(R.string.tile_time)
         binding.tvDetailSubtitle.text = getString(
-            R.string.tile_detail_period,
-            PeriodOptions.label(context, Settings.getDefaultPeriodKey(context))
+            R.string.tile_detail_period_flight_type,
+            PeriodOptions.label(context, Settings.getDefaultPeriodKey(context)),
+            FlightTypeOptions.label(context, Settings.getFlightTypeFilterKey(context))
         )
 
-        val entries = DashboardStats.flyingEntries(ChartData.periodFiltered(context))
+        val entries = DashboardStats.flyingEntries(DashboardStats.dashboardEntries(context))
         val minutes = entries.sumOf { it.flightMinutes ?: 0 }
         val timed = entries.any { (it.flightMinutes ?: 0) > 0 }
 

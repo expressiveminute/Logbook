@@ -72,8 +72,12 @@ class DistanceDetailFragment : Fragment() {
         binding.btnBack.setOnClickListener { findNavController().navigateUp() }
         binding.tvDetailTitle.text = getString(R.string.tile_distance)
         binding.tvDetailSubtitle.text = getString(
-            R.string.tile_detail_period,
-            PeriodOptions.label(requireContext(), Settings.getDefaultPeriodKey(requireContext()))
+            R.string.tile_detail_period_flight_type,
+            PeriodOptions.label(requireContext(), Settings.getDefaultPeriodKey(requireContext())),
+            FlightTypeOptions.label(
+                requireContext(),
+                Settings.getFlightTypeFilterKey(requireContext())
+            )
         )
 
         loadData()
@@ -88,7 +92,7 @@ class DistanceDetailFragment : Fragment() {
         val generation = ++loadGeneration
         val appContext = requireContext().applicationContext
         Thread {
-            val entries = DashboardStats.flyingEntries(ChartData.periodFiltered(appContext))
+            val entries = DashboardStats.flyingEntries(DashboardStats.dashboardEntries(appContext))
             val distance = DashboardStats.distanceDetails(appContext, entries)
             val withDistance = entries.filter { (it.distanceKm ?: 0) > 0 }
             val longest = withDistance.maxByOrNull { it.distanceKm ?: 0 }

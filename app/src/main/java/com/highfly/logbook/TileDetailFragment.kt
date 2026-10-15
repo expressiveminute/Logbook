@@ -94,10 +94,14 @@ class TileDetailFragment : Fragment() {
         val tile = DashboardPrefs.tileById(tileId)
         binding.tvDetailTitle.text = requireContext().getString(tile.nameRes)
         binding.tvDetailSubtitle.text = getString(
-            R.string.tile_detail_period,
+            R.string.tile_detail_period_flight_type,
             PeriodOptions.label(
                 requireContext(),
                 Settings.getDefaultPeriodKey(requireContext())
+            ),
+            FlightTypeOptions.label(
+                requireContext(),
+                Settings.getFlightTypeFilterKey(requireContext())
             )
         )
 
@@ -431,7 +435,7 @@ class TileDetailFragment : Fragment() {
      * Klick auf den Code im Balkendiagramm darunter.
      */
     private fun renderLayoverExtremes() {
-        val entries = ChartData.periodFiltered(requireContext())
+        val entries = DashboardStats.dashboardEntries(requireContext())
         val newest = ChartData.newestLayover(entries) ?: return
         val oldest = ChartData.oldestLayover(entries) ?: return
         val newestDate = newest.date.format(DATE_LABEL_FORMAT)
@@ -514,7 +518,7 @@ class TileDetailFragment : Fragment() {
      * in der Höhen-Grafik öffnet die Detailseite des Flughafens.
      */
     private fun renderAirports() {
-        val entries = ChartData.periodFiltered(requireContext())
+        val entries = DashboardStats.dashboardEntries(requireContext())
         binding.compassView.setOnAirportClickListener { openAirportDetail(it) }
         binding.altitudeView.setOnAirportClickListener { openAirportDetail(it) }
         setupAirportCompass(entries)
@@ -930,7 +934,7 @@ class TileDetailFragment : Fragment() {
             ChartData.classSlices(
                 requireContext(),
                 null,
-                ChartData.periodFiltered(requireContext()),
+                DashboardStats.dashboardEntries(requireContext()),
                 classTravelType
             )
         )

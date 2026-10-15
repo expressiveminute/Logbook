@@ -138,10 +138,9 @@ object ChartData {
     fun barChart(context: Context, tileId: String, layoverSort: LayoverSort): List<Bar> {
         if (!isBarChart(tileId)) return emptyList()
         val key = Settings.getDefaultPeriodKey(context)
-        val entries = DashboardStats.filterForPeriod(
-            LogbookRepository.getFlownEntries(),
-            key
-        )
+        // Dieselbe Auswahl wie das Dashboard (Flugart und Zeitraum): die
+        // Balken der Seite duerfen nicht mehr zeigen als die Kachel.
+        val entries = DashboardStats.dashboardEntries(context)
         if (tileId == "layover") {
             val bars = layoverBars(
                 entries = entries,
@@ -320,7 +319,7 @@ object ChartData {
     }
 
     fun airportBars(context: Context): List<Bar> =
-        periodFiltered(context)
+        DashboardStats.dashboardEntries(context)
             .flatMap { listOf(it.fromAirport, it.toAirport) }
             .filter { it.isNotBlank() }
             .groupingBy { it }
@@ -347,7 +346,7 @@ object ChartData {
         selector: (LogbookEntry) -> String?
     ): List<Bar> = withDistanceLabels(
         context,
-        hangarBars(periodFiltered(context), sort, selector),
+        hangarBars(DashboardStats.dashboardEntries(context), sort, selector),
         sort
     )
 
@@ -459,7 +458,7 @@ object ChartData {
     }
 
     fun durationHistogram(context: Context): List<Bar> =
-        durationHistogram(periodFiltered(context))
+        durationHistogram(DashboardStats.dashboardEntries(context))
 
     /**
      * Anzahl der Flüge je voller Stunde. Die x-Achse endet dynamisch: Auf den
@@ -509,7 +508,7 @@ object ChartData {
         classSlices(context, null)
 
     fun classSlices(context: Context, classType: String?): List<Slice> =
-        classSlices(context, classType, periodFiltered(context))
+        classSlices(context, classType, DashboardStats.dashboardEntries(context))
 
     /**
      * @param flightType Reiseart, auf die die Klassen eingeschraenkt werden -
@@ -539,7 +538,7 @@ object ChartData {
     }
 
     fun travelTypeSlices(context: Context): List<Slice> =
-        travelTypeSlices(context, periodFiltered(context))
+        travelTypeSlices(context, DashboardStats.dashboardEntries(context))
 
     fun travelTypeSlices(
         context: Context,
@@ -570,7 +569,7 @@ object ChartData {
     )
 
     fun functionSlices(context: Context): List<Slice> =
-        functionSlices(context, periodFiltered(context))
+        functionSlices(context, DashboardStats.dashboardEntries(context))
 
     fun functionSlices(
         context: Context,
@@ -597,7 +596,7 @@ object ChartData {
     )
 
     fun continentSlices(context: Context): List<Slice> =
-        continentSlices(context, periodFiltered(context))
+        continentSlices(context, DashboardStats.dashboardEntries(context))
 
     fun continentSlices(
         context: Context,
@@ -617,12 +616,6 @@ object ChartData {
             )
         }.sortedWith(compareByDescending<Slice> { it.value }.thenBy { it.label })
     }
-
-    fun periodFiltered(context: Context): List<LogbookEntry> =
-        DashboardStats.filterForPeriod(
-            LogbookRepository.getFlownEntries(),
-            Settings.getDefaultPeriodKey(context)
-        )
 
     private fun flightsPerPeriod(
         entries: List<LogbookEntry>,

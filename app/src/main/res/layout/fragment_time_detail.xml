@@ -51,7 +51,7 @@
                 android:layout_height="wrap_content"
                 android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                 android:textColor="?attr/colorOnSurfaceVariant"
-                tools:text="Zeitraum: Gesamt" />
+                tools:text="Zeitraum: Gesamt · Alle Flüge" />
         </LinearLayout>
     </LinearLayout>
 

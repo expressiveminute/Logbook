@@ -243,7 +243,7 @@ class WorldMapFragment : Fragment() {
 
                 val airports = linkedMapOf<String, GeoPoint>()
                 val routeCounts = linkedMapOf<Pair<String, String>, Int>()
-                val entries = LogbookRepository.getFlownEntries()
+                val entries = DashboardStats.dashboardEntries(context)
 
                 for (entry in entries) {
                     val fromIata = entry.fromAirport.uppercase()

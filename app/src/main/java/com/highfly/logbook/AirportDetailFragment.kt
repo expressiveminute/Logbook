@@ -57,10 +57,14 @@ class AirportDetailFragment : Fragment() {
             binding.airportMap.zoomToRoutes()
         }
         binding.tvDetailSubtitle.text = getString(
-            R.string.tile_detail_period,
+            R.string.tile_detail_period_flight_type,
             PeriodOptions.label(
                 requireContext(),
                 Settings.getDefaultPeriodKey(requireContext())
+            ),
+            FlightTypeOptions.label(
+                requireContext(),
+                Settings.getFlightTypeFilterKey(requireContext())
             )
         )
 
@@ -165,7 +169,7 @@ class AirportDetailFragment : Fragment() {
 
         val self = AirportData.location(appContext, target)
         Thread {
-            val entries = LogbookRepository.getFlownEntries()
+            val entries = DashboardStats.dashboardEntries(appContext)
             val counts = LinkedHashMap<String, Int>()
             for (entry in entries) {
                 val from = entry.fromAirport.trim().uppercase()

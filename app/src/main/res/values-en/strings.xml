@@ -315,7 +315,7 @@
     <string name="filter_year">Year</string>
     <string name="filter_apply">Apply filters</string>
     <string name="filter_clear">Clear filters</string>
-    <string name="tile_detail_period">Period: %1$s</string>
+    <string name="tile_detail_period_flight_type">Period: %1$s · %2$s</string>
     <string name="layover_last">Last: %1$s</string>
     <string name="layover_extreme_newest">Last layover</string>
     <string name="layover_extreme_oldest">Oldest layover</string>

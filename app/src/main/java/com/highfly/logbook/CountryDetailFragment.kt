@@ -82,7 +82,7 @@ class CountryDetailFragment : Fragment() {
 
         Thread {
             val shapes = CountryShapes.load(appContext)
-            val entries = LogbookRepository.getFlownEntries()
+            val entries = DashboardStats.dashboardEntries(appContext)
 
             // Rang des Landes in der Länderliste, damit die Medaille in der
             // Kopfzeile zum Listenplatz passt.
