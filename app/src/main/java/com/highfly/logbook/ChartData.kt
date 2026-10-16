@@ -29,9 +29,9 @@ object ChartData {
     /**
      * Womit die Balken der Hangar-Kachel (Flugzeugtypen und Registrierungen)
      * gemessen und sortiert werden. [ANZAHL] zaehlt die Fluege, [ENTFERNUNG]
-     * summiert die geflogenen Kilometer.
+     * summiert die geflogenen Kilometer, [DAUER] die Flugzeit in Minuten.
      */
-    enum class HangarSort { ANZAHL, ENTFERNUNG }
+    enum class HangarSort { ANZAHL, ENTFERNUNG, DAUER }
 
     /**
      * Womit die Balken der Kachel "Flugrouten" gemessen und sortiert werden.
@@ -223,18 +223,21 @@ object ChartData {
         bars.partition { it.count > 0 }
 
     /**
-     * Layoverdauer in Tagen mit einer Nachkommastelle, z. B. "3,5 Tage" -
-     * dieselbe Schreibweise wie die Dauer über der Leiste auf der Detailseite,
-     * inklusive Singular nur bei genau einem Tag.
+     * Layoverdauer in Tagen mit hoechstens einer Nachkommastelle, z. B.
+     * "3,5 Tage" - dieselbe Schreibweise wie die Dauer ueber der Leiste auf der
+     * Detailseite. Eine volle Einheit steht ohne die ",0" da ("2 Tage" statt
+     * "2,0 Tage"). Der Singular richtet sich nach der gerundeten Anzeige: nur
+     * wenn wirklich "1" dasteht, heisst es "Tag", sonst stuende bei knapp
+     * eineinhalb Tagen "1 Tage".
      */
     private fun layoverDaysText(context: Context, hours: Int): String {
-        val days = LayoverTimeScale.oneDecimal(
-            hours / LayoverTimeScale.DAY_HOURS.toDouble(),
-            Locale.getDefault()
-        )
+        val locale = Locale.getDefault()
+        val days = LayoverTimeScale.daysText(hours, locale)
+        val quantity =
+            if (days == LayoverTimeScale.daysText(LayoverTimeScale.DAY_HOURS, locale)) 1 else 2
         return context.resources.getQuantityString(
             R.plurals.layover_time_unit_days,
-            LayoverTimeScale.daysQuantity(hours),
+            quantity,
             days
         )
     }
@@ -348,25 +351,27 @@ object ChartData {
     /**
      * Balken der Hangar-Kachel ueber den Zeitraum der Einstellungen: je
      * Flugzeugtyp oder Registrierung ein Balken. [selector] waehlt die Gruppe,
-     * [sort], ob nach Zahl der Fluege oder nach Entfernung geordnet wird.
+     * [sort], ob nach Zahl der Fluege, nach Entfernung oder nach Flugdauer
+     * geordnet wird.
      */
     fun hangarBars(
         context: Context,
         sort: HangarSort,
         selector: (LogbookEntry) -> String?
-    ): List<Bar> = withDistanceLabels(
+    ): List<Bar> = withHangarValueLabels(
         context,
         hangarBars(DashboardStats.dashboardEntries(context), sort, selector),
-        sort == HangarSort.ENTFERNUNG
+        sort
     )
 
     /**
      * Balken der Hangar-Kachel: je Gruppe ein Balken. Nach [HangarSort.ANZAHL]
      * zaehlt jeder Eintrag als ein Flug, nach [HangarSort.ENTFERNUNG] die
-     * Summe der geflogenen Kilometer. Eintraege ohne erfasste Entfernung
-     * zaehlen dort mit null Kilometern, der Typ bleibt als Balken mit dem Wert
-     * 0 sichtbar, weil er ja geflogen wurde. Sortiert wird absteigend nach dem
-     * dargestellten Wert und bei Gleichstand nach der Beschriftung.
+     * Summe der geflogenen Kilometer, nach [HangarSort.DAUER] die Summe der
+     * Flugminuten. Eintraege ohne erfasste Entfernung oder Dauer zaehlen dort
+     * mit null, der Typ bleibt als Balken mit dem Wert 0 sichtbar, weil er ja
+     * geflogen wurde. Sortiert wird absteigend nach dem dargestellten Wert und
+     * bei Gleichstand nach der Beschriftung.
      */
     fun hangarBars(
         entries: List<LogbookEntry>,
@@ -376,6 +381,7 @@ object ChartData {
         val values: Map<String, Int> = when (sort) {
             HangarSort.ANZAHL -> countBy(entries) { selector(it) }
             HangarSort.ENTFERNUNG -> distanceBy(entries, selector)
+            HangarSort.DAUER -> durationBy(entries, selector)
         }
         return values.map { (label, value) -> Bar(label, value) }
             .sortedWith(compareByDescending<Bar> { it.count }.thenBy { it.label })
@@ -472,18 +478,24 @@ object ChartData {
     }
 
     /**
-     * Haengt den Balken im Entfernung-Modus die Kilometer als Wert an. Im
-     * Anzahl-Modus bleibt die reine Zahl. So zeigt die Wertbeschriftung immer
-     * denselben Messwert wie die Balkenlaenge.
+     * Haengt den Balken der Hangar-Kachel die Wertbeschriftung des gewaehlten
+     * Messwerts an: die Kilometer, die Flugdauer oder - nach
+     * [HangarSort.ANZAHL] - nichts, dann steht einfach die Zahl der Fluege da.
+     * So zeigt die Wertbeschriftung immer denselben Messwert wie die
+     * Balkenlaenge.
      */
-    private fun withDistanceLabels(
+    private fun withHangarValueLabels(
         context: Context,
         bars: List<Bar>,
-        byDistance: Boolean
-    ): List<Bar> = if (byDistance) {
-        bars.map { it.copy(countLabel = DashboardStats.kmText(context, it.count)) }
-    } else {
-        bars
+        sort: HangarSort
+    ): List<Bar> = when (sort) {
+        HangarSort.ENTFERNUNG -> bars.map {
+            it.copy(countLabel = DashboardStats.kmText(context, it.count))
+        }
+        HangarSort.DAUER -> bars.map {
+            it.copy(countLabel = durationText(it.count))
+        }
+        HangarSort.ANZAHL -> bars
     }
 
     /**

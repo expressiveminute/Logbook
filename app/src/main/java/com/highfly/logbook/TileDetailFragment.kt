@@ -715,8 +715,9 @@ class TileDetailFragment : Fragment() {
     /**
      * Sortierung der Hangar-Seite als diskreter Text oben rechts, wie die
      * Layover-Sortierung. Standard ist "Anzahl"; "Entfernung" ordnet
-     * Flugzeugtypen und Registrierungen nach den geflogenen Kilometern. Ein
-     * Wechsel zeichnet beide Diagramme neu.
+     * Flugzeugtypen und Registrierungen nach den geflogenen Kilometern,
+     * "Dauer" nach der gesamten Flugzeit. Ein Wechsel zeichnet beide
+     * Diagramme neu.
      */
     private fun setupHangarSort() {
         binding.aircraftSortContainer.visibility = View.VISIBLE
@@ -743,6 +744,7 @@ class TileDetailFragment : Fragment() {
     private fun hangarSortLabel(sort: ChartData.HangarSort = hangarSort): String = when (sort) {
         ChartData.HangarSort.ANZAHL -> getString(R.string.hangar_sort_count)
         ChartData.HangarSort.ENTFERNUNG -> getString(R.string.hangar_sort_distance)
+        ChartData.HangarSort.DAUER -> getString(R.string.hangar_sort_duration)
     }
 
     /**
@@ -798,6 +800,9 @@ class TileDetailFragment : Fragment() {
         binding.barChart.setOnItemClickListener { index ->
             openFlightRouteDetail(bars.getOrNull(index)?.label)
         }
+        // Anzahl, Distanz und Dauer stehen am rechten Rand auf einer Linie,
+        // statt an jeder Balkenspitze zu wandern.
+        binding.barChart.setValueRightAligned(true)
         renderBars(bars)
         // Ohne etwas zum Sortieren verschwindet der Filter aus dem Header wie
         // bei der Hangar-Kachel; ueber dem Leertext haette er nichts zu ordnen.
@@ -815,6 +820,9 @@ class TileDetailFragment : Fragment() {
             binding.tvAircraftTitle
         )
         val registrations = ChartData.hangarBars(requireContext(), hangarSort) { it.registration }
+        // Anzahl, Distanz und Dauer stehen am rechten Rand auf einer Linie,
+        // statt an jeder Balkenspitze zu wandern.
+        binding.barChart.setValueRightAligned(true)
         renderBars(registrations)
         binding.tvRegistrationsTitle.visibility =
             if (registrations.isEmpty()) View.GONE else View.VISIBLE

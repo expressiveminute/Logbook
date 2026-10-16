@@ -330,11 +330,12 @@ class DashboardEditFragment : Fragment() {
             val width = card.width.toFloat()
             card.scaleX = DashboardPrefs.horizontalScale(width, column, scale)
             // Der Inhalt bekommt denselben Gegenfaktor wie auf dem Dashboard,
-            // damit Zahlen und Buchstaben nicht verzerrt werden.
-            card.getChildAt(0)?.let { content ->
-                content.scaleX =
-                    DashboardPrefs.contentCompensation(width, column, scale).coerceIn(0f, 1f)
-            }
+            // damit Zahlen und Buchstaben nicht verzerrt werden und die
+            // Überschriften am Rand stehen wie bei den anderen Kacheln.
+            DashboardTileScaling.scaleContent(
+                card,
+                DashboardPrefs.contentCompensation(width, column, scale)
+            )
         }
     }
 

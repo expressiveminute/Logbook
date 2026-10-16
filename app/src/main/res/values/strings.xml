@@ -72,9 +72,10 @@
     <string name="tile_detail_registrations">Registrierungen</string>
     <!-- Sortierung der Hangar-Seite (Flugzeugtypen und Registrierungen):
          "Anzahl" ordnet nach der Zahl der Fluege, "Entfernung" nach den
-         geflogenen Kilometern. -->
+         geflogenen Kilometern, "Dauer" nach der gesamten Flugzeit. -->
     <string name="hangar_sort_count">Anzahl</string>
     <string name="hangar_sort_distance">Entfernung</string>
+    <string name="hangar_sort_duration">Dauer</string>
     <!-- Sortierung der Kachel "Flugrouten": "Anzahl" ordnet nach der Zahl der
          Fluege je Strecke, "Distanz" nach den geflogenen Kilometern, "Dauer"
          nach der gesamten Flugzeit. -->

@@ -64,6 +64,7 @@ class BarChartView @JvmOverloads constructor(
     private var barFraction = 1f
     private var labelReferences: List<String> = emptyList()
     private var valueInsideBar = false
+    private var valueRightAligned = false
 
     init {
         barColor = MaterialColors.getColor(this, com.google.android.material.R.attr.colorPrimary)
@@ -149,6 +150,19 @@ class BarChartView @JvmOverloads constructor(
         // Im neuen Layout steht die Unterbeschriftung immer fett, deshalb auch
         // bei der Messung fett gemessen - sonst passt der reservierte Platz nicht.
         subPaint.isFakeBoldText = inside
+        invalidate()
+    }
+
+    /**
+     * Stellt den Wert des Balkens an den rechten Rand des Diagramms, alle Zeilen
+     * auf einer Linie. Ohne das steht er direkt rechts neben dem jeweiligen
+     * Balken und wandert mit dessen Laenge mit (siehe die Flugrouten-Kachel, wo
+     * die Zahl sonst an jeder Balkenspitze haengt). Der Wert bleibt je Zeile
+     * senkrecht mittig. Im Balken liegende Werte sind davon nicht betroffen.
+     */
+    fun setValueRightAligned(rightAligned: Boolean) {
+        if (valueRightAligned == rightAligned) return
+        valueRightAligned = rightAligned
         invalidate()
     }
 
@@ -297,7 +311,15 @@ class BarChartView @JvmOverloads constructor(
                 canvas.drawText(valueText, barLeft + barInset, valueBaseline, countPaint)
             } else {
                 countPaint.color = countColor
-                canvas.drawText(valueText, barRight + countGap, valueBaseline, countPaint)
+                if (valueRightAligned) {
+                    // Fest am rechten Rand: alle Werte stehen auf einer Linie,
+                    // unabhaengig davon, wie lang ihr Balken ist.
+                    countPaint.textAlign = Paint.Align.RIGHT
+                    canvas.drawText(valueText, width - sidePadding, valueBaseline, countPaint)
+                    countPaint.textAlign = Paint.Align.LEFT
+                } else {
+                    canvas.drawText(valueText, barRight + countGap, valueBaseline, countPaint)
+                }
             }
 
             item.subLabel?.takeIf { it.isNotEmpty() }?.let { subLabel ->

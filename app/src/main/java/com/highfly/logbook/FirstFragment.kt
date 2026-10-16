@@ -416,27 +416,13 @@ class FirstFragment : Fragment() {
                 tile.scaleX = DashboardPrefs.horizontalScale(width, column, scale)
                 // Waagerecht schrumpft eine Kachel anders stark als senkrecht.
                 // Ohne Ausgleich würde der Inhalt verzerrt (siehe
-                // [scaleTileContent]).
-                scaleTileContent(
+                // [DashboardTileScaling.scaleContent]).
+                DashboardTileScaling.scaleContent(
                     tile,
                     DashboardPrefs.contentCompensation(width, column, scale)
                 )
             }
         }
-    }
-
-    /**
-     * Verkleinert den Inhalt einer Kachel waagerecht um den Gegenfaktor. Die
-     * Kachel selbst schrumpft waagerecht um [DashboardPrefs.horizontalScale],
-     * senkrecht aber um die Kachel-Grösse; ungleichmässig skaliert würden
-     * Zahlen und Buchstaben in die Breite gezogen bzw. gestaucht. Der
-     * Gegenfaktor lässt den Inhalt auf beiden Achsen gleichmässig schrumpfen,
-     * sodass jede Form - auch Weltkugel-Vorschau und Kreisdiagramm - erhalten
-     * bleibt. Bei einspaltigen Kacheln ist der Faktor 1.
-     */
-    private fun scaleTileContent(tile: ViewGroup, compensation: Float) {
-        val content = tile.getChildAt(0) ?: return
-        content.scaleX = compensation.coerceIn(0f, 1f)
     }
 
     private fun fitTileTopValues(container: LinearLayout) {

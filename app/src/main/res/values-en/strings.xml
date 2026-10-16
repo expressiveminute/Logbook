@@ -72,9 +72,10 @@
     <string name="tile_detail_registrations">Registrations</string>
     <!-- Sorting on the hangar page (aircraft types and registrations):
          "Count" orders by number of flights, "Distance" by the kilometres
-         flown. -->
+         flown, "Duration" by the total flight time. -->
     <string name="hangar_sort_count">Count</string>
     <string name="hangar_sort_distance">Distance</string>
+    <string name="hangar_sort_duration">Duration</string>
     <!-- Sorting on the "Flight routes" tile: "Count" orders by the number of
          flights per route, "Distance" by the kilometres flown, "Duration" by
          the total flight time. -->
