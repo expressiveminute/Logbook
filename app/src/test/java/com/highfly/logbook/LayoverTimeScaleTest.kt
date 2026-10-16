@@ -158,4 +158,22 @@ class LayoverTimeScaleTest {
         assertEquals("0,5", LayoverTimeScale.oneDecimal(0.5, Locale.GERMAN))
         assertEquals("7,0", LayoverTimeScale.oneDecimal(7.0, Locale.GERMAN))
     }
+
+    @Test
+    fun trimmedDecimal_dropsTrailingZeroOfWholeValues() {
+        // Eine volle Einheit steht ohne ",0" da - "3 Wochen" statt "3,0 Wochen".
+        assertEquals("3", LayoverTimeScale.trimmedDecimal(3.0, Locale.GERMAN))
+        assertEquals("7", LayoverTimeScale.trimmedDecimal(7.0, Locale.GERMAN))
+        assertEquals("0", LayoverTimeScale.trimmedDecimal(0.0, Locale.GERMAN))
+    }
+
+    @Test
+    fun trimmedDecimal_keepsOneDecimalInTheLanguageOfTheApp() {
+        // Krumme Werte behalten ihre eine Nachkommastelle, deutsch mit Komma,
+        // englisch mit Punkt.
+        assertEquals("20,8", LayoverTimeScale.trimmedDecimal(499 / 24.0, Locale.GERMAN))
+        assertEquals("20.8", LayoverTimeScale.trimmedDecimal(499 / 24.0, Locale.ENGLISH))
+        assertEquals("0,5", LayoverTimeScale.trimmedDecimal(0.5, Locale.GERMAN))
+        assertEquals("2,1", LayoverTimeScale.trimmedDecimal(2.08, Locale.GERMAN))
+    }
 }

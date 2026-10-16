@@ -75,6 +75,19 @@
          flown. -->
     <string name="hangar_sort_count">Count</string>
     <string name="hangar_sort_distance">Distance</string>
+    <!-- Sorting on the "Flight routes" tile: "Count" orders by the number of
+         flights per route, "Distance" by the kilometres flown, "Duration" by
+         the total flight time. -->
+    <string name="flight_route_sort_count">Count</string>
+    <string name="flight_route_sort_distance">Distance</string>
+    <string name="flight_route_sort_duration">Duration</string>
+    <!-- Detail page of a flight route: section title of the route map and the
+         three figures (how often, how long, how far flown). -->
+    <string name="flight_route_map_title">Route</string>
+    <string name="flight_route_stat_flights">Times flown</string>
+    <string name="flight_route_stat_duration">Flight time</string>
+    <string name="flight_route_stat_distance">Distance</string>
+    <string name="flight_route_stat_minutes">%1$s min</string>
     <string name="continent_europe">Europe</string>
     <string name="continent_asia">Asia</string>
     <string name="continent_north_america">North America</string>
@@ -315,13 +328,15 @@
     <string name="filter_year">Year</string>
     <string name="filter_apply">Apply filters</string>
     <string name="filter_clear">Clear filters</string>
-    <string name="tile_detail_period_flight_type">Period: %1$s · %2$s</string>
+    <!-- Header of the tile detail pages: period on top, flight types below -
+         like the filter row on the CO2 page, not on one line. -->
+    <string name="tile_detail_period_flight_type">Period: %1$s\n%2$s</string>
     <string name="layover_last">Last: %1$s</string>
     <string name="layover_extreme_newest">Last layover</string>
     <string name="layover_extreme_oldest">Oldest layover</string>
     <string name="layover_extreme_newest_desc">Last layover: %1$s on %2$s</string>
     <string name="layover_extreme_oldest_desc">Oldest layover: %1$s on %2$s</string>
-    <string name="layover_sort_label">Sort by:</string>
+    <string name="layover_sort_label">Sort:</string>
     <string name="layover_sort_count">Count</string>
     <string name="layover_sort_duration">Duration</string>
     <!-- Magnifier and search field of the layover tile: searched by the

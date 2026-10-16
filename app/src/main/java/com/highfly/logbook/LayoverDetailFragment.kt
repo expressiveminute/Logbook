@@ -163,10 +163,10 @@ class LayoverDetailFragment : Fragment() {
     /**
      * Dauer über der Leiste: die verbrachte Zeit in jeder Einheit als
      * Gesamtwert, getrennt durch Punkte - 2 Wochen, 6 Tage und 19 Stunden
-     * stehen als "499 h · 20,8 Tage · 3,0 Wochen". Stunden stehen ganz-
-     * zahlig, alle anderen Einheiten mit einer Nachkommastelle. Gezeigt wird
-     * nur, was die Leiste auch zeigt: die größte Einheit bleibt eine Stufe
-     * unter dem Skalenende.
+     * stehen als "499 h · 20,8 Tage · 3 Wochen". Stunden stehen ganzzahlig,
+     * alle anderen Einheiten mit höchstens einer Nachkommastelle; eine volle
+     * Einheit fällt ohne ",0" an. Gezeigt wird nur, was die Leiste auch zeigt:
+     * die größte Einheit bleibt eine Stufe unter dem Skalenende.
      */
     private fun breakdownText(hours: Int): String {
         val totals = LayoverTimeScale.totals(hours)
@@ -193,14 +193,20 @@ class LayoverDetailFragment : Fragment() {
     private fun number(value: Int): String =
         String.format(Settings.language(requireContext()), "%,d", value)
 
-    /** Einheiten-Teil mit einer Nachkommastelle und passendem Singular/Plural. */
-    private fun part(resId: Int, value: Double): String =
-        resources.getQuantityString(
-            resId, if (value == 1.0) 1 else 2, decimal(value)
-        )
+    /**
+     * Einheiten-Teil mit höchstens einer Nachkommastelle und passendem
+     * Singular/Plural. Die Form richtet sich nach dem, was dasteht: nur eine
+     * glatt als "1" angezeigte Zahl steht im Singular. Sonst stünde bei knapp
+     * einer Woche "1 Wochen", weil die Anzeige die ",0" weglässt.
+     */
+    private fun part(resId: Int, value: Double): String {
+        val text = decimal(value)
+        val quantity = if (text == decimal(1.0)) 1 else 2
+        return resources.getQuantityString(resId, quantity, text)
+    }
 
     private fun decimal(value: Double): String =
-        LayoverTimeScale.oneDecimal(value, Locale.getDefault())
+        LayoverTimeScale.trimmedDecimal(value, Locale.getDefault())
 
     /**
      * Zeitstrahl: alle Layover des Zeitraums an diesem Flughafen, der jüngste

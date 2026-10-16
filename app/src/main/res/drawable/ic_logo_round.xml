@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- App-Logo rund - erzeugt von tools/logo_gen.py. Nicht von Hand aendern. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#0A2E5C"
+        android:pathData="M 0,54 a 54,54 0 1 0 108,0 a 54,54 0 1 0 -108,0 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 86.53,17.741 L 81.284,16.404 L 62.999,26.454 L 50.514,34.197 L 34.469,27.469 L 29.336,30.802 L 34.828,43.409 L 49.252,48.217 L 74.799,33.386 L 84.064,25.18 L 86.323,20.794 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 70.386,33.333 L 67.868,45.177 L 61.445,47.318 L 61.813,40.359 Z" />
+    <path
+        android:fillColor="#E8C898"
+        android:pathData="M 12.6,36 L 50.4,48.6 L 50.4,79.2 L 12.6,68.4 Z" />
+    <path
+        android:fillColor="#CEAC7A"
+        android:pathData="M 95.4,36 L 57.6,48.6 L 57.6,79.2 L 95.4,68.4 Z" />
+    <path
+        android:strokeColor="#0A2E5C"
+        android:strokeWidth="2.52"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 54,48.6 L 54,79.2" />
+    <path
+        android:strokeColor="#0A2E5C"
+        android:strokeWidth="1.62"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 19.8,50.4 L 45,59.4" />
+    <path
+        android:strokeColor="#0A2E5C"
+        android:strokeWidth="1.62"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 19.8,59.4 L 45,68.4" />
+    <path
+        android:strokeColor="#0A2E5C"
+        android:strokeWidth="1.62"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 63,59.4 L 88.2,50.4" />
+    <path
+        android:strokeColor="#0A2E5C"
+        android:strokeWidth="1.62"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 63,68.4 L 88.2,59.4" />
+</vector>

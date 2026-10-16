@@ -327,7 +327,14 @@ class DashboardEditFragment : Fragment() {
         val column = grid.width / 3f
         eachCard { card ->
             if (card.width == 0) return@eachCard
-            card.scaleX = DashboardPrefs.horizontalScale(card.width.toFloat(), column, scale)
+            val width = card.width.toFloat()
+            card.scaleX = DashboardPrefs.horizontalScale(width, column, scale)
+            // Der Inhalt bekommt denselben Gegenfaktor wie auf dem Dashboard,
+            // damit Zahlen und Buchstaben nicht verzerrt werden.
+            card.getChildAt(0)?.let { content ->
+                content.scaleX =
+                    DashboardPrefs.contentCompensation(width, column, scale).coerceIn(0f, 1f)
+            }
         }
     }
 

@@ -75,6 +75,19 @@
          geflogenen Kilometern. -->
     <string name="hangar_sort_count">Anzahl</string>
     <string name="hangar_sort_distance">Entfernung</string>
+    <!-- Sortierung der Kachel "Flugrouten": "Anzahl" ordnet nach der Zahl der
+         Fluege je Strecke, "Distanz" nach den geflogenen Kilometern, "Dauer"
+         nach der gesamten Flugzeit. -->
+    <string name="flight_route_sort_count">Anzahl</string>
+    <string name="flight_route_sort_distance">Distanz</string>
+    <string name="flight_route_sort_duration">Dauer</string>
+    <!-- Detailseite einer Flugstrecke: Abschnittstitel der Streckenkarte und
+         die drei Kennzahlen (wie oft, wie lange, wie weit geflogen). -->
+    <string name="flight_route_map_title">Strecke</string>
+    <string name="flight_route_stat_flights">So oft geflogen</string>
+    <string name="flight_route_stat_duration">Flugzeit</string>
+    <string name="flight_route_stat_distance">Distanz</string>
+    <string name="flight_route_stat_minutes">%1$s min</string>
     <string name="continent_europe">Europa</string>
     <string name="continent_asia">Asien</string>
     <string name="continent_north_america">Nordamerika</string>
@@ -319,13 +332,15 @@
     <string name="filter_year">Jahr</string>
     <string name="filter_apply">Filter anwenden</string>
     <string name="filter_clear">Filter löschen</string>
-    <string name="tile_detail_period_flight_type">Zeitraum: %1$s · %2$s</string>
+    <!-- Kopfzeile der Kachel-Detailseiten: Zeitraum oben, Flugarten darunter -
+         wie die Filterzeile auf der CO2-Seite, nicht in einer Zeile. -->
+    <string name="tile_detail_period_flight_type">Zeitraum: %1$s\n%2$s</string>
     <string name="layover_last">Zuletzt: %1$s</string>
     <string name="layover_extreme_newest">Letztes Layover</string>
     <string name="layover_extreme_oldest">Ältestes Layover</string>
     <string name="layover_extreme_newest_desc">Letztes Layover: %1$s am %2$s</string>
     <string name="layover_extreme_oldest_desc">Ältestes Layover: %1$s am %2$s</string>
-    <string name="layover_sort_label">Sortieren nach:</string>
+    <string name="layover_sort_label">Sortierung:</string>
     <string name="layover_sort_count">Anzahl</string>
     <string name="layover_sort_duration">Dauer</string>
     <!-- Lupe und Suchfeld der Layover-Kachel: gesucht wird nach dem

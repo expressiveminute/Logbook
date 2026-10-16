@@ -414,33 +414,29 @@ class FirstFragment : Fragment() {
                 if (tile.width == 0) continue
                 val width = tile.width.toFloat()
                 tile.scaleX = DashboardPrefs.horizontalScale(width, column, scale)
-                // Waagerecht schrumpft eine Kachel anders stark als senkrecht;
-                // runde Inhalte brauchen deshalb einen Gegenfaktor, sonst
-                // werden sie oval (siehe [keepRoundContentCircular]).
-                keepRoundContentCircular(
+                // Waagerecht schrumpft eine Kachel anders stark als senkrecht.
+                // Ohne Ausgleich würde der Inhalt verzerrt (siehe
+                // [scaleTileContent]).
+                scaleTileContent(
                     tile,
-                    DashboardPrefs.roundContentCompensation(width, column, scale)
+                    DashboardPrefs.contentCompensation(width, column, scale)
                 )
             }
         }
     }
 
     /**
-     * Hält die runden Inhalte einer Kachel (Weltkugel-Vorschau, Kreisdiagramm)
-     * wirklich rund. Die Kachel wird waagerecht um einen anderen Faktor
-     * geschrumpft als senkrecht, wodurch ein Kreis zur Ellipse würde. Der
-     * Inhalt bekommt den Gegenfaktor auf der Breite, sodass beide Achsen gleich
-     * stark erscheinen. Bei einspaltigen Kacheln ist der Faktor 1.
+     * Verkleinert den Inhalt einer Kachel waagerecht um den Gegenfaktor. Die
+     * Kachel selbst schrumpft waagerecht um [DashboardPrefs.horizontalScale],
+     * senkrecht aber um die Kachel-Grösse; ungleichmässig skaliert würden
+     * Zahlen und Buchstaben in die Breite gezogen bzw. gestaucht. Der
+     * Gegenfaktor lässt den Inhalt auf beiden Achsen gleichmässig schrumpfen,
+     * sodass jede Form - auch Weltkugel-Vorschau und Kreisdiagramm - erhalten
+     * bleibt. Bei einspaltigen Kacheln ist der Faktor 1.
      */
-    private fun keepRoundContentCircular(tile: ViewGroup, compensation: Float) {
-        val factor = compensation.coerceIn(0f, 1f)
-        tile.findViewById<WorldMapPreviewView>(R.id.tile_worldmap_preview)?.let {
-            if (it.visibility == View.VISIBLE) it.scaleX = factor
-        }
-        tile.findViewById<PieChartView>(R.id.tile_pie_chart)?.let {
-            // Nur ohne Legende ist das Diagramm ein reiner Kreis.
-            if (it.visibility == View.VISIBLE && !it.showLegend) it.scaleX = factor
-        }
+    private fun scaleTileContent(tile: ViewGroup, compensation: Float) {
+        val content = tile.getChildAt(0) ?: return
+        content.scaleX = compensation.coerceIn(0f, 1f)
     }
 
     private fun fitTileTopValues(container: LinearLayout) {

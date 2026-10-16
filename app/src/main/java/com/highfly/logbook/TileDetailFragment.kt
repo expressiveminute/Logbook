@@ -38,6 +38,9 @@ class TileDetailFragment : Fragment() {
     /** Nach was Hangar (Flugzeugtypen und Registrierungen) geordnet wird. */
     private var hangarSort: ChartData.HangarSort = ChartData.HangarSort.ANZAHL
 
+    /** Nach was die Flugrouten gemessen und geordnet werden. */
+    private var flightRouteSort: ChartData.FlightRouteSort = ChartData.FlightRouteSort.ANZAHL
+
     /** Reiseart, nach der die Kachel "Reiseklasse" ihre Klassen zeigt. */
     private var classTravelType: String = ClassTravelType.DEFAULT
 
@@ -86,6 +89,10 @@ class TileDetailFragment : Fragment() {
             hangarSort = ChartData.HangarSort.entries
                 .firstOrNull { it.name == name } ?: hangarSort
         }
+        savedInstanceState?.getString(KEY_FLIGHT_ROUTE_SORT)?.let { name ->
+            flightRouteSort = ChartData.FlightRouteSort.entries
+                .firstOrNull { it.name == name } ?: flightRouteSort
+        }
 
         binding.btnBack.setOnClickListener {
             findNavController().navigateUp()
@@ -121,6 +128,9 @@ class TileDetailFragment : Fragment() {
             }
             tileId == "aircraftreg" -> {
                 renderAircraftRegistrations()
+            }
+            tileId == "flightroutes" -> {
+                renderFlightRoutes()
             }
             ChartData.isBarChart(tileId) -> {
                 if (tileId == "countries") {
@@ -581,6 +591,21 @@ class TileDetailFragment : Fragment() {
         )
     }
 
+    /**
+     * Detailseite einer Flugstrecke, wie sie ein Klick auf einen Balken der
+     * Kachel "Flugrouten" öffnet. Der Streckenschlüssel ("FRA-JFK") geht
+     * unverändert mit, dazu die gerade gewählte Sortierung, damit der Listenplatz
+     * oben zur Rangliste passt, aus der die Seite geöffnet wurde.
+     */
+    private fun openFlightRouteDetail(label: String?) {
+        val route = label?.trim()
+        if (route.isNullOrBlank()) return
+        findNavController().navigate(
+            R.id.action_tile_detail_to_flight_route_detail,
+            bundleOf(FlightRouteDetailFragment.ARG_ROUTE to route)
+        )
+    }
+
     /** Ein berührter Flughafen mit Koordinate, Höhe und Kurzname. */
     private data class AirportSite(
         val code: String,
@@ -718,6 +743,66 @@ class TileDetailFragment : Fragment() {
     private fun hangarSortLabel(sort: ChartData.HangarSort = hangarSort): String = when (sort) {
         ChartData.HangarSort.ANZAHL -> getString(R.string.hangar_sort_count)
         ChartData.HangarSort.ENTFERNUNG -> getString(R.string.hangar_sort_distance)
+    }
+
+    /**
+     * Kachel "Flugrouten" vollstaendig: die Sortierung oben rechts im Header
+     * und die Balken des gewaehlten Modus. Nur die Balken haengen von der
+     * Auswahl ab.
+     */
+    private fun renderFlightRoutes() {
+        setupFlightRouteSort()
+        renderFlightRouteBars()
+    }
+
+    /**
+     * Sortierung der Flugrouten oben rechts, wie beim Hangar. Standard ist
+     * "Anzahl" (Zahl der Fluege je Strecke); "Distanz" ordnet die Strecken
+     * nach den geflogenen Kilometern, "Dauer" nach der gesamten Flugzeit.
+     * Ein Wechsel zeichnet die Balken neu.
+     */
+    private fun setupFlightRouteSort() {
+        binding.flightRouteSortContainer.visibility = View.VISIBLE
+        binding.tvFlightRouteSort.text = flightRouteSortLabel()
+        binding.tvFlightRouteSort.setOnClickListener { anchor ->
+            val options = ChartData.FlightRouteSort.entries
+            FilterPopupMenu.showOptions(
+                requireContext(),
+                anchor,
+                options.map { it.name },
+                options.map { flightRouteSortLabel(it) },
+                flightRouteSort.name
+            ) { key ->
+                val selected =
+                    ChartData.FlightRouteSort.entries.firstOrNull { it.name == key }
+                if (selected != null && selected != flightRouteSort) {
+                    flightRouteSort = selected
+                    binding.tvFlightRouteSort.text = flightRouteSortLabel()
+                    renderFlightRouteBars()
+                }
+            }
+        }
+    }
+
+    private fun flightRouteSortLabel(
+        sort: ChartData.FlightRouteSort = flightRouteSort
+    ): String = when (sort) {
+        ChartData.FlightRouteSort.ANZAHL -> getString(R.string.flight_route_sort_count)
+        ChartData.FlightRouteSort.ENTFERNUNG -> getString(R.string.flight_route_sort_distance)
+        ChartData.FlightRouteSort.DAUER -> getString(R.string.flight_route_sort_duration)
+    }
+
+    private fun renderFlightRouteBars() {
+        val bars = ChartData.flightRouteBars(requireContext(), flightRouteSort)
+        // Ein Tipp auf einen Balken oeffnet die Detailseite der Strecke.
+        binding.barChart.setOnItemClickListener { index ->
+            openFlightRouteDetail(bars.getOrNull(index)?.label)
+        }
+        renderBars(bars)
+        // Ohne etwas zum Sortieren verschwindet der Filter aus dem Header wie
+        // bei der Hangar-Kachel; ueber dem Leertext haette er nichts zu ordnen.
+        binding.flightRouteSortContainer.visibility =
+            if (bars.isEmpty()) View.GONE else View.VISIBLE
     }
 
     private fun renderHangar() {
@@ -941,7 +1026,8 @@ class TileDetailFragment : Fragment() {
     }
 
     /**
-     * Merkt die Layover-Sortierung und die Suche ueber eine Neuerstellung der
+     * Merkt die Layover-Sortierung, die Hangar-Sortierung, die
+     * Flugrouten-Sortierung und die Suche ueber eine Neuerstellung der
      * Seite hinweg.
      */
     override fun onSaveInstanceState(outState: Bundle) {
@@ -950,6 +1036,7 @@ class TileDetailFragment : Fragment() {
         outState.putString(KEY_SEARCH_QUERY, searchQuery)
         outState.putBoolean(KEY_SEARCH_OPEN, searchOpen)
         outState.putString(KEY_HANGAR_SORT, hangarSort.name)
+        outState.putString(KEY_FLIGHT_ROUTE_SORT, flightRouteSort.name)
     }
 
     override fun onDestroyView() {
@@ -992,6 +1079,9 @@ class TileDetailFragment : Fragment() {
 
         /** Schlüssel für die gemerkte Hangar-Sortierung im Zustand. */
         const val KEY_HANGAR_SORT = "hangarSort"
+
+        /** Schlüssel für die gemerkte Flugrouten-Sortierung im Zustand. */
+        const val KEY_FLIGHT_ROUTE_SORT = "flightRouteSort"
 
         /** Dauer der Aufklapp-/Einklappanimation des Suchfelds. */
         const val SEARCH_ANIMATION_MS = 220L

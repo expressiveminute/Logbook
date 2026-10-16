@@ -255,6 +255,15 @@
             android:gravity="center_horizontal"
             android:orientation="vertical">
 
+            <!-- App-Logo rund, gleiche Optik wie das Launcher-Icon -->
+            <ImageView
+                android:id="@+id/iv_settings_logo"
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:layout_marginBottom="12dp"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_logo_round" />
+
             <TextView
                 android:id="@+id/tv_settings_version"
                 android:layout_width="wrap_content"

@@ -56,28 +56,28 @@ class DashboardPrefsScaleTest {
     }
 
     @Test
-    fun roundContentCompensation_keepsBothAxesEqual() {
-        // Nach dem Gegenfaktor erscheint ein runder Inhalt auf beiden Achsen
-        // mit der senkrechten Kachelgrösse [scale], wird also nicht oval.
+    fun contentCompensation_keepsBothAxesEqual() {
+        // Nach dem Gegenfaktor erscheint der Inhalt auf beiden Achsen mit der
+        // senkrechten Kachelgrösse [scale], wird also nicht verzerrt.
         val column = 120f
         for (scale in listOf(0.85f, 0.9f, 0.95f, 1f)) {
             for (span in 1..3) {
                 val width = span * column
                 val horizontal = DashboardPrefs.horizontalScale(width, column, scale)
                 val compensation =
-                    DashboardPrefs.roundContentCompensation(width, column, scale)
+                    DashboardPrefs.contentCompensation(width, column, scale)
                 assertEquals(scale, horizontal * compensation, 0.0001f)
             }
         }
     }
 
     @Test
-    fun roundContentCompensation_isOneForSingleColumnTile() {
+    fun contentCompensation_isOneForSingleColumnTile() {
         // Einspaltige (quadratische) Kacheln brauchen keinen Ausgleich.
         val column = 120f
         assertEquals(
             1f,
-            DashboardPrefs.roundContentCompensation(column, column, 0.85f),
+            DashboardPrefs.contentCompensation(column, column, 0.85f),
             0.0001f
         )
     }

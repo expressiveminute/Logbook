@@ -35,6 +35,27 @@ Release-APKs sind mit `*.apk`/`*.idsig` in `.gitignore` und werden nicht committ
 Update ("inkompatible Signatur"). Ein Wechsel auf `backups/logbook/logbook-release.keystore` wäre
 sinnvoller, ist aber nur als großer Versionssprung möglich.
 
+## Logo und Launcher-Icons
+
+`tools/logo_gen.py` erzeugt alle Icons aus einer einzigen Geometrie (Aufruf
+`python3 tools/logo_gen.py`, Vorschau-PNGs landen in `/tmp/opencode/logo/`). Es gibt die drei
+Entwürfe `logbuch`, `orbit` und `steigflug`; aktiv ist `DEFAULT = "logbuch"`. Das Manifest
+zeigt auf `@mipmap/ic_launcher` bzw. `@mipmap/ic_launcher_round`, beide `mipmap-anydpi`-XMLs
+verweisen auf den aktiven Entwurf – `anydpi` hat Vorrang vor den alten `webp`-Icons in den
+`mipmap-*dpi`-Ordnern, diese liegen nur noch als Fallback dort.
+
+Der aktive Entwurf: das offene Buch steht in der Mitte (`BOOK_SHIFT`), darüber fliegt ein
+weißes Flugzeug von der Seite (`side_plane`), dessen untere Hälfte die Buchkante `VALLEY_LINE`
+abschneidet (`clip_polygon`) – es startet halb aus dem Buch. Die ganze Szene skaliert `SCENE`,
+damit das Icon die Maske gut füllt. Das Monochrom-Themen-Icon entsteht aus derselben Geometrie
+ohne Falz und Seitenlinien. Die erzeugten `ic_launcher_*.xml` in `drawable/` tragen den Hinweis
+„Nicht von Hand aendern" – immer das Skript neu laufen lassen.
+
+Das Skript schreibt zusätzlich `drawable/ic_logo_round.xml`: dasselbe Icon als Vollkreis
+(der sichtbare Kreis r=36 des adaptiven Icons auf r=54 gezogen). Es steht in den Einstellungen
+über der Version (`iv_settings_logo` in `fragment_profile.xml`) und auf dem Begrüßungsbildschirm
+folgt das Logo weiterhin `@mipmap/app_logo` (`values/app_logo.xml`).
+
 ## Flughäfen und geschlossene Flughäfen
 
 Flughäfen sind reine Assets unter `app/src/main/assets/airports/`: `airports.json`

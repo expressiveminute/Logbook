@@ -82,11 +82,19 @@ object LayoverTimeScale {
      * Stunden als Tage mit höchstens einer Nachkommastelle, in der Sprache der
      * App: deutsch "1,5", englisch "1.5". Ganze Tage stehen ohne Nachkomma da.
      */
-    fun daysText(hours: Int, locale: Locale): String {
+    fun daysText(hours: Int, locale: Locale): String =
+        trimmedDecimal(hours / DAY_HOURS.toDouble(), locale)
+
+    /**
+     * Zahl mit höchstens einer Nachkommastelle, in der Sprache der App:
+     * deutsch "20,8", englisch "20.8". Eine volle Einheit steht ohne
+     * Nachkommastelle da ("3" statt "3,0").
+     */
+    fun trimmedDecimal(value: Double, locale: Locale): String {
         val format = NumberFormat.getNumberInstance(locale).apply {
             maximumFractionDigits = 1
         }
-        return format.format(hours / DAY_HOURS.toDouble())
+        return format.format(value)
     }
 
     /**

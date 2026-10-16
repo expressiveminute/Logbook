@@ -246,11 +246,11 @@ object DashboardPrefs {
      *
      * Die Grösse ist der Anteil der Rasterzelle, den die Kachel füllt: 100 %
      * heisst, dass die Kacheln ohne Zwischenraum aneinanderstossen, darunter
-     * schrumpfen sie gleichmässig in ihrer Zelle. Standard ist 95 %.
+     * schrumpfen sie gleichmässig in ihrer Zelle. Standard ist 90 %.
      */
     const val MIN_SCALE = 0.85f
     const val MAX_SCALE = 1.00f
-    const val DEFAULT_SCALE = 0.95f
+    const val DEFAULT_SCALE = 0.90f
 
     /**
      * Der Schieber rechnet in ganzen Prozent (85..100, Schritt 1). Eine krumme
@@ -262,7 +262,7 @@ object DashboardPrefs {
      */
     const val MIN_PERCENT = 85
     const val MAX_PERCENT = 100
-    const val DEFAULT_PERCENT = 95
+    const val DEFAULT_PERCENT = 90
 
     private const val PREF_NAME = "dashboard_layout"
     private const val KEY_TILES = "tiles_standard_v14"
@@ -371,13 +371,17 @@ object DashboardPrefs {
         }
 
     /**
-     * Waagerechter Gegenfaktor für einen runden Inhalt (Weltkugel-Vorschau,
-     * Kreisdiagramm) in einer Kachel. Senkrecht schrumpft jede Kachel
-     * gleichmässig um [scale], waagerecht aber um [horizontalScale] - bei
-     * breiten Kacheln deutlich weniger. Ungleichmässig skaliert würde der Kreis
-     * oval. Der Gegenfaktor lässt beide Achsen wieder gleich erscheinen.
+     * Waagerechter Gegenfaktor für den Inhalt einer Kachel. Senkrecht schrumpft
+     * jede Kachel gleichmässig um [scale], waagerecht aber um [horizontalScale] -
+     * bei breiten Kacheln deutlich weniger. Ungleichmässig skaliert würde der
+     * Inhalt verzerrt: runde Formen (Weltkugel-Vorschau, Kreisdiagramm) würden
+     * oval, und Zahlen wie Buchstaben würden in die Breite gezogen bzw.
+     * gestaucht. Der Gegenfaktor lässt den Inhalt auf beiden Achsen wieder
+     * gleichmässig um [scale] erscheinen, sodass jede Form erhalten bleibt.
+     *
+     * Bei einspaltigen (quadratischen) Kacheln ist der Faktor 1.
      */
-    fun roundContentCompensation(tileWidth: Float, column: Float, scale: Float): Float {
+    fun contentCompensation(tileWidth: Float, column: Float, scale: Float): Float {
         val horizontal = horizontalScale(tileWidth, column, scale)
         return if (horizontal <= 0f) 1f else (scale / horizontal).coerceIn(0f, 1f)
     }

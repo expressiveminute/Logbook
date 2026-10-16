@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Launcher-Monochrom orbit - erzeugt von tools/logo_gen.py. Nicht von Hand aendern. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:strokeColor="#000000"
+        android:strokeWidth="2"
+        android:pathData="M 35,54 a 19,19 0 1 0 38,0 a 19,19 0 1 0 -38,0 Z" />
+    <path
+        android:strokeColor="#000000"
+        android:strokeWidth="2"
+        android:pathData="M 45.45,54 a 8.55,19 0 1 0 17.1,0 a 8.55,19 0 1 0 -17.1,0 Z" />
+    <path
+        android:strokeColor="#000000"
+        android:strokeWidth="2"
+        android:pathData="M 38.42,54 a 15.58,19 0 1 0 31.16,0 a 15.58,19 0 1 0 -31.16,0 Z" />
+    <path
+        android:strokeColor="#000000"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 35,54 L 73,54" />
+    <path
+        android:strokeColor="#000000"
+        android:strokeWidth="0.7"
+        android:pathData="M 27,54 a 27,27 0 1 0 54,0 a 27,27 0 1 0 -54,0 Z" />
+    <path
+        android:fillColor="#000000"
+        android:pathData="M 42.012,28.82 L 30.461,31.934 L 35.685,34.13 L 36.94,39.656 Z" />
+</vector>

@@ -110,7 +110,7 @@
             android:layout_marginStart="8dp"
             android:layout_weight="1"
             android:stepSize="1"
-            android:value="95"
+            android:value="90"
             android:valueFrom="85"
             android:valueTo="100"
             app:tickVisible="true" />

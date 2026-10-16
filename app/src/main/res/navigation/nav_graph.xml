@@ -171,6 +171,9 @@
         <action
             android:id="@+id/action_tile_detail_to_airport_detail"
             app:destination="@id/nav_airport_detail" />
+        <action
+            android:id="@+id/action_tile_detail_to_flight_route_detail"
+            app:destination="@id/nav_flight_route_detail" />
     </fragment>
 
     <fragment
@@ -198,6 +201,20 @@
 
         <argument
             android:name="code"
+            app:argType="string"
+            android:defaultValue="" />
+    </fragment>
+
+    <!-- Detailseite einer einzelnen Flugstrecke aus der Kachel "Flugrouten":
+         Kopfzeile mit der Strecke, animierte Streckenkarte und die Kennzahlen
+         (Häufigkeit, Flugzeit, Distanz), jede mit ihrem eigenen Rang. -->
+    <fragment
+        android:id="@+id/nav_flight_route_detail"
+        android:name="com.highfly.logbook.FlightRouteDetailFragment"
+        tools:layout="@layout/fragment_flight_route_detail">
+
+        <argument
+            android:name="route"
             app:argType="string"
             android:defaultValue="" />
     </fragment>

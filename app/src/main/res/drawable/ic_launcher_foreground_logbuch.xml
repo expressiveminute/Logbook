@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Launcher-Vordergrund logbuch - erzeugt von tools/logo_gen.py. Nicht von Hand aendern. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 75.687,29.827 L 72.189,28.936 L 60,35.636 L 51.676,40.798 L 40.979,36.312 L 37.558,38.534 L 41.219,46.94 L 50.835,50.145 L 67.866,40.258 L 74.043,34.787 L 75.549,31.863 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 64.924,40.222 L 63.245,48.118 L 58.964,49.545 L 59.209,44.906 Z" />
+    <path
+        android:fillColor="#E8C898"
+        android:pathData="M 26.4,42 L 51.6,50.4 L 51.6,70.8 L 26.4,63.6 Z" />
+    <path
+        android:fillColor="#CEAC7A"
+        android:pathData="M 81.6,42 L 56.4,50.4 L 56.4,70.8 L 81.6,63.6 Z" />
+    <path
+        android:strokeColor="#0A2E5C"
+        android:strokeWidth="1.68"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 54,50.4 L 54,70.8" />
+    <path
+        android:strokeColor="#0A2E5C"
+        android:strokeWidth="1.08"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 31.2,51.6 L 48,57.6" />
+    <path
+        android:strokeColor="#0A2E5C"
+        android:strokeWidth="1.08"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 31.2,57.6 L 48,63.6" />
+    <path
+        android:strokeColor="#0A2E5C"
+        android:strokeWidth="1.08"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 60,57.6 L 76.8,51.6" />
+    <path
+        android:strokeColor="#0A2E5C"
+        android:strokeWidth="1.08"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 60,63.6 L 76.8,57.6" />
+</vector>

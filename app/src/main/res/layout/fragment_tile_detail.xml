@@ -53,7 +53,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:ellipsize="end"
-                android:maxLines="1"
+                android:maxLines="2"
                 android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                 android:textColor="?attr/colorOnSurfaceVariant" />
         </LinearLayout>
@@ -164,6 +164,42 @@
                 android:textAppearance="?attr/textAppearanceBodyMedium"
                 android:textColor="?attr/colorPrimary"
                 tools:text="@string/hangar_sort_count" />
+        </LinearLayout>
+
+        <!-- Sortierung der Kachel "Flugrouten" oben rechts im Header, nach
+             demselben Muster wie der Hangar-Filter: die Beschriftung steht
+             links neben dem anklickbaren Wort. Nur bei der Kachel
+             "Flugrouten" sichtbar. -->
+        <LinearLayout
+            android:id="@+id/flight_route_sort_container"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <TextView
+                android:id="@+id/tv_flight_route_sort_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:labelFor="@id/tv_flight_route_sort"
+                android:maxLines="2"
+                android:text="@string/layover_sort_label"
+                android:textAppearance="?attr/textAppearanceBodyMedium" />
+
+            <TextView
+                android:id="@+id/tv_flight_route_sort"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackground"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:padding="8dp"
+                android:textAppearance="?attr/textAppearanceBodyMedium"
+                android:textColor="?attr/colorPrimary"
+                tools:text="@string/flight_route_sort_count" />
         </LinearLayout>
     </LinearLayout>
 

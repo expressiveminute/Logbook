@@ -17,6 +17,9 @@ object ChartData {
 
     data class Slice(val label: String, val value: Int, val colorRes: Int)
 
+    /** Kennzahlen einer einzelnen Flugstrecke fuer ihre Detailseite. */
+    data class FlightRouteStats(val flights: Int, val minutes: Int, val km: Int)
+
     /** Layover-Eintrag als Angabe fuer die Kacheln ueber dem Diagramm. */
     data class LayoverExtreme(val airport: String, val date: LocalDate)
 
@@ -29,6 +32,13 @@ object ChartData {
      * summiert die geflogenen Kilometer.
      */
     enum class HangarSort { ANZAHL, ENTFERNUNG }
+
+    /**
+     * Womit die Balken der Kachel "Flugrouten" gemessen und sortiert werden.
+     * [ANZAHL] zaehlt die Fluege je Strecke, [ENTFERNUNG] summiert die
+     * geflogenen Kilometer, [DAUER] die geflogenen Minuten.
+     */
+    enum class FlightRouteSort { ANZAHL, ENTFERNUNG, DAUER }
 
     private data class TravelType(val resId: Int, val canonical: String, val aliases: List<String>)
 
@@ -347,7 +357,7 @@ object ChartData {
     ): List<Bar> = withDistanceLabels(
         context,
         hangarBars(DashboardStats.dashboardEntries(context), sort, selector),
-        sort
+        sort == HangarSort.ENTFERNUNG
     )
 
     /**
@@ -372,6 +382,96 @@ object ChartData {
     }
 
     /**
+     * Balken der Kachel "Flugrouten" ueber den Zeitraum der Einstellungen: je
+     * Strecke ein Balken. [sort] waehlt, ob nach Zahl der Fluege, nach den
+     * geflogenen Kilometern oder nach der gesamten Flugdauer geordnet wird.
+     */
+    fun flightRouteBars(
+        context: Context,
+        sort: FlightRouteSort = FlightRouteSort.ANZAHL
+    ): List<Bar> = withFlightRouteValueLabels(
+        context,
+        flightRouteBars(DashboardStats.dashboardEntries(context), sort),
+        sort
+    )
+
+    /**
+     * Balken der Kachel "Flugrouten": je Strecke ein Balken. Nach
+     * [FlightRouteSort.ANZAHL] zaehlt jeder Eintrag als ein Flug, nach
+     * [FlightRouteSort.ENTFERNUNG] die Summe der geflogenen Kilometer, nach
+     * [FlightRouteSort.DAUER] die Summe der Flugminuten.
+     * Eintraege ohne erfasste Entfernung oder Dauer zaehlen dort mit null, die
+     * Strecke bleibt als Balken mit dem Wert 0 sichtbar, weil sie ja geflogen
+     * wurde. Sortiert wird absteigend nach dem dargestellten Wert und bei
+     * Gleichstand nach der Beschriftung.
+     */
+    fun flightRouteBars(
+        entries: List<LogbookEntry>,
+        sort: FlightRouteSort = FlightRouteSort.ANZAHL
+    ): List<Bar> {
+        val values: Map<String, Int> = when (sort) {
+            FlightRouteSort.ANZAHL -> countBy(entries) { routeOf(it) }
+            FlightRouteSort.ENTFERNUNG -> distanceBy(entries) { routeOf(it) }
+            FlightRouteSort.DAUER -> durationBy(entries) { routeOf(it) }
+        }
+        return values.map { (label, value) -> Bar(label, value) }
+            .sortedWith(compareByDescending<Bar> { it.count }.thenBy { it.label })
+    }
+
+    /**
+     * Kennzahlen einer einzelnen Strecke: Zahl der Fluege, gesamte Flugzeit in
+     * Minuten und gesamte Entfernung in Kilometern. Gezaehlt werden dieselben
+     * Eintraege wie bei den Balken der Kachel; fehlende Dauer oder Entfernung
+     * geht mit null ein, nicht erfasste Werte verfaelschen das Ergebnis also
+     * nicht.
+     */
+    fun flightRouteStats(entries: List<LogbookEntry>, route: String): FlightRouteStats {
+        val matching = entries.filter { routeOf(it) == route }
+        return FlightRouteStats(
+            flights = matching.size,
+            minutes = matching.sumOf { it.flightMinutes ?: 0 },
+            km = matching.sumOf { it.distanceKm ?: 0 }
+        )
+    }
+
+    /**
+     * Platz der Strecke in der Rangliste der Flugrouten (1 = vorn), je nach
+     * [sort] nach Zahl der Fluege, Kilometern oder Flugdauer. Strecken mit
+     * gleichem Wert teilen sich einen Platz, wie bei den Balken und den
+     * Raengen der uebrigen Kacheln. 0, wenn die Strecke nicht vorkommt.
+     */
+    fun flightRouteRank(
+        entries: List<LogbookEntry>,
+        route: String,
+        sort: FlightRouteSort
+    ): Int {
+        val bars = flightRouteBars(entries, sort)
+        val target = bars.firstOrNull { it.label == route } ?: return 0
+        return bars.count { it.count > target.count } + 1
+    }
+
+    /**
+     * Haengt den Balken der Kachel "Flugrouten" die Wertbeschriftung des
+     * gewaehlten Messwerts an: die Kilometer, die Flugdauer oder - nach
+     * [FlightRouteSort.ANZAHL] - nichts, dann steht einfach die Zahl der
+     * Fluege da. So zeigt die Wertbeschriftung immer denselben Messwert wie
+     * die Balkenlaenge.
+     */
+    private fun withFlightRouteValueLabels(
+        context: Context,
+        bars: List<Bar>,
+        sort: FlightRouteSort
+    ): List<Bar> = when (sort) {
+        FlightRouteSort.ENTFERNUNG -> bars.map {
+            it.copy(countLabel = DashboardStats.kmText(context, it.count))
+        }
+        FlightRouteSort.DAUER -> bars.map {
+            it.copy(countLabel = durationText(it.count))
+        }
+        FlightRouteSort.ANZAHL -> bars
+    }
+
+    /**
      * Haengt den Balken im Entfernung-Modus die Kilometer als Wert an. Im
      * Anzahl-Modus bleibt die reine Zahl. So zeigt die Wertbeschriftung immer
      * denselben Messwert wie die Balkenlaenge.
@@ -379,8 +479,8 @@ object ChartData {
     private fun withDistanceLabels(
         context: Context,
         bars: List<Bar>,
-        sort: HangarSort
-    ): List<Bar> = if (sort == HangarSort.ENTFERNUNG) {
+        byDistance: Boolean
+    ): List<Bar> = if (byDistance) {
         bars.map { it.copy(countLabel = DashboardStats.kmText(context, it.count)) }
     } else {
         bars
@@ -401,6 +501,23 @@ object ChartData {
             km[label] = (km[label] ?: 0) + (entry.distanceKm ?: 0)
         }
         return km
+    }
+
+    /**
+     * Summe der Flugdauer je Gruppe in Minuten. Nur Eintraege mit erfasster
+     * Flugzeit zaehlen; fehlt sie, geht der Eintrag mit null ein, bleibt aber
+     * als Gruppe erhalten.
+     */
+    private fun durationBy(
+        entries: List<LogbookEntry>,
+        selector: (LogbookEntry) -> String?
+    ): Map<String, Int> {
+        val minutes = LinkedHashMap<String, Int>()
+        entries.forEach { entry ->
+            val label = selector(entry)?.takeIf(String::isNotBlank) ?: return@forEach
+            minutes[label] = (minutes[label] ?: 0) + (entry.flightMinutes ?: 0)
+        }
+        return minutes
     }
 
     /**

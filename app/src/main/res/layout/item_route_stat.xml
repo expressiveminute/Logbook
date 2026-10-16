@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Eine Kennzahl der Flugstrecken-Detailseite: links das Bild (Symbol), dann
+     die Beschriftung mit der hochzählenden Zahl und rechts der Platz der
+     Strecke in der Rangliste genau dieser Kennzahl (Medaille oder Platznummer,
+     siehe RankBadgeView). So bekommt jede Kennzahl ihren eigenen Rang.
+
+     Bewusst ohne Kachel: die Zeilen liegen direkt auf der Seite, damit keine
+     Ränder zu sehen sind. Die Zeilen entstehen in FlightRouteDetailFragment
+     über dieses Layout. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="12dp"
+    android:baselineAligned="false"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingVertical="12dp">
+
+    <ImageView
+        android:id="@+id/iv_route_stat_icon"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:importantForAccessibility="no"
+        app:tint="?attr/colorPrimary"
+        tools:src="@drawable/ic_flight" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tv_route_stat_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            tools:text="So oft geflogen" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:baselineAligned="true"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tv_route_stat_value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="28sp"
+                android:textStyle="bold"
+                tools:text="12" />
+
+            <TextView
+                android:id="@+id/tv_route_stat_unit"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="13sp"
+                tools:text="km" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tv_route_stat_caption"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:visibility="gone"
+            tools:text="1.234 min"
+            tools:visibility="visible" />
+    </LinearLayout>
+
+    <!-- Platz der Strecke in der Rangliste dieser Kennzahl: Medaille für die
+         ersten drei Plätze, Platznummer bis zehn, danach bleibt das Feld leer. -->
+    <com.highfly.logbook.RankBadgeView
+        android:id="@+id/badge_route_stat_rank"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginStart="12dp"
+        android:importantForAccessibility="no"
+        android:visibility="gone"
+        tools:visibility="visible" />
+</LinearLayout>
