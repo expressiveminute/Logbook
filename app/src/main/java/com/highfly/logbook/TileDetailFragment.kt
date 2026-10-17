@@ -64,6 +64,15 @@ class TileDetailFragment : Fragment() {
     /** Laufende Aufklapp-/Einklappanimation des Suchfelds. */
     private var searchAnimator: ValueAnimator? = null
 
+    /** Adapter und Zeilenhöhe des Suchergebnis-Popups der Flughäfen-Kachel. */
+    private val airportSearchAdapter = AirportSearchAdapter()
+
+    /** Zuletzt angezeigte Suchergebnisse, für den Klick auf eine Zeile. */
+    private var airportSearchResults: List<AirportDirectory.Entry> = emptyList()
+
+    /** Ob das Suchergebnis-Popup der Flughäfen-Kachel gerade offen ist. */
+    private var airportPopupOpen = false
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -347,6 +356,7 @@ class TileDetailFragment : Fragment() {
             }
         } else {
             hideSearchKeyboard()
+            dismissAirportSearchPopup()
         }
         searchAnimator = ValueAnimator.ofFloat(if (open) 0f else 1f, if (open) 1f else 0f)
             .apply {
@@ -531,6 +541,7 @@ class TileDetailFragment : Fragment() {
         val entries = DashboardStats.dashboardEntries(requireContext())
         binding.compassView.setOnAirportClickListener { openAirportDetail(it) }
         binding.altitudeView.setOnAirportClickListener { openAirportDetail(it) }
+        binding.airportSearchScrim.setOnClickListener { dismissAirportSearchPopup() }
         setupAirportCompass(entries)
         setupAirportAltitude(entries)
         airportAllBars = ChartData.airportBars(requireContext())
@@ -565,6 +576,7 @@ class TileDetailFragment : Fragment() {
             binding.tvEmpty.visibility = View.VISIBLE
             binding.barChart.visibility = View.GONE
             binding.barChart.setItems(emptyList())
+            updateAirportSearchPopup(query)
             return
         }
         binding.tvEmpty.visibility = View.GONE
@@ -579,6 +591,70 @@ class TileDetailFragment : Fragment() {
         binding.barChart.setItems(
             bars.map { BarChartView.Item(it.label, it.count, it.subLabel, it.countLabel) }
         )
+        updateAirportSearchPopup(query)
+    }
+
+    /**
+     * Zeigt oder schließt das Suchergebnis-Popup der Flughäfen-Kachel. Es
+     * erscheint direkt unter dem Suchfeld und liegt über Kompass und Inhalt;
+     * ohne Eingabe oder ohne Treffer bleibt es geschlossen.
+     */
+    private fun updateAirportSearchPopup(query: String) {
+        if (query.isEmpty()) {
+            dismissAirportSearchPopup()
+            return
+        }
+        val results = AirportDirectory.search(requireContext(), query, AIRPORT_SEARCH_LIMIT)
+        if (results.isEmpty()) {
+            dismissAirportSearchPopup()
+            return
+        }
+        airportSearchResults = results
+        airportSearchAdapter.submit(results)
+        binding.airportSearchList.adapter = airportSearchAdapter
+        // Höhe an die Zeilen anpassen, nach oben auf die Hälfte des Bildschirms
+        // begrenzt; darüber hinaus scrollt die Liste.
+        val rowHeight = (48 * resources.displayMetrics.density).toInt()
+        val maxHeight = (resources.displayMetrics.heightPixels * AIRPORT_POPUP_MAX_FACTOR).toInt()
+        val desired = rowHeight * results.size
+        binding.airportSearchPopup.layoutParams =
+            binding.airportSearchPopup.layoutParams.apply {
+                height = if (desired > maxHeight) maxHeight else androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.WRAP_CONTENT
+            }
+        binding.airportSearchList.setOnItemClickListener { _, _, position, _ ->
+            val entry = airportSearchResults.getOrNull(position)
+            dismissAirportSearchPopup()
+            openAirportDetail(entry?.iata)
+        }
+        if (!airportPopupOpen) {
+            airportPopupOpen = true
+            binding.airportSearchScrim.visibility = View.VISIBLE
+            binding.airportSearchPopup.visibility = View.VISIBLE
+            binding.airportSearchPopup.alpha = 0f
+            binding.airportSearchPopup.animate()
+                .alpha(1f)
+                .setDuration(SEARCH_ANIMATION_MS)
+                .start()
+        }
+    }
+
+    /** Schließt das Suchergebnis-Popup samt Sperrfläche. */
+    private fun dismissAirportSearchPopup() {
+        if (!airportPopupOpen) return
+        airportPopupOpen = false
+        binding.airportSearchPopup.animate()
+            .alpha(0f)
+            .setDuration(SEARCH_ANIMATION_MS)
+            .withEndAction {
+                // Nur ausblenden, wenn das Popup nicht schon wieder offen ist.
+                if (_binding != null && !airportPopupOpen) {
+                    binding.airportSearchPopup.visibility = View.GONE
+                }
+            }
+            .start()
+        binding.airportSearchScrim.visibility = View.GONE
+        binding.airportSearchList.adapter = null
+        airportSearchResults = emptyList()
     }
 
     /** Detailseite eines Flughafens, wie sie ein Klick in der Kachel öffnet. */
@@ -812,6 +888,18 @@ class TileDetailFragment : Fragment() {
 
     private fun renderHangar() {
         val types = ChartData.aircraftBars(requireContext(), hangarSort)
+        binding.barAircraft.setOnItemClickListener { index: Int ->
+            val label = types.getOrNull(index)?.label
+            if (!label.isNullOrBlank()) {
+                findNavController().navigate(
+                    R.id.action_tile_detail_to_aircraft_flights,
+                    androidx.core.os.bundleOf(
+                        AircraftFlightsFragment.ARG_MODE to AircraftFlightsFragment.MODE_TYPE,
+                        AircraftFlightsFragment.ARG_VALUE to label
+                    )
+                )
+            }
+        }
         renderScrollableColumnChart(
             types,
             binding.aircraftChart,
@@ -823,6 +911,18 @@ class TileDetailFragment : Fragment() {
         // Anzahl, Distanz und Dauer stehen am rechten Rand auf einer Linie,
         // statt an jeder Balkenspitze zu wandern.
         binding.barChart.setValueRightAligned(true)
+        binding.barChart.setOnItemClickListener { index: Int ->
+            val label = registrations.getOrNull(index)?.label
+            if (!label.isNullOrBlank()) {
+                findNavController().navigate(
+                    R.id.action_tile_detail_to_aircraft_flights,
+                    androidx.core.os.bundleOf(
+                        AircraftFlightsFragment.ARG_MODE to AircraftFlightsFragment.MODE_REG,
+                        AircraftFlightsFragment.ARG_VALUE to label
+                    )
+                )
+            }
+        }
         renderBars(registrations)
         binding.tvRegistrationsTitle.visibility =
             if (registrations.isEmpty()) View.GONE else View.VISIBLE
@@ -1071,6 +1171,9 @@ class TileDetailFragment : Fragment() {
          * Eingabe die Liste endlos lang machen.
          */
         const val AIRPORT_SEARCH_LIMIT = 40
+
+        /** Anteil der Bildschirmhoehe, den das Suchergebnis-Popup hoechstens einnimmt. */
+        const val AIRPORT_POPUP_MAX_FACTOR = 0.5f
 
         /** Grenzen der gemeinsamen Schriftgrösse der beiden Code-Kacheln. */
         const val LAYOVER_CODE_MIN_SP = 14

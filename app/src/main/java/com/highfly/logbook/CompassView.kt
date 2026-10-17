@@ -146,17 +146,31 @@ class CompassView @JvmOverloads constructor(
         val codeHalfWidth = listOfNotNull(north, south, west, east)
             .maxOfOrNull { codePaint.measureText(it.code) / 2f }
             ?: (codePaint.measureText("XXX") / 2f)
-        val codeRadius = clampCodeRadius(
+        // West und Ost stehen links und rechts der Rose: ihr Code darf nicht
+        // seitlich aus der Ansicht laufen, der begrenzende Wert ist die Breite.
+        val codeRadiusX = clampCodeRadius(
             letterRadius,
             dp(CODE_GAP_DP),
             width / 2f,
             codeHalfWidth,
             dp(CODE_MARGIN_DP)
         )
-        drawDirection(canvas, northText, north?.code, cx, cy - letterRadius, cx, cy - codeRadius)
-        drawDirection(canvas, southText, south?.code, cx, cy + letterRadius, cx, cy + codeRadius)
-        drawDirection(canvas, westText, west?.code, cx - letterRadius, cy, cx - codeRadius, cy)
-        drawDirection(canvas, eastText, east?.code, cx + letterRadius, cy, cx + codeRadius, cy)
+        // Nord und Süd stehen über und unter der Rose: dort begrenzt die Höhe.
+        // Ohne diese zweite Schranke stünde der Code oben bzw. unten am Rand
+        // und würde abgeschnitten.
+        val codeMetrics = codePaint.fontMetrics
+        val codeHalfHeight = (codeMetrics.descent - codeMetrics.ascent) / 2f
+        val codeRadiusY = clampCodeRadius(
+            letterRadius,
+            dp(CODE_GAP_DP),
+            height / 2f,
+            codeHalfHeight,
+            dp(CODE_MARGIN_DP)
+        )
+        drawDirection(canvas, northText, north?.code, cx, cy - letterRadius, cx, cy - codeRadiusY)
+        drawDirection(canvas, southText, south?.code, cx, cy + letterRadius, cx, cy + codeRadiusY)
+        drawDirection(canvas, westText, west?.code, cx - letterRadius, cy, cx - codeRadiusX, cy)
+        drawDirection(canvas, eastText, east?.code, cx + letterRadius, cy, cx + codeRadiusX, cy)
 
         // Zentrum: Code des häufigsten Abflughafens.
         val centerCode = center!!.code
@@ -210,7 +224,8 @@ class CompassView @JvmOverloads constructor(
     /**
      * Zeichnet den Buchstaben einer Himmelsrichtung am Nadelende mit etwas
      * Abstand ([letterX], [letterY]) und daneben den Dreilettercode
-     * ([codeX], [codeY]).
+     * ([codeX], [codeY]). Für Nord und Süd liegt der Code über bzw. unter dem
+     * Buchstaben (gleiches x, versetztes y), für West und Ost daneben.
      */
     private fun drawDirection(
         canvas: Canvas,
@@ -277,10 +292,10 @@ class CompassView @JvmOverloads constructor(
         private const val NEEDLE_SHOULDER_FRACTION = 0.34f
 
         /** Abstand des Richtungsbuchstabens vom Nadelende. */
-        private const val LETTER_OFFSET_DP = 8f
+        private const val LETTER_OFFSET_DP = 22f
 
         /** Gewünschter Abstand zwischen Richtungsbuchstabe und Dreilettercode. */
-        private const val CODE_GAP_DP = 40f
+        private const val CODE_GAP_DP = 52f
 
         /** Mindestabstand des Dreilettercodes zum seitlichen Bildrand. */
         private const val CODE_MARGIN_DP = 4f

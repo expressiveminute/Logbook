@@ -1,44 +1,84 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Eine Zeile der Reisebuddy-Liste: Name links, Balken für den Anteil an
-     den Flügen mit Buddy, absolute Zahl rechts. Der Balken ist die schnelle
-     Erfassung beim Überfliegen, die Zahl die genaue. -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- Eine Zeile der Reisebuddy-Liste, im Aufbau der Länderliste: Rangzeichen
+     (Medaille bzw. Platznummer), Name, die Zahl der gemeinsamen Flüge und
+     dahinter ein Pfeil. Im Hintergrund liegt ein diskreter Balken, der die
+     Flugzahl im Verhältnis zum häufigsten Buddy zeigt. Ein Tipp auf die Zeile
+     öffnet die Detailseite mit der gemeinsamen Karte. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/item_travel_buddy_root"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:gravity="center_vertical"
+    android:background="?attr/selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true"
     android:minHeight="56dp"
-    android:orientation="horizontal"
     android:paddingHorizontal="20dp"
-    android:paddingVertical="6dp">
+    android:paddingVertical="4dp">
 
-    <TextView
-        android:id="@+id/tv_travel_buddy_name"
-        android:layout_width="0dp"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
-        tools:text="Anna Beispiel" />
+        android:layout_gravity="center_vertical"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
 
-    <com.google.android.material.progressindicator.LinearProgressIndicator
-        android:id="@+id/progress_travel_buddy"
-        android:layout_width="72dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
-        app:trackCornerRadius="3dp"
-        app:trackThickness="6dp" />
+        <com.highfly.logbook.RankBadgeView
+            android:id="@+id/badge_travel_buddy_rank"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginEnd="10dp"
+            android:importantForAccessibility="no" />
 
-    <TextView
-        android:id="@+id/tv_travel_buddy_count"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
-        android:minWidth="24dp"
-        android:gravity="end"
-        android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
-        android:textColor="?attr/colorOnSurfaceVariant"
-        tools:text="7" />
-</LinearLayout>
+        <FrameLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1">
+
+            <!-- Hintergrundbalken erst ab dem Namen; das Rangzeichen links
+                 bleibt untermalt. -->
+            <com.highfly.logbook.VisitedCountryBarView
+                android:id="@+id/travel_buddy_bar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:importantForAccessibility="no" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:paddingStart="14dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tv_travel_buddy_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+                    tools:text="Anna Beispiel" />
+
+                <TextView
+                    android:id="@+id/tv_travel_buddy_count"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    tools:text="7 Flüge" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <ImageView
+            android:id="@+id/iv_travel_buddy_chevron"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginStart="8dp"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_chevron_right"
+            app:tint="?attr/colorOnSurfaceVariant" />
+    </LinearLayout>
+</FrameLayout>

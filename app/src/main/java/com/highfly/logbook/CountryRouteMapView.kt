@@ -4,17 +4,49 @@ import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.Point
+import android.graphics.Rect
+import android.graphics.Shader
+import android.graphics.drawable.Drawable
+import android.os.SystemClock
+import android.provider.Settings
 import android.util.AttributeSet
+import android.view.View
 import android.view.ViewTreeObserver
+import androidx.core.content.ContextCompat
 import com.google.android.material.color.MaterialColors
 import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Overlay
 import kotlin.math.hypot
+
+/** Anteil der kleineren Bildschirmkante, den ein abfliegendes Flugzeug zurücklegt. */
+private const val DEPARTURE_TRAVEL_SCREEN_FRACTION = 0.9f
+
+/** Anteil der kleineren Bildschirmkante für die Länge der verblassenden Spur. */
+private const val DEPARTURE_TRAIL_SCREEN_FRACTION = 0.3f
+
+/** Dauer eines vollen Umlaufs der Abflug-Animation in Millisekunden. */
+private const val DEPARTURE_PERIOD_MS = 12000L
+
+/** Versatz zwischen zwei startenden Flugzeugen, als Anteil des Umlaufs. */
+private const val DEPARTURE_STAGGER = 0.14f
+
+/** Anteil des Umlaufs, in dem ein Flugzeug fliegt; danach folgt eine Pause. */
+private const val DEPARTURE_TRAVEL_FRACTION = 0.72f
+
+/** Abstand zweier Animationsbilder in Millisekunden. */
+private const val DEPARTURE_FRAME_MS = 33L
+
+/** Kantenlänge des Flugzeugsymbols der Animation. */
+private const val DEPARTURE_PLANE_DP = 15f
+
+/** Höchste Deckkraft der Abflugspur. */
+private const val DEPARTURE_TRAIL_ALPHA = 235
 
 /**
  * Karte zur Länderseite des Dashboards: ein Ausschnitt der offline gezeichneten
@@ -84,6 +116,32 @@ class CountryRouteMapView @JvmOverloads constructor(
     private val borderOverlay = OfflineBorderOverlay(context)
     private var loadThread: Thread? = null
 
+    /**
+     * Abflug-Animation der Flughafen-Detailseite: kleine Flugzeuge starten vom
+     * hervorgehobenen Flughafen in Richtung jeder Verbindung und ziehen eine
+     * verblassende Spur hinter sich her. Läuft nur, solange die Seite sichtbar
+     * ist, und nur, wenn der Nutzer Systemanimationen nicht abgeschaltet hat.
+     */
+    private var departureEnabled = false
+    private var departureStartMs = 0L
+    private var departureTickerActive = false
+
+    /** Flugzeugsymbol der Abflug-Animation, in der Akzentfarbe getönt. */
+    private val departurePlane: Drawable? =
+        ContextCompat.getDrawable(context, R.drawable.ic_flight)?.mutate()
+
+    /** Takt der Animation: stößt das Neuzeichnen der Karte an. */
+    private val departureTicker = object : Runnable {
+        override fun run() {
+            if (!departureEnabled || !isAttachedToWindow) {
+                departureTickerActive = false
+                return
+            }
+            invalidate()
+            postDelayed(this, DEPARTURE_FRAME_MS)
+        }
+    }
+
     private val accentColor by lazy {
         MaterialColors.getColor(
             this, com.google.android.material.R.attr.colorPrimary
@@ -128,6 +186,8 @@ class CountryRouteMapView @JvmOverloads constructor(
 
         val borderColor = if (isDark) Color.rgb(120, 132, 144) else Color.rgb(128, 140, 130)
         borderOverlay.setColor(borderColor)
+
+        departurePlane?.setTint(accentColor)
 
         startLoading()
     }
@@ -178,6 +238,54 @@ class CountryRouteMapView @JvmOverloads constructor(
         minZoomLevel = 1.0
         fitToSelectedAirport()
         invalidate()
+    }
+
+    /**
+     * Startet die Abflug-Animation: Flugzeuge starten vom hervorgehobenen
+     * Flughafen in Richtung jeder Verbindung. Ohne hervorgehobenen Flughafen
+     * (etwa auf der Länderseite) passiert nichts, ebenso wenn der Nutzer
+     * Systemanimationen abgeschaltet hat.
+     */
+    fun playDepartureAnimation() {
+        if (departureEnabled || !animationsEnabled()) return
+        departureEnabled = true
+        departureStartMs = SystemClock.uptimeMillis()
+        rebuildOverlays()
+        startDepartureTicker()
+    }
+
+    /** Ob Systemanimationen laufen dürfen (Einstellung "Animationsdauer"). */
+    private fun animationsEnabled(): Boolean =
+        Settings.Global.getFloat(
+            context.contentResolver,
+            Settings.Global.ANIMATOR_DURATION_SCALE,
+            1f
+        ) != 0f
+
+    private fun startDepartureTicker() {
+        if (departureTickerActive || !departureEnabled || !isAttachedToWindow) return
+        departureTickerActive = true
+        postDelayed(departureTicker, DEPARTURE_FRAME_MS)
+    }
+
+    private fun stopDepartureTicker() {
+        departureTickerActive = false
+        removeCallbacks(departureTicker)
+    }
+
+    override fun onWindowVisibilityChanged(visibility: Int) {
+        super.onWindowVisibilityChanged(visibility)
+        if (visibility == View.VISIBLE) startDepartureTicker() else stopDepartureTicker()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        startDepartureTicker()
+    }
+
+    override fun onPause() {
+        stopDepartureTicker()
+        super.onPause()
     }
 
     /** Enger Kasten um einen Flughafen, notfalls an die Datumslinie gelegt. */
@@ -328,7 +436,10 @@ class CountryRouteMapView @JvmOverloads constructor(
                 muted = mutedColor,
                 density = resources.displayMetrics.density,
                 selection = selectedAirport,
-                onAirportTap = { handleAirportTap(it) }
+                onAirportTap = { handleAirportTap(it) },
+                departure = departureEnabled,
+                departureClockMs = { SystemClock.uptimeMillis() - departureStartMs },
+                plane = departurePlane
             )
         )
         invalidate()
@@ -448,6 +559,7 @@ class CountryRouteMapView @JvmOverloads constructor(
     }
 
     override fun onDetach() {
+        stopDepartureTicker()
         loadThread?.interrupt()
         loadThread = null
         super.onDetach()
@@ -467,7 +579,10 @@ class CountryRouteMapView @JvmOverloads constructor(
         private val muted: Int,
         private val density: Float,
         private val selection: String?,
-        private val onAirportTap: (String) -> Unit
+        private val onAirportTap: (String) -> Unit,
+        private val departure: Boolean,
+        private val departureClockMs: () -> Long,
+        private val plane: Drawable?
     ) : Overlay() {
 
         private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -554,12 +669,35 @@ class CountryRouteMapView @JvmOverloads constructor(
         }
         private val reusePoint = Point()
 
+        /** Farbe der Abflugspur: die Akzentfarbe mit der Deckkraft der Spur. */
+        private val trailColor = Color.argb(
+            DEPARTURE_TRAIL_ALPHA,
+            Color.red(accent),
+            Color.green(accent),
+            Color.blue(accent)
+        )
+        private val departurePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = 1.8f * density
+            strokeCap = Paint.Cap.ROUND
+            strokeJoin = Paint.Join.ROUND
+        }
+        private val departurePath = Path()
+        private val departureHead = FloatArray(3)
+        private val departureTail = FloatArray(3)
+        private val planeBounds = Rect()
+        private val planeSize = DEPARTURE_PLANE_DP * density
+
+        /** Projektionspuffer des aktuellen Streckenzugs, wächst bei Bedarf. */
+        private var scratch = FloatArray(0)
+
         override fun draw(canvas: Canvas, mapView: MapView, shadow: Boolean) {
             if (shadow) return
             val projection = mapView.projection
 
             drawCountry(canvas, projection)
             drawRoutes(canvas, mapView, projection)
+            drawDepartures(canvas, mapView, projection)
             drawAirports(canvas, projection)
             drawDestinationBadges(canvas, projection)
             // Ganz zuletzt: der angeklickte Flughafen liegt damit immer über
@@ -662,6 +800,154 @@ class CountryRouteMapView @JvmOverloads constructor(
                     )
                 }
             }
+        }
+
+        /**
+         * Die Abflug-Animation: vom hervorgehobenen Flughafen starten kleine
+         * Flugzeuge in Richtung jeder Verbindung und ziehen eine verblassende
+         * Spur hinter sich her. Jede Verbindung ist eine eigene Bahn; der
+         * Versatz [DEPARTURE_STAGGER] sorgt dafür, dass sie nacheinander
+         * starten statt alle zugleich. Gezeichnet werden nur die ersten
+         * [DEPARTURE_TRAVEL_SCREEN_FRACTION] der kleineren Bildschirmkante, damit
+         * die Flugzeuge auch dicht am Flughafen sichtbar bleiben.
+         */
+        private fun drawDepartures(
+            canvas: Canvas,
+            mapView: MapView,
+            projection: org.osmdroid.views.Projection
+        ) {
+            if (!departure) return
+            val selected = selection ?: return
+            val symbol = plane ?: return
+            val routes = if (international.isEmpty()) domestic else domestic + international
+            if (routes.isEmpty()) return
+            val clock = departureClockMs()
+            val minSide = minOf(mapView.width, mapView.height).toFloat()
+            val travelCap = minSide * DEPARTURE_TRAVEL_SCREEN_FRACTION
+            val trailLength = minSide * DEPARTURE_TRAIL_SCREEN_FRACTION
+            var index = 0
+            for (route in routes) {
+                val points = orientedPoints(route, selected) ?: continue
+                val fraction = RouteDeparture.planeFraction(
+                    clock,
+                    DEPARTURE_PERIOD_MS,
+                    index,
+                    DEPARTURE_STAGGER,
+                    DEPARTURE_TRAVEL_FRACTION
+                )
+                if (fraction != null) {
+                    drawDeparture(canvas, projection, points, fraction, travelCap, trailLength, symbol)
+                }
+                index++
+            }
+        }
+
+        /** Der Streckenzug so gedreht, dass er am Flughafen [selected] beginnt. */
+        private fun orientedPoints(route: RouteLine, selected: String): List<GeoPoint>? =
+            when (selected) {
+                route.from -> route.points
+                route.to -> route.points.asReversed()
+                else -> null
+            }
+
+        /**
+         * Ein einzelnes abfliegendes Flugzeug: projiziert die Strecke, zeichnet
+         * die verblassende Spur und setzt das Symbol an ihre Spitze.
+         */
+        private fun drawDeparture(
+            canvas: Canvas,
+            projection: org.osmdroid.views.Projection,
+            points: List<GeoPoint>,
+            fraction: Float,
+            travelCap: Float,
+            trailLength: Float,
+            symbol: Drawable
+        ) {
+            val count = points.size
+            if (count < 2) return
+            val needed = count * 2
+            if (scratch.size < needed) scratch = FloatArray(needed)
+            val projected = scratch
+            var i = 0
+            for (point in points) {
+                projection.toPixels(point, reusePoint)
+                projected[i++] = reusePoint.x.toFloat()
+                projected[i++] = reusePoint.y.toFloat()
+            }
+            val total = RouteDeparture.length(projected, count)
+            if (total <= 0f) return
+            val travel = minOf(total, travelCap)
+            val head = fraction * travel
+            val tail = (head - trailLength).coerceAtLeast(0f)
+            if (!RouteDeparture.pointAt(projected, count, head, departureHead)) return
+            RouteDeparture.pointAt(projected, count, tail, departureTail)
+            drawDepartureTrail(canvas, projected, count, tail, head)
+            drawDeparturePlane(canvas, symbol)
+        }
+
+        /** Die Spur: der zurückgelegte Abschnitt, hinten verblassend nach vorn. */
+        private fun drawDepartureTrail(
+            canvas: Canvas,
+            points: FloatArray,
+            count: Int,
+            tail: Float,
+            head: Float
+        ) {
+            departurePath.reset()
+            if (head - tail <= 0.5f) return
+            var covered = 0f
+            var moved = false
+            var i = 1
+            while (i < count) {
+                val ax = points[(i - 1) * 2]
+                val ay = points[(i - 1) * 2 + 1]
+                val dx = points[i * 2] - ax
+                val dy = points[i * 2 + 1] - ay
+                val segment = hypot(dx.toDouble(), dy.toDouble()).toFloat()
+                if (segment > 0f) {
+                    val next = covered + segment
+                    if (next >= tail && covered <= head) {
+                        val t0 = ((tail - covered) / segment).coerceIn(0f, 1f)
+                        val t1 = ((head - covered) / segment).coerceIn(0f, 1f)
+                        val x0 = ax + dx * t0
+                        val y0 = ay + dy * t0
+                        val x1 = ax + dx * t1
+                        val y1 = ay + dy * t1
+                        if (moved) departurePath.lineTo(x0, y0)
+                        else {
+                            departurePath.moveTo(x0, y0)
+                            moved = true
+                        }
+                        departurePath.lineTo(x1, y1)
+                    }
+                    covered = next
+                }
+                i++
+            }
+            if (!moved) return
+            departurePaint.shader = LinearGradient(
+                departureTail[0], departureTail[1],
+                departureHead[0], departureHead[1],
+                Color.TRANSPARENT, trailColor, Shader.TileMode.CLAMP
+            )
+            canvas.drawPath(departurePath, departurePaint)
+            departurePaint.shader = null
+        }
+
+        /** Das Flugzeugsymbol an der Spitze der Spur, in Fahrtrichtung gedreht. */
+        private fun drawDeparturePlane(canvas: Canvas, symbol: Drawable) {
+            val half = planeSize / 2f
+            canvas.save()
+            canvas.rotate(departureHead[2], departureHead[0], departureHead[1])
+            planeBounds.set(
+                (departureHead[0] - half).toInt(),
+                (departureHead[1] - half).toInt(),
+                (departureHead[0] + half).toInt(),
+                (departureHead[1] + half).toInt()
+            )
+            symbol.bounds = planeBounds
+            symbol.draw(canvas)
+            canvas.restore()
         }
 
         private fun drawFullLine(

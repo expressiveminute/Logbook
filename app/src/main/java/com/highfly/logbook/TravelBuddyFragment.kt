@@ -38,6 +38,10 @@ class TravelBuddyFragment : Fragment() {
         binding.btnTravelBuddyBack.setOnClickListener { findNavController().navigateUp() }
         binding.travelBuddyList.layoutManager = LinearLayoutManager(requireContext())
         adapter = TravelBuddyAdapter()
+        adapter.onItemClick = { buddy ->
+            val args = Bundle().apply { putString(TravelBuddyDetailFragment.ARG_NAME, buddy.name) }
+            findNavController().navigate(R.id.action_travel_buddies_to_detail, args)
+        }
         binding.travelBuddyList.adapter = adapter
     }
 

@@ -61,6 +61,7 @@
     <string name="co2_offset_credit_label">Luftbild: %1$s</string>
     <string name="co2_offset_credit_hessen">© HVBG Hessen (dl-de/zero-2.0)</string>
     <string name="co2_offset_credit_bayern">© Bayerische Vermessungsverwaltung (CC BY 4.0)</string>
+    <string name="satellite_credit_cloudless" translatable="false">Sentinel-2 Cloudless 2016/2017 by EOX IT Services GmbH (CC BY 4.0)</string>
     <string name="tile_detail_continents">Nach Kontinent</string>
     <string name="tile_detail_aircraft_types">Flugzeugtypen</string>
     <string name="time_detail_longest">Längster Flug</string>
@@ -455,6 +456,24 @@
     <string name="travel_buddies_title">Reisebuddies</string>
     <string name="travel_buddies_subtitle">%1$d Reisebuddies auf %2$d Flügen</string>
     <string name="travel_buddies_empty">Für keinen Flug einen Reisebuddy eingetragen. Der Name kommt unter \"Optional\" in den Flug.</string>
+    <string name="travel_buddy_desc">%1$s, Rang %2$d, %3$d gemeinsame Flüge</string>
+    <plurals name="travel_buddy_flights">
+        <item quantity="one">%1$d Flug</item>
+        <item quantity="other">%1$d Flüge</item>
+    </plurals>
+    <string name="buddy_first_flight">Erster gemeinsamer Flug</string>
+    <string name="buddy_last_flight">Letzter gemeinsamer Flug</string>
+    <string name="aircraft_stat_flights">Flüge</string>
+    <string name="aircraft_stat_distance">Gesamtstrecke</string>
+    <string name="aircraft_stat_time">Gesamtflugzeit</string>
+    <string name="aircraft_stat_period">Zeitraum</string>
+    <string name="aircraft_map_title_type">Alle Flüge dieses Flugzeugtyps</string>
+    <string name="aircraft_map_title_reg">Alle Flüge dieser Registrierung</string>
+    <string name="aircraft_flight_list_title">Flüge</string>
+    <!-- Einheit im Punkt des Zeitstrahls der Flugliste. -->
+    <string name="aircraft_flight_dot_hours" translatable="false">%1$s h</string>
+    <string name="aircraft_flight_dot_minutes" translatable="false">%1$s min</string>
+    <string name="buddy_map_title">Gemeinsame Flüge</string>
 <!-- Import page -->
     <string name="import_page_title">Import</string>
     <string name="import_step1_title">Schritt 1 · Importart wählen</string>
@@ -490,6 +509,7 @@
     <string name="import_review_summary_unknown">Unbekannt</string>
 
     <string name="settings_version_label">Version %1$s</string>
+    <string name="settings_version" translatable="false">0.0.27</string>
     <string name="settings_made_with_prefix">Made with</string>
     <string name="settings_made_with_suffix">by expressiveminute</string>
 
@@ -603,4 +623,52 @@
     <string name="import_overwrite_confirm_title">Überschreiben bestätigen</string>
     <string name="import_overwrite_confirm_message">Alle vorhandenen Einträge werden gelöscht und durch die importierten Daten ersetzt. Tippe DANGER ZONE, um zu bestätigen.</string>
     <string name="import_overwrite_confirm_action">Überschreiben</string>
+
+    <!-- Erfolge ("Achievements"): Kachel des Dashboards, Übersicht und
+         Zeitstrahl der erreichten Erfolge. -->
+    <string name="tile_achievements">Achievements</string>
+    <string name="tile_achievements_of">von %1$d</string>
+    <string name="achievements_title">Achievements</string>
+    <string name="achievements_overview_title">Alle Achievements</string>
+    <string name="achievements_summary_desc">Achievements %1$d von %2$d, tippen für die Übersicht</string>
+    <string name="achievements_progress">%1$d von %2$d erreicht</string>
+    <string name="achievements_ratio">%1$d / %2$d</string>
+    <string name="achievements_progress_percent">%1$d %%</string>
+    <string name="achievements_timeline_title">Erreichte Erfolge</string>
+    <string name="achievements_timeline_empty">Noch keine Erfolge erreicht. Erfasse Flüge, um die ersten zu gewinnen.</string>
+    <string name="achievements_timeline_route">%1$s → %2$s</string>
+
+    <string name="ach_category_flights">Flüge</string>
+    <string name="ach_category_distance">Distanz</string>
+    <string name="ach_category_time">Zeit</string>
+    <string name="ach_category_routes">Strecken</string>
+    <string name="ach_category_airlines">Fluggesellschaften</string>
+    <string name="ach_category_aircraft">Flugzeugtypen</string>
+    <string name="ach_category_geography">Geografie</string>
+    <string name="ach_category_continents">Kontinente</string>
+    <string name="ach_category_countries">Länder</string>
+    <string name="ach_category_classes">Reiseklassen</string>
+    <string name="ach_category_crew">Besatzung</string>
+
+    <string name="ach_flight_milestone">%1$s. Flug</string>
+    <string name="ach_airlines">%1$s Fluggesellschaften</string>
+    <string name="ach_aircraft_a380">Erster Airbus A380</string>
+    <string name="ach_aircraft_b747">Erste Boeing 747</string>
+    <string name="ach_distance_total">%1$s km geflogen</string>
+    <string name="ach_distance_single">Erster Flug über 10.000 km</string>
+    <string name="ach_flight_hours">%1$s Stunden geflogen</string>
+    <string name="ach_duration_over_10h">Erster Flug über 10 Stunden</string>
+    <string name="ach_duration_over_15h">Erster Flug über 15 Stunden</string>
+    <string name="ach_duration_under_1h">Erster Flug unter 1 Stunde</string>
+    <string name="ach_route_repeat">10× dieselbe Strecke</string>
+    <string name="ach_equator">Erster Flug über den Äquator</string>
+    <string name="ach_prime_meridian">Erster Flug über den Nullmeridian</string>
+    <string name="ach_continent_all">Alle Länder: %1$s</string>
+    <string name="ach_class">1× %1$s</string>
+    <string name="ach_crew_on_duty">Erster On-Duty-Flug</string>
+    <string name="ach_crew_deadhead">Erster Deadhead-Flug</string>
+    <string name="ach_crew_layover">Erstes Layover</string>
+    <string name="ach_crew_flight_attendant">Erster Flug als Flugbegleiter</string>
+    <string name="ach_crew_purser_i">Erster Flug als Purser I</string>
+    <string name="ach_crew_purser_ii">Erster Flug als Purser II</string>
 </resources>

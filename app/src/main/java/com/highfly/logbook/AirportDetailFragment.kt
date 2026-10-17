@@ -14,7 +14,8 @@ import kotlin.math.abs
 /**
  * Detailseite zu einem Flughafen der Kachel "Flughäfen": Kopfbereich mit dem
  * Dreilettercode, Name und Ort, darunter die wichtigsten Kenndaten (IATA,
- * ICAO, Höhe über N.N. und Koordinaten) und darunter eine Karte nach dem
+ * ICAO, Höhe über N.N. und Koordinaten). Dann folgt – wenn vorhanden – das
+ * mitgelieferte Satellitenbild des Flughafens und darunter eine Karte nach dem
  * Vorbild der Länderseite. Die Karte zeigt den Flughafen im Mittelpunkt und
  * alle Flugverbindungen als Großkreisbögen; unter der Karte steht, wie viele
  * Verbindungen es ab diesem Flughafen gibt.
@@ -28,6 +29,9 @@ class AirportDetailFragment : Fragment() {
 
     /** Verwirft das Ergebnis eines bereits verlassenen Ladevorgangs. */
     private var loadGeneration = 0
+
+    /** Dasselbe für den Ladevorgang des Satellitenbildes. */
+    private var satelliteGeneration = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -272,12 +276,45 @@ class AirportDetailFragment : Fragment() {
             domestic = routes,
             international = emptyList()
         )
+        loadSatellite()
         // Der eigene Flughafen ist vorausgewählt: seine Verbindungen sind
         // betont und seine Ziele tragen Badges. Die Karte startet dicht an ihm.
         binding.airportMap.focusAirportClose(code)
+        // Von ihm starten fortlaufend Flugzeuge in Richtung jeder Verbindung.
+        binding.airportMap.playDepartureAnimation()
         binding.airportMap.contentDescription = getString(R.string.airport_map_desc, code)
         // Ohne Strecken gibt es nichts herauszuzoomen.
         binding.fabAirportZoomOut.visibility = if (routes.isEmpty()) View.GONE else View.VISIBLE
+    }
+
+    /**
+     * Legt das mitgelieferte Satellitenbild (Sentinel-2 Cloudless, Top 100)
+     * als eigene Kachel zwischen die Kenndaten und die Verbindungskarte, falls
+     * es für diesen Flughafen existiert, und blendet sie sanft ein. Der
+     * CC-BY-Nachweis steht in der Kachel unter dem Bild. Alles offline aus
+     * `assets/`.
+     */
+    private fun loadSatellite() {
+        val generation = ++satelliteGeneration
+        val appContext = requireContext().applicationContext
+        val target = code
+        binding.airportSatelliteCard.visibility = View.GONE
+        Thread {
+            val image = AirportSatellite.load(appContext, target)
+            view?.post {
+                if (generation != satelliteGeneration || _binding == null) return@post
+                if (image == null) return@post
+                binding.airportSatelliteMap.setImage(image)
+                binding.tvAirportSatelliteCredit.setText(AirportSatellite.creditRes())
+                // Sanfter Übergang statt hartem Erscheinen.
+                binding.airportSatelliteCard.alpha = 0f
+                binding.airportSatelliteCard.visibility = View.VISIBLE
+                binding.airportSatelliteCard.animate()
+                    .alpha(1f)
+                    .setDuration(SATELLITE_FADE_MS)
+                    .start()
+            }
+        }.start()
     }
 
     override fun onResume() {
@@ -292,6 +329,7 @@ class AirportDetailFragment : Fragment() {
 
     override fun onDestroyView() {
         loadGeneration++
+        satelliteGeneration++
         if (_binding != null) binding.airportMap.onDetach()
         super.onDestroyView()
         _binding = null
@@ -300,5 +338,8 @@ class AirportDetailFragment : Fragment() {
     companion object {
         /** Name des Navigationsarguments, siehe `nav_graph.xml`. */
         const val ARG_CODE = "code"
+
+        /** Dauer der Einblendung des Satellitenbildes in Millisekunden. */
+        private const val SATELLITE_FADE_MS = 400L
     }
 }

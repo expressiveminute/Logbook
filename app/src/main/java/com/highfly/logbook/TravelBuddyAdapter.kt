@@ -4,15 +4,15 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.highfly.logbook.databinding.ItemTravelBuddyBinding
-import java.util.Locale
 
 /**
  * Liste der Reisebuddies, absteigend nach Zahl der gemeinsamen Flüge. Jede
- * Zeile zeigt den Namen, einen Balken für den Anteil und die absolute Zahl.
+ * Zeile zeigt - im Aufbau der Länderliste - das Rangzeichen, den Namen, die
+ * Zahl der gemeinsamen Flüge und einen Pfeil; im Hintergrund liegt der
+ * Anteil am häufigsten geflogenen Buddy als diskreter Balken.
  *
- * Die Zeilen sind nicht anklickbar: Ein Tipp auf einen Buddy zeigte die
- * Einträge dazu, und dafür gibt es die Länderliste auf der Weltkarte. Hier
- * zählt nur, wer wie oft dabei war.
+ * Ein Tipp auf eine Zeile öffnet die Detailseite mit der gemeinsamen Karte und
+ * dem ersten und letzten gemeinsamen Flug ([TravelBuddyDetailFragment]).
  */
 class TravelBuddyAdapter : RecyclerView.Adapter<TravelBuddyAdapter.ViewHolder>() {
 
@@ -33,12 +33,14 @@ class TravelBuddyAdapter : RecyclerView.Adapter<TravelBuddyAdapter.ViewHolder>()
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val binding = ItemTravelBuddyBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        val binding = ItemTravelBuddyBinding.inflate(
+            LayoutInflater.from(parent.context), parent, false
+        )
         return ViewHolder(binding)
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(items[position])
+        holder.bind(items[position], position + 1)
     }
 
     override fun getItemCount(): Int = items.size
@@ -46,21 +48,29 @@ class TravelBuddyAdapter : RecyclerView.Adapter<TravelBuddyAdapter.ViewHolder>()
     inner class ViewHolder(private val binding: ItemTravelBuddyBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(item: TravelBuddyStats.Buddy) {
-            binding.tvTravelBuddyName.text = item.name
-            binding.tvTravelBuddyCount.text =
-                String.format(Locale.getDefault(), "%d", item.flights)
-            val share = if (maxFlights > 0) {
-                (item.flights * PERCENT_MAX / maxFlights)
-            } else {
-                0
+        init {
+            binding.root.setOnClickListener {
+                items.getOrNull(adapterPosition)?.let { onItemClick(it) }
             }
-            binding.progressTravelBuddy.setProgressCompat(share, false)
+        }
+
+        fun bind(item: TravelBuddyStats.Buddy, rank: Int) {
+            binding.badgeTravelBuddyRank.setRank(rank)
+            binding.travelBuddyBar.setFraction(
+                if (maxFlights > 0) item.flights.toFloat() / maxFlights else 0f
+            )
+            binding.tvTravelBuddyName.text = item.name
+            binding.tvTravelBuddyCount.text = binding.root.context.resources
+                .getQuantityString(R.plurals.travel_buddy_flights, item.flights, item.flights)
+            binding.root.contentDescription = binding.root.context.getString(
+                R.string.travel_buddy_desc,
+                item.name,
+                rank,
+                item.flights
+            )
         }
     }
 
-    private companion object {
-        /** [com.google.android.material.progressindicator.BaseProgressIndicator] zählt auf 100. */
-        const val PERCENT_MAX = 100
-    }
+    /** Wird beim Tipp auf eine Zeile mit dem gewählten Buddy aufgerufen. */
+    var onItemClick: (TravelBuddyStats.Buddy) -> Unit = {}
 }

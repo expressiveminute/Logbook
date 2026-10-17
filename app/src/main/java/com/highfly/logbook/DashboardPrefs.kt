@@ -228,6 +228,11 @@ object DashboardPrefs {
             R.string.tile_reisebuddy,
             R.drawable.ic_reisebuddy
         ),
+        Tile(
+            "achievements",
+            R.string.tile_achievements,
+            R.drawable.ic_achievement
+        ),
     )
 
     val DEFAULT_ROWS = listOf(
@@ -235,7 +240,7 @@ object DashboardPrefs {
         listOf("airlines", "routes", "flightroutes"),
         listOf("countries", "function", "reisebuddy"),
         listOf("worldmap"),
-        listOf("traveltype", "class"),
+        listOf("traveltype", "class", "achievements"),
         listOf("distance"),
         listOf("time"),
         listOf("co2")
@@ -265,7 +270,7 @@ object DashboardPrefs {
     const val DEFAULT_PERCENT = 90
 
     private const val PREF_NAME = "dashboard_layout"
-    private const val KEY_TILES = "tiles_standard_v14"
+    private const val KEY_TILES = "tiles_standard_v15"
     private const val KEY_SPANS = "tile_spans_v1"
     private const val KEY_SCALE = "tile_scale_v1"
     private const val ROW_SEPARATOR = ";"

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Eine Erfolgs-Kachel der Übersicht: Icon oben, Titel darunter. Fünf Kacheln
+     stehen nebeneinander, deshalb bleibt der Titel klein und darf umbrechen.
+     Erreichte Erfolge werden farbig gezeichnet, offene grau - die Farben setzt
+     das Fragment. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:paddingHorizontal="2dp"
+    android:paddingVertical="8dp">
+
+    <ImageView
+        android:id="@+id/iv_ach_tile_icon"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:contentDescription="@null"
+        android:importantForAccessibility="no"
+        tools:src="@drawable/ic_flight"
+        tools:tint="?attr/colorPrimary" />
+
+    <TextView
+        android:id="@+id/tv_ach_tile_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:ellipsize="end"
+        android:gravity="center"
+        android:maxLines="3"
+        android:textSize="10sp"
+        tools:text="10. Flug" />
+</LinearLayout>

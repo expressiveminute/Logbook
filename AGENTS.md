@@ -79,6 +79,79 @@ einspielen – der Generator ordnet ihn per `ident`, notfalls per Koordinate, zu
 Felder in *Neuer Flug* erlauben vier Zeichen nur, wenn das erste `X` ist
 (`AddEntryFragment.airportCodeLengthFilter`).
 
+## Flughafen-Detailseite – Satellitenbilder
+
+`AirportDetailFragment` zeigt zwischen den Kenndaten (IATA, ICAO, Höhe, Koordinaten) und der
+Verbindungskarte eine eigene Kachel mit dem Satellitenbild des Flughafens. Es kommt als
+vorgepacktes Asset aus `app/src/main/assets/airport_satellite/` (`<CODE>.webp` plus
+`<CODE>.json` mit den Randkoordinaten `min_lat`/`min_lon`/`max_lat`/`max_lon`). Fehlt das Bild,
+bleibt die ganze Kachel weg. `AirportSatellite` lädt Bild und Randkoordinaten (begrenzter
+`LruCache`, nur wenige Bilder gleichzeitig), `AirportSatelliteView` legt das Bild in
+Web-Mercator-Maßstab in die Ansicht, sodass der Flughafen mittig sitzt, und markiert ihn mit
+einer Nadel; die Kachel blendet sich sanft ein. Der Quellennachweis
+(`satellite_credit_cloudless`, englisch, `translatable="false"`) steht in der Kachel unter dem
+Bild.
+
+Erzeugt werden die Bilder von `tools/build_airport_satellite.py` (einmalig lokal, die App lädt
+nichts nach). Quelle sind die Sentinel-2-Cloudless-Kacheln von EOX IT Services GmbH; verwendet
+werden **nur die 2016er und 2017er Ausgaben**, weil nur diese unter **CC BY 4.0** stehen (ab 2018
+gilt CC BY-NC-SA 4.0). Keine der beiden deckt alles ab: Die 2017er-Kacheln sind an rund der
+Hälfte der Ziele weiß, die 2016er-Ausgabe ist dort geschlossen, deshalb nimmt das Skript die
+2017er-Ausgabe und weicht nur bei weißen Lücken auf 2016 aus. Der Ausschnitt ist in Web-Mercator
+±4 km um den Flughafen (8 km breit), 640×640 px, Zoomstufe 14. Das Skript holt die Koordinaten
+aus `airports.json` (`FALLBACK_COORDS` für sehr neue Flughäfen, die dort noch fehlen). Der
+Zuschnitt und die Projektion prüft `AirportSatelliteAssetTest`; das Skript muss nach jeder
+Änderung neu laufen.
+
+## Flughafen-Detailseite – Abflug-Animation der Verbindungskarte
+
+Unter dem Satellitenbild zeigt `AirportDetailFragment` die Verbindungen des Flughafens auf einer
+`CountryRouteMapView` (dieselbe Karte wie die Länderseite, hier dicht auf den Flughafen gezoomt,
+`focusAirportClose`). Auf dieser Seite starten zusätzlich fortlaufend kleine Flugzeuge vom
+hervorgehobenen Flughafen in Richtung jeder Verbindung und ziehen eine nach vorn kräftiger
+werdende Spur hinter sich her. Eingeschaltet wird die Animation allein von
+`AirportDetailFragment` über `playDepartureAnimation()`; auf der Länderseite bleibt sie aus.
+
+Jede Verbindung ist eine eigene Bahn; `RouteDeparture.planeFraction` verteilt die Startzeiten über
+`DEPARTURE_STAGGER`, sodass die Flugzeuge nacheinander starten statt alle zugleich, und lässt ein
+Flugzeug nach `DEPARTURE_TRAVEL_FRACTION` des Umlaufs kurz pausieren. Die reine Rechnung –
+Länge des projizierten Streckenzugs, Punkt und Fahrtrichtung darauf, Zeitplan – steht in
+`RouteDeparture` ohne Android und wird von `RouteDepartureTest` geprüft. Der Streckenzug wird pro
+Bild über `Projection.toPixels` in Bildschirmpunkte gelegt (ein `scratch`-Puffer wächst bei
+Bedarf); ein Flugzeug legt höchstens `DEPARTURE_TRAVEL_SCREEN_FRACTION` der kleineren
+Bildschirmkante zurück, die Spur ist `DEPARTURE_TRAIL_SCREEN_FRACTION` lang – so bleibt der Start
+auch dicht am Flughafen sichtbar. Die Spur ist ein `LinearGradient` von durchsichtig (hinten) zur
+Akzentfarbe (vorn); das Symbol wird wie bei `PlaneBackgroundView` in Fahrtrichtung gedreht
+(`RouteMiniMapView.planeRotation`). Ist der hervorgehobene Flughafen aufgehoben (Tipp auf die
+Karte, `zoomToFocus`), gibt es keine Bahn mehr.
+
+Weil ein Animationsbild die ganze Karte samt Land- und Grenzüberlagerung neu zeichnet, stößt ein
+`postDelayed`-Lauf nur rund `DEPARTURE_FRAME_MS` (etwa 30 Bilder in der Sekunde) ein
+Neuzeichnen an; die Position kommt aus der Uhr (`SystemClock.uptimeMillis`), nicht aus der
+Bildzahl, das Tempo bleibt also gleichmäßig. Der Lauf pausiert mit `onWindowVisibilityChanged`
+und `onPause`, endet mit `onDetach` und schweigt, wenn der Nutzer Systemanimationen abgeschaltet
+hat (`Settings.Global.ANIMATOR_DURATION_SCALE` = 0).
+
+## Seite „Hangar" – Detailseite
+
+Die Hangar-Kachel öffnet `TileDetailFragment` mit den Flugzeugtypen bzw. Registrierungen; ein Tipp
+auf eine Zeile öffnet `AircraftFlightsFragment` (`fragment_flight_route_detail.xml`). Oben die
+animierte Karte mit allen Flügen dieses Typs bzw. dieser Registrierung, darunter die Kennzahlen
+(Flüge, Gesamtstrecke, Gesamtflugzeit, Zeitraum). Beide Ansichten sind dieselbe Seite mit anderem
+`mode` (`MODE_TYPE`/`MODE_REG`); die Zahlen ranken nicht, denn dieselbe Zahl gibt es nur einmal je
+Typ bzw. Registrierung.
+
+Unter den Kennzahlen steht zusätzlich ein Zeitstrahl **aller** Flüge dieser Registrierung bzw.
+dieses Typs, der jüngste oben, im Aufbau der Layover-Detailseite: dieselbe Zeile
+`item_layover_timeline` mit Datum, Dreiletterroute, Fluggesellschaft/-nummer, Reisebuddy und im
+Punkt die Flugzeit (unter einer Stunde in Minuten, sonst in Stunden mit einer Nachkommastelle,
+`aircraft_flight_dot_minutes`/`aircraft_flight_dot_hours`). Ein Tipp öffnet den Eintrag zum
+Bearbeiten (`action_aircraft_flights_to_add_entry`). Titel und Liste bleiben unsichtbar, wenn es
+keine passenden Flüge gibt. Gelesen wird die Liste bei jedem `onResume` neu aus
+`DashboardStats.dashboardEntries`, damit ein gerade bearbeiteter Eintrag sofort richtig erscheint.
+Die anderen Nutzer desselben Layouts (`FlightRouteDetailFragment`, `TravelBuddyDetailFragment`)
+lassen Titel und Liste unsichtbar.
+
 ## Karte „CO₂-Ausgleich"
 
 Die Seite zeigt die nötige Pflanzfläche als Kreis in **echtem Maßstab** (Radius in Metern aus
@@ -152,9 +225,14 @@ Die
 endlosen Animationen pausieren mit `onWindowVisibilityChanged`, wenn die Seite in den Hintergrund
 geht.
 
-Der Abstand zwischen dem Richtungsbuchstaben und dem Dreilettercode auf dem Kompass (`CompassView`)
-wird vergrößert, ohne den Code abzuschneiden: `clampCodeRadius()` holt den Code auf schmalen
-Geräten so weit herein, wie der Platz es zulässt.
+Auf dem Kompass (`CompassView`) sitzen die vier Himmelsrichtungen bewusst weit außen: Der
+Richtungsbuchstabe steht `LETTER_OFFSET_DP` vom Nadelende entfernt, der Dreilettercode
+`CODE_GAP_DP` dahinter. Wird `LETTER_OFFSET_DP` erhöht, wandern Buchstabe und Code gemeinsam nach
+außen, der Abstand zwischen beiden bleibt gleich. Damit der Code dabei nicht abgeschnitten wird,
+holt `clampCodeRadius()` ihn so weit herein, wie der Platz es zulässt – bei **West und Ost**
+gegen die halbe Breite, bei **Nord und Süd** gegen die halbe Höhe (der Code steht dort über bzw.
+unter dem Buchstaben, nicht daneben). Ohne die Höhen-Schranke landete der Nord/Süd-Code knapp
+außerhalb der Ansicht, obwohl er waagerecht mittig saß.
 
 ## Hintergrund-Flugzeuge (Einträge, Discovery, Dashboard)
 
@@ -194,6 +272,64 @@ Companion – prüft `PlaneBackgroundViewTest`.
 `fragment_entries.xml`, `fragment_discovery.xml` und `fragment_first.xml` entfernen, dann
 `PlaneBackgroundView.kt` und `PlaneBackgroundViewTest.kt` löschen. `ic_flight` wird auch
 andernorts verwendet und bleibt.
+
+## Seite „Einträge" – Tagesordnung
+
+Die Kacheln kommen absteigend nach Datum aus der Datenbank (`date DESC, id DESC`), innerhalb eines
+Tages gilt also „je weiter unten, desto länger her". Ein Tag bleibt ein Block; `EntryDayOrder`
+(im `EntriesFragment.renderEntries`) ordnet nur innerhalb des Tages um. Die Regeln haben feste
+Vorrangigkeit: **Rückflug vom Vortag** (die Umkehrung eines Flugs von gestern steht ganz unten,
+`rank 3`) schlägt **Layover** (ganz oben, `rank 0`) schlägt **Abflug vom meistgenutzten
+Flughafen** (unten, `rank 2`); alles Übrige bleibt in der übergebenen Reihenfolge (`rank 1`,
+stabiler Sort). Der meistgenutzte Flughafen kommt aus `EntryDayOrder.busiestAirports` über das
+**ganze Logbuch** (Start plus Landung je Bewegung, Gleichstand teilt sich den Rang), nicht nur über
+den gefilterten Ausschnitt; die Rückflug-Regel dagegen schaut auf den tatsächlich angezeigten
+Ausschnitt. Geprüft wird das von `EntryDayOrderTest` (u. a. das Beispiel der Aufgabe).
+
+## Seite „Achievements"
+
+Die Dashboard-Kachel *Achievements* (Pokal `ic_achievement`, Standardreihe mit *Reiseart* und
+*Reiseklasse*) öffnet `AchievementsFragment`: oben die klassische Kopfleiste, darunter eine
+hervorgehobene Kachel über die ganze Breite im Format der beiden Layover-Kacheln (Fortschritt
+„x / y" samt `LinearProgressIndicator` und Prozent) und darunter der Zeitstrahl der erreichten
+Erfolge, der jüngste oben. Ein Tipp auf die Kachel öffnet `AchievementsGridFragment` mit allen
+Erfolgen nach Kategorie, fünf Kacheln je Zeile (Icon oben, Titel darunter, erreicht farbig,
+offen ausgegraut); eine Zeile des Zeitstrahls öffnet den auslösenden Eintrag zum Bearbeiten.
+
+Die Erfolge selbst sind rein in `Achievements.kt` beschrieben und werden von
+`Achievements.evaluate(entries, role, lookups)` über das **ganze** Logbuch ausgewertet – nicht
+über den Zeitraum/Filter des Dashboards, denn ein erreichter Erfolg bleibt erreicht. Die
+Auswertung ist ohne Android-Abhängigkeiten: Was sie von außen braucht – Land und Koordinaten
+eines Flughafens, die Länderliste eines Kontinents – kommt als `Achievements.Lookups` herein
+(alle drei mit Voreinstellung, damit Tests nur das Nötige übergeben); nur `Definition.title` und
+die `Context`-Überladung von `evaluate` brauchen Android.
+Der Zeitpunkt eines Erfolgs ist der auslösende Flug, deshalb kann der Zeitstrahl Datum,
+Flugstrecke und Flugnummer zeigen.
+
+Die Erfolge stehen in elf Kategorien: *Flüge* (1., 10., 50. … 5000. Flug), *Distanz* (40.075 km
+zusammen, ein einzelner Flug über 10.000 km), *Zeit* (1.000 Stunden, erster Flug über 10 bzw. 15
+Stunden, erster unter einer Stunde), *Strecken* (10× dieselbe Strecke), *Fluggesellschaften*
+(10/25/50 verschiedene), *Flugzeugtypen* (erster A380/B747), *Geografie* (Äquator, Nullmeridian),
+*Kontinente*, *Länder*, *Reiseklassen* und *Besatzung*. Ein „N. Flug" zählt jeden Eintrag wie die
+Kachel *Flüge* (ein Ground Transfer also auch), Distanz und Zeit dagegen nur echte Flüge
+(`DashboardStats.isFlying`), wie die Kacheln *Distanz* und *Zeit*. Kontinente und Länder zählen
+Abflug und Ziel, wie die Rubbelkarte. „Alle Länder eines Kontinents" meint die Länderliste der
+App (`CountryShapes`, über `countriesOfContinent` an `evaluate`), nicht die ISO-Liste von
+`Continents` – so passt der Erfolg zu den Kontinent-Kacheln der Länder-Seite. Äquator und
+Nullmeridian lösen beim ersten Flug aus, dessen Strecke die Linie quert (Breiten- bzw.
+Längenvorzeichen wechselt; die Datumsgrenze ist ausgeschlossen). Ein Flugzeugtyp wird über ein
+Stück im Typ erkannt (`aircraftToken` „380"/„747", deckt „Airbus A380-800" und „Boeing 747-400"
+mit ab). Eine Fluggesellschaft zählt unabhängig von der Schreibweise (getrimmt, klein
+geschrieben). Die Kategorie *Besatzung* erscheint nur bei der Rolle Besatzung (`Role.isCrew`);
+die Bordfunktion wird sprachunabhängig über Wortstämme erkannt (`Achievements.crewFunctionOf`:
+„Purser" mit „ii" → Purser II, sonst Purser I; „flugbegleit"/„flight attendant"/„cabin" →
+Flugbegleiter). Eine Zahl im Titel wird mit dem Tausendertrennzeichen der App-Sprache eingesetzt
+(`Definition.title`), daher „1.000. Flug" bzw. „40.075 km geflogen". Geprüft wird das von
+`AchievementsTest`.
+
+Der Platz der Kachel steht in `DashboardPrefs.DEFAULT_ROWS`; dafür wurde `KEY_TILES` auf
+`tiles_standard_v15` erhöht – das setzt das vom Nutzer umsortierte Raster einmalig zurück, wie es
+die Konvention bei einer neuen Kachel vorsieht.
 
 ## Einstellungen – Aufbau nicht eigenmächtig ändern
 

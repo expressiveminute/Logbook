@@ -75,6 +75,7 @@
             android:paddingBottom="32dp">
 
             <TextView
+                android:id="@+id/tv_route_map_title"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="@string/flight_route_map_title"
@@ -98,6 +99,43 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
                 android:orientation="vertical" />
+
+            <!-- Liste aller Flüge, nur von der Flugzeug-Detailseite (Typ bzw.
+                 Registrierung) gefüllt: ein Zeitstrahl nach dem Vorbild der
+                 Layover-Detailseite, der jüngste Flug oben. Die anderen Nutzer
+                 dieses Layouts lassen Titel und Liste unsichtbar. -->
+            <TextView
+                android:id="@+id/tv_flight_list_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="@string/aircraft_flight_list_title"
+                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                android:textStyle="bold"
+                android:visibility="gone"
+                tools:visibility="visible" />
+
+            <FrameLayout
+                android:id="@+id/flight_list_root"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <View
+                    android:id="@+id/flight_list_line"
+                    android:layout_width="2dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="25dp"
+                    android:background="?attr/colorPrimaryContainer" />
+
+                <LinearLayout
+                    android:id="@+id/flight_list"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+            </FrameLayout>
 
             <TextView
                 android:id="@+id/tv_empty"

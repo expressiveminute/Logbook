@@ -116,6 +116,44 @@
                 android:layout_marginTop="16dp"
                 android:orientation="vertical" />
 
+            <!-- Satellitenbild des Flughafens (Sentinel-2 Cloudless, Top 100).
+                 Es steht zwischen den Kenndaten und der Verbindungskarte; fehlt
+                 das Bild, bleibt die ganze Kachel weg. -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/airport_satellite_card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:visibility="gone"
+                app:cardBackgroundColor="?android:attr/colorBackground"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeColor="?attr/colorOutlineVariant"
+                app:strokeWidth="1dp"
+                tools:visibility="visible">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <com.highfly.logbook.AirportSatelliteView
+                        android:id="@+id/airport_satellite_map"
+                        android:layout_width="match_parent"
+                        android:layout_height="240dp" />
+
+                    <TextView
+                        android:id="@+id/tv_airport_satellite_credit"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingHorizontal="12dp"
+                        android:paddingVertical="8dp"
+                        android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        tools:text="Sentinel-2 Cloudless by EOX IT Services GmbH (CC BY 4.0)" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
             <!-- Karte nach dem Vorbild der Länderseite: der Flughafen als
                  hervorgehobenes Badge, alle Verbindungen als Großkreisbögen,
                  die Ziele als Badges. Frei bedienbar wie die Länderseite. -->

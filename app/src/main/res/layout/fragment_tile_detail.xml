@@ -837,4 +837,42 @@
                 android:visibility="gone" />
         </LinearLayout>
     </ScrollView>
+
+    <!-- Transparente Fläche über dem Inhalt (unter der Kopfzeile): ein Tipp
+         außerhalb schließt das Suchergebnis-Popup der Flughäfen-Kachel. -->
+    <View
+        android:id="@+id/airport_search_scrim"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/header" />
+
+    <!-- Suchergebnisse der Flughäfen-Kachel als Popup direkt unter dem
+         Suchfeld, über Kompass und Inhalt. -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/airport_search_popup"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="12dp"
+        android:layout_marginTop="4dp"
+        android:visibility="gone"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="8dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/header"
+        tools:visibility="visible">
+
+        <ListView
+            android:id="@+id/airport_search_list"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:divider="?attr/colorOutlineVariant"
+            android:dividerHeight="1dp" />
+    </com.google.android.material.card.MaterialCardView>
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -55,4 +55,23 @@ class CompassViewCodeRadiusTest {
         )
         assertEquals(100f, radius, 0.01f)
     }
+
+    @Test
+    fun codeFuerNordUndSuedBleibtInnerhalbDerHoehe() {
+        // Nord und Süd werden über die halbe Höhe begrenzt. Ohne diese Schranke
+        // (nur die Breite begrenzt) stand der Code oben und unten am Rand und
+        // war abgeschnitten, obwohl er waagerecht mitten in der Ansicht saß.
+        val halfHeight = 160f
+        val codeHalfHeight = 9f
+        val margin = 4f
+        val radius = CompassView.clampCodeRadius(
+            letterRadius = 118f,
+            gap = 52f,
+            halfWidth = halfHeight,
+            codeHalfWidth = codeHalfHeight,
+            margin = margin
+        )
+        assertTrue(radius + codeHalfHeight + margin <= halfHeight + 0.01f)
+        assertTrue(radius > 118f)
+    }
 }

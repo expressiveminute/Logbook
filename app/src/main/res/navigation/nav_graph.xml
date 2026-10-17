@@ -37,6 +37,9 @@
         <action
             android:id="@+id/action_dashboard_to_co2_offset"
             app:destination="@id/nav_co2_offset" />
+        <action
+            android:id="@+id/action_dashboard_to_achievements"
+            app:destination="@id/nav_achievements" />
     </fragment>
 
     <fragment
@@ -174,6 +177,30 @@
         <action
             android:id="@+id/action_tile_detail_to_flight_route_detail"
             app:destination="@id/nav_flight_route_detail" />
+        <action
+            android:id="@+id/action_tile_detail_to_aircraft_flights"
+            app:destination="@id/nav_aircraft_flights" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_aircraft_flights"
+        android:name="com.highfly.logbook.AircraftFlightsFragment"
+        tools:layout="@layout/fragment_flight_route_detail">
+
+        <argument
+            android:name="mode"
+            app:argType="string"
+            android:defaultValue="type" />
+
+        <argument
+            android:name="value"
+            app:argType="string"
+            android:defaultValue="" />
+
+        <!-- Flug der Liste antippen: direkt zur Seite "Flug bearbeiten". -->
+        <action
+            android:id="@+id/action_aircraft_flights_to_add_entry"
+            app:destination="@id/nav_add_entry" />
     </fragment>
 
     <fragment
@@ -270,7 +297,23 @@
     <fragment
         android:id="@+id/nav_travel_buddies"
         android:name="com.highfly.logbook.TravelBuddyFragment"
-        tools:layout="@layout/fragment_travel_buddies" />
+        tools:layout="@layout/fragment_travel_buddies" >
+
+        <action
+            android:id="@+id/action_travel_buddies_to_detail"
+            app:destination="@id/nav_travel_buddy_detail" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_travel_buddy_detail"
+        android:name="com.highfly.logbook.TravelBuddyDetailFragment"
+        tools:layout="@layout/fragment_flight_route_detail">
+
+        <argument
+            android:name="name"
+            app:argType="string"
+            android:defaultValue="" />
+    </fragment>
 
     <!-- Seite "CO₂-Ausgleich": Karte des Abfluglands mit dem meistgenutzten
          Flughafen und dem animierten Wald. Sie öffnet die CO₂-Kachel des
@@ -279,4 +322,26 @@
         android:id="@+id/nav_co2_offset"
         android:name="com.highfly.logbook.Co2OffsetFragment"
         tools:layout="@layout/fragment_co2_offset" />
+
+    <!-- Seite "Achievements": Fortschritt und Zeitstrahl der erreichten Erfolge.
+         Die hervorgehobene Kachel öffnet die Übersicht aller Erfolge, eine
+         Zeile des Zeitstrahls den Eintrag zum Bearbeiten. -->
+    <fragment
+        android:id="@+id/nav_achievements"
+        android:name="com.highfly.logbook.AchievementsFragment"
+        tools:layout="@layout/fragment_achievements">
+
+        <action
+            android:id="@+id/action_achievements_to_grid"
+            app:destination="@id/nav_achievements_grid" />
+        <action
+            android:id="@+id/action_achievements_to_add_entry"
+            app:destination="@id/nav_add_entry" />
+    </fragment>
+
+    <!-- Übersicht aller Erfolge, nach Kategorie. -->
+    <fragment
+        android:id="@+id/nav_achievements_grid"
+        android:name="com.highfly.logbook.AchievementsGridFragment"
+        tools:layout="@layout/fragment_achievements_grid" />
 </navigation>

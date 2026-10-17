@@ -121,7 +121,27 @@ class FirstFragment : Fragment() {
             // [DashboardStats.dashboardEntries].
             val entries = DashboardStats.dashboardEntries(appContext)
             val time = DashboardStats.flightMinutes(entries)
-            val values = DashboardStats.values(appContext, entries)
+            // Die Erfolge hängen am ganzen Logbuch, nicht am Zeitraum der
+            // Kacheln: Was einmal erreicht ist, bleibt erreicht. Die Kachel
+            // trägt deshalb ihren eigenen Fortschritt, den die Filterzeile
+            // unberührt lässt; die übrigen Kacheln folgen weiter dem Filter.
+            val achievements = Achievements.evaluate(appContext)
+            val values = DashboardStats.values(appContext, entries).toMutableMap().apply {
+                put(
+                    "achievements",
+                    DashboardStats.Value(
+                        String.format(
+                            Settings.language(appContext),
+                            "%,d",
+                            achievements.reachedCount
+                        ),
+                        appContext.getString(
+                            R.string.tile_achievements_of,
+                            achievements.total
+                        )
+                    )
+                )
+            }
             val distance = DashboardStats.distanceDetails(appContext, entries)
             val co2 = Co2Calculator.details(entries)
 
@@ -670,6 +690,11 @@ class FirstFragment : Fragment() {
                 // Die Kachel "Länder" öffnet die Liste der besuchten Länder;
                 // von dort führt jede Zeile auf die Länderseite mit der Karte.
                 findNavController().navigate(R.id.action_dashboard_to_visited_countries)
+            }
+            id == "achievements" -> {
+                // Die Erfolgs-Kachel öffnet die Seite mit dem Fortschritt und
+                // dem Zeitstrahl der erreichten Erfolge.
+                findNavController().navigate(R.id.action_dashboard_to_achievements)
             }
             ChartData.isBarChart(id) || ChartData.isPieChart(id) -> {
                 val bundle = Bundle().apply { putString("tileId", id) }

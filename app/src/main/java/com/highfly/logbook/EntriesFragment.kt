@@ -277,7 +277,11 @@ class EntriesFragment : Fragment(), ImeVisibilityAware {
         }
         adapter.schemeColors =
             ClassColorSchemes.textColorsFor(Settings.getClassScheme(requireContext()))
-        adapter.submit(visible)
+        // Die Tagesordnung (Layover oben, Rückflüge/Heimatflüge unten) richten
+        // sich nach dem, was tatsächlich angezeigt wird; der Heimatflughafen
+        // kommt dabei aus dem ganzen Logbuch, nicht nur dem gefilterten Rest.
+        val busiest = EntryDayOrder.busiestAirports(allEntries)
+        adapter.submit(EntryDayOrder.reorder(visible, busiest))
         binding.entriesEmpty.setText(
             if (allEntries.isEmpty()) R.string.entries_empty else R.string.entries_no_results
         )
