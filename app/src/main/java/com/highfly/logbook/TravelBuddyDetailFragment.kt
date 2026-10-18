@@ -4,9 +4,12 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
+import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.highfly.logbook.databinding.FragmentFlightRouteDetailBinding
+import com.highfly.logbook.databinding.ItemLayoverTimelineBinding
 import com.highfly.logbook.databinding.ItemRouteStatBinding
 import java.time.format.DateTimeFormatter
 
@@ -47,9 +50,19 @@ class TravelBuddyDetailFragment : Fragment() {
         binding.tvRouteTitle.text = buddyName
         binding.tvRouteMapTitle.setText(R.string.buddy_map_title)
 
+        // Klick auf die Karte öffnet die Weltkarte mit voreingestelltem Reisebuddy-Filter
+        binding.routeMap.setOnClickListener {
+            val bundle = bundleOf(
+                "filterTravelBuddy" to buddyName
+            )
+            findNavController().navigate(R.id.action_buddy_detail_to_world_map, bundle)
+        }
+
         if (buddyName.isBlank()) {
             binding.routeMap.visibility = View.GONE
             binding.routeStatsContainer.visibility = View.GONE
+            binding.tvFlightListTitle.visibility = View.GONE
+            binding.flightListRoot.visibility = View.GONE
             binding.tvEmpty.visibility = View.VISIBLE
             return
         }
@@ -90,7 +103,7 @@ class TravelBuddyDetailFragment : Fragment() {
 
             view?.post {
                 if (generation != loadGeneration || _binding == null) return@post
-                bind(first, last, routes)
+                bind(first, last, routes, filtered)
             }
         }.start()
     }
@@ -98,7 +111,8 @@ class TravelBuddyDetailFragment : Fragment() {
     private fun bind(
         first: LogbookEntry?,
         last: LogbookEntry?,
-        routes: List<Triple<AirportData.GeoLocation, AirportData.GeoLocation, Pair<String, String>>>
+        routes: List<Triple<AirportData.GeoLocation, AirportData.GeoLocation, Pair<String, String>>>,
+        allEntries: List<LogbookEntry>
     ) {
         if (routes.isNotEmpty()) {
             binding.routeMap.visibility = View.VISIBLE
@@ -110,14 +124,14 @@ class TravelBuddyDetailFragment : Fragment() {
 
         binding.routeStatsContainer.removeAllViews()
 
-        // Bei nur einem gemeinsamen Flug sind erster und letzter derselbe; dann
-        // steht nur eine Zeile.
+        // Erster und letzter Flug nebeneinander anzeigen
         if (first != null) {
             addStat(
                 R.drawable.ic_flight_takeoff,
                 R.string.buddy_first_flight,
                 routeOf(first),
-                caption(first)
+                caption(first),
+                isFirst = true
             )
         }
         if (last != null && last.id != first?.id) {
@@ -125,14 +139,91 @@ class TravelBuddyDetailFragment : Fragment() {
                 R.drawable.ic_flight,
                 R.string.buddy_last_flight,
                 routeOf(last),
-                caption(last)
+                caption(last),
+                isFirst = false
             )
         }
 
+        // Timeline mit allen gemeinsamen Flügen
+        renderTimeline(allEntries)
+
         if (first == null) {
             binding.routeStatsContainer.visibility = View.GONE
+            binding.tvFlightListTitle.visibility = View.GONE
+            binding.flightListRoot.visibility = View.GONE
             binding.tvEmpty.visibility = View.VISIBLE
+        } else {
+            binding.tvFlightListTitle.visibility = View.VISIBLE
+            binding.flightListRoot.visibility = View.VISIBLE
+            binding.tvEmpty.visibility = View.GONE
         }
+    }
+
+    /**
+     * Zeitstrahl mit allen gemeinsamen Flügen, ähnlich wie bei Layover.
+     * Der jüngste Flug steht oben.
+     */
+    private fun renderTimeline(entries: List<LogbookEntry>) {
+        binding.flightList.removeAllViews()
+        if (entries.isEmpty()) return
+
+        // Sortieren: jüngste zuerst (absteigend nach Datum)
+        val sortedEntries = entries.sortedByDescending { it.date }
+
+        sortedEntries.forEachIndexed { index, entry ->
+            val row = ItemLayoverTimelineBinding.inflate(
+                layoutInflater, binding.flightList, false
+            )
+            row.root.setOnClickListener {
+                findNavController().navigate(
+                    R.id.action_buddy_detail_to_add_entry,
+                    bundleOf("entryId" to (entry.id ?: -1L))
+                )
+            }
+            row.tvDate.text = DateTimeFormatter.ofPattern("dd.MM.yyyy").format(entry.date)
+            row.timelineDot.text = entry.flightMinutes?.let { minutes ->
+                if (minutes < 60) "$minutes min" else "${minutes / 60}h"
+            }.orEmpty()
+            row.tvRoute.text = getString(
+                R.string.import_review_summary_route,
+                entry.fromAirport.uppercase(),
+                entry.toAirport.uppercase()
+            )
+            val number = listOfNotNull(entry.airline, entry.flightNumber)
+                .joinToString(" ")
+            if (number.isNotBlank()) {
+                row.tvMeta.visibility = View.VISIBLE
+                row.tvMeta.text = number
+            }
+            // Reisebuddy nicht anzeigen, da wir bereits auf der Reisebuddy-Seite sind
+            row.ivBuddy.visibility = View.GONE
+            row.tvBuddy.visibility = View.GONE
+            
+            if (index == sortedEntries.lastIndex) {
+                (row.root.layoutParams as? ViewGroup.MarginLayoutParams)?.bottomMargin = 0
+            }
+            binding.flightList.addView(row.root)
+        }
+
+        binding.flightListRoot.post {
+            if (_binding != null) alignTimelineLine()
+        }
+    }
+
+    /**
+     * Die senkrechte Linie des Zeitstrahls verbindet nur die Punkte.
+     */
+    private fun alignTimelineLine() {
+        val rows = binding.flightList
+        val first = rows.getChildAt(0) ?: return
+        val last = rows.getChildAt(rows.childCount - 1)
+        val start = first.height / 2
+        val end = rows.height - last.height / 2
+        val params = binding.flightListLine.layoutParams as? ViewGroup.MarginLayoutParams
+            ?: return
+        params.height = (end - start).coerceAtLeast(0)
+        params.topMargin = start
+        binding.flightListLine.layoutParams = params
     }
 
     private fun routeOf(entry: LogbookEntry): String =
@@ -150,7 +241,8 @@ class TravelBuddyDetailFragment : Fragment() {
         iconRes: Int,
         labelRes: Int,
         valueText: CharSequence,
-        caption: String?
+        caption: String?,
+        isFirst: Boolean
     ): ItemRouteStatBinding {
         val row = ItemRouteStatBinding.inflate(
             layoutInflater, binding.routeStatsContainer, false
@@ -163,6 +255,15 @@ class TravelBuddyDetailFragment : Fragment() {
         row.tvRouteStatCaption.visibility =
             if (caption.isNullOrEmpty()) View.GONE else View.VISIBLE
         row.badgeRouteStatRank.visibility = View.GONE
+        
+        // Für nebeneinander Anzeige: beide bekommen Gewicht 1
+        val params = LinearLayout.LayoutParams(
+            0,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            1f
+        )
+        row.root.layoutParams = params
+        
         binding.routeStatsContainer.addView(row.root)
         return row
     }

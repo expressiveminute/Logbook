@@ -76,6 +76,11 @@
     <string name="hangar_sort_count">Count</string>
     <string name="hangar_sort_distance">Distance</string>
     <string name="hangar_sort_duration">Duration</string>
+    <!-- Magnifier and search field of the hangar page: searched by the
+         aircraft type or the registration. -->
+    <string name="hangar_search_desc">Search hangar</string>
+    <string name="hangar_search_hint">Type or registration</string>
+    <string name="hangar_search_empty">No aircraft found</string>
     <!-- Sorting on the "Flight routes" tile: "Count" orders by the number of
          flights per route, "Distance" by the kilometres flown, "Duration" by
          the total flight time. -->
@@ -464,6 +469,7 @@
     <string name="aircraft_map_title_type">All flights of this aircraft type</string>
     <string name="aircraft_map_title_reg">All flights of this registration</string>
     <string name="aircraft_flight_list_title">Flights</string>
+    <string name="buddy_flight_list_title">All common flights</string>
     <string name="buddy_map_title">Common flights</string>
 <!-- Import page -->
     <string name="import_page_title">Import</string>
@@ -500,7 +506,7 @@
     <string name="import_review_summary_unknown">Unknown</string>
 
     <string name="settings_version_label">Version %1$s</string>
-    <string name="settings_version" translatable="false">0.0.27</string>
+    <string name="settings_version" translatable="false">0.0.28</string>
     <string name="settings_made_with_prefix">Made with</string>
     <string name="settings_made_with_suffix">by expressiveminute</string>
 

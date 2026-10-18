@@ -5,10 +5,12 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.os.bundleOf
+import androidx.core.view.isEmpty
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.highfly.logbook.databinding.FragmentAchievementsBinding
 import com.highfly.logbook.databinding.ItemAchievementTimelineBinding
+import com.highfly.logbook.databinding.ItemAchievementYearBinding
 import java.time.format.DateTimeFormatter
 
 /**
@@ -98,7 +100,26 @@ class AchievementsFragment : Fragment() {
         binding.tvAchTimelineEmpty.visibility = if (empty) View.VISIBLE else View.GONE
         binding.achTimeline.removeAllViews()
 
+        // Wie die Monatsüberschriften der Einträge steht über der ersten Zeile
+        // eines Jahres die Jahreszahl, links über dem Eintrag.
+        var lastYear: Int? = null
         reached.forEachIndexed { index, item ->
+            val year = item.date.year
+            if (year != lastYear) {
+                lastYear = year
+                val header = ItemAchievementYearBinding.inflate(
+                    layoutInflater, binding.achTimeline, false
+                )
+                // Ohne Tausendertrennzeichen, sonst stuende da "2.024".
+                header.tvAchievementYear.text =
+                    String.format(Settings.language(context), "%d", year)
+                // Die erste Jahreszahl steht direkt unter dem Titel des
+                // Zeitstrahls - da genuegt der Abstand des Containers.
+                if (binding.achTimeline.isEmpty()) {
+                    (header.root.layoutParams as? ViewGroup.MarginLayoutParams)?.topMargin = 0
+                }
+                binding.achTimeline.addView(header.root)
+            }
             val row = ItemAchievementTimelineBinding.inflate(
                 layoutInflater, binding.achTimeline, false
             )

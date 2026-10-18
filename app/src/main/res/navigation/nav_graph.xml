@@ -313,6 +313,14 @@
             android:name="name"
             app:argType="string"
             android:defaultValue="" />
+        
+        <action
+            android:id="@+id/action_buddy_detail_to_world_map"
+            app:destination="@id/nav_world_map" />
+        
+        <action
+            android:id="@+id/action_buddy_detail_to_add_entry"
+            app:destination="@id/nav_add_entry" />
     </fragment>
 
     <!-- Seite "CO₂-Ausgleich": Karte des Abfluglands mit dem meistgenutzten

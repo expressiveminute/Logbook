@@ -41,7 +41,11 @@ class RouteMiniMapView @JvmOverloads constructor(
     attrs: AttributeSet? = null
 ) : View(context, attrs) {
 
-    /** Öffentlich, damit [planeRotation] und [mitte] ohne Android testbar sind. */
+    /**
+     * Öffentlich, damit [planeRotation], [mitte] und die Projektionsrechnung
+     * ([Projection], [buildArc], [buildProjectionMulti], [badgeAnchor],
+     * [badgeDrawOrder]) ohne Android testbar sind.
+     */
     companion object {
         const val TAG = "RouteMiniMapView"
         const val LAND_ASSET = "world_land.json"
@@ -61,12 +65,6 @@ class RouteMiniMapView @JvmOverloads constructor(
         /** Abstand zweier sich überlappender Badges. */
         const val LABEL_GAP = 7f
         const val LABEL_MARGIN = 4f
-
-        /**
-         * Wie viele Zeilen ein Flughafenschild der Mehrstrecken-Ansicht nach
-         * oben oder unten wandern darf, um Überschneidungen auszuweichen.
-         */
-        const val MULTI_BADGE_SHIFT_LINES = 4
 
         /** Sichtbarer Anteil des Kartenausschnitts, auf dem Grenzen gelten. */
         const val BORDER_VIEW_PADDING = 0.15
@@ -118,6 +116,149 @@ class RouteMiniMapView @JvmOverloads constructor(
          */
         fun mitte(count: Int): Int = count / 2
 
+        /** Kartenausschnitt in Grad: alle Werte beziehen sich auf die Kartenmitte. */
+        class Projection(
+            val centerLon: Double,
+            val centerLat: Double,
+            val lonFactor: Double,
+            val scale: Double,
+            val viewWidth: Float,
+            val viewHeight: Float
+        ) {
+            fun x(lon: Double): Float =
+                (viewWidth / 2f + (lon - centerLon) * lonFactor * scale).toFloat()
+
+            fun y(lat: Double): Float =
+                (viewHeight / 2f - (lat - centerLat) * scale).toFloat()
+
+            fun lonRange(): ClosedFloatingPointRange<Double> {
+                val half = viewWidth / (2.0 * lonFactor * scale)
+                return (centerLon - half)..(centerLon + half)
+            }
+
+            fun latRange(): ClosedFloatingPointRange<Double> {
+                val half = viewHeight / (2.0 * scale)
+                return (centerLat - half)..(centerLat + half)
+            }
+        }
+
+        /**
+         * Verschiebt einen Längengrad auf die Seite der Datumslinie, die
+         * näher an [reference] liegt. Dadurch entstehen keine Sprünge über
+         * den Kartenrand.
+         */
+        @JvmStatic
+        fun unwrapNear(lon: Double, reference: Double): Double {
+            var value = lon
+            while (value - reference > 180.0) value -= 360.0
+            while (reference - value > 180.0) value += 360.0
+            return value
+        }
+
+        /**
+         * Großkreisbogen zwischen zwei Flughäfen als (Längengrad,
+         * Breitengrad)-Paare. Die Längengrade werden an der Datumslinie
+         * entrollt, damit der Bogen zusammenhängend bleibt.
+         */
+        @JvmStatic
+        fun buildArc(
+            from: AirportData.GeoLocation,
+            to: AirportData.GeoLocation
+        ): FloatArray {
+            val points = GeoMath.greatCircleArc(from, to, ARC_POINTS)
+            val out = FloatArray(points.size * 2)
+            var reference = points.first().longitude
+            for (i in points.indices) {
+                val lon = unwrapNear(points[i].longitude, reference)
+                out[i * 2] = lon.toFloat()
+                out[i * 2 + 1] = points[i].latitude.toFloat()
+                reference = lon
+            }
+            return out
+        }
+
+        /**
+         * Kartenausschnitt, der alle Strecken [list] umfasst. Dieselbe
+         * Rechnung wie beim Einzelbogen, nur über alle Strecken zusammen.
+         */
+        @JvmStatic
+        fun buildProjectionMulti(list: List<FloatArray>, w: Float, h: Float): Projection? {
+            var minLon = Double.MAX_VALUE
+            var maxLon = -Double.MAX_VALUE
+            var minLat = Double.MAX_VALUE
+            var maxLat = -Double.MAX_VALUE
+            for (points in list) {
+                for (i in points.indices step 2) {
+                    val lon = points[i].toDouble()
+                    val lat = points[i + 1].toDouble()
+                    if (lon < minLon) minLon = lon
+                    if (lon > maxLon) maxLon = lon
+                    if (lat < minLat) minLat = lat
+                    if (lat > maxLat) maxLat = lat
+                }
+            }
+            if (minLon == Double.MAX_VALUE) return null
+            return projectionFor(minLon, maxLon, minLat, maxLat, w, h)
+        }
+
+        /** Rechnet aus einem Gradbereich den Kartenausschnitt aus. */
+        @JvmStatic
+        fun projectionFor(
+            rawMinLon: Double, rawMaxLon: Double,
+            rawMinLat: Double, rawMaxLat: Double,
+            w: Float, h: Float
+        ): Projection? {
+            var minLon = rawMinLon
+            var maxLon = rawMaxLon
+            var minLat = rawMinLat
+            var maxLat = rawMaxLat
+
+            // Etwas Luft um die Strecke, damit sie nicht am Kartenrand klebt.
+            val lonPad = max(MIN_SPAN_DEG, (maxLon - minLon) * BBOX_PADDING)
+            val latPad = max(MIN_SPAN_DEG, (maxLat - minLat) * BBOX_PADDING)
+            minLon -= lonPad
+            maxLon += lonPad
+            minLat = max(minLat - latPad, -85.0)
+            maxLat = min(maxLat + latPad, 85.0)
+
+            val centerLon = (minLon + maxLon) / 2.0
+            val centerLat = (minLat + maxLat) / 2.0
+            // Breitengrade werden am Breitenkreis gestaucht, sonst wirken
+            // Strecken in hohen Breiten überdehnt.
+            val lonFactor = cos(Math.toRadians(centerLat)).coerceAtLeast(0.05)
+            val scale = min(
+                w / ((maxLon - minLon) * lonFactor),
+                h / (maxLat - minLat)
+            )
+            if (!scale.isFinite() || scale <= 0.0) return null
+            return Projection(centerLon, centerLat, lonFactor, scale, w, h)
+        }
+
+        /**
+         * Bildschirmposition des Flughafenschildes in der Mehrstrecken-Ansicht:
+         * die echten geografischen Koordinaten, der Längengrad an der
+         * Datumslinie auf die Kartenmitte entrollt. So liegt das Schild exakt
+         * auf dem Punkt, auch wenn die Strecke über die Datumslinie führt und
+         * der Bogen dort entrollte Längengrade trägt.
+         */
+        @JvmStatic
+        fun badgeAnchor(
+            projection: Projection,
+            location: AirportData.GeoLocation
+        ): FloatArray = floatArrayOf(
+            projection.x(unwrapNear(location.lon, projection.centerLon)),
+            projection.y(location.lat)
+        )
+
+        /**
+         * Reihenfolge, in der die Flughafenschilder gezeichnet werden: selten
+         * angeflogene zuerst, die mit den meisten Strecken zuletzt. Überlappen
+         * sich Schilder, liegt der Code des wichtigsten Flughafens oben.
+         */
+        @JvmStatic
+        fun badgeDrawOrder(counts: Map<String, Int>): List<String> =
+            counts.entries.sortedWith(compareBy({ it.value }, { it.key })).map { it.key }
+
         /** Höchstzahl beschrifteter Städte je Kartenausschnitt. */
         const val CITY_LABEL_COUNT = 3
 
@@ -144,32 +285,6 @@ class RouteMiniMapView @JvmOverloads constructor(
          * benachrichtigt, sobald die Daten vorliegen.
          */
         private val waitingViews = mutableListOf<WeakReference<RouteMiniMapView>>()
-    }
-
-    /** Kartenausschnitt in Grad: alle Werte beziehen sich auf die Kartenmitte. */
-    private class Projection(
-        val centerLon: Double,
-        val centerLat: Double,
-        val lonFactor: Double,
-        val scale: Double,
-        val viewWidth: Float,
-        val viewHeight: Float
-    ) {
-        fun x(lon: Double): Float =
-            (viewWidth / 2f + (lon - centerLon) * lonFactor * scale).toFloat()
-
-        fun y(lat: Double): Float =
-            (viewHeight / 2f - (lat - centerLat) * scale).toFloat()
-
-        fun lonRange(): ClosedFloatingPointRange<Double> {
-            val half = viewWidth / (2.0 * lonFactor * scale)
-            return (centerLon - half)..(centerLon + half)
-        }
-
-        fun latRange(): ClosedFloatingPointRange<Double> {
-            val half = viewHeight / (2.0 * scale)
-            return (centerLat - half)..(centerLat + half)
-        }
     }
 
     private val density get() = resources.displayMetrics.density
@@ -236,8 +351,6 @@ class RouteMiniMapView @JvmOverloads constructor(
     private val borderPath = Path()
     private val badgeCollision = LabelCollision()
 
-    /** Belegte Schilder der Mehrstrecken-Ansicht, je Neuzeichnen geleert. */
-    private val multiBadgeRects = ArrayList<RectF>()
     private val planeBounds = Rect()
 
     /** Flugzeugsymbol auf der Strecke, in Akzentfarbe. */
@@ -256,6 +369,9 @@ class RouteMiniMapView @JvmOverloads constructor(
 
     /** Dreilettercodes je Strecke der Mehrstrecken-Ansicht (Abflug, Ziel). */
     private var arcCodes: List<Pair<String, String>>? = null
+    
+    /** Echte geografische Koordinaten je Strecke (Abflug, Ziel) für die Badge-Positionierung. */
+    private var arcLocations: List<Pair<AirportData.GeoLocation, AirportData.GeoLocation>>? = null
     private var projection: Projection? = null
     private var fromLabel: String? = null
     private var toLabel: String? = null
@@ -332,6 +448,7 @@ class RouteMiniMapView @JvmOverloads constructor(
         }
         arcs = routes.map { buildArc(it.first, it.second) }
         arcCodes = routes.map { it.third }
+        arcLocations = routes.map { Pair(it.first, it.second) }
         arc = null
         fromLabel = null
         toLabel = null
@@ -530,22 +647,6 @@ class RouteMiniMapView @JvmOverloads constructor(
         }.start()
     }
 
-    private fun buildArc(
-        from: AirportData.GeoLocation,
-        to: AirportData.GeoLocation
-    ): FloatArray {
-        val points = GeoMath.greatCircleArc(from, to, ARC_POINTS)
-        val out = FloatArray(points.size * 2)
-        var reference = points.first().longitude
-        for (i in points.indices) {
-            val lon = unwrapNear(points[i].longitude, reference)
-            out[i * 2] = lon.toFloat()
-            out[i * 2 + 1] = points[i].latitude.toFloat()
-            reference = lon
-        }
-        return out
-    }
-
     private fun buildProjection(points: FloatArray, w: Float, h: Float): Projection? {
         var minLon = Double.MAX_VALUE
         var maxLon = -Double.MAX_VALUE
@@ -561,61 +662,6 @@ class RouteMiniMapView @JvmOverloads constructor(
         }
         if (minLon == Double.MAX_VALUE) return null
         return projectionFor(minLon, maxLon, minLat, maxLat, w, h)
-    }
-
-    /**
-     * Kartenausschnitt, der alle Strecken [list] umfasst. Dieselbe Rechnung wie
-     * [buildProjection], nur über alle Strecken zusammen.
-     */
-    private fun buildProjectionMulti(list: List<FloatArray>, w: Float, h: Float): Projection? {
-        var minLon = Double.MAX_VALUE
-        var maxLon = -Double.MAX_VALUE
-        var minLat = Double.MAX_VALUE
-        var maxLat = -Double.MAX_VALUE
-        for (points in list) {
-            for (i in points.indices step 2) {
-                val lon = points[i].toDouble()
-                val lat = points[i + 1].toDouble()
-                if (lon < minLon) minLon = lon
-                if (lon > maxLon) maxLon = lon
-                if (lat < minLat) minLat = lat
-                if (lat > maxLat) maxLat = lat
-            }
-        }
-        if (minLon == Double.MAX_VALUE) return null
-        return projectionFor(minLon, maxLon, minLat, maxLat, w, h)
-    }
-
-    /** Rechnet aus einem Gradbereich den Kartenausschnitt aus. */
-    private fun projectionFor(
-        rawMinLon: Double, rawMaxLon: Double,
-        rawMinLat: Double, rawMaxLat: Double,
-        w: Float, h: Float
-    ): Projection? {
-        var minLon = rawMinLon
-        var maxLon = rawMaxLon
-        var minLat = rawMinLat
-        var maxLat = rawMaxLat
-
-        // Etwas Luft um die Strecke, damit sie nicht am Kartenrand klebt.
-        val lonPad = max(MIN_SPAN_DEG, (maxLon - minLon) * BBOX_PADDING)
-        val latPad = max(MIN_SPAN_DEG, (maxLat - minLat) * BBOX_PADDING)
-        minLon -= lonPad
-        maxLon += lonPad
-        minLat = max(minLat - latPad, -85.0)
-        maxLat = min(maxLat + latPad, 85.0)
-
-        val centerLon = (minLon + maxLon) / 2.0
-        val centerLat = (minLat + maxLat) / 2.0
-        // Breitengrade werden am Breitenkreis gestaucht, sonst wirken Strecken
-        // in hohen Breiten überdehnt.
-        val lonFactor = cos(Math.toRadians(centerLat)).coerceAtLeast(0.05)
-        val scale = min(
-            w / ((maxLon - minLon) * lonFactor),
-            h / (maxLat - minLat)
-        )
-        if (!scale.isFinite() || scale <= 0.0) return null
-        return Projection(centerLon, centerLat, lonFactor, scale, w, h)
     }
 
     /**
@@ -664,10 +710,12 @@ class RouteMiniMapView @JvmOverloads constructor(
 
     /**
      * Beschriftet die Endpunkte der Mehrstrecken-Ansicht mit ihren
-     * Dreilettercodes: Jeder Flughafen bekommt seinen Code nur einmal, auch wenn
-     * er mehrfach angeflogen wird. Viel angeflogene Flughäfen bekommen zuerst
-     * einen Platz; ein Flughafen, dessen Schild sich nicht überschneidungsfrei
-     * setzen lässt, bleibt der blosse Punkt.
+     * Dreilettercodes: Jeder Flughafen bekommt seinen Code nur einmal, auch
+     * wenn er mehrfach angeflogen wird. Jedes Schild sitzt exakt auf seinem
+     * Flughafen (siehe [badgeAnchor]) und wird immer gezeichnet - damit die
+     * geografische Position stimmt, wird es nie verschoben. Überlappen sich
+     * Schilder, zeichnet [badgeDrawOrder] den Code des Flughafens mit den
+     * meisten Strecken zuletzt, er liegt oben.
      */
     private fun drawMultiBadges(
         canvas: Canvas,
@@ -675,38 +723,40 @@ class RouteMiniMapView @JvmOverloads constructor(
         projection: Projection
     ) {
         val codes = arcCodes ?: return
+        val locations = arcLocations ?: return
         val counts = HashMap<String, Int>()
         val positions = LinkedHashMap<String, FloatArray>()
+
         for (index in list.indices) {
-            val pair = codes.getOrNull(index) ?: continue
-            val points = list[index]
-            if (points.size < 4) continue
-            val last = points.size - 2
-            collectAirport(
-                positions, counts, pair.first,
-                projection.x(points[0].toDouble()),
-                projection.y(points[1].toDouble())
-            )
-            collectAirport(
-                positions, counts, pair.second,
-                projection.x(points[last].toDouble()),
-                projection.y(points[last + 1].toDouble())
-            )
+            val codePair = codes.getOrNull(index) ?: continue
+            val locationPair = locations.getOrNull(index) ?: continue
+
+            // Abflugsflughafen
+            if (codePair.first.isNotEmpty()) {
+                val anchor = badgeAnchor(projection, locationPair.first)
+                collectAirport(positions, counts, codePair.first, anchor[0], anchor[1])
+            }
+
+            // Ankunftsflughafen
+            if (codePair.second.isNotEmpty()) {
+                val anchor = badgeAnchor(projection, locationPair.second)
+                collectAirport(positions, counts, codePair.second, anchor[0], anchor[1])
+            }
         }
+
         if (positions.isEmpty()) return
 
-        multiBadgeRects.clear()
-        val ordered = positions.entries.sortedByDescending { counts[it.key] ?: 0 }
-        for ((code, point) in ordered) {
-            if (code.isEmpty()) continue
-            val placed = placeMultiBadge(
-                labelBounds(point[0], point[1], code)
-            ) ?: continue
-            drawBadge(canvas, placed, code)
+        for (code in badgeDrawOrder(counts)) {
+            val point = positions[code] ?: continue
+            drawBadge(canvas, badgeRectAt(point[0], point[1], code), code)
         }
     }
 
-    /** Merkt sich einen Flughafen samt Position und zählt seine Strecken. */
+    /**
+     * Merkt sich einen Flughafen samt Position und zählt seine Strecken. Durch
+     * das Entrollen an der Kartenmitte ist die Position für denselben
+     * Flughafen immer gleich, egal in welcher Strecke er vorkommt.
+     */
     private fun collectAirport(
         positions: MutableMap<String, FloatArray>,
         counts: MutableMap<String, Int>,
@@ -715,36 +765,10 @@ class RouteMiniMapView @JvmOverloads constructor(
         y: Float
     ) {
         if (code.isEmpty()) return
-        positions.putIfAbsent(code, floatArrayOf(x, y))
-        counts[code] = (counts[code] ?: 0) + 1
-    }
-
-    /**
-     * Setzt ein Flughafenschild möglichst auf seinen Punkt; lässt es sich dort
-     * nicht überschneidungsfrei unterbringen, wird es um einige Zeilen nach oben
-     * oder unten versetzt. Gibt null zurück, wenn kein freier Platz bleibt.
-     */
-    private fun placeMultiBadge(base: RectF): RectF? {
-        val margin = LABEL_MARGIN * density
-        val step = base.height() + LABEL_GAP * density
-        val candidate = RectF()
-        for (line in 0..MULTI_BADGE_SHIFT_LINES) {
-            val variants = if (line == 0) 1 else 2
-            for (v in 0 until variants) {
-                val dy = when {
-                    line == 0 -> 0f
-                    v == 0 -> -step * line
-                    else -> step * line
-                }
-                candidate.set(base)
-                candidate.offset(0f, dy)
-                if (candidate.top < margin || candidate.bottom > height - margin) continue
-                if (multiBadgeRects.any { RectF.intersects(it, candidate) }) continue
-                multiBadgeRects.add(RectF(candidate))
-                return candidate
-            }
+        if (positions[code] == null) {
+            positions[code] = floatArrayOf(x, y)
         }
-        return null
+        counts[code] = (counts[code] ?: 0) + 1
     }
 
     private fun drawLand(canvas: Canvas, rings: List<FloatArray>, projection: Projection) {
@@ -1118,22 +1142,27 @@ class RouteMiniMapView @JvmOverloads constructor(
         }
     }
 
-    /** Badge zentriert über dem Flughafenpunkt, innerhalb des Ausschnitts. */
-    private fun labelBounds(x: Float, y: Float, code: String): RectF {
+    /** Badge exakt um den Punkt zentriert, ohne es in die Ansicht zu klemmen. */
+    private fun badgeRectAt(x: Float, y: Float, code: String): RectF {
         val paddingH = 4f * density
         val paddingV = 2f * density
         val boxWidth = labelPaint.measureText(code) + 2 * paddingH
         val boxHeight = -labelPaint.ascent() + labelPaint.descent() + 2 * paddingV
+        return RectF(
+            x - boxWidth / 2, y - boxHeight / 2,
+            x + boxWidth / 2, y + boxHeight / 2
+        )
+    }
+
+    /** Badge zentriert über dem Flughafenpunkt, innerhalb des Ausschnitts. */
+    private fun labelBounds(x: Float, y: Float, code: String): RectF {
+        val rect = badgeRectAt(x, y, code)
         val margin = LABEL_MARGIN * density
-
-        var left = x - boxWidth / 2
-        if (left < margin) left = margin
-        if (left + boxWidth > width - margin) left = width - margin - boxWidth
-        var top = y - boxHeight / 2
-        if (top < margin) top = margin
-        if (top + boxHeight > height - margin) top = height - margin - boxHeight
-
-        return RectF(left, top, left + boxWidth, top + boxHeight)
+        if (rect.left < margin) rect.offsetTo(margin, rect.top)
+        if (rect.right > width - margin) rect.offsetTo(width - margin - rect.width(), rect.top)
+        if (rect.top < margin) rect.offsetTo(rect.left, margin)
+        if (rect.bottom > height - margin) rect.offsetTo(rect.left, height - margin - rect.height())
+        return rect
     }
 
     private fun drawBadge(canvas: Canvas, rect: RectF, code: String) {
@@ -1158,17 +1187,6 @@ class RouteMiniMapView @JvmOverloads constructor(
     private fun ensureRingBuffer(size: Int) {
         if (ringBuffer.size >= size) return
         ringBuffer = FloatArray(size)
-    }
-
-    /**
-     * Verschiebt einen Längengrad auf die Seite der Datumslinie, die näher an
-     * [reference] liegt. Dadurch entstehen keine Sprünge über den Kartenrand.
-     */
-    private fun unwrapNear(lon: Double, reference: Double): Double {
-        var value = lon
-        while (value - reference > 180.0) value -= 360.0
-        while (reference - value > 180.0) value += 360.0
-        return value
     }
 
     private fun loadRings(context: Context): List<FloatArray>? = try {

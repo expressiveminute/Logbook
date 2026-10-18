@@ -58,11 +58,11 @@
                 android:textColor="?attr/colorOnSurfaceVariant" />
         </LinearLayout>
 
-        <!-- Suchfeld der Layover- und der Flughäfen-Kachel oben im Kopf, links
-             neben der Lupe. Im eingeklappten Zustand bleibt es ohne Breite
-             und unsichtbar; beim Oeffnen waechst es nach links ueber den
-             Titel, waehrend dessen Gewicht gegenlaeufig schrumpft. Nur bei
-             diesen beiden Kacheln sichtbar. -->
+        <!-- Suchfeld der Layover-, der Flughäfen- und der Hangar-Kachel oben
+             im Kopf, links neben der Lupe. Im eingeklappten Zustand bleibt es
+             ohne Breite und unsichtbar; beim Oeffnen waechst es nach links
+             ueber den Titel, waehrend dessen Gewicht gegenlaeufig schrumpft.
+             Nur bei diesen drei Kacheln sichtbar. -->
         <EditText
             android:id="@+id/et_search"
             android:layout_width="0dp"
@@ -83,24 +83,75 @@
             android:visibility="gone"
             tools:visibility="visible" />
 
-        <!-- Lupe links neben dem Schluss der Kopfzeile. Ein Tipp klappt links
-             daneben das Suchfeld aus; die Codes darunter werden dann nach Code
-             oder Stadt gefiltert. Bei der Layover- und der Flughäfen-Kachel
-             sichtbar. -->
-        <ImageView
-            android:id="@+id/iv_search"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_marginStart="4dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:clickable="true"
-            android:contentDescription="@string/layover_search_desc"
-            android:focusable="true"
-            android:padding="8dp"
-            android:src="@drawable/ic_search"
-            android:visibility="gone"
-            app:tint="?attr/colorOnSurfaceVariant"
-            tools:visibility="visible" />
+        <!-- Rechte Seite des Headers: oben die Lupe mit dem Suchfeld, darunter
+             die Sortierung der Hangar-Seite. Auf den Kacheln Layover und
+             Flughäfen steht die Lupe allein und bleibt mittig; auf der
+             Hangar-Seite sitzt sie ueber der Sortierung und rueckt per oberem
+             Rand (in setupTileSearch gesetzt) weiter nach unten, oben bündig
+             mit dem Titel, aber im Header. -->
+        <LinearLayout
+            android:id="@+id/header_right"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:orientation="vertical">
+
+            <!-- Lupe links neben dem Schluss der Kopfzeile. Ein Tipp klappt
+                 links daneben das Suchfeld aus; die Balken bzw. Listen darunter
+                 werden dann gefiltert. Bei den Kacheln Layover, Flughäfen und
+                 Hangar sichtbar. -->
+            <ImageView
+                android:id="@+id/iv_search"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:contentDescription="@string/layover_search_desc"
+                android:focusable="true"
+                android:padding="8dp"
+                android:src="@drawable/ic_search"
+                android:visibility="gone"
+                app:tint="?attr/colorOnSurfaceVariant"
+                tools:visibility="visible" />
+
+            <!-- Sortierung der Hangar-Seite unter der Lupe, als diskreter
+                 Text wie die Filterwoerter ueber den Kacheln des Dashboards:
+                 die Beschriftung steht links neben dem anklickbaren Wort.
+                 Nur bei der Kachel "Hangar" sichtbar. -->
+            <LinearLayout
+                android:id="@+id/aircraft_sort_container"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_marginTop="2dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <TextView
+                    android:id="@+id/tv_aircraft_sort_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:labelFor="@id/tv_aircraft_sort"
+                    android:maxLines="2"
+                    android:text="@string/layover_sort_label"
+                    android:textAppearance="?attr/textAppearanceBodyMedium" />
+
+                <TextView
+                    android:id="@+id/tv_aircraft_sort"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:padding="8dp"
+                    android:textAppearance="?attr/textAppearanceBodyMedium"
+                    android:textColor="?attr/colorPrimary"
+                    tools:text="@string/hangar_sort_count" />
+            </LinearLayout>
+        </LinearLayout>
 
         <!-- Platzhalter fuer die spaetere Layover-Uebersicht: quadratisch
              mit abgerundeten Ecken und "drei Sterne"-Icon. Nur bei der
@@ -129,42 +180,6 @@
                 android:src="@drawable/ic_auto_awesome"
                 app:tint="?attr/colorOnSecondaryContainer" />
         </com.google.android.material.card.MaterialCardView>
-
-        <!-- Sortierung der Hangar-Seite oben rechts im Header, als
-             diskreter Text wie die Filterwoerter ueber den Kacheln des
-             Dashboards: die Beschriftung steht links neben dem
-             anklickbaren Wort. Nur bei der Kachel "Hangar" sichtbar. -->
-        <LinearLayout
-            android:id="@+id/aircraft_sort_container"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:visibility="gone"
-            tools:visibility="visible">
-
-            <TextView
-                android:id="@+id/tv_aircraft_sort_label"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:labelFor="@id/tv_aircraft_sort"
-                android:maxLines="2"
-                android:text="@string/layover_sort_label"
-                android:textAppearance="?attr/textAppearanceBodyMedium" />
-
-            <TextView
-                android:id="@+id/tv_aircraft_sort"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="?attr/selectableItemBackground"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:padding="8dp"
-                android:textAppearance="?attr/textAppearanceBodyMedium"
-                android:textColor="?attr/colorPrimary"
-                tools:text="@string/hangar_sort_count" />
-        </LinearLayout>
 
         <!-- Sortierung der Kachel "Flugrouten" oben rechts im Header, nach
              demselben Muster wie der Hangar-Filter: die Beschriftung steht

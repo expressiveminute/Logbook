@@ -6,6 +6,7 @@ import android.animation.ValueAnimator
 import android.graphics.Color
 import android.os.Bundle
 import android.text.Editable
+import android.text.InputFilter
 import android.text.TextWatcher
 import android.util.TypedValue
 import android.view.LayoutInflater
@@ -45,11 +46,11 @@ class TileDetailFragment : Fragment() {
     private var classTravelType: String = ClassTravelType.DEFAULT
 
     /** Wessen Balken das Suchfeld oben im Kopf gerade filtert. */
-    private enum class SearchMode { LAYOVER, AIRPORT }
+    private enum class SearchMode { LAYOVER, AIRPORT, HANGAR }
 
     private var searchMode = SearchMode.LAYOVER
 
-    /** Suchtext der Layover- und der Flughäfen-Kachel: Dreilettercode oder Stadt. */
+    /** Suchtext der Kacheln Layover, Flughäfen und Hangar. */
     private var searchQuery: String = ""
 
     /** Ob das Suchfeld oben im Kopf ausgeklappt ist. */
@@ -60,6 +61,12 @@ class TileDetailFragment : Fragment() {
 
     /** Alle Flughäfen-Balken vor der Suche, damit die Eingabe nur filtern muss. */
     private var airportAllBars: List<ChartData.Bar> = emptyList()
+
+    /** Alle Flugzeugtypen der Hangar-Seite vor der Suche, damit die Eingabe nur filtern muss. */
+    private var hangarAllTypes: List<ChartData.Bar> = emptyList()
+
+    /** Alle Registrierungen der Hangar-Seite vor der Suche, damit die Eingabe nur filtern muss. */
+    private var hangarAllRegistrations: List<ChartData.Bar> = emptyList()
 
     /** Laufende Aufklapp-/Einklappanimation des Suchfelds. */
     private var searchAnimator: ValueAnimator? = null
@@ -286,19 +293,43 @@ class TileDetailFragment : Fragment() {
      * Lupe oben im Kopf, rechts im Header: Ein Tipp klappt links daneben das
      * Suchfeld aus, ein zweiter wieder ein und hebt den Filter auf. Gesucht
      * wird nach dem Flughafencode und nach der Stadt - je nach Kachel filtert
-     * die Eingabe die Layover- oder die Flughäfen-Balken.
+     * die Eingabe die Layover-Balken, die Flughäfen-Liste oder die
+     * Hangar-Listen (Flugzeugtypen und Registrierungen).
      */
     private fun setupTileSearch(mode: SearchMode) {
         searchMode = mode
         binding.ivSearch.visibility = View.VISIBLE
         binding.ivSearch.contentDescription = getString(
-            if (mode == SearchMode.LAYOVER) R.string.layover_search_desc
-            else R.string.airport_search_desc
+            when (mode) {
+                SearchMode.LAYOVER -> R.string.layover_search_desc
+                SearchMode.AIRPORT -> R.string.airport_search_desc
+                SearchMode.HANGAR -> R.string.hangar_search_desc
+            }
         )
         binding.etSearch.setHint(
-            if (mode == SearchMode.LAYOVER) R.string.layover_search_hint
-            else R.string.airport_search_hint
+            when (mode) {
+                SearchMode.LAYOVER -> R.string.layover_search_hint
+                SearchMode.AIRPORT -> R.string.airport_search_hint
+                SearchMode.HANGAR -> R.string.hangar_search_hint
+            }
         )
+        // Beim Hangar verhält sich die Suche wie ein Registrierungsfeld:
+        // alles gross schreiben und nach dem ersten Buchstaben ein Strich.
+        binding.etSearch.filters = if (mode == SearchMode.HANGAR) {
+            arrayOf(hangarRegistrationFilter())
+        } else {
+            emptyArray()
+        }
+        // Auf der Hangar-Seite steht die Lupe über der Sortierung und rückt
+        // dadurch nach unten, oben bündig mit dem Titel; allein (Layover,
+        // Flughäfen) bleibt sie mittig im Header.
+        val searchParams = binding.ivSearch.layoutParams as LinearLayout.LayoutParams
+        searchParams.topMargin = if (mode == SearchMode.HANGAR) {
+            (HANGAR_SEARCH_TOP_MARGIN_DP * resources.displayMetrics.density).toInt()
+        } else {
+            0
+        }
+        binding.ivSearch.layoutParams = searchParams
         // Text vor dem Beobachter setzen: die wiederhergestellte Suche soll
         // nicht schon hier, sondern erst beim Zeichnen der Balken greifen.
         binding.etSearch.setText(searchQuery)
@@ -320,11 +351,33 @@ class TileDetailFragment : Fragment() {
         }
     }
 
-    /** Filtert je nach Kachel die Layover- oder die Flughäfen-Balken. */
+    /**
+     * Eingabefilter des Hangar-Suchfelds: Alles wird gross geschrieben und
+     * nach dem ersten Buchstaben steht direkt ein Strich, wie bei einer
+     * Registrierung (tippt der Nutzer "d", wird daraus "D-"). Löscht er den
+     * Strich wieder, tippt er danach normal weiter - der Strich wird nicht
+     * erneut eingesetzt.
+     */
+    private fun hangarRegistrationFilter(): InputFilter =
+        InputFilter { source, start, end, dest, dstart, dend ->
+            val input = source.subSequence(start, end).toString().uppercase()
+            if (input.isEmpty()) {
+                null
+            } else if (dest.length == 0 && dstart == 0 && dend == 0 &&
+                input.length == 1 && input[0].isLetter()
+            ) {
+                input + "-"
+            } else {
+                input
+            }
+        }
+
+    /** Filtert je nach Kachel die Layover-Balken, die Flughäfen-Liste oder die Hangar-Listen. */
     private fun applySearchFilter() {
         when (searchMode) {
             SearchMode.LAYOVER -> applyLayoverFilter()
             SearchMode.AIRPORT -> applyAirportFilter()
+            SearchMode.HANGAR -> applyHangarFilter()
         }
     }
 
@@ -785,6 +838,7 @@ class TileDetailFragment : Fragment() {
 
     private fun renderAircraftRegistrations() {
         setupHangarSort()
+        setupTileSearch(SearchMode.HANGAR)
         renderHangar()
     }
 
@@ -886,8 +940,37 @@ class TileDetailFragment : Fragment() {
             if (bars.isEmpty()) View.GONE else View.VISIBLE
     }
 
+    /**
+     * Liest die Flugzeugtypen und Registrierungen des Zeitraums in der
+     * gewählten Sortierung und zeichnet sie - über [applyHangarFilter], damit
+     * eine laufende Suche erhalten bleibt.
+     */
     private fun renderHangar() {
-        val types = ChartData.aircraftBars(requireContext(), hangarSort)
+        hangarAllTypes = ChartData.aircraftBars(requireContext(), hangarSort)
+        hangarAllRegistrations =
+            ChartData.hangarBars(requireContext(), hangarSort) { it.registration }
+        applyHangarFilter()
+    }
+
+    /**
+     * Zeichnet die Hangar-Listen (Flugzeugtypen und Registrierungen) erneut,
+     * mit Sucheingabe nur mit den passenden. Gesucht wird im Klartext des
+     * Typs bzw. der Registrierung - wie das Suchfeld der Flughäfen-Kachel
+     * die Liste filtert, nur dass hier beide Listen betroffen sind.
+     */
+    private fun applyHangarFilter() {
+        val query = searchQuery.trim()
+        val types = if (query.isEmpty()) {
+            hangarAllTypes
+        } else {
+            hangarAllTypes.filter { it.label.contains(query, ignoreCase = true) }
+        }
+        val registrations = if (query.isEmpty()) {
+            hangarAllRegistrations
+        } else {
+            hangarAllRegistrations.filter { it.label.contains(query, ignoreCase = true) }
+        }
+
         binding.barAircraft.setOnItemClickListener { index: Int ->
             val label = types.getOrNull(index)?.label
             if (!label.isNullOrBlank()) {
@@ -900,6 +983,11 @@ class TileDetailFragment : Fragment() {
                 )
             }
         }
+        // Passen keine Typen zur Suche, bleibt das Diagramm samt Titel weg.
+        if (types.isEmpty()) {
+            binding.tvAircraftTitle.visibility = View.GONE
+            binding.aircraftChart.visibility = View.GONE
+        }
         renderScrollableColumnChart(
             types,
             binding.aircraftChart,
@@ -907,7 +995,7 @@ class TileDetailFragment : Fragment() {
             binding.barAircraftAxis,
             binding.tvAircraftTitle
         )
-        val registrations = ChartData.hangarBars(requireContext(), hangarSort) { it.registration }
+
         // Anzahl, Distanz und Dauer stehen am rechten Rand auf einer Linie,
         // statt an jeder Balkenspitze zu wandern.
         binding.barChart.setValueRightAligned(true)
@@ -926,11 +1014,15 @@ class TileDetailFragment : Fragment() {
         renderBars(registrations)
         binding.tvRegistrationsTitle.visibility =
             if (registrations.isEmpty()) View.GONE else View.VISIBLE
+        binding.tvEmpty.setText(
+            if (query.isEmpty()) R.string.chart_empty else R.string.hangar_search_empty
+        )
         binding.tvEmpty.visibility =
             if (types.isEmpty() && registrations.isEmpty()) View.VISIBLE else View.GONE
         // Ohne etwas zum Sortieren verschwindet der Filter aus dem Header wie
         // die Sortierzeile bei der Layover-Kachel; ueber dem Leertext haette er
-        // nichts zu ordnen.
+        // nichts zu ordnen. Die Lupe darueber bleibt stehen, sie schliesst die
+        // Suche.
         binding.aircraftSortContainer.visibility =
             if (types.isEmpty() && registrations.isEmpty()) View.GONE else View.VISIBLE
     }
@@ -1196,6 +1288,12 @@ class TileDetailFragment : Fragment() {
 
         /** Dauer der Aufklapp-/Einklappanimation des Suchfelds. */
         const val SEARCH_ANIMATION_MS = 220L
+
+        /**
+         * Oberer Rand der Lupe auf der Hangar-Seite: Sie steht über der
+         * Sortierung und rückt dadurch nach unten, oben bündig mit dem Titel.
+         */
+        const val HANGAR_SEARCH_TOP_MARGIN_DP = 10
 
         val DATE_LABEL_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
     }

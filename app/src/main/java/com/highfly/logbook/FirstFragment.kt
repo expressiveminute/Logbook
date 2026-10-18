@@ -33,6 +33,12 @@ class FirstFragment : Fragment() {
     private var timeMinutes = 0
     private var loadGeneration = 0
 
+    /** Scroll-Position, die beim Verlassen der Seite gemerkt wird. */
+    private var savedScrollY = 0
+
+    /** Ob die gemerkte Position nach dem nächsten Neuzeichnen noch anzuwenden ist. */
+    private var pendingScrollRestore = false
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -52,6 +58,12 @@ class FirstFragment : Fragment() {
             updateFabVisibility()
         }
         binding.dashboardScroll.post { updateFabVisibility() }
+        // Beim Wiederaufbau der Ansicht (Drehung, Prozess neu gestartet)
+        // steht die Position im Bundle; beim Zurückkehren von einer
+        // Detailseite wurde sie in onPause gemerkt und die Fragment-Instanz
+        // hat sie behalten.
+        savedInstanceState?.getInt(KEY_SCROLL_Y)?.let { savedScrollY = it }
+        pendingScrollRestore = savedScrollY > 0
     }
 
     private fun updateFabVisibility() {
@@ -102,6 +114,17 @@ class FirstFragment : Fragment() {
     override fun onPause() {
         super.onPause()
         DashboardEvents.onFilterChanged = null
+        // Die Position merken, solange die Ansicht noch steht: Beim Zurück-
+        // kehren zeichnet onResume das Raster neu und stellt sie wieder her.
+        _binding?.let {
+            savedScrollY = it.dashboardScroll.scrollY
+            pendingScrollRestore = savedScrollY > 0
+        }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putInt(KEY_SCROLL_Y, savedScrollY)
     }
 
     override fun onDestroyView() {
@@ -364,8 +387,32 @@ class FirstFragment : Fragment() {
                 applyHorizontalScale(container, scale)
                 fitTileTopValues(container)
                 updateFabVisibility()
+                restoreScrollPosition()
             }
         })
+    }
+
+    /**
+     * Stellt die beim Verlassen der Seite gemerkte Scroll-Position wieder her,
+     * damit das Dashboard nach dem Zurückkehren von einer Detailseite nicht
+     * oben landet. Die Kacheln bekommen ihre endgültige Höhe erst im nächsten
+     * Layout ([resizeStatTiles]); ein früheres [android.widget.ScrollView.scrollTo]
+     * würde die Position an der kleineren Höhe abschneiden. Deshalb erst nach
+     * dem Neuvermessen - und nur einmal, damit ein späterer Filterwechsel die
+     * Position nicht zurücksetzt.
+     */
+    private fun restoreScrollPosition() {
+        if (!pendingScrollRestore) return
+        val scroll = binding.dashboardScroll
+        if (scroll.isLayoutRequested) {
+            // Noch nicht fertig vermessen - nach dem nächsten Layout erneut.
+            scroll.post { restoreScrollPosition() }
+            return
+        }
+        pendingScrollRestore = false
+        val maxScroll = (scroll.getChildAt(0).height - scroll.height).coerceAtLeast(0)
+        scroll.scrollTo(0, savedScrollY.coerceAtMost(maxScroll))
+        updateFabVisibility()
     }
 
     /**
@@ -719,6 +766,9 @@ class FirstFragment : Fragment() {
 
         /** Feste Eckenrundung der Kacheln. */
         const val CARD_RADIUS_DP = 16
+
+        /** Schlüssel für die gemerkte Scroll-Position im Zustand. */
+        const val KEY_SCROLL_Y = "dashboardScrollY"
 
         /** Platz, den der Hinweis auf geplante Fluege rechts beansprucht. */
     }

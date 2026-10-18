@@ -77,6 +77,11 @@
     <string name="hangar_sort_count">Anzahl</string>
     <string name="hangar_sort_distance">Entfernung</string>
     <string name="hangar_sort_duration">Dauer</string>
+    <!-- Lupe und Suchfeld der Hangar-Seite: gesucht wird im Klartext des
+         Flugzeugtyps bzw. der Registrierung. -->
+    <string name="hangar_search_desc">Hangar durchsuchen</string>
+    <string name="hangar_search_hint">Typ oder Registrierung</string>
+    <string name="hangar_search_empty">Keine Flugzeuge gefunden</string>
     <!-- Sortierung der Kachel "Flugrouten": "Anzahl" ordnet nach der Zahl der
          Fluege je Strecke, "Distanz" nach den geflogenen Kilometern, "Dauer"
          nach der gesamten Flugzeit. -->
@@ -470,6 +475,7 @@
     <string name="aircraft_map_title_type">Alle Flüge dieses Flugzeugtyps</string>
     <string name="aircraft_map_title_reg">Alle Flüge dieser Registrierung</string>
     <string name="aircraft_flight_list_title">Flüge</string>
+    <string name="buddy_flight_list_title">Alle gemeinsamen Flüge</string>
     <!-- Einheit im Punkt des Zeitstrahls der Flugliste. -->
     <string name="aircraft_flight_dot_hours" translatable="false">%1$s h</string>
     <string name="aircraft_flight_dot_minutes" translatable="false">%1$s min</string>
@@ -509,7 +515,7 @@
     <string name="import_review_summary_unknown">Unbekannt</string>
 
     <string name="settings_version_label">Version %1$s</string>
-    <string name="settings_version" translatable="false">0.0.27</string>
+    <string name="settings_version" translatable="false">0.0.28</string>
     <string name="settings_made_with_prefix">Made with</string>
     <string name="settings_made_with_suffix">by expressiveminute</string>
 

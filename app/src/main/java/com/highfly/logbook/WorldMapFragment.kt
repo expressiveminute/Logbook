@@ -128,6 +128,12 @@ class WorldMapFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Filter aus Navigationsargumenten lesen
+        val filterTravelBuddy = arguments?.getString("filterTravelBuddy")?.trim().orEmpty()
+        if (filterTravelBuddy.isNotBlank()) {
+            activeMapFilter = activeMapFilter.copy(travelBuddy = filterTravelBuddy)
+        }
+
         binding.btnBack.setOnClickListener { findNavController().navigateUp() }
         binding.btnZoomIn.setOnClickListener { mapView?.controller?.zoomIn() }
         binding.btnZoomOut.setOnClickListener { mapView?.controller?.zoomOut() }
@@ -243,7 +249,9 @@ class WorldMapFragment : Fragment() {
 
                 val airports = linkedMapOf<String, GeoPoint>()
                 val routeCounts = linkedMapOf<Pair<String, String>, Int>()
-                val entries = DashboardStats.dashboardEntries(context)
+                val allEntries = DashboardStats.dashboardEntries(context)
+                // Filter die Einträge basierend auf activeMapFilter
+                val entries = allEntries.filter { activeMapFilter.matches(it) }
 
                 for (entry in entries) {
                     val fromIata = entry.fromAirport.uppercase()

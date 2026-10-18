@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Jahresüberschrift im Erfolgs-Zeitstrahl: steht links über der ersten
+     Zeile eines Jahres, alle Zeilen desselben Jahres folgen direkt darunter -
+     wie die Monatsüberschriften der Einträge, nur mit der Jahreszahl und
+     links statt rechts. -->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/tv_achievement_year"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="20dp"
+    android:layout_marginBottom="4dp"
+    android:ellipsize="end"
+    android:gravity="start"
+    android:maxLines="1"
+    android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+    android:textColor="?attr/colorPrimary"
+    android:textStyle="bold"
+    tools:text="2024" />

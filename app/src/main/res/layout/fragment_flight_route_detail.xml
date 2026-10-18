@@ -98,7 +98,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:orientation="vertical" />
+                android:orientation="horizontal" />
 
             <!-- Liste aller Flüge, nur von der Flugzeug-Detailseite (Typ bzw.
                  Registrierung) gefüllt: ein Zeitstrahl nach dem Vorbild der
@@ -109,7 +109,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
-                android:text="@string/aircraft_flight_list_title"
+                android:text="@string/buddy_flight_list_title"
                 android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
                 android:textStyle="bold"
                 android:visibility="gone"
