@@ -57,6 +57,34 @@ object TravelBuddyStats {
     }
 
     /**
+     * Benennt einen Reisebuddy im Freitext um: [oldName] wird durch [newName]
+     * ersetzt, wo immer er als eigener Name steht. Wie [parse] trennen Komma,
+     * Semikolon und Zeilenumbruch die Namen; ein Name gilt als getroffen, wenn
+     * er nach derselben Normalisierung wie in [parse] übereinstimmt, die
+     * Gross-/Kleinschreibung spielt keine Rolle. Trennzeichen, Leerraum und
+     * die übrigen Namen bleiben erhalten, damit der Text seine Form behält.
+     * Gibt es nichts zu ersetzen, bleibt der Text unverändert.
+     */
+    fun rename(raw: String?, oldName: String, newName: String): String? {
+        if (raw.isNullOrBlank()) return raw
+        // Der Trenner bleibt am Stück, damit "Anna, Bob" zu "Anne, Bob" wird.
+        val pieces = raw.split(Regex("(?<=[,;\\n])"))
+        val renamed = pieces.map { piece ->
+            val separator = piece.lastOrNull()?.takeIf { it == ',' || it == ';' || it == '\n' }
+            val name = if (separator != null) piece.dropLast(1) else piece
+            val normalized = name.trim().replace(WHITESPACE, " ")
+            if (normalized.equals(oldName.trim(), ignoreCase = true)) {
+                val leading = name.length - name.trimStart().length
+                val trailing = name.length - name.trimEnd().length
+                " ".repeat(leading) + newName + " ".repeat(trailing) + (separator ?: "")
+            } else {
+                piece
+            }
+        }
+        return renamed.joinToString("")
+    }
+
+    /**
      * Zählt die Flüge je Reisebuddy, absteigend nach Zahl. Bei gleicher Zahl
      * gewinnt der zuletzt geflogene Buddy, danach entscheidet [collator] über
      * die Reihenfolge - die Liste soll in jeder Sprache aufsteigend lesen.

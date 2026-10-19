@@ -28,7 +28,10 @@
             app:iconSize="24dp"
             app:iconTint="?attr/colorOnSurface" />
 
+        <!-- Titelgruppe: Beim Oeffnen der Suche schrumpft sie gegenlaeufig
+             zum Suchfeld, siehe setSearchProgress(). -->
         <LinearLayout
+            android:id="@+id/title_group"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
@@ -38,6 +41,8 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
                 android:text="@string/travel_buddies_title"
                 android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
                 android:textStyle="bold" />
@@ -46,10 +51,51 @@
                 android:id="@+id/tv_travel_buddy_subtitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
                 android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                 android:textColor="?attr/colorOnSurfaceVariant"
                 tools:text="5 Reisebuddies auf 12 Flügen" />
         </LinearLayout>
+
+        <!-- Suchfeld oben im Kopf, links neben der Lupe - gleich wie bei den
+             Kacheln Layover, Flughäfen und Hangar. Im eingeklappten Zustand
+             bleibt es ohne Breite und unsichtbar; beim Oeffnen waechst es nach
+             links ueber den Titel. -->
+        <EditText
+            android:id="@+id/et_search"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0"
+            android:background="@null"
+            android:hint="@string/travel_buddy_search_hint"
+            android:imeOptions="actionSearch"
+            android:inputType="text"
+            android:maxLines="1"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="4dp"
+            android:saveEnabled="false"
+            android:singleLine="true"
+            android:textColor="?attr/colorOnSurface"
+            android:textColorHint="?attr/colorOnSurfaceVariant"
+            android:textSize="14sp"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <!-- Lupe rechts im Header: Ein Tipp klappt links daneben das Suchfeld
+             aus, ein zweiter wieder ein und hebt den Filter auf. -->
+        <ImageView
+            android:id="@+id/iv_search"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:contentDescription="@string/travel_buddy_search_desc"
+            android:focusable="true"
+            android:padding="8dp"
+            android:src="@drawable/ic_search"
+            app:tint="?attr/colorOnSurfaceVariant" />
     </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView

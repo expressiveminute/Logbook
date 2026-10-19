@@ -217,6 +217,62 @@ class TravelBuddyStatsTest {
         assertFalse(TravelBuddyStats.matches("Anna, Bob", "a, b"))
     }
 
+    @Test
+    fun rename_ersetztDenNamenImFreitext() {
+        assertEquals("Anne, Bob", TravelBuddyStats.rename("Anna, Bob", "Anna", "Anne"))
+    }
+
+    @Test
+    fun rename_grossUndKleinschreibungSpieltKeineRolle() {
+        assertEquals("Anne, BOB", TravelBuddyStats.rename("anna, BOB", "ANNA", "Anne"))
+    }
+
+    @Test
+    fun rename_trifftNurGanzeNamen() {
+        // "Anna-Maria" ist ein eigener Name und bleibt stehen.
+        assertEquals(
+            "Anna-Maria, Bob",
+            TravelBuddyStats.rename("Anna-Maria, Bob", "Anna", "Anne")
+        )
+    }
+
+    @Test
+    fun rename_ersetztJedeSchreibweiseDesNamens() {
+        assertEquals("Anne; Anne", TravelBuddyStats.rename("Anna; anna", "Anna", "Anne"))
+    }
+
+    @Test
+    fun rename_erhaeltTrennerUndLeerraum() {
+        assertEquals(
+            "Anne;Bob\nClara",
+            TravelBuddyStats.rename("Anna;Bob\nClara", "Anna", "Anne")
+        )
+        assertEquals("  Anne , Bob", TravelBuddyStats.rename("  Anna , Bob", "Anna", "Anne"))
+    }
+
+    @Test
+    fun rename_ohneTrefferUnveraendert() {
+        assertEquals("Bob", TravelBuddyStats.rename("Bob", "Anna", "Anne"))
+        assertNull(TravelBuddyStats.rename(null, "Anna", "Anne"))
+        assertEquals("", TravelBuddyStats.rename("", "Anna", "Anne"))
+    }
+
+    @Test
+    fun rename_normalisiertLeerraumWieBeimZaehlen() {
+        // Doppelter Leerraum im Feld: Der Name zählt als "Anna Beispiel" und
+        // wird auch unter diesem Namen umbenannt.
+        assertEquals(
+            "Anne Beispiel",
+            TravelBuddyStats.rename("Anna   Beispiel", "Anna Beispiel", "Anne Beispiel")
+        )
+    }
+
+    @Test
+    fun rename_ergebnisZaehltAlsNeuerName() {
+        val renamed = TravelBuddyStats.rename("Anna, Bob", "Anna", "Anne")
+        assertEquals(listOf("Anne", "Bob"), TravelBuddyStats.parse(renamed))
+    }
+
     /** Eine Datei ohne die Spalte bleibt lesbar, das Feld kommt leer heraus. */
     @Test
     fun csvOhneSpalteLiestSichOhneBuddy() {

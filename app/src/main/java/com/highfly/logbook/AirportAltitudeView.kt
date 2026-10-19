@@ -40,6 +40,11 @@ class AirportAltitudeView @JvmOverloads constructor(
     private val snowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
     }
+    private val facetPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+        color = Color.BLACK
+        alpha = 0x1A
+    }
     private val groundPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
     }
@@ -138,33 +143,97 @@ class AirportAltitudeView @JvmOverloads constructor(
     }
 
     /**
-     * Berg samt winterlicher Schneekappe auf dem Gipfel. Der Berg ist ein
-     * gleichschenkliges Dreieck; die Schneekappe ist derselbe Umriss, oben
-     * waagerecht abgeschnitten, und liegt damit exakt auf den Flanken - so
-     * wirkt der Gipfel nicht verzerrt.
+     * Berg samt winterlicher Schneekappe auf dem Gipfel. Der Umriss folgt einer
+     * Gratlinie mit Schulter und Einsattelung statt eines gleichschenkligen
+     * Dreiecks: Der linke Hang steigt über eine Schulter an, sinkt in einen
+     * kleinen Einschnitt und steigt zum Gipfel, der rechte Hang fällt über eine
+     * weitere Schulter ab. Die Schneekappe liegt oben exakt auf dem Grat auf,
+     * ihre Unterkante ist eine Zackenlinie - so wirkt der Gipfel nicht verzerrt
+     * und der Berg nicht wie ein Dreieck. Eine leicht schattierte rechte Flanke
+     * gibt ihm Tiefe.
      */
     private fun drawMountain(canvas: Canvas, groundY: Float, peakX: Float, peakY: Float) {
         val halfBase = width * 0.30f
         val left = peakX - halfBase
         val right = peakX + halfBase
+        val height = (groundY - peakY).coerceAtLeast(1f)
+        // Gratlinie als (x, y)-Paare, vom linken Fuss zum rechten; der Gipfel
+        // steht an Index 3.
+        val ridge = listOf(
+            left to groundY,
+            (peakX - halfBase * 0.42f) to (groundY - height * 0.52f),
+            (peakX - halfBase * 0.14f) to (peakY + height * 0.10f),
+            peakX to peakY,
+            (peakX + halfBase * 0.38f) to (peakY + height * 0.24f),
+            right to groundY
+        )
         val mountain = Path().apply {
-            moveTo(left, groundY)
-            lineTo(peakX, peakY)
-            lineTo(right, groundY)
+            moveTo(ridge.first().first, ridge.first().second)
+            for (i in 1 until ridge.size) lineTo(ridge[i].first, ridge[i].second)
             close()
         }
         canvas.drawPath(mountain, mountainPaint)
 
-        val snowHeight = dp(26f)
-        val drop = (groundY - peakY).coerceAtLeast(1f)
-        val snowHalf = halfBase * (snowHeight / drop)
-        val snowCap = Path().apply {
+        // Schattierte rechte Flanke: derselbe Umriss wie der Berg ab dem Gipfel,
+        // innen begrenzt durch eine Gerade vom Gipfel zum Boden.
+        val facet = Path().apply {
             moveTo(peakX, peakY)
-            lineTo(peakX - snowHalf, peakY + snowHeight)
-            lineTo(peakX + snowHalf, peakY + snowHeight)
+            for (i in 4 until ridge.size) lineTo(ridge[i].first, ridge[i].second)
+            lineTo(peakX + halfBase * 0.10f, groundY)
+            close()
+        }
+        canvas.drawPath(facet, facetPaint)
+
+        // Schneekappe: oben entlang des Grats von der linken bis zur rechten
+        // Schneelinie, unten eine Zackenlinie zurück.
+        val snowHeight = dp(26f)
+        val snowY = (peakY + snowHeight).coerceAtMost(groundY - dp(4f))
+        val leftRidge = ridgeAboveSnowLine(ridge, PEAK_INDEX, snowY, step = -1).asReversed()
+        val rightRidge = ridgeAboveSnowLine(ridge, PEAK_INDEX, snowY, step = 1).drop(1)
+        val leftX = leftRidge.first().first
+        val rightX = rightRidge.last().first
+        val span = (rightX - leftX).coerceAtLeast(1f)
+        val zig = dp(7f)
+        val snowCap = Path().apply {
+            moveTo(leftX, snowY)
+            for (i in 1 until leftRidge.size) lineTo(leftRidge[i].first, leftRidge[i].second)
+            for (point in rightRidge) lineTo(point.first, point.second)
+            lineTo(leftX + span * 0.75f, snowY + zig * 0.5f)
+            lineTo(leftX + span * 0.5f, snowY + zig)
+            lineTo(leftX + span * 0.25f, snowY + zig * 0.55f)
             close()
         }
         canvas.drawPath(snowCap, snowPaint)
+    }
+
+    /**
+     * Die Gratstücke oberhalb der Schneelinie, vom Gipfel ([startIndex]) nach
+     * aussen gesucht: alle Punkte mit y < [targetY], dahinter der Schnittpunkt
+     * mit der Schneelinie auf dem letzten Segment. [step] bestimmt die Richtung
+     * (-1 linker Hang, +1 rechter Hang).
+     */
+    private fun ridgeAboveSnowLine(
+        ridge: List<Pair<Float, Float>>,
+        startIndex: Int,
+        targetY: Float,
+        step: Int
+    ): List<Pair<Float, Float>> {
+        val points = mutableListOf<Pair<Float, Float>>()
+        var i = startIndex
+        while (i in ridge.indices) {
+            val point = ridge[i]
+            if (point.second >= targetY) {
+                val last = points.lastOrNull()
+                if (last != null && last.second != point.second) {
+                    val t = (targetY - last.second) / (point.second - last.second)
+                    points.add(last.first + t * (point.first - last.first) to targetY)
+                }
+                break
+            }
+            points.add(point)
+            i += step
+        }
+        return points
     }
 
     /** Ein Graben unter der Nulllinie, der zum Flughafen hin abfällt. */
@@ -289,6 +358,9 @@ class AirportAltitudeView @JvmOverloads constructor(
     private fun sp(value: Float): Float = value * resources.displayMetrics.scaledDensity
 
     companion object {
+        /** Index des Gipfels in der Gratlinie von [drawMountain]. */
+        private const val PEAK_INDEX = 3
+
         /** Unter dieser Höhe gilt der Graben als voll ausgeprägt (Meter). */
         private const val BELOW_SEA_FULL_METERS = 300f
 

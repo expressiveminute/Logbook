@@ -19,16 +19,20 @@ class TravelBuddyAdapter : RecyclerView.Adapter<TravelBuddyAdapter.ViewHolder>()
     private var items: List<TravelBuddyStats.Buddy> = emptyList()
 
     /**
-     * Höchste Flugzahl der Liste. Der Balken einer Zeile ist ihr Anteil
-     * daran, damit der am häufigsten geflogene Buddy die volle Breite hat und
-     * die übrigen sich daran messen lassen können. Ohne Buddy gibt es nichts
-     * zu malen, und 0 als Nenner würde durch null teilen.
+     * Höchste Flugzahl, an der sich der Balken einer Zeile misst. Wird sie
+     * nicht übergeben, ist es die der übergebenen Liste; beim Filtern bleibt
+     * so der Massstab der Gesamtliste erhalten und die Balken springen nicht
+     * mit. Ohne Buddy gibt es nichts zu malen, und 0 als Nenner würde durch
+     * null teilen.
      */
     private var maxFlights: Int = 0
 
-    fun submit(list: List<TravelBuddyStats.Buddy>) {
+    fun submit(
+        list: List<TravelBuddyStats.Buddy>,
+        maxFlights: Int = list.maxOfOrNull { it.flights } ?: 0
+    ) {
         items = list
-        maxFlights = list.maxOfOrNull { it.flights } ?: 0
+        this.maxFlights = maxFlights
         notifyDataSetChanged()
     }
 

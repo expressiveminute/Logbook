@@ -111,6 +111,25 @@ object LogbookRepository {
         invalidate()
     }
 
+    /**
+     * Benennt einen Reisebuddy in jedem Eintrag um. Der Name steht als
+     * Freitext im Feld "Reisebuddy", mehrere Namen durch Komma getrennt; nur
+     * der passende Name wird ersetzt, die übrigen bleiben, siehe
+     * [TravelBuddyStats.rename]. So muss ein Namenswechsel nicht in jedem Flug
+     * einzeln nachgetragen werden.
+     */
+    @Synchronized
+    fun renameTravelBuddy(oldName: String, newName: String) {
+        val db = activeDb() ?: return
+        db.getAll().forEach { entry ->
+            val renamed = TravelBuddyStats.rename(entry.travelBuddy, oldName, newName)
+            if (renamed != null && renamed != entry.travelBuddy) {
+                db.update(entry.copy(travelBuddy = renamed))
+            }
+        }
+        invalidate()
+    }
+
     @Synchronized
     fun replaceAll(entries: List<LogbookEntry>) {
         activeDb()?.replaceAll(entries)

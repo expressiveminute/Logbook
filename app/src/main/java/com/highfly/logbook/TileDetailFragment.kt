@@ -313,8 +313,9 @@ class TileDetailFragment : Fragment() {
                 SearchMode.HANGAR -> R.string.hangar_search_hint
             }
         )
-        // Beim Hangar verhält sich die Suche wie ein Registrierungsfeld:
-        // alles gross schreiben und nach dem ersten Buchstaben ein Strich.
+        // Beim Hangar entscheidet der erste Buchstabe: "D" startet eine
+        // Registrierung (alles gross, direkt mit Strich), sonst bleibt die
+        // Eingabe so, wie der Nutzer tippt (z. B. "A320neo").
         binding.etSearch.filters = if (mode == SearchMode.HANGAR) {
             arrayOf(hangarRegistrationFilter())
         } else {
@@ -352,24 +353,19 @@ class TileDetailFragment : Fragment() {
     }
 
     /**
-     * Eingabefilter des Hangar-Suchfelds: Alles wird gross geschrieben und
-     * nach dem ersten Buchstaben steht direkt ein Strich, wie bei einer
-     * Registrierung (tippt der Nutzer "d", wird daraus "D-"). Löscht er den
-     * Strich wieder, tippt er danach normal weiter - der Strich wird nicht
-     * erneut eingesetzt.
+     * Eingabefilter des Hangar-Suchfelds. Die Umformung der Eingabe steht
+     * ohne Android-Abhängigkeiten in [HangarSearchFilter] und ist dort
+     * getestet - hier nur die Hülle um das [InputFilter]-Interface, damit der
+     * Filter im Feld greift.
      */
     private fun hangarRegistrationFilter(): InputFilter =
         InputFilter { source, start, end, dest, dstart, dend ->
-            val input = source.subSequence(start, end).toString().uppercase()
-            if (input.isEmpty()) {
-                null
-            } else if (dest.length == 0 && dstart == 0 && dend == 0 &&
-                input.length == 1 && input[0].isLetter()
-            ) {
-                input + "-"
-            } else {
-                input
-            }
+            HangarSearchFilter.transform(
+                source.subSequence(start, end).toString(),
+                dest.toString(),
+                dstart,
+                dend,
+            )
         }
 
     /** Filtert je nach Kachel die Layover-Balken, die Flughäfen-Liste oder die Hangar-Listen. */

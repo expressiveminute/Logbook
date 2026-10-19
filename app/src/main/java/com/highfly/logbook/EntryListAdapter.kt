@@ -29,8 +29,11 @@ import java.util.Locale
  * The list is grouped by month: every month gets one header row with month and
  * year, all cards of that month follow underneath it. Geplante Flüge mit einem
  * Datum in der Zukunft stehen ganz oben unter einer "Upcoming"-Überschrift,
- * ihre Kacheln sind dabei sichtbar ausgegraut, damit sie sich von den
- * geflogenen Einträgen unterscheiden.
+ * ihre Kacheln sind dabei sichtbar ausgegraut und kompakter: Die unterste
+ * Zeile (Flugzeugtyp, Registrierung, Reiseklasse) und ein vorhandener Kommentar
+ * bleiben weg, damit sie sich von den geflogenen Einträgen unterscheiden. Beginnt zwischen zwei Kacheln ein
+ * neuer Tag, wächst der Abstand dazwischen, damit die Flüge desselben Tages
+ * deutlicher beieinander liegen.
  */
 class EntryListAdapter(
     private val context: Context,
@@ -45,7 +48,7 @@ class EntryListAdapter(
     private sealed interface Row {
         data class MonthHeader(val month: YearMonth) : Row
         object UpcomingHeader : Row
-        data class Item(val entry: LogbookEntry, val upcoming: Boolean) : Row
+        data class Item(val entry: LogbookEntry, val upcoming: Boolean, val dayStart: Boolean) : Row
     }
 
     var entries: List<LogbookEntry> = emptyList()
@@ -125,11 +128,16 @@ class EntryListAdapter(
      * eine Überschrift, alle Kacheln desselben Monats folgen direkt darunter.
      * Die Einträge kommen bereits absteigend nach Datum, deshalb genügt es,
      * die Monate in dieser Reihenfolge der Reihe nach zu durchlaufen.
+     *
+     * [Row.Item.dayStart] markiert die erste Kachel eines neuen Tages, aber
+     * nur wenn direkt davor schon eine Kachel steht - nach einer Überschrift
+     * (Monat oder "Upcoming") steht der Abstand der Überschrift allein.
      */
     private fun buildRows(list: List<LogbookEntry>): List<Row> {
         val result = mutableListOf<Row>()
         var lastMonth: YearMonth? = null
         var upcomingStarted = false
+        var previousItemDate: LocalDate? = null
         val today = LocalDate.now()
         for (entry in list) {
             val upcoming = UpcomingEntries.isUpcoming(entry, today)
@@ -137,16 +145,20 @@ class EntryListAdapter(
                 upcoming && !upcomingStarted -> {
                     result += Row.UpcomingHeader
                     upcomingStarted = true
+                    previousItemDate = null
                 }
                 !upcoming -> {
                     val month = YearMonth.from(entry.date)
                     if (month != lastMonth) {
                         result += Row.MonthHeader(month)
                         lastMonth = month
+                        previousItemDate = null
                     }
                 }
             }
-            result += Row.Item(entry, upcoming)
+            val dayStart = previousItemDate != null && entry.date != previousItemDate
+            previousItemDate = entry.date
+            result += Row.Item(entry, upcoming, dayStart)
         }
         return result
     }
@@ -190,7 +202,7 @@ class EntryListAdapter(
         when (val row = rows[position]) {
             is Row.MonthHeader -> (holder as MonthViewHolder).bind(row.month)
             is Row.UpcomingHeader -> (holder as MonthViewHolder).bindUpcoming()
-            is Row.Item -> (holder as ViewHolder).bind(row.entry, row.upcoming)
+            is Row.Item -> (holder as ViewHolder).bind(row.entry, row.upcoming, row.dayStart)
         }
     }
 
@@ -321,11 +333,20 @@ class EntryListAdapter(
             }
         }
 
-        fun bind(newEntry: LogbookEntry, upcoming: Boolean) {
+        fun bind(newEntry: LogbookEntry, upcoming: Boolean, dayStart: Boolean) {
             entry = newEntry
             populate(this, newEntry, upcoming)
             val isOpen = currentlyOpenId == newEntry.id
             binding.itemCard.translationX = if (isOpen) revealWidth else 0f
+            // Erste Kachel eines neuen Tages: mehr Abstand zur Kachel darüber,
+            // damit die Flüge desselben Tages deutlicher beieinander liegen.
+            // Beim Recycling wird der Rand hier immer neu gesetzt.
+            val params = binding.root.layoutParams as? ViewGroup.MarginLayoutParams
+            if (params != null) {
+                val gapDp = if (dayStart) DAY_GAP_DP else ITEM_GAP_DP
+                params.topMargin = (gapDp * context.resources.displayMetrics.density).toInt()
+                binding.root.layoutParams = params
+            }
         }
     }
 
@@ -401,6 +422,10 @@ class EntryListAdapter(
         item.itemTypeMeta.setTextColor(if (upcoming) grayTone else MaterialColors.getColor(
             item.itemTypeMeta, com.google.android.material.R.attr.colorOnSurfaceVariant
         ))
+        // Geplante Flüge werden kompakter: Die unterste Zeile (Flugzeugtyp,
+        // Registrierung, Reiseklasse) und der Kommentar bleiben weg, damit
+        // die Kachel kleiner wirkt und die Gruppe "Upcoming" dichter steht.
+        item.itemTypeMeta.visibility = if (upcoming) View.GONE else View.VISIBLE
 
         item.itemFlightType.text = entry.flightType.orEmpty()
         item.itemFlightType.setTextColor(if (upcoming) grayTone else MaterialColors.getColor(
@@ -444,9 +469,12 @@ class EntryListAdapter(
                 )
             }
         )
+        item.itemClass.visibility = if (upcoming) View.GONE else View.VISIBLE
 
+        // Geplante Flüge blenden den Kommentar ebenfalls aus, damit die
+        // kompakten Kacheln nicht unnötig hoch werden.
         val comment = entry.comment?.takeIf { it.isNotBlank() }
-        if (comment == null) {
+        if (comment == null || upcoming) {
             item.itemComment.visibility = View.GONE
         } else {
             item.itemComment.visibility = View.VISIBLE
@@ -473,6 +501,12 @@ class EntryListAdapter(
     companion object {
         private const val TYPE_MONTH = 0
         private const val TYPE_ENTRY = 1
+
+        /** Abstand zwischen zwei Kacheln desselben Tages. */
+        private const val ITEM_GAP_DP = 8f
+
+        /** Abstand vor der ersten Kachel eines neuen Tages. */
+        private const val DAY_GAP_DP = 32f
 
         /** Pfeil zwischen Abflug und Ankunft, siehe [VerticalCenterSpan]. */
         private const val ROUTE_ARROW = "→"

@@ -213,8 +213,9 @@ class LayoverDetailFragment : Fragment() {
      * oben und der am längsten her zurückliegende unten. Neben dem Datum steht
      * die Flugroute, mittig daneben der Punkt mit der Layoverlänge des
      * Eintrags in Stunden, rechts davon der Reisebuddy, falls beim Eintrag
-     * einer hinterlegt ist. Antippen einer Zeile öffnet den Eintrag auf der
-     * Seite "Flug bearbeiten".
+     * einer hinterlegt ist, und ganz rechts der Kommentar des Eintrags, falls
+     * vorhanden. Antippen einer Zeile öffnet den Eintrag auf der Seite
+     * "Flug bearbeiten".
      */
     private fun renderTimeline() {
         binding.layoverTimeline.removeAllViews()
@@ -257,6 +258,9 @@ class LayoverDetailFragment : Fragment() {
                 row.tvBuddy.visibility = View.VISIBLE
                 row.tvBuddy.text = buddy
             }
+            // Kommentar des Eintrags rechts in der Zeile, rechts neben dem
+            // Reisebuddy, falls einer eingetragen ist
+            row.bindTimelineComment(entry.comment, showBuddy = buddy != null)
             if (index == entries.lastIndex) {
                 (row.root.layoutParams as? ViewGroup.MarginLayoutParams)?.bottomMargin = 0
             }

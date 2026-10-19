@@ -275,16 +275,21 @@ andernorts verwendet und bleibt.
 
 ## Seite „Einträge" – Tagesordnung
 
-Die Kacheln kommen absteigend nach Datum aus der Datenbank (`date DESC, id DESC`), innerhalb eines
-Tages gilt also „je weiter unten, desto länger her". Ein Tag bleibt ein Block; `EntryDayOrder`
-(im `EntriesFragment.renderEntries`) ordnet nur innerhalb des Tages um. Die Regeln haben feste
-Vorrangigkeit: **Rückflug vom Vortag** (die Umkehrung eines Flugs von gestern steht ganz unten,
-`rank 3`) schlägt **Layover** (ganz oben, `rank 0`) schlägt **Abflug vom meistgenutzten
-Flughafen** (unten, `rank 2`); alles Übrige bleibt in der übergebenen Reihenfolge (`rank 1`,
-stabiler Sort). Der meistgenutzte Flughafen kommt aus `EntryDayOrder.busiestAirports` über das
-**ganze Logbuch** (Start plus Landung je Bewegung, Gleichstand teilt sich den Rang), nicht nur über
-den gefilterten Ausschnitt; die Rückflug-Regel dagegen schaut auf den tatsächlich angezeigten
-Ausschnitt. Geprüft wird das von `EntryDayOrderTest` (u. a. das Beispiel der Aufgabe).
+Die Kacheln kommen absteigend nach Datum aus der Datenbank (`date DESC, id DESC`); innerhalb eines
+Tages steht der erste Flug des Tages unten, der letzte oben. Die Grundreihenfolge ist die
+Eintragereihenfolge — beim CSV-Import die Reihenfolge der Datei (die erste Zeile ist der erste
+Flug des Tages), ein manuell eingetragener Flug landet als Neuestes oben im Tag. Ein Tag bleibt
+ein Block; `EntryDayOrder` (im `EntriesFragment.renderEntries`) ordnet nur innerhalb des Tages um.
+Zwei Regeln bestimmen den letzten und den ersten Flug des Tages: **Layover** steht immer ganz oben
+(`rank 0`) — auch wenn der Flug zugleich der Rückflug des Vortags ist. Ganz unten steht der erste
+Flug des Tages (`rank 2`): Endete der Vortag mit einem Layover, ist es der **Rückflug** (die
+Umkehrung der Layover-Strecke, sofern nicht selbst wieder ein Layover); endete der Vortag ohne
+Layover, ein **Abflug vom meistgenutzten Flughafen**. Alles Übrige bleibt in der übergebenen
+Reihenfolge (`rank 1`, stabiler Sort). Der meistgenutzte Flughafen kommt aus
+`EntryDayOrder.busiestAirports` über das **ganze Logbuch** (Start plus Landung je Bewegung,
+Gleichstand teilt sich den Rang), nicht nur über den gefilterten Ausschnitt; die Vortag-Regeln
+dagegen schauen auf den tatsächlich angezeigten Ausschnitt. Geprüft wird das von
+`EntryDayOrderTest` (u. a. die Beispiele der Aufgabe).
 
 ## Seite „Achievements"
 

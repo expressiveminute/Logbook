@@ -51,9 +51,28 @@
             android:textStyle="bold"
             tools:text="FRA – JFK" />
 
+        <!-- Platzhalter rechts, so breit wie der Zurück-Knopf. Auf der
+             Reisebuddy-Detailseite weicht er einem Stift zum Umbenennen, der
+             dieselbe Breite hat - der Titel bleibt dadurch mittig. -->
         <Space
+            android:id="@+id/header_spacer"
             android:layout_width="48dp"
             android:layout_height="1dp" />
+
+        <!-- Der Stift ist kleiner als der Zurück-Knopf daneben, damit er nicht
+             so schwer wirkt; die Klickfläche bleibt mit 48dp gleich gross. -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_edit"
+            style="?attr/materialIconButtonStyle"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:visibility="gone"
+            app:backgroundTint="@android:color/transparent"
+            app:contentDescription="@string/buddy_rename_title"
+            app:icon="@drawable/ic_edit"
+            app:iconSize="18dp"
+            app:iconTint="?attr/colorOnSurface"
+            tools:visibility="visible" />
     </LinearLayout>
 
     <ScrollView
@@ -99,6 +118,31 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
                 android:orientation="horizontal" />
+
+            <!-- Nur die Reisebuddy-Detailseite nutzt diese beiden Reihen: oben
+                 zwei Kacheln mit dem ersten und letzten gemeinsamen Flug (im
+                 Stil der Extrem-Kacheln der Layover-Seite), darunter drei
+                 Kacheln mit Zahl, Zeit und Distanz der gemeinsamen Flüge. Die
+                 übrigen Nutzer dieses Layouts lassen beide Reihen unsichtbar. -->
+            <LinearLayout
+                android:id="@+id/buddy_extremes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:baselineAligned="false"
+                android:orientation="horizontal"
+                android:visibility="gone"
+                tools:visibility="visible" />
+
+            <LinearLayout
+                android:id="@+id/buddy_summary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:baselineAligned="false"
+                android:orientation="horizontal"
+                android:visibility="gone"
+                tools:visibility="visible" />
 
             <!-- Liste aller Flüge, nur von der Flugzeug-Detailseite (Typ bzw.
                  Registrierung) gefüllt: ein Zeitstrahl nach dem Vorbild der

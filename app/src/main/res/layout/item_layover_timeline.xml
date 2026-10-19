@@ -13,6 +13,16 @@
     android:layout_marginBottom="16dp"
     android:foreground="?attr/selectableItemBackground">
 
+    <!-- Ankerlinie für die Kommentarspalte: Steht in einer Zeile ein Reisebuddy
+         und ein Kommentar, endet der Buddy-Name an dieser Linie und der Kommentar
+         spannt von dort bis zum rechten Rand (siehe bindTimelineComment). -->
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/comment_anchor"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.68" />
+
     <TextView
         android:id="@+id/timeline_dot"
         android:layout_width="40dp"
@@ -90,15 +100,43 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="4dp"
-        android:layout_marginEnd="16dp"
+        android:layout_marginEnd="8dp"
+        app:layout_goneMarginEnd="0dp"
         android:ellipsize="end"
         android:maxLines="1"
         android:textAppearance="@style/TextAppearance.Material3.BodySmall"
         android:textColor="?attr/colorOnSurfaceVariant"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/tv_comment"
         app:layout_constraintStart_toEndOf="@id/iv_buddy"
         app:layout_constraintTop_toTopOf="parent"
         tools:text="Sina" />
+
+    <!-- Kommentar des Eintrags, nur sichtbar wenn einer eingetragen ist. Er
+         steht rechts in der Zeile, rechts neben dem Reisebuddy: Der Buddy-Name
+         endet an dieser Spalte, der Kommentar spannt bis zum rechten Rand und
+         steht rechtsbündig. Ohne Buddy in der Zeile (Reisebuddy-Detailseite)
+         startet er an der eingeklappten Buddy-Marke in der Mitte. Die Constraints
+         werden je Zeile gesetzt, siehe bindTimelineComment. -->
+    <TextView
+        android:id="@+id/tv_comment"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="16dp"
+        android:ellipsize="end"
+        android:gravity="end"
+        android:maxLines="2"
+        android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textStyle="italic"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="1"
+        app:layout_constraintStart_toEndOf="@id/iv_buddy"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="Nur Handgepäck, Sitzplatz am Fenster"
+        tools:visibility="visible" />
 </androidx.constraintlayout.widget.ConstraintLayout>

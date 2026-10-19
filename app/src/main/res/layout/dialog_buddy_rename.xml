@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dialog zum Umbenennen eines Reisebuddies: Das Eingabefeld als umrandete
+     Box mit schwebender Beschriftung und Buddy-Symbol. So sitzen der Titel
+     des Dialogs und der bisherige Name nicht direkt aufeinander. -->
+<com.google.android.material.textfield.TextInputLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/buddy_rename_input_layout"
+    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="20dp"
+    android:layout_marginTop="8dp"
+    android:hint="@string/profile_name_hint"
+    app:startIconDrawable="@drawable/ic_reisebuddy">
+
+    <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/buddy_rename_input"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:inputType="textCapWords"
+        android:maxLines="1" />
+</com.google.android.material.textfield.TextInputLayout>

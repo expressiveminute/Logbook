@@ -102,8 +102,8 @@
     <string name="continent_oceania">Oceania</string>
     <string name="continent_antarctica">Antarctica</string>
     <string name="continent_unknown">Other</string>
-    <string name="distance_furthest_label">Longest flight:</string>
-    <string name="distance_avg_label">Ø Flight length:</string>
+    <string name="distance_furthest_label">Furthest flight:</string>
+    <string name="distance_avg_label">Ø Flight distance:</string>
     <string name="distance_shortest_label">Shortest flight:</string>
     <string name="time_longest_label">Longest flight:</string>
     <string name="time_avg_label">Ø Flight time:</string>
@@ -456,6 +456,9 @@
     <string name="travel_buddies_subtitle">%1$d travel buddies on %2$d flights</string>
     <string name="travel_buddies_empty">No travel buddy entered for any flight. The name goes under "Optional" when adding a flight.</string>
     <string name="travel_buddy_desc">%1$s, rank %2$d, %3$d common flights</string>
+    <string name="travel_buddy_search_desc">Search travel buddies</string>
+    <string name="travel_buddy_search_hint">Name</string>
+    <string name="travel_buddy_search_empty">No travel buddies found</string>
     <plurals name="travel_buddy_flights">
         <item quantity="one">%1$d flight</item>
         <item quantity="other">%1$d flights</item>
@@ -471,6 +474,19 @@
     <string name="aircraft_flight_list_title">Flights</string>
     <string name="buddy_flight_list_title">All common flights</string>
     <string name="buddy_map_title">Common flights</string>
+    <!-- Travel buddy detail page: pencil in the header to change the name -->
+    <string name="buddy_rename_title">Rename travel buddy</string>
+    <string name="buddy_rename_confirm">Rename</string>
+    <string name="buddy_renamed">Travel buddy renamed</string>
+    <!-- Tiles of the travel buddy detail page below the map -->
+    <string name="buddy_stat_flights">Common flights</string>
+    <string name="buddy_stat_time">Time together</string>
+    <string name="buddy_stat_distance">Distance together</string>
+    <string name="buddy_stat_time_desc">%1$s: %2$s %3$s. Tap to change the unit.</string>
+    <plurals name="buddy_stat_flights_unit">
+        <item quantity="one">flight</item>
+        <item quantity="other">flights</item>
+    </plurals>
 <!-- Import page -->
     <string name="import_page_title">Import</string>
     <string name="import_step1_title">Step 1 · Choose import mode</string>
@@ -506,7 +522,7 @@
     <string name="import_review_summary_unknown">Unknown</string>
 
     <string name="settings_version_label">Version %1$s</string>
-    <string name="settings_version" translatable="false">0.0.28</string>
+    <string name="settings_version" translatable="false">0.0.29</string>
     <string name="settings_made_with_prefix">Made with</string>
     <string name="settings_made_with_suffix">by expressiveminute</string>
 
