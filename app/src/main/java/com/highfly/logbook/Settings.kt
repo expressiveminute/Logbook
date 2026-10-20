@@ -61,6 +61,7 @@ object Settings {
     private const val KEY_ROLE = "role"
     private const val KEY_CREW_FUNCTION = "crew_function"
     private const val KEY_PREFERRED_CLASS = "preferred_class"
+    private const val KEY_PASSENGER_LOAD_FACTOR = "passenger_load_factor"
     private const val KEY_CLASS_SCHEME = "class_scheme"
     private const val KEY_AVATAR = "profile_avatar"
     private const val KEY_PROFILE_NAME = "profile_name"
@@ -204,6 +205,28 @@ object Settings {
 
     fun setRole(context: Context, role: Role) {
         prefs(context).edit().putString(KEY_ROLE + userSuffix(context), role.key).apply()
+    }
+
+    /**
+     * Auslastung in Prozent, mit der die Kachel "Passagiere" die geschätzte
+     * Passagierzahl berechnet (Sitzplätze × Auslastung). Zwischen 50 und 100
+     * in 5er-Schritten, Standard 80 - siehe [PassengersCalculator].
+     */
+    fun getPassengerLoadFactor(context: Context): Int =
+        PassengersCalculator.normalizeLoadFactor(
+            prefs(context).getInt(
+                KEY_PASSENGER_LOAD_FACTOR + userSuffix(context),
+                PassengersCalculator.DEFAULT_LOAD_FACTOR_PERCENT
+            )
+        )
+
+    fun setPassengerLoadFactor(context: Context, percent: Int) {
+        prefs(context).edit()
+            .putInt(
+                KEY_PASSENGER_LOAD_FACTOR + userSuffix(context),
+                PassengersCalculator.normalizeLoadFactor(percent)
+            )
+            .apply()
     }
 
     fun getCrewFunction(context: Context): String =
@@ -438,6 +461,7 @@ object Settings {
             .remove(KEY_ROLE + s)
             .remove(KEY_CREW_FUNCTION + s)
             .remove(KEY_PREFERRED_CLASS + s)
+            .remove(KEY_PASSENGER_LOAD_FACTOR + s)
             .remove(KEY_MANUAL_COUNTRIES + s)
             .remove(KEY_HIDDEN_COUNTRIES + s)
             .apply()

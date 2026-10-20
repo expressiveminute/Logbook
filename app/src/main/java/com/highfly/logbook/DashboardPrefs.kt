@@ -184,6 +184,20 @@ object DashboardPrefs {
             heightDp = 104
         ),
         Tile(
+            "radiation",
+            R.string.tile_radiation,
+            R.drawable.ic_radiation,
+            span = SPAN_FULL,
+            heightDp = 104
+        ),
+        Tile(
+            "passengers",
+            R.string.tile_passengers,
+            R.drawable.ic_passengers,
+            span = SPAN_FULL,
+            heightDp = 104
+        ),
+        Tile(
             "time",
             R.string.tile_time,
             R.drawable.ic_time,
@@ -243,7 +257,9 @@ object DashboardPrefs {
         listOf("traveltype", "class", "achievements"),
         listOf("distance"),
         listOf("time"),
-        listOf("co2")
+        listOf("co2"),
+        listOf("radiation"),
+        listOf("passengers")
     )
 
     /**
@@ -270,7 +286,7 @@ object DashboardPrefs {
     const val DEFAULT_PERCENT = 90
 
     private const val PREF_NAME = "dashboard_layout"
-    private const val KEY_TILES = "tiles_standard_v15"
+    private const val KEY_TILES = "tiles_standard_v17"
     private const val KEY_SPANS = "tile_spans_v1"
     private const val KEY_SCALE = "tile_scale_v1"
     private const val ROW_SEPARATOR = ";"
@@ -439,15 +455,17 @@ object DashboardPrefs {
     }
 
     /**
-     * Ob eine Kachel zur Rolle passt. Layover und Funktion sind reine
-     * Besatzungs-Kacheln und fehlen dem Fluggast ueberall: im Dashboard, in der
-     * Auswahl des Bearbeitens und damit auch in der Detailseite. Die Zuordnung
-     * haengt an [Role.showsLayover] und [Role.showsFunction], damit Kachel und
-     * Definition nicht auseinanderlaufen koennen.
+     * Ob eine Kachel zur Rolle passt. Layover, Funktion und Passagiere sind
+     * reine Besatzungs-Kacheln und fehlen dem Fluggast ueberall: im Dashboard,
+     * in der Auswahl des Bearbeitens und damit auch in der Detailseite. Die
+     * Zuordnung haengt an [Role.showsLayover], [Role.showsFunction] und
+     * [Role.isCrew], damit Kachel und Definition nicht auseinanderlaufen
+     * koennen.
      */
     fun isTileAvailable(id: String, role: Role): Boolean = when (id) {
         "layover" -> role.showsLayover
         "function" -> role.showsFunction
+        "passengers" -> role.isCrew
         else -> true
     }
 

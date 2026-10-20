@@ -34,6 +34,24 @@
     <color name="co2_trees_on">#FFFFFFFF</color>
     <color name="co2_trees_on_variant">#CCFFFFFF</color>
 
+    <!-- Höhenstrahlung tile: indigo total card. Helleres Indigo mit Alpha -
+         über der Kachel (Sekundärcontainer) ergibt das glasige Aussehen;
+         der helle Rand ist die Glas-Kante. -->
+    <color name="radiation_card_bg">#A63F51B5</color>
+    <color name="radiation_card_stroke">#4DFFFFFF</color>
+    <color name="radiation_card_on">#FFFFFFFF</color>
+    <color name="radiation_card_on_variant">#CCFFFFFF</color>
+
+    <!-- Höhenstrahlung: Balken und Warndreieck über dem Jahresgrenzwert -->
+    <color name="radiation_limit">#FFD32F2F</color>
+
+    <!-- Passagiere tile: teal average card. Wie die Höhenstrahlung glasig:
+         halbtransparentes Teal mit hellem Rand. -->
+    <color name="passengers_card_bg">#A600897B</color>
+    <color name="passengers_card_stroke">#4DFFFFFF</color>
+    <color name="passengers_card_on">#FFFFFFFF</color>
+    <color name="passengers_card_on_variant">#CCFFFFFF</color>
+
     <!-- Import UI -->
     <color name="import_ok">#FF2E7D32</color>
     <color name="import_warn">#FF1565C0</color>

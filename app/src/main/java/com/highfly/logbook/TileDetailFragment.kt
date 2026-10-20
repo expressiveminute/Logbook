@@ -56,6 +56,9 @@ class TileDetailFragment : Fragment() {
     /** Ob das Suchfeld oben im Kopf ausgeklappt ist. */
     private var searchOpen = false
 
+    /** Beschriftung der Suche im geschlossenen Zustand (Lupe), je nach Kachel. */
+    private var searchClosedDescRes: Int = R.string.layover_search_desc
+
     /** Alle Layover-Balken vor der Suche, damit die Eingabe nur filtern muss. */
     private var layoverAllBars: List<ChartData.Bar> = emptyList()
 
@@ -268,6 +271,9 @@ class TileDetailFragment : Fragment() {
         }
         val (bars, zeroBars) = ChartData.splitLayoverZeroDuration(matching)
 
+        // In der Suche trägt der Rang keine Medaille, sondern den Rang der
+        // ungefilterten Liste.
+        binding.barChart.setShowMedals(query.isEmpty())
         binding.barChart.setOnItemClickListener { index ->
             openLayoverDetail(bars.getOrNull(index)?.label)
         }
@@ -277,7 +283,7 @@ class TileDetailFragment : Fragment() {
         binding.tvEmpty.setText(
             if (query.isEmpty()) R.string.chart_empty else R.string.layover_search_empty
         )
-        renderBars(bars)
+        renderBars(bars, ranksOf(layoverAllBars))
         // Gibt es nur noch die Null-Gruppe, gehört der Leertext nicht über sie -
         // die Daten stehen ja darunter.
         if (zeroBars.isNotEmpty()) binding.tvEmpty.visibility = View.GONE
@@ -299,13 +305,11 @@ class TileDetailFragment : Fragment() {
     private fun setupTileSearch(mode: SearchMode) {
         searchMode = mode
         binding.ivSearch.visibility = View.VISIBLE
-        binding.ivSearch.contentDescription = getString(
-            when (mode) {
-                SearchMode.LAYOVER -> R.string.layover_search_desc
-                SearchMode.AIRPORT -> R.string.airport_search_desc
-                SearchMode.HANGAR -> R.string.hangar_search_desc
-            }
-        )
+        searchClosedDescRes = when (mode) {
+            SearchMode.LAYOVER -> R.string.layover_search_desc
+            SearchMode.AIRPORT -> R.string.airport_search_desc
+            SearchMode.HANGAR -> R.string.hangar_search_desc
+        }
         binding.etSearch.setHint(
             when (mode) {
                 SearchMode.LAYOVER -> R.string.layover_search_hint
@@ -345,11 +349,25 @@ class TileDetailFragment : Fragment() {
         binding.ivSearch.setOnClickListener {
             toggleSearch(!searchOpen)
         }
+        updateSearchIcon(searchOpen)
         if (searchOpen) {
             binding.etSearch.visibility = View.VISIBLE
             binding.etSearch.alpha = 1f
             setSearchProgress(1f)
         }
+    }
+
+    /**
+     * Tauscht das Symbol der Suche: Lupe geschlossen, X geoeffnet. Das X
+     * schliesst das Feld und loescht die Eingabe (siehe [toggleSearch]).
+     */
+    private fun updateSearchIcon(open: Boolean) {
+        binding.ivSearch.setImageResource(
+            if (open) R.drawable.ic_close else R.drawable.ic_search
+        )
+        binding.ivSearch.contentDescription = getString(
+            if (open) R.string.search_clear_desc else searchClosedDescRes
+        )
     }
 
     /**
@@ -397,6 +415,7 @@ class TileDetailFragment : Fragment() {
     private fun toggleSearch(open: Boolean) {
         searchAnimator?.cancel()
         searchOpen = open
+        updateSearchIcon(open)
         if (open) {
             binding.etSearch.visibility = View.VISIBLE
             binding.etSearch.requestFocus()
@@ -631,14 +650,28 @@ class TileDetailFragment : Fragment() {
         binding.tvEmpty.visibility = View.GONE
         binding.barChart.visibility = View.VISIBLE
         // Medaillen für die ersten drei Plätze, Wert neben dem Balken - wie
-        // die anderen Balkenkacheln des Dashboards.
+        // die anderen Balkenkacheln des Dashboards. In der Suche (auch nie
+        // angeflogene Flughäfen mit dem Wert 0) nur die Platznummer des Rangs
+        // in der Gesamtliste, keine Medaille.
         binding.barChart.setShowRanks(true)
+        binding.barChart.setShowMedals(query.isEmpty())
         binding.barChart.setValueInsideBar(false)
         binding.barChart.setOnItemClickListener { index ->
             openAirportDetail(bars.getOrNull(index)?.label)
         }
+        val airportRanks = ranksOf(airportAllBars)
         binding.barChart.setItems(
-            bars.map { BarChartView.Item(it.label, it.count, it.subLabel, it.countLabel) }
+            bars.map {
+                BarChartView.Item(
+                    it.label,
+                    it.count,
+                    it.subLabel,
+                    it.countLabel,
+                    // Nie angeflogene Flughäfen stehen nicht in der
+                    // Gesamtliste und tragen keinen Rang.
+                    rank = airportRanks[it.label.uppercase()]
+                )
+            }
         )
         updateAirportSearchPopup(query)
     }
@@ -993,8 +1026,10 @@ class TileDetailFragment : Fragment() {
         )
 
         // Anzahl, Distanz und Dauer stehen am rechten Rand auf einer Linie,
-        // statt an jeder Balkenspitze zu wandern.
+        // statt an jeder Balkenspitze zu wandern. In der Suche trägt der Rang
+        // keine Medaille, sondern den Rang der ungefilterten Liste.
         binding.barChart.setValueRightAligned(true)
+        binding.barChart.setShowMedals(query.isEmpty())
         binding.barChart.setOnItemClickListener { index: Int ->
             val label = registrations.getOrNull(index)?.label
             if (!label.isNullOrBlank()) {
@@ -1007,7 +1042,7 @@ class TileDetailFragment : Fragment() {
                 )
             }
         }
-        renderBars(registrations)
+        renderBars(registrations, ranksOf(hangarAllRegistrations))
         binding.tvRegistrationsTitle.visibility =
             if (registrations.isEmpty()) View.GONE else View.VISIBLE
         binding.tvEmpty.setText(
@@ -1063,16 +1098,44 @@ class TileDetailFragment : Fragment() {
         container.visibility = View.VISIBLE
     }
 
-    private fun renderBars(bars: List<ChartData.Bar>) {
+    private fun renderBars(bars: List<ChartData.Bar>, ranks: Map<String, Int>? = null) {
         binding.pieChart.visibility = View.GONE
         binding.tvEmpty.visibility = if (bars.isEmpty()) View.VISIBLE else View.GONE
         binding.barChart.visibility = View.VISIBLE
         binding.barChart.setItems(
             bars.map {
-                BarChartView.Item(it.label, it.count, it.subLabel, it.countLabel)
+                BarChartView.Item(
+                    it.label,
+                    it.count,
+                    it.subLabel,
+                    it.countLabel,
+                    // In der Suche bleibt der Rang der ungefilterten Liste
+                    // stehen, statt der Position im Suchergebnis. Der Lookup
+                    // läuft wie bei den Flughafen-Zahlen über die Grossschreibung.
+                    rank = ranks?.get(it.label.uppercase())
+                )
             }
         )
     }
+
+    /**
+     * Rang je Label aus der ungefilterten Liste: die Zahl der größeren Werte
+     * plus eins, bei Gleichstand derselbe Rang. Die Suche zeigt diesen Rang
+     * weiter an, auch wenn das Suchergebnis an einer anderen Stelle steht;
+     * ein Label ohne Flug (Wert 0) trägt keinen Rang. Die Schlüssel sind
+     * gross geschrieben, weil die Flughafen-Suche die Codes aus dem Bestand
+     * (immer gross) gegen die gespeicherten Einträge (beliebige Schreibweise)
+     * abgleicht.
+     */
+    private fun ranksOf(bars: List<ChartData.Bar>): Map<String, Int> =
+        bars.associate { bar ->
+            val rank = if (bar.count <= 0) {
+                0
+            } else {
+                bars.map { it.count }.distinct().count { it > bar.count } + 1
+            }
+            bar.label.uppercase() to rank
+        }
 
     private fun renderPie(slices: List<ChartData.Slice>) {
         binding.barChart.visibility = View.GONE

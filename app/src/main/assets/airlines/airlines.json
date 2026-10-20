@@ -650,9 +650,9 @@
 },
 {
 "iata": "4Y",
-"icao": "RBU",
-"name": "Airbus France",
-"file": null
+"icao": "OCN",
+"name": "Discover Airlines",
+"file": "liveries/OCN.webp"
 },
 {
 "iata": "4Z",
@@ -5216,9 +5216,9 @@
 },
 {
 "iata": "SN",
-"icao": "DAT",
+"icao": "BEL",
 "name": "Brussels Airlines",
-"file": "liveries/DAT.webp"
+"file": "liveries/BEL.webp"
 },
 {
 "iata": "SO",
@@ -5834,9 +5834,9 @@
 },
 {
 "iata": "VL",
-"icao": "VIM",
-"name": "Air VIA",
-"file": null
+"icao": "LHX",
+"name": "Lufthansa City Airlines",
+"file": "liveries/LHX.webp"
 },
 {
 "iata": "VM",

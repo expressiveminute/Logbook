@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Drei Personen (Material-Stil "groups"), selbst komponiert aus Kopfkreisen
+     und Schulterbögen: eine grosse Person in der Mitte, zwei kleinere dahinter. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M2.8,9 a2.2,2.2 0 1,0 4.4,0 a2.2,2.2 0 1,0 -4.4,0zM16.8,9 a2.2,2.2 0 1,0 4.4,0 a2.2,2.2 0 1,0 -4.4,0zM0.5,20 L0.5,15 A4.5,3 0 0 1 9.5,15 L9.5,20 ZM14.5,20 L14.5,15 A4.5,3 0 0 1 23.5,15 L23.5,20 ZM9,7.5 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0zM5.5,20 L5.5,14.5 A6.5,4 0 0 1 18.5,14.5 L18.5,20 Z" />
+</vector>

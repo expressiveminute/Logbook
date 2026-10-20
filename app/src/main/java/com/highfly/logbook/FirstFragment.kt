@@ -20,6 +20,7 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.color.MaterialColors
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.highfly.logbook.databinding.FragmentFirstBinding
 import kotlin.math.roundToInt
 
@@ -167,6 +168,21 @@ class FirstFragment : Fragment() {
             }
             val distance = DashboardStats.distanceDetails(appContext, entries)
             val co2 = Co2Calculator.details(entries)
+            // Die Höhenstrahlung richtet sich nicht nach dem Zeitraum-Filter,
+            // sondern zeigt das laufende Jahr - Grundlage sind alle Einträge
+            // der gewählten Flugart.
+            val radiation = RadiationStats.summary(
+                DashboardStats.flightTypeEntries(appContext),
+                lookup = { code -> AirportData.location(appContext, code) }
+            )
+            // Die Passagierzahl richtet sich wie die Höhenstrahlung nicht
+            // nach dem Zeitraum-Filter: Grundlage sind alle Einträge der
+            // gewählten Flugart, die Auslastung kommt aus den Einstellungen.
+            val passengers = PassengersCalculator.summary(
+                DashboardStats.flightTypeEntries(appContext),
+                Settings.getPassengerLoadFactor(appContext),
+                AircraftSeats.load(appContext)
+            )
 
             view?.post {
                 if (generation != loadGeneration || _binding == null) return@post
@@ -178,6 +194,8 @@ class FirstFragment : Fragment() {
                     values,
                     distance,
                     co2,
+                    radiation,
+                    passengers,
                     entries
                 )
             }
@@ -199,6 +217,8 @@ class FirstFragment : Fragment() {
         values: Map<String, DashboardStats.Value>,
         distance: DashboardStats.DistanceDetails,
         co2: Co2Calculator.Details,
+        radiation: RadiationStats.Summary,
+        passengers: PassengersCalculator.Summary,
         entries: List<LogbookEntry>
     ) {
         TileValueAnimator.cancelAll()
@@ -237,6 +257,8 @@ class FirstFragment : Fragment() {
             visibleIds.forEach { tileId ->
                 val isDistance = tileId == "distance"
                 val isCo2 = tileId == "co2"
+                val isRadiation = tileId == "radiation"
+                val isPassengers = tileId == "passengers"
                 val isTime = tileId == "time"
                 val tileContainer = when {
                     isDistance -> layoutInflater.inflate(
@@ -246,6 +268,16 @@ class FirstFragment : Fragment() {
                     ) as ViewGroup
                     isCo2 -> layoutInflater.inflate(
                         R.layout.item_dashboard_tile_co2,
+                        row,
+                        false
+                    ) as ViewGroup
+                    isRadiation -> layoutInflater.inflate(
+                        R.layout.item_dashboard_tile_radiation,
+                        row,
+                        false
+                    ) as ViewGroup
+                    isPassengers -> layoutInflater.inflate(
+                        R.layout.item_dashboard_tile_passengers,
                         row,
                         false
                     ) as ViewGroup
@@ -266,7 +298,7 @@ class FirstFragment : Fragment() {
                     tileContainer.findViewById<android.widget.ImageView>(R.id.iv_tile_icon)
                 val tileNameView =
                     tileContainer.findViewById<TextView>(R.id.tv_tile_name)
-                if (!isDistance && !isCo2 && !isTime) {
+                if (!isDistance && !isCo2 && !isRadiation && !isPassengers && !isTime) {
                     iconView.setImageResource(tile.iconRes)
                     tileNameView.text = tileName(tile, entries)
                 }
@@ -277,6 +309,10 @@ class FirstFragment : Fragment() {
                     populateDistanceTile(tileContainer, distance)
                 } else if (isCo2) {
                     populateCo2Tile(tileContainer, co2)
+                } else if (isRadiation) {
+                    populateRadiationTile(tileContainer, radiation)
+                } else if (isPassengers) {
+                    populatePassengersTile(tileContainer, passengers)
                 } else if (isTime) {
                     populateTimeTile(tileContainer, timeMinutes, entries)
                 } else if (tileId == "worldmap") {
@@ -434,8 +470,10 @@ class FirstFragment : Fragment() {
                 val tileId = card.tag as? String ?: continue
                 val tile = DashboardPrefs.tileById(tileId)
                 val minHeight = tileHeight(tile)
-                if (tileId == "co2") {
+                if (tileId == "co2" || tileId == "radiation" || tileId == "passengers") {
                     // Full width, but as flat as a regular (square) tile.
+                    // Die Höhenstrahlungs- und Passagiere-Kachel sind genauso
+                    // hoch wie die CO₂-Kachel.
                     val target = maxOf(
                         tileContainer.width / 3,
                         dp(88),
@@ -593,6 +631,86 @@ class FirstFragment : Fragment() {
         }
     }
 
+    /**
+     * Höhenstrahlung-Kachel: links die Dosis des laufenden Jahrs samt Balken
+     * und Prozent am Jahresgrenzwert (20 mSv, Obergrenze für fliegendes
+     * Personal), rechts die Gesamtsumme über alle Jahre - beide geschätzt aus
+     * Flugzeit und Strecke, siehe [RadiationCalculator].
+     */
+    private fun populateRadiationTile(
+        container: ViewGroup,
+        radiation: RadiationStats.Summary
+    ) {
+        val context = requireContext()
+        val locale = Settings.language(context)
+        container.findViewById<TextView>(R.id.tv_radiation_value).apply {
+            TileValueAnimator.animate(this, RadiationCalculator.msvText(radiation.yearUSv, locale))
+        }
+        // Ohne Tausendertrennzeichen: ein Jahr gruppiert sich nicht.
+        container.findViewById<TextView>(R.id.tv_radiation_year).text =
+            String.format(locale, "%d", radiation.year)
+        container.findViewById<TextView>(R.id.tv_radiation_total_value).apply {
+            TileValueAnimator.animate(
+                this,
+                RadiationCalculator.msvText(radiation.totalUSv, locale)
+            )
+        }
+        // Balken: Anteil der Jahresdosis am Grenzwert von 20 mSv, die
+        // Prozentzahl steht im Balken (darunter daneben). Darüber ist die
+        // Füllung rot und das Warndreieck erscheint.
+        val percent = RadiationCalculator.percentOfAnnualLimit(radiation.yearUSv)
+        val overLimit = radiation.yearUSv > RadiationCalculator.ANNUAL_LIMIT_USV
+        val bar = container.findViewById<RadiationLimitBar>(R.id.bar_radiation_year)
+        bar.percent = percent
+        bar.overLimit = overLimit
+        bar.contentDescription = context.getString(R.string.radiation_limit_percent, percent)
+        val warning = container.findViewById<android.widget.ImageView>(R.id.iv_radiation_warning)
+        warning.visibility = if (overLimit) View.VISIBLE else View.GONE
+        warning.setOnClickListener { showRadiationLimitWarning() }
+    }
+
+    /** Pop-up zum Warndreieck: der Jahresgrenzwert von 20 mSv ist überschritten. */
+    private fun showRadiationLimitWarning() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.radiation_limit_title)
+            .setMessage(R.string.radiation_limit_message)
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
+    }
+
+    /**
+     * Passagiere-Kachel: links die geschätzte Gesamtzahl über alle Jahre (auf
+     * volle Tausender gerundet) samt eingestellter Auslastung, rechts der
+     * Durchschnitt pro Flug - gerechnet aus der Sitzplatzanzahl des
+     * Flugzeugtyps und der Auslastung, siehe [PassengersCalculator].
+     */
+    private fun populatePassengersTile(
+        container: ViewGroup,
+        passengers: PassengersCalculator.Summary
+    ) {
+        val context = requireContext()
+        val locale = Settings.language(context)
+        container.findViewById<TextView>(R.id.tv_passengers_value).apply {
+            TileValueAnimator.animate(
+                this,
+                PassengersCalculator.passengersText(
+                    PassengersCalculator.roundToThousands(passengers.totalPassengers),
+                    locale
+                )
+            )
+        }
+        container.findViewById<TextView>(R.id.tv_passengers_load_factor).text = getString(
+            R.string.passengers_load_factor,
+            Settings.getPassengerLoadFactor(context)
+        )
+        container.findViewById<TextView>(R.id.tv_passengers_avg_value).apply {
+            TileValueAnimator.animate(
+                this,
+                PassengersCalculator.passengersText(passengers.averagePerFlight, locale)
+            )
+        }
+    }
+
     private fun populateDistanceTile(
         container: ViewGroup,
         distance: DashboardStats.DistanceDetails
@@ -722,6 +840,17 @@ class FirstFragment : Fragment() {
                 // Abfluglands mit dem animierten Wald in der nötigen Fläche.
                 findNavController().navigate(R.id.action_dashboard_to_co2_offset)
             }
+            id == "radiation" -> {
+                // Die Höhenstrahlungs-Kachel öffnet die Jahresliste der
+                // Dosis, das i im Header führt zur Erklärseite.
+                findNavController().navigate(R.id.action_dashboard_to_radiation)
+            }
+            id == "passengers" -> {
+                // Die Passagiere-Kachel öffnet die Jahresliste der
+                // geschätzten Passagierzahlen; das Adjust-Symbol im Kopf
+                // stellt die Auslastung ein.
+                findNavController().navigate(R.id.action_dashboard_to_passengers)
+            }
             id == "flights" -> {
                 findNavController().navigate(R.id.action_dashboard_to_flights_year)
             }
@@ -732,6 +861,11 @@ class FirstFragment : Fragment() {
             }
             id == "reisebuddy" -> {
                 findNavController().navigate(R.id.action_dashboard_to_travel_buddies)
+            }
+            id == "airlines" -> {
+                // Die Kachel "Fluggesellschaften" öffnet die eigene Rangliste
+                // mit Suche und Detailseite je Airline.
+                findNavController().navigate(R.id.action_dashboard_to_airlines)
             }
             id == "countries" -> {
                 // Die Kachel "Länder" öffnet die Liste der besuchten Länder;

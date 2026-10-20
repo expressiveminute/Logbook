@@ -61,6 +61,45 @@
     <string name="co2_offset_credit_label">Imagery: %1$s</string>
     <string name="co2_offset_credit_hessen">© HVBG Hessen (dl-de/zero-2.0)</string>
     <string name="co2_offset_credit_bayern">© Bayerische Vermessungsverwaltung (CC BY 4.0)</string>
+    <string name="tile_radiation">Cosmic radiation</string>
+    <string name="radiation_total_title">Total</string>
+    <string name="radiation_total_label">all years</string>
+    <string name="radiation_detail_title">Cosmic radiation</string>
+    <string name="radiation_detail_subtitle">Effective dose from cosmic radiation, estimated from flight time and route</string>
+    <string name="radiation_filter_flight_type">Flight type: %1$s</string>
+    <string name="radiation_info_desc">Explain how cosmic radiation is calculated</string>
+    <string name="radiation_empty">No flights recorded yet.</string>
+    <string name="radiation_year_hours">%1$s h flown</string>
+    <string name="radiation_info_title">How it is calculated</string>
+    <string name="radiation_info_what_title">What is shown?</string>
+    <string name="radiation_info_what_body">The effective dose from cosmic radiation in millisieverts (mSv) - the radiation the body is exposed to at cruising altitude. The tile shows the current year, the detail page lists every year. It is an estimate from the logbook data, not a measurement.</string>
+    <string name="radiation_info_formula_title">The formula</string>
+    <string name="radiation_info_formula_body">Dose = dose rate × flight time. The dose rate at cruising altitude increases with altitude and with geographic latitude: 3 µSv/h at 10 km × e^(0.35 × (altitude − 10 km)) × (1 + sin² latitude). It is lowest at the equator and about twice as high at the poles. Units: 1 mSv = 1,000 µSv.</string>
+    <string name="radiation_info_data_title">The data</string>
+    <string name="radiation_info_data_body">Flight time and route come from the logbook entry; if the flight time is missing, it is estimated from the route (805 km/h plus 25 minutes). The route is the great-circle distance between the app\'s airport coordinates. The cruising altitude is estimated from the distance: 9 km on short-haul up to 12 km on long-haul. The latitude is that of the great-circle midpoint. Ground transfers do not count.</string>
+    <string name="radiation_info_sources_title">Sources and benchmarks</string>
+    <string name="radiation_info_sources_body">German Federal Office for Radiation Protection (BfS), “Cosmic radiation and flying”: at ground level about 300 µSv per year, at 11 km altitude north of the 60th parallel 8–9 µSv per hour, Frankfurt–New York round trip about 120 µSv. FED aviation standard: 4 µSv/h at 10 km altitude. The typical annual dose of flight crew is 2–6 mSv.</string>
+    <string name="radiation_info_limits_title">Limits of the estimate</string>
+    <string name="radiation_info_limits_body">It is an estimate, not a measurement. Not modeled are: solar activity (it varies the dose by about 15–30 %), the aircraft\'s actual cruising altitude, and the approximation of geomagnetic latitude by geographic latitude. Individual flights can therefore deviate upwards or downwards.</string>
+    <string name="radiation_limit_percent">%1$d%%</string>
+    <string name="radiation_limit_title">Annual limit exceeded</string>
+    <string name="radiation_limit_message">The estimated effective dose from cosmic radiation for this year is above 20 mSv. That is the upper limit for the annual radiation exposure of flying personnel (occupationally exposed persons, category A of the German Radiation Protection Ordinance). This figure is an estimate from flight time and route, not a measurement - the calculation is explained via the i at the top right of the detail page.</string>
+    <string name="radiation_limit_desc">Annual limit exceeded - show note</string>
+    <string name="radiation_info_bfs_link">Federal Office for Radiation Protection (BfS): cosmic radiation when flying</string>
+    <string name="tile_passengers">Passengers</string>
+    <string name="passengers_unit">Passengers</string>
+    <string name="passengers_avg_title">avg per flight</string>
+    <string name="passengers_card_label">estimated</string>
+    <string name="passengers_load_factor">Load factor %1$d%%</string>
+    <string name="passengers_load_factor_percent">%1$d%%</string>
+    <string name="passengers_detail_title">Passengers</string>
+    <string name="passengers_detail_subtitle">Estimated from maximum seats and load factor of %1$d%%</string>
+    <string name="passengers_filter_flight_type">Flight type: %1$s</string>
+    <string name="passengers_adjust_desc">Adjust load factor</string>
+    <string name="passengers_adjust_title">Adjust load factor</string>
+    <string name="passengers_adjust_hint">Determines how many passengers are estimated per flight (seats × load factor).</string>
+    <string name="passengers_empty">No flights recorded yet.</string>
+    <string name="search_clear_desc">Clear and close search</string>
     <string name="tile_detail_continents">By continent</string>
     <string name="tile_detail_aircraft_types">Aircraft types</string>
     <string name="time_detail_longest">Longest Flight</string>
@@ -391,6 +430,7 @@
     <string name="world_map_filter">Map filter</string>
     <string name="world_map_filter_travel_type">Travel type</string>
     <string name="world_map_filter_class">Travel class</string>
+    <string name="world_map_filter_airline">Airline</string>
     <string name="world_map_filter_layover_yes">Yes</string>
     <string name="world_map_filter_layover_no">No</string>
     <string name="world_map_filter_city_language">City label language</string>
@@ -487,6 +527,42 @@
         <item quantity="one">flight</item>
         <item quantity="other">flights</item>
     </plurals>
+
+    <!-- Airlines: ranking and detail page behind the tile -->
+    <string name="airlines_subtitle">%1$d airlines on %2$d flights</string>
+    <string name="airlines_empty">No airline entered for any flight. Code and number go into the flight number field of the flight.</string>
+    <string name="airline_desc">%1$s, rank %2$d, %3$s</string>
+    <string name="airline_desc_unranked">%1$s, %2$s</string>
+    <string name="airline_search_desc">Search airlines</string>
+    <string name="airline_search_hint">Code or name</string>
+    <string name="airline_search_empty">No airlines found</string>
+    <plurals name="airline_flights">
+        <item quantity="one">%1$d flight</item>
+        <item quantity="other">%1$d flights</item>
+    </plurals>
+    <!-- Airline detail page -->
+    <string name="airline_image_placeholder">Livery photo coming soon</string>
+    <string name="airline_fact_flights">Flights</string>
+    <string name="airline_fact_first">First flight</string>
+    <string name="airline_fact_last">Last flight</string>
+    <string name="airline_fact_destinations">Destinations</string>
+    <string name="airline_fact_distance">Distance</string>
+    <string name="airline_fact_time">Flight time</string>
+    <string name="airline_fact_types">Aircraft types</string>
+    <string name="airline_general_title">General</string>
+    <string name="airline_user_title">Your flights</string>
+    <string name="airline_fact_founded">Founded</string>
+    <string name="airline_fact_insolvency">Insolvency</string>
+    <string name="airline_fact_hq">Headquarters</string>
+    <string name="airline_fact_hubs">Hubs</string>
+    <string name="airline_fact_fleet">Fleet size</string>
+    <string name="airline_fact_alliance">Alliance</string>
+    <string name="airline_fact_wikipedia">Wikipedia</string>
+    <string name="airline_insolvent_stamp">Insolvent</string>
+    <string name="airline_map_title">Flown routes</string>
+    <string name="airline_map_stats">%1$d flights on %2$d routes</string>
+    <string name="airline_map_desc">Map of the flown routes. Tap to open the world map filtered to this airline.</string>
+    <string name="airline_detail_empty">No flights recorded with this airline yet.</string>
 <!-- Import page -->
     <string name="import_page_title">Import</string>
     <string name="import_step1_title">Step 1 · Choose import mode</string>
@@ -522,7 +598,7 @@
     <string name="import_review_summary_unknown">Unknown</string>
 
     <string name="settings_version_label">Version %1$s</string>
-    <string name="settings_version" translatable="false">0.0.29</string>
+    <string name="settings_version" translatable="false">0.0.30</string>
     <string name="settings_made_with_prefix">Made with</string>
     <string name="settings_made_with_suffix">by expressiveminute</string>
 

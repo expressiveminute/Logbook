@@ -152,6 +152,81 @@ keine passenden Flüge gibt. Gelesen wird die Liste bei jedem `onResume` neu aus
 Die anderen Nutzer desselben Layouts (`FlightRouteDetailFragment`, `TravelBuddyDetailFragment`)
 lassen Titel und Liste unsichtbar.
 
+## Seite „Fluggesellschaften"
+
+Die Kachel *Fluggesellschaften* öffnet `AirlinesFragment` (`fragment_airlines.xml`), nicht mehr
+`TileDetailFragment`: eine Rangliste im Aufbau der Reisebuddy-Liste (`item_airline.xml` +
+`AirlineAdapter` mit `RankBadgeView` und `VisitedCountryBarView`), absteigend nach Flugzahl, der
+Balken gemessen am Maximum der ungefilterten Liste. Oben rechts im Kopf sitzt eine Lupe wie bei
+den Flughäfen: Sie klappt ein Suchfeld aus, das im gesamten Katalog (`AirlineCatalog.search` über
+`assets/airlines/airlines.json`) nach IATA-Code, ICAO-Code und Name sucht - "LH", "DLH" und
+"Lufthansa" finden dieselbe Airline. Auch nie geflogene Airlines erscheinen dann mit 0 Flügen.
+Ein Tipp auf eine Zeile öffnet `AirlineDetailFragment` (`action_airlines_to_detail`).
+In der Suche trägt das Rangzeichen keine Medaille, sondern den Rang der **ungefilterten Liste**
+(`AirlineAdapter.showMedals` / `RankBadgeView.setRank(rank, showMedals)`; der Rang kommt über
+`AirlineAdapter.submit(list, maxFlights, ranks)` aus der Gesamtliste, eine nie geflogene Airline
+trägt keinen Rang) - dasselbe gilt für die Suche der Reisebuddies (`TravelBuddyAdapter`) und der
+Kacheln Layover, Flughäfen und Hangar (`BarChartView.setShowMedals`, Rang fest über
+`BarChartView.Item.rank` aus der Gesamtliste; die Länderliste rechnet ihn ohnehin über
+`VisitedCountries.rankOf` aus der kompletten Liste). Die Suchergebnisse werden also nie nach
+ihrer Position in der Trefferliste neu durchnummeriert.
+
+Geöffnet zeigt die Suche ein X statt der Lupe (`ic_close`, Beschriftung `search_clear_desc`): Ein
+Tipp darauf löscht die Eingabe und schliesst das Feld. Dieselbe Konvention gilt auf der Seite
+*Einträge* (`btnEntrySearch`) und der Länderliste (`btnVisitedCountriesSearch`), die schon immer so
+gewechselt haben.
+
+Die Logos liegen als webp unter `assets/airlines/liveries/`, benannt nach dem **ICAO-Code**
+(`<ICAO>.webp`); das `file`-Feld in `airlines.json` zeigt darauf. Heruntergeladen werden sie
+**nicht automatisch**: ICAO-Codes kollidieren (Wikidata führt „BER" sowohl für Air Berlin als auch
+für Fly Air41 Airways; ein früherer Auto-Download legte deshalb das air41-Logo unter AB) und der
+Katalog enthielt veraltete Einträge (SN stand auf dem Vorgänger-Code „DAT" von SN Brussels
+Airlines, VL auf der 2016 aufgelösten Air VIA, 4Y auf Airbus France). Kuratiert werden die Logos
+von Hand im Ordner `liveries_manual/` (Datei nach IATA-Code benannt, z. B. `SN.png`, siehe README
+dort); `tools/sync_airline_logos.py` konvertiert sie nach `liveries/<ICAO>.webp` (max. 96 px
+Höhe), trägt das `file`-Feld ein und prüft die gesamte Zuordnung (fehlende Dateien, nicht nach
+ICAO benannte Dateien, Verwaiste). Quelle der Logos ist Wikimedia Commons (Public Domain).
+`AirlineLogosAssetTest` prüft die Zuordnung.
+
+Die Gruppierung läuft über `AirlineStats` (ohne Android, getestet in `AirlineStatsTest`): Ein
+gespeicherter Airline-Text wird über `AirlineCatalog.resolve` auf den kanonischen IATA-Code
+aufgelöst, "LH" und "DLH" landen in derselben Zeile; unbekannte Codes bleiben als eigener Rohtext
+stehen. Wie bei den Reisebuddies zählt die Flugzahl jeden Eintrag, Distanz und Flugzeit dagegen
+nur echte Flüge (kein Ground Transfer).
+
+Die Detailseite (`fragment_airline_detail.xml`) zeigt oben mittig das Logo aus
+`assets/airlines/liveries/` (`AirlineCatalog.loadLogo`, im Dark Mode aufgehellt wie in der
+Eintragsliste; ohne Logo steht der Code gross wie auf der Flughafen-Detailseite), darunter Name
+und die Codes ohne Beschriftung - IATA, ICAO, dahinter das Rufzeichen in geraden
+Anführungszeichen (`LH · DLH · "Lufthansa"`, `AirlineFacts.displayCallsign` macht aus den
+gespeicherten Grossbuchstaben die Wortschreibweise). Ist die Airline insolvent, trägt sie rechts
+neben dem Logo einen roten, schrägen **„Insolvent"-Stempel** (`tv_airline_insolvent`,
+`?attr/colorError` mit Rahmen aus `bg_airline_insolvent_stamp.xml`). Darunter folgt ein
+**Platzhalter** für ein Foto eines Fliegers in der Bemalung (die Bilder werden später
+nachgereicht, bis dahin nur die Kachel mit Hinweis). Dann folgen die **allgemeinen Stammdaten**
+über der Karte - unabhängig vom Logbuch, also auch für eine noch nie geflogene Airline: Gründung,
+darunter direkt das **Insolvenzjahr** (wenn vorhanden), Sitz, Hubs, Flottengröße, Allianz und ein
+**Wikipedia-Link** (Artikel der englischen Wikipedia, `AirlineFacts.wikiTitle` zeigt den
+Artikelnamen; ein Tipp öffnet die Seite per `Intent.ACTION_VIEW` im Standardbrowser) als Zeilen
+aus `item_airport_fact.xml` unter dem Abschnitt *Allgemein*. Zuletzt eine `RouteMiniMapView` wie
+bei Reisebuddy mit allen Strecken der Airline, darunter die Zahl der Flüge und Strecken und der
+Abschnitt *Deine Flüge* mit den **eigenen** Kenndaten (Flüge, erster/letzter Flug, Ziele, Distanz,
+Flugzeit, Flugzeugtypen). Ganz unten auf der Seite, klein (`LabelSmall`), steht der
+Quellennachweis der Stammdaten. Ein Tipp auf die Karte öffnet die Weltkarte mit voreingestelltem
+Airline-Filter (`filterAirline`-Argument, eigener Filter `airline` in der Weltkarte samt Feld in
+`sheet_map_filter.xml`; der Vergleich läuft über `AirlineStats.keyOf`, damit "LH" auch Einträge
+mit "DLH" trifft).
+
+Die Stammdaten liegen als Asset unter `assets/airlines/airline_facts.json`, Schlüssel ist der
+IATA-Code. Erzeugt wird die Datei von `tools/build_airline_facts.py`: Gründung (P571), Insolvenz
+(P576, frühestes Jahr), Sitz (P159, deutsch und englisch), Hubs (P113 als IATA-Code), Allianz
+(P114) und Rufzeichen (P432) kommen aus Wikidata (CC0) über den SPARQL-Endpunkt, dazu der
+`wiki`-Link aus dem englischen Sitelink des gewählten Eintrags; die Flottengröße kommt aus der
+Wikipedia-Infobox (`Flottenstärke`/`fleet_size`, CC BY-SA 4.0 - daher der Quellennachweis ganz
+unten auf der Detailseite). `AirlineFacts` lädt die Datei einmalig; die Hubs werden als
+IATA-Codes gespeichert und über `AirportNames` als Städtenamen in der App-Sprache angezeigt.
+Geprüft wird das Asset von `AirlineFactsTest`.
+
 ## Karte „CO₂-Ausgleich"
 
 Die Seite zeigt die nötige Pflanzfläche als Kreis in **echtem Maßstab** (Radius in Metern aus
@@ -192,6 +267,92 @@ vollständigen Entfernen: `Orthophotos.kt`, `OrthophotoOverlay.kt` und den Ordne
 `rebuildOverlays`, die Wache in `drawCountry`) entfernen, `OrthophotosAssetTest.kt` löschen und
 im Layout/den Strings die drei `co2_offset_credit_*`-Zeilen bzw. `tv_co2_attribution`
 zurücknehmen.
+
+## Kachel „Höhenstrahlung"
+
+Die Kachel *Höhenstrahlung* (Ikone `ic_radiation`, volle Breite, dieselbe Höhe wie die
+CO₂-Kachel) zeigt die geschätzte effektive Dosis aus kosmischer Höhenstrahlung in mSv für das
+**laufende Kalenderjahr**; rechts daneben steht die Gesamtsumme über alle Jahre. Ein Tipp öffnet
+`RadiationFragment` mit der Dosis je Kalenderjahr (neuestes Jahr oben), das i oben rechts im
+Kopf öffnet `RadiationInfoFragment` mit der Erklärung von Formel, Daten, Quellen und Grenzen.
+
+Das Modell steht ohne Android-Abhängigkeiten in `RadiationCalculator` (geprüft von
+`RadiationCalculatorTest`), die Jahresauswertung in `RadiationStats`:
+**Dosis = Dosisleistung × Flugzeit**, Dosisleistung R(h, φ) = 3 µSv/h · e^(0,35·(h−10 km)) ·
+(1 + sin²φ). Ankerpunkte sind die BfS-Richtwerte (am Boden ca. 300 µSv/a, in 11 km nördlich
+von 60° 8–9 µSv/h, FRA–JFK hin und zurück ca. 120 µSv) und der FED-Standard (4 µSv/h in 10 km);
+die Konstante 3 µSv/h in 10 km liegt dazwischen. Die Reiseflughöhe wird aus der
+Grosskreis-Distanz geschätzt (9 km auf der Kurzstrecke, je 3000 km ein km mehr, gedeckelt bei
+12 km), die Breite ist die des
+Grosskreis-Mittelpunkts (45° als Rückfall ohne Koordinaten). Flugzeit und Strecke kommen aus
+dem Eintrag, fehlt die Flugzeit, wird sie aus der Strecke geschätzt (`GeoMath.flightMinutes`,
+805 km/h plus 25 Minuten); fehlt beides, entfällt die Dosis. Ground Transfers zählen nicht.
+
+Die rechte Karte der Kachel ist glasig: halbtransparentes Indigo (`radiation_card_bg`
+`#A63F51B5`) mit hellem 1dp-Rand (`radiation_card_stroke` `#4DFFFFFF`). In der linken Spalte
+steht die Jahreszahl oben am Titel, die Dosis zentriert in der Kachelhöhe (FrameLayout,
+`layout_gravity="center_vertical"`) und am unteren Rand eine Zeile mit Jahr, Balken und
+Warndreieck. Der Balken (`RadiationLimitBar`, eigene View, 18dp hoch) zeigt den Anteil der
+Jahresdosis am Grenzwert von 20 mSv (`RadiationCalculator.ANNUAL_LIMIT_USV` = 20_000 µSv,
+Obergrenze für fliegendes Personal, Kategorie A der Strahlenschutzverordnung) als Prozent
+(`RadiationCalculator.percentOfAnnualLimit`): unter 50 % steht die Zahl rechts neben der
+Füllung auf der Spur, ab 50 % im ausgefüllten Balken (`RadiationLimitBar.labelInsideBar`,
+getestet in `RadiationLimitBarTest`). Liegt die Dosis über dem Grenzwert, ist die Füllung rot
+(`radiation_limit` `#FFD32F2F`, Balken gedeckelt bei 100 %) und ein rotes Warndreieck
+(`iv_radiation_warning`) erscheint; ein Tipp darauf öffnet ein Pop-up
+(`showRadiationLimitWarning` in `FirstFragment`, `MaterialAlertDialogBuilder`).
+
+Dasselbe Layout gilt für die CO₂-Kachel: Titel oben, darunter die Beschriftung
+*CO₂-Emissionen*, die Tonnenzahl zentriert in der Kachelhöhe. Weil die zentrierte Zahl den
+oberen Rand der Kachel einnimmt, liegt das `paddingTop` nicht mehr auf der äußeren Zeile,
+sondern auf dem Titelblock; die rechte Karte behält ihre Lage über `layout_marginTop="16dp"`
+(8dp ehemaliges Zeilen-Padding plus 8dp Rand) und `layout_marginBottom="8dp"`.
+
+Auf der Detailseite steht der Untertitel der Kachel nicht mehr im Kopf, sondern als Karte über
+der Jahresliste (im Format der Achievements-Kachel, Text `radiation_detail_subtitle`). Auf der
+Infoseite steht der Abschnitt *Grenzen der Schätzung* ganz oben, *Quellen und Richtwerte* ganz
+unten; darunter ein Link zum Bundesamt für Strahlenschutz (`tv_radiation_bfs_link` in
+`fragment_radiation_info.xml`, URL `radiation_info_bfs_url`), der über `RadiationInfoFragment`
+unterstrichen dargestellt wird und im Standardbrowser des Handys öffnet.
+
+Grundlage ist dieselbe Auswahl wie die Kachel selbst: der **Flugart-Filter** gilt
+(`DashboardStats.flightTypeEntries`), der **Zeitraum-Filter des Dashboards nicht** – die Kachel
+zeigt das laufende Jahr, die Detailseite listet alle Jahre. Die Kachel steht in
+`DashboardPrefs.CATALOG` (`Tile("radiation", …, span = SPAN_FULL, heightDp = 104)`) und in
+`DEFAULT_ROWS` nach der CO₂-Kachel; dafür wurde `KEY_TILES` auf `tiles_standard_v16` erhöht.
+
+## Kachel „Passagiere"
+
+Die Kachel *Passagiere* (Ikone `ic_passengers`, volle Breite, dieselbe Höhe wie die CO₂- und
+Höhenstrahlungs-Kachel) ist eine reine Besatzungs-Kachel: `DashboardPrefs.isTileAvailable`
+lässt sie nur bei der Rolle *Crew* zu (`role.isCrew`) - im Dashboard und im Bearbeiten-Dialog
+gleichermaßen. Sie zeigt die geschätzte Gesamtzahl der Passagiere über **alle Jahre** (auf volle
+Tausender gerundet); rechts daneben steht der Durchschnitt pro Flug. Ein Tipp öffnet
+`PassengersFragment` mit der Passagierzahl je Kalenderjahr (neuestes Jahr oben, Balken zum
+stärksten Jahr); das Adjust-Symbol oben rechts im Kopf (`ic_adjust`) öffnet einen Dialog, der
+die Auslastung zwischen 50 und 100 % in 5er-Schritten einstellt (Standard 80 %, pro Nutzer
+gespeichert in `Settings.getPassengerLoadFactor`).
+
+Die Rechnung steht ohne Android-Abhängigkeiten in `PassengersCalculator` (geprüft von
+`PassengersCalculatorTest`): **Passagiere = maximale Sitzplätze des Typs × Auslastung ÷ 100**.
+Die Sitzplätze kommen aus `assets/aircraft/aircraft_seats.json` (`AircraftSeats.load`, geprüft
+von `AircraftSeatsTest` und `AircraftSeatsAssetTest`): zertifizierte Single-Class-Maxima je
+Familie (A320: 186, A380: 853, …) plus Alias-Codes („320", „738", „AT72"), die
+`AircraftSeats.Catalog.seatsFor` per Präfix-Matching auf die Familie abbildet („A350-900",
+„Boeing 737-800", „B738", „737 MAX"). Ein unbekannter oder fehlender Typ bekommt den
+Durchschnitt des Datensatzes (≈ 273 Sitze). Ground Transfers zählen nicht.
+
+Weil die Schätzung (Maximalbestuhlung × Auslastung) eine echte Ungenauigkeit trägt, werden
+Summen auf volle Tausender gerundet (`PassengersCalculator.roundToThousands`) - Kachel und
+Jahreswerte; der Durchschnitt pro Flug bleibt eine ganze Zahl. Grundlage ist dieselbe Auswahl
+wie die Höhenstrahlung: der **Flugart-Filter** gilt (`DashboardStats.flightTypeEntries`), der
+**Zeitraum-Filter des Dashboards nicht**.
+
+Die rechte Karte der Kachel ist wie die Höhenstrahlung glasig: halbtransparentes Teal
+(`passengers_card_bg` `#A600897B`) mit hellem 1dp-Rand (`passengers_card_stroke` `#4DFFFFFF`).
+Die Kachel steht in `DashboardPrefs.CATALOG` (`Tile("passengers", …, span = SPAN_FULL,
+heightDp = 104)`) und in `DEFAULT_ROWS` nach der Höhenstrahlung; dafür wurde `KEY_TILES` auf
+`tiles_standard_v17` erhöht.
 
 ## Seite „Distanz"
 

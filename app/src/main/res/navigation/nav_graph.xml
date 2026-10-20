@@ -32,11 +32,20 @@
             android:id="@+id/action_dashboard_to_travel_buddies"
             app:destination="@id/nav_travel_buddies" />
         <action
+            android:id="@+id/action_dashboard_to_airlines"
+            app:destination="@id/nav_airlines" />
+        <action
             android:id="@+id/action_dashboard_to_visited_countries"
             app:destination="@id/nav_visited_countries" />
         <action
             android:id="@+id/action_dashboard_to_co2_offset"
             app:destination="@id/nav_co2_offset" />
+        <action
+            android:id="@+id/action_dashboard_to_radiation"
+            app:destination="@id/nav_radiation" />
+        <action
+            android:id="@+id/action_dashboard_to_passengers"
+            app:destination="@id/nav_passengers" />
         <action
             android:id="@+id/action_dashboard_to_achievements"
             app:destination="@id/nav_achievements" />
@@ -304,6 +313,37 @@
             app:destination="@id/nav_travel_buddy_detail" />
     </fragment>
 
+    <!-- Rangliste der Kachel "Fluggesellschaften": Airlines mit Zahl der Flüge
+         als Balken wie bei Reisebuddy, dazu eine Suche über Code und Name wie
+         bei den Flughäfen. Ein Tipp auf eine Zeile öffnet die Detailseite. -->
+    <fragment
+        android:id="@+id/nav_airlines"
+        android:name="com.highfly.logbook.AirlinesFragment"
+        tools:layout="@layout/fragment_airlines">
+
+        <action
+            android:id="@+id/action_airlines_to_detail"
+            app:destination="@id/nav_airline_detail" />
+    </fragment>
+
+    <!-- Detailseite einer Airline: Logo, Name, Codes, Platzhalter für ein
+         Foto, Kenndaten und die Karte der geflogenen Strecken. Ein Tipp auf
+         die Karte öffnet die Weltkarte mit voreingestelltem Airline-Filter. -->
+    <fragment
+        android:id="@+id/nav_airline_detail"
+        android:name="com.highfly.logbook.AirlineDetailFragment"
+        tools:layout="@layout/fragment_airline_detail">
+
+        <argument
+            android:name="code"
+            app:argType="string"
+            android:defaultValue="" />
+
+        <action
+            android:id="@+id/action_airline_detail_to_world_map"
+            app:destination="@id/nav_world_map" />
+    </fragment>
+
     <fragment
         android:id="@+id/nav_travel_buddy_detail"
         android:name="com.highfly.logbook.TravelBuddyDetailFragment"
@@ -330,6 +370,32 @@
         android:id="@+id/nav_co2_offset"
         android:name="com.highfly.logbook.Co2OffsetFragment"
         tools:layout="@layout/fragment_co2_offset" />
+
+    <!-- Seite "Höhenstrahlung": Dosis je Kalenderjahr, neustes Jahr oben.
+         Die Kachel öffnet die Seite, das i im Header die Erklärseite. -->
+    <fragment
+        android:id="@+id/nav_radiation"
+        android:name="com.highfly.logbook.RadiationFragment"
+        tools:layout="@layout/fragment_radiation">
+
+        <action
+            android:id="@+id/action_radiation_to_info"
+            app:destination="@id/nav_radiation_info" />
+    </fragment>
+
+    <!-- Erklärung der Höhenstrahlungs-Berechnung: Formel, Daten, Quellen. -->
+    <fragment
+        android:id="@+id/nav_radiation_info"
+        android:name="com.highfly.logbook.RadiationInfoFragment"
+        tools:layout="@layout/fragment_radiation_info" />
+
+    <!-- Seite "Passagiere" (nur Besatzung): geschätzte Passagierzahlen je
+         Kalenderjahr, neustes Jahr oben. Die Kachel öffnet die Seite, das
+         Adjust-Symbol im Kopf stellt die Auslastung ein. -->
+    <fragment
+        android:id="@+id/nav_passengers"
+        android:name="com.highfly.logbook.PassengersFragment"
+        tools:layout="@layout/fragment_passengers" />
 
     <!-- Seite "Achievements": Fortschritt und Zeitstrahl der erreichten Erfolge.
          Die hervorgehobene Kachel öffnet die Übersicht aller Erfolge, eine

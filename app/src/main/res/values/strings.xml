@@ -62,6 +62,47 @@
     <string name="co2_offset_credit_hessen">© HVBG Hessen (dl-de/zero-2.0)</string>
     <string name="co2_offset_credit_bayern">© Bayerische Vermessungsverwaltung (CC BY 4.0)</string>
     <string name="satellite_credit_cloudless" translatable="false">Sentinel-2 Cloudless 2016/2017 by EOX IT Services GmbH (CC BY 4.0)</string>
+    <string name="tile_radiation">Höhenstrahlung</string>
+    <string name="radiation_unit" translatable="false">mSv</string>
+    <string name="radiation_total_title">Gesamt</string>
+    <string name="radiation_total_label">alle Jahre</string>
+    <string name="radiation_detail_title">Höhenstrahlung</string>
+    <string name="radiation_detail_subtitle">Effektive Dosis aus kosmischer Höhenstrahlung, geschätzt aus Flugzeit und Strecke</string>
+    <string name="radiation_filter_flight_type">Flugart: %1$s</string>
+    <string name="radiation_info_desc">Berechnung der Höhenstrahlung erklären</string>
+    <string name="radiation_empty">Noch keine Flüge erfasst.</string>
+    <string name="radiation_year_hours">%1$s h geflogen</string>
+    <string name="radiation_info_title">So wird gerechnet</string>
+    <string name="radiation_info_what_title">Was wird angezeigt?</string>
+    <string name="radiation_info_what_body">Die effektive Dosis aus kosmischer Höhenstrahlung in Millisievert (mSv) - die Strahlung, der der Körper in der Reiseflughöhe ausgesetzt ist. Die Kachel zeigt das laufende Jahr, die Detailseite listet jedes Jahr. Es ist eine Schätzung aus den Logbuchdaten, keine Messung.</string>
+    <string name="radiation_info_formula_title">Die Formel</string>
+    <string name="radiation_info_formula_body">Dosis = Dosisleistung × Flugzeit. Die Dosisleistung in der Reiseflughöhe wächst mit der Höhe und mit der geografischen Breite: 3 µSv/h bei 10 km × e^(0,35 × (Höhe − 10 km)) × (1 + sin² Breite). Am Äquator ist sie am kleinsten, an den Polen etwa doppelt so hoch. Einheiten: 1 mSv = 1.000 µSv.</string>
+    <string name="radiation_info_data_title">Die Daten</string>
+    <string name="radiation_info_data_body">Flugzeit und Strecke kommen aus dem Logbucheintrag; fehlt die Flugzeit, wird sie aus der Strecke geschätzt (805 km/h plus 25 Minuten). Die Strecke ist die Grosskreis-Distanz zwischen den Flughafenkoordinaten der App. Die Reiseflughöhe wird aus der Distanz geschätzt: 9 km auf der Kurzstrecke bis 12 km auf der Langstrecke. Die Breite ist die des Grosskreis-Mittelpunkts. Ground Transfers zählen nicht.</string>
+    <string name="radiation_info_sources_title">Quellen und Richtwerte</string>
+    <string name="radiation_info_sources_body">Bundesamt für Strahlenschutz (BfS), „Höhenstrahlung und Fliegen“: am Boden ca. 300 µSv pro Jahr, in 11 km Höhe nördlich des 60. Breitengrads 8–9 µSv pro Stunde, Frankfurt–New York hin und zurück ca. 120 µSv. FED-Standard der Luftfahrt: 4 µSv/h in 10 km Höhe. Die typische Jahresdosis von Flugpersonal liegt bei 2–6 mSv.</string>
+    <string name="radiation_info_limits_title">Grenzen der Schätzung</string>
+    <string name="radiation_info_limits_body">Es ist eine Schätzung, keine Messung. Nicht modelliert sind: die Sonnenaktivität (sie schwankt die Dosis um etwa 15–30 %), die tatsächliche Reiseflughöhe des Flugzeugs und die Näherung der geomagnetischen Breite durch die geografische Breite. Einzelne Flüge können daher nach oben oder unten abweichen.</string>
+    <string name="radiation_limit_percent">%1$d %%</string>
+    <string name="radiation_limit_title">Jahresgrenzwert überschritten</string>
+    <string name="radiation_limit_message">Die geschätzte effektive Dosis aus kosmischer Höhenstrahlung für dieses Jahr liegt über 20 mSv. Das ist die Obergrenze für die jährliche Strahlenbelastung von fliegendem Personal (beruflich strahlenexponierte Personen, Kategorie A der Strahlenschutzverordnung). Die Angabe ist eine Schätzung aus Flugzeit und Strecke, keine Messung - die Berechnung ist über das i oben rechts auf der Detailseite erklärt.</string>
+    <string name="radiation_limit_desc">Jahresgrenzwert überschritten - Hinweis anzeigen</string>
+    <string name="radiation_info_bfs_link">Bundesamt für Strahlenschutz (BfS): Höhenstrahlung beim Fliegen</string>
+    <string name="radiation_info_bfs_url" translatable="false">https://www.bfs.de/DE/themen/ion/umwelt/luft/flug/flug.html</string>
+    <string name="tile_passengers">Passagiere</string>
+    <string name="passengers_unit">Passagiere</string>
+    <string name="passengers_avg_title">Ø pro Flug</string>
+    <string name="passengers_card_label">geschätzt</string>
+    <string name="passengers_load_factor">Auslastung %1$d %%</string>
+    <string name="passengers_load_factor_percent">%1$d %%</string>
+    <string name="passengers_detail_title">Passagiere</string>
+    <string name="passengers_detail_subtitle">Geschätzt aus maximaler Sitzplatzanzahl und Auslastung von %1$d %%</string>
+    <string name="passengers_filter_flight_type">Flugart: %1$s</string>
+    <string name="passengers_adjust_desc">Auslastung einstellen</string>
+    <string name="passengers_adjust_title">Auslastung einstellen</string>
+    <string name="passengers_adjust_hint">Bestimmt, wie viele Passagiere pro Flug geschätzt werden (Sitzplätze × Auslastung).</string>
+    <string name="passengers_empty">Noch keine Flüge erfasst.</string>
+    <string name="search_clear_desc">Suche löschen und schließen</string>
     <string name="tile_detail_continents">Nach Kontinent</string>
     <string name="tile_detail_aircraft_types">Flugzeugtypen</string>
     <string name="time_detail_longest">Längster Flug</string>
@@ -397,6 +438,7 @@
     <string name="world_map_filter">Kartenfilter</string>
     <string name="world_map_filter_travel_type">Reiseart</string>
     <string name="world_map_filter_class">Reiseklasse</string>
+    <string name="world_map_filter_airline">Fluggesellschaft</string>
     <string name="world_map_filter_layover_yes">Ja</string>
     <string name="world_map_filter_layover_no">Nein</string>
     <string name="world_map_filter_city_language">Städtenamen Anzeigesprache</string>
@@ -496,6 +538,43 @@
         <item quantity="one">Flug</item>
         <item quantity="other">Flüge</item>
     </plurals>
+
+    <!-- Fluggesellschaften: Rangliste und Detailseite der Kachel -->
+    <string name="airlines_subtitle">%1$d Fluggesellschaften auf %2$d Flügen</string>
+    <string name="airlines_empty">Für keinen Flug eine Fluggesellschaft eingetragen. Code und Nummer stehen beim Flug im Feld Flugnummer.</string>
+    <string name="airline_desc">%1$s, Rang %2$d, %3$s</string>
+    <string name="airline_desc_unranked">%1$s, %2$s</string>
+    <string name="airline_search_desc">Fluggesellschaften suchen</string>
+    <string name="airline_search_hint">Code oder Name</string>
+    <string name="airline_search_empty">Keine Fluggesellschaften gefunden</string>
+    <plurals name="airline_flights">
+        <item quantity="one">%1$d Flug</item>
+        <item quantity="other">%1$d Flüge</item>
+    </plurals>
+    <!-- Detailseite einer Fluggesellschaft -->
+    <string name="airline_image_placeholder">Foto der Bemalung folgt in Kürze</string>
+    <string name="airline_fact_flights">Flüge</string>
+    <string name="airline_fact_first">Erster Flug</string>
+    <string name="airline_fact_last">Letzter Flug</string>
+    <string name="airline_fact_destinations">Ziele</string>
+    <string name="airline_fact_distance">Distanz</string>
+    <string name="airline_fact_time">Flugzeit</string>
+    <string name="airline_fact_types">Flugzeugtypen</string>
+    <string name="airline_general_title">Allgemein</string>
+    <string name="airline_user_title">Deine Flüge</string>
+    <string name="airline_fact_founded">Gründung</string>
+    <string name="airline_fact_insolvency">Insolvenz</string>
+    <string name="airline_fact_hq">Sitz</string>
+    <string name="airline_fact_hubs">Hubs</string>
+    <string name="airline_fact_fleet">Flottengröße</string>
+    <string name="airline_fact_alliance">Allianz</string>
+    <string name="airline_fact_wikipedia">Wikipedia</string>
+    <string name="airline_insolvent_stamp">Insolvent</string>
+    <string name="airline_facts_source" translatable="false">Stammdaten: Wikidata (CC0) · Wikipedia (CC BY-SA 4.0)</string>
+    <string name="airline_map_title">Geflogene Strecken</string>
+    <string name="airline_map_stats">%1$d Flüge auf %2$d Strecken</string>
+    <string name="airline_map_desc">Karte der geflogenen Strecken. Antippen öffnet die Weltkarte, gefiltert auf diese Fluggesellschaft.</string>
+    <string name="airline_detail_empty">Noch keine Flüge mit dieser Fluggesellschaft erfasst.</string>
 <!-- Import page -->
     <string name="import_page_title">Import</string>
     <string name="import_step1_title">Schritt 1 · Importart wählen</string>
@@ -531,7 +610,7 @@
     <string name="import_review_summary_unknown">Unbekannt</string>
 
     <string name="settings_version_label">Version %1$s</string>
-    <string name="settings_version" translatable="false">0.0.29</string>
+    <string name="settings_version" translatable="false">0.0.30</string>
     <string name="settings_made_with_prefix">Made with</string>
     <string name="settings_made_with_suffix">by expressiveminute</string>
 

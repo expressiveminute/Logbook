@@ -86,13 +86,19 @@ class WorldMapFragment : Fragment() {
         val classType: String = "",
         val aircraftType: String = "",
         val layover: String = "",
-        val travelBuddy: String = ""
+        val travelBuddy: String = "",
+        val airline: String = ""
     ) {
         fun isActive(): Boolean =
-            listOf(flightType, classType, aircraftType, layover, travelBuddy)
+            listOf(flightType, classType, aircraftType, layover, travelBuddy, airline)
                 .any { it.isNotBlank() }
 
-        fun matches(entry: LogbookEntry): Boolean {
+        /**
+         * [resolveAirline] löst einen gespeicherten Airline-Text auf den
+         * kanonischen Schlüssel auf (siehe [AirlineStats.keyOf]), damit "LH"
+         * und "DLH" denselben Filter treffen.
+         */
+        fun matches(entry: LogbookEntry, resolveAirline: (String?) -> String?): Boolean {
             if (flightType.isNotBlank() &&
                 entry.flightType?.lowercase()?.contains(flightType.lowercase()) != true
             ) return false
@@ -105,6 +111,9 @@ class WorldMapFragment : Fragment() {
             if (layover == "yes" && !entry.layover) return false
             if (layover == "no" && entry.layover) return false
             if (!TravelBuddyStats.matches(entry.travelBuddy, travelBuddy)) return false
+            if (airline.isNotBlank() &&
+                resolveAirline(entry.airline) != resolveAirline(airline)
+            ) return false
             return true
         }
     }
@@ -132,6 +141,10 @@ class WorldMapFragment : Fragment() {
         val filterTravelBuddy = arguments?.getString("filterTravelBuddy")?.trim().orEmpty()
         if (filterTravelBuddy.isNotBlank()) {
             activeMapFilter = activeMapFilter.copy(travelBuddy = filterTravelBuddy)
+        }
+        val filterAirline = arguments?.getString("filterAirline")?.trim().orEmpty()
+        if (filterAirline.isNotBlank()) {
+            activeMapFilter = activeMapFilter.copy(airline = filterAirline)
         }
 
         binding.btnBack.setOnClickListener { findNavController().navigateUp() }
@@ -251,7 +264,8 @@ class WorldMapFragment : Fragment() {
                 val routeCounts = linkedMapOf<Pair<String, String>, Int>()
                 val allEntries = DashboardStats.dashboardEntries(context)
                 // Filter die Einträge basierend auf activeMapFilter
-                val entries = allEntries.filter { activeMapFilter.matches(it) }
+                val resolveAirline = airlineKeyResolver(context)
+                val entries = allEntries.filter { activeMapFilter.matches(it, resolveAirline) }
 
                 for (entry in entries) {
                     val fromIata = entry.fromAirport.uppercase()
@@ -440,8 +454,9 @@ class WorldMapFragment : Fragment() {
         val airports = linkedMapOf<String, GeoPoint>()
         val routeCounts = linkedMapOf<Pair<String, String>, Int>()
 
+        val resolveAirline = airlineKeyResolver(context)
         for (entry in entries) {
-            if (!filter.matches(entry)) continue
+            if (!filter.matches(entry, resolveAirline)) continue
             val fromIata = entry.fromAirport.uppercase()
             val toIata = entry.toAirport.uppercase()
             val from = AirportData.location(context, fromIata)
@@ -498,6 +513,7 @@ class WorldMapFragment : Fragment() {
         val filterTravelType = sheetView.findViewById<AutoCompleteTextView>(R.id.filter_travel_type)
         val filterClass = sheetView.findViewById<AutoCompleteTextView>(R.id.filter_class)
         val filterAircraftType = sheetView.findViewById<AutoCompleteTextView>(R.id.filter_aircraft_type)
+        val filterAirline = sheetView.findViewById<AutoCompleteTextView>(R.id.filter_airline)
         val filterLayover = sheetView.findViewById<AutoCompleteTextView>(R.id.filter_layover)
         val filterTravelBuddy = sheetView.findViewById<AutoCompleteTextView>(R.id.filter_travel_buddy)
         val filterCityLanguage = sheetView.findViewById<AutoCompleteTextView>(R.id.filter_city_language)
@@ -534,6 +550,9 @@ class WorldMapFragment : Fragment() {
             )
         )
         filterAircraftType.setAdapter(stringSuggestionsAdapter { it.aircraftType })
+        // Die Vorschläge kommen aus den Airlines der Einträge; "LH" und "DLH"
+        // treffen über die Katalog-Auflösung denselben Filter.
+        filterAirline.setAdapter(stringSuggestionsAdapter { it.airline })
         filterLayover.setAdapter(
             labelAdapter(
                 getString(R.string.world_map_filter_layover_yes),
@@ -555,6 +574,7 @@ class WorldMapFragment : Fragment() {
         highlightFilterValue(filterTravelType)
         highlightFilterValue(filterClass)
         highlightFilterValue(filterAircraftType)
+        highlightFilterValue(filterAirline)
         highlightFilterValue(filterLayover)
         highlightFilterValue(filterTravelBuddy)
         // The city language always holds a label; only a non-default choice
@@ -566,6 +586,7 @@ class WorldMapFragment : Fragment() {
         filterTravelType.setText(activeMapFilter.flightType, false)
         filterClass.setText(activeMapFilter.classType, false)
         filterAircraftType.setText(activeMapFilter.aircraftType, false)
+        filterAirline.setText(activeMapFilter.airline, false)
         filterLayover.setText(when (activeMapFilter.layover) {
             "yes" -> getString(R.string.world_map_filter_layover_yes)
             "no" -> getString(R.string.world_map_filter_layover_no)
@@ -590,6 +611,7 @@ class WorldMapFragment : Fragment() {
                 flightType = filterTravelType.text?.toString()?.trim().orEmpty(),
                 classType = filterClass.text?.toString()?.trim().orEmpty(),
                 aircraftType = filterAircraftType.text?.toString()?.trim().orEmpty(),
+                airline = filterAirline.text?.toString()?.trim().orEmpty(),
                 layover = if (role.showsLayover) {
                     when (filterLayover.text?.toString()?.trim().orEmpty()) {
                         getString(R.string.world_map_filter_layover_yes) -> "yes"
@@ -632,6 +654,15 @@ class WorldMapFragment : Fragment() {
         buildOverlays(mv)
         updateFilterButton()
         mv.invalidate()
+    }
+
+    /**
+     * Löst einen gespeicherten Airline-Text auf den kanonischen Schlüssel auf
+     * (siehe [AirlineStats.keyOf]): "LH" und "DLH" ergeben denselben Schlüssel,
+     * damit der Airline-Filter beide Schreibweisen trifft.
+     */
+    private fun airlineKeyResolver(context: Context): (String?) -> String? = { raw ->
+        AirlineStats.keyOf(raw) { AirlineCatalog.resolve(context, it) }
     }
 
     private fun labelAdapter(vararg labels: String): ArrayAdapter<String> =

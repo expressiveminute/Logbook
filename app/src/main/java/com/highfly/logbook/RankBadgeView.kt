@@ -16,7 +16,10 @@ import com.google.android.material.color.MaterialColors
  * Platznummer. Danach bleibt das Feld leer, damit die Zeilen ruhig bleiben.
  *
  * Der Platz wird über [setRank] gesetzt und ist rein dekorativ: Die
- * Beschriftung der Zeile nennt den Rang für die Sprachausgabe mit.
+ * Beschriftung der Zeile nennt den Rang für die Sprachausgabe mit. In der
+ * Suche ([setRank] mit `showMedals = false`) zeichnet auch Platz 1 bis 3 nur
+ * die Platznummer - eine Medaille passt nicht zu einem Suchergebnis, das
+ * unter Umständen noch nie geflogen wurde.
  */
 class RankBadgeView @JvmOverloads constructor(
     context: Context,
@@ -24,6 +27,9 @@ class RankBadgeView @JvmOverloads constructor(
 ) : View(context, attrs) {
 
     private var rank = 0
+
+    /** Ob die Plätze 1 bis 3 als Medaille gezeichnet werden. */
+    private var showMedals = true
 
     private val medalFill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
@@ -44,11 +50,16 @@ class RankBadgeView @JvmOverloads constructor(
         textSize = 12f * resources.displayMetrics.density
     }
 
-    /** Setzt den Platz; Werte über [MAX_NUMBER_RANK] zeichnen nichts. */
-    fun setRank(value: Int) {
+    /**
+     * Setzt den Platz; Werte über [MAX_NUMBER_RANK] zeichnen nichts. Mit
+     * `showMedals = false` (Suchmodus) wird auch für die Plätze 1 bis 3 nur
+     * die Platznummer gezeichnet.
+     */
+    fun setRank(value: Int, showMedals: Boolean = true) {
         val next = value.coerceAtLeast(0)
-        if (rank == next) return
+        if (rank == next && this.showMedals == showMedals) return
         rank = next
+        this.showMedals = showMedals
         invalidate()
     }
 
@@ -56,7 +67,7 @@ class RankBadgeView @JvmOverloads constructor(
         super.onDraw(canvas)
         when {
             rank == 0 -> Unit
-            rank <= 3 -> drawMedal(canvas)
+            rank <= 3 && showMedals -> drawMedal(canvas)
             rank <= MAX_NUMBER_RANK -> drawNumber(canvas)
         }
     }

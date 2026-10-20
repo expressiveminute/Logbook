@@ -98,7 +98,7 @@ object ChartData {
     )
 
     private val BAR_CHART_TILES = setOf(
-        "flights", "routes", "flightroutes", "airlines", "layover", "aircraftreg", "countries"
+        "flights", "routes", "flightroutes", "layover", "aircraftreg", "countries"
     )
     private val PIE_CHART_TILES = setOf("class", "traveltype", "function")
 
@@ -170,7 +170,6 @@ object ChartData {
         val counts: Map<String, Int> = when (tileId) {
             "flights" -> flightsPerPeriod(entries, key, context)
             "flightroutes" -> countBy(entries) { routeOf(it) }
-            "airlines" -> countBy(entries) { it.airline }
             "aircraftreg" -> countBy(entries) { it.registration }
             "countries" -> countBy(entries) { it.toCountry }
                 .mapKeys { (code, _) -> "${code} ${AirportData.flagEmoji(code)}" }

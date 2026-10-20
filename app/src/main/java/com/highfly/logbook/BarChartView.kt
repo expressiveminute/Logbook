@@ -21,12 +21,17 @@ class BarChartView @JvmOverloads constructor(
      * @param countLabel Zahl, die statt [count] neben dem Balken steht, wenn der
      *   Balken nicht eine Anzahl, sondern einen anderen Messwert darstellt
      *   (z. B. eine Flugdauer in Minuten).
+     * @param rank Rang des Balkens, fest vorgegeben - der Rang in der
+     *   ungefilterten Liste, damit die Suche nicht die Positionen der
+     *   Suchergebnisse als Rang anzeigt. Ohne Angabe (null) wird der Rang aus
+     *   dem Wert gerechnet, siehe [rankFor].
      */
     data class Item(
         val label: String,
         val count: Int,
         val subLabel: String? = null,
-        val countLabel: String? = null
+        val countLabel: String? = null,
+        val rank: Int? = null
     )
 
     private val items = mutableListOf<Item>()
@@ -61,6 +66,7 @@ class BarChartView @JvmOverloads constructor(
     private var medalRadius = 0f
     private var barInset = 0f
     private var showRanks = true
+    private var showMedals = true
     private var barFraction = 1f
     private var labelReferences: List<String> = emptyList()
     private var valueInsideBar = false
@@ -118,6 +124,21 @@ class BarChartView @JvmOverloads constructor(
     fun setShowRanks(show: Boolean) {
         if (showRanks == show) return
         showRanks = show
+        requestLayout()
+        invalidate()
+    }
+
+    /**
+     * Blendet die Medaillen aus und zeigt stattdessen die Platznummer als
+     * Rang. Gedacht für die Suche (Layover, Flughäfen, Hangar): Ein
+     * Suchergebnis trägt keine Medaille. Sein Rang kommt dann über
+     * [Item.rank] aus der ungefilterten Liste und bleibt erhalten, statt der
+     * Position im Suchergebnis zu folgen; ein nie angeflogener Flughafen mit
+     * dem Wert 0 trägt keinen Rang.
+     */
+    fun setShowMedals(show: Boolean) {
+        if (showMedals == show) return
+        showMedals = show
         requestLayout()
         invalidate()
     }
@@ -390,12 +411,15 @@ class BarChartView @JvmOverloads constructor(
     }
 
     /**
-     * Rang eines Balkens: 1 für den größten Wert, dann absteigend. Balken mit
-     * dem Wert 0 tragen keinen Rang (0), weil sie nur gefundene, aber nie
-     * angeflogene Flughäfen der Suche sind - eine Medaille für "nichts
-     * geflogen" wäre irreführend.
+     * Rang eines Balkens: 1 für den größten Wert, dann absteigend, geteilt bei
+     * Gleichstand. Balken mit dem Wert 0 tragen keinen Rang (0), weil sie nur
+     * gefundene, aber nie angeflogene Flughäfen der Suche sind - eine Medaille
+     * für "nichts geflogen" wäre irreführend. Ein über [Item.rank] fest
+     * vorgegebener Rang (der Rang in der ungefilterten Liste) gilt immer, in
+     * der Suche ebenso wie ohne Suche.
      */
     private fun rankFor(index: Int): Int {
+        items[index].rank?.let { return it }
         val value = items[index].count
         if (value <= 0) return 0
         return items.map { it.count }.distinct().count { it > value } + 1
@@ -415,7 +439,7 @@ class BarChartView @JvmOverloads constructor(
         if (!showRanks) return
         val rank = rankFor(index)
         if (rank <= 0) return
-        if (rank <= 3) {
+        if (rank <= 3 && showMedals) {
             val (color, rim) = when (rank) {
                 1 -> MEDAL_GOLD to MEDAL_GOLD_RIM
                 2 -> MEDAL_SILVER to MEDAL_SILVER_RIM

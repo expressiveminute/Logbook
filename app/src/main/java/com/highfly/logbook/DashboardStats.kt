@@ -68,6 +68,18 @@ object DashboardStats {
     }
 
     /**
+     * Alle geflogenen Einträge nach Flugart gefiltert ("Alle Flüge", "Nur
+     * Dienstlich", "Nur Privat"), ohne Zeitraum-Filter. Grundlage für
+     * Auswertungen, die sich nicht nach dem Zeitraum richten - die Kachel
+     * "Höhenstrahlung" zeigt das laufende Jahr, nicht den gewählten Zeitraum.
+     */
+    fun flightTypeEntries(context: Context): List<LogbookEntry> =
+        FlightTypeOptions.filter(
+            LogbookRepository.getFlownEntries(),
+            Settings.getFlightTypeFilterKey(context)
+        )
+
+    /**
      * Die Einträge, die das Dashboard gerade zeigt: erst nach Flugart
      * ("Alle Flüge", "Nur Dienstlich", "Nur Privat"), dann nach dem gewählten
      * Zeitraum. Beide Filter der Zeile über dem Dashboard wirken deshalb
@@ -77,10 +89,7 @@ object DashboardStats {
      */
     fun dashboardEntries(context: Context): List<LogbookEntry> =
         filterForPeriod(
-            FlightTypeOptions.filter(
-                LogbookRepository.getFlownEntries(),
-                Settings.getFlightTypeFilterKey(context)
-            ),
+            flightTypeEntries(context),
             Settings.getDefaultPeriodKey(context)
         )
 

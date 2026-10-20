@@ -27,12 +27,26 @@ class TravelBuddyAdapter : RecyclerView.Adapter<TravelBuddyAdapter.ViewHolder>()
      */
     private var maxFlights: Int = 0
 
+    /**
+     * Rang je Name aus der ungefilterten Liste. In der Suche bleibt dieser
+     * Rang stehen, statt der Position im Suchergebnis.
+     */
+    private var ranks: Map<String, Int> = emptyMap()
+
+    /**
+     * Ob die Medaillen gezeichnet werden. In der Suche (false) zeigt das
+     * Rangzeichen nur die Platznummer.
+     */
+    var showMedals: Boolean = true
+
     fun submit(
         list: List<TravelBuddyStats.Buddy>,
-        maxFlights: Int = list.maxOfOrNull { it.flights } ?: 0
+        maxFlights: Int = list.maxOfOrNull { it.flights } ?: 0,
+        ranks: Map<String, Int> = emptyMap()
     ) {
         items = list
         this.maxFlights = maxFlights
+        this.ranks = ranks
         notifyDataSetChanged()
     }
 
@@ -44,7 +58,7 @@ class TravelBuddyAdapter : RecyclerView.Adapter<TravelBuddyAdapter.ViewHolder>()
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(items[position], position + 1)
+        holder.bind(items[position], ranks[items[position].name] ?: 0)
     }
 
     override fun getItemCount(): Int = items.size
@@ -59,7 +73,7 @@ class TravelBuddyAdapter : RecyclerView.Adapter<TravelBuddyAdapter.ViewHolder>()
         }
 
         fun bind(item: TravelBuddyStats.Buddy, rank: Int) {
-            binding.badgeTravelBuddyRank.setRank(rank)
+            binding.badgeTravelBuddyRank.setRank(rank, showMedals)
             binding.travelBuddyBar.setFraction(
                 if (maxFlights > 0) item.flights.toFloat() / maxFlights else 0f
             )

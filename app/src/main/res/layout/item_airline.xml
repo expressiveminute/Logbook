@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Eine Zeile der Fluggesellschaften-Liste, im Aufbau der Reisebuddy-Liste:
+     Rangzeichen (Medaille bzw. Platznummer), Name und Codes, die Zahl der
+     Flüge rechts daneben und dahinter ein Pfeil. Im Hintergrund liegt ein
+     diskreter Balken, der die Flugzahl im Verhältnis zur häufigsten Airline
+     zeigt. Ein Tipp auf die Zeile öffnet die Detailseite der Airline. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/item_airline_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true"
+    android:minHeight="56dp"
+    android:paddingHorizontal="20dp"
+    android:paddingVertical="4dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <com.highfly.logbook.RankBadgeView
+            android:id="@+id/badge_airline_rank"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginEnd="10dp"
+            android:importantForAccessibility="no" />
+
+        <FrameLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1">
+
+            <!-- Hintergrundbalken erst ab dem Namen; das Rangzeichen links
+                 bleibt untermalt. -->
+            <com.highfly.logbook.VisitedCountryBarView
+                android:id="@+id/airline_bar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:importantForAccessibility="no" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:paddingStart="14dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tv_airline_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+                    tools:text="Lufthansa" />
+
+                <TextView
+                    android:id="@+id/tv_airline_codes"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    tools:text="LH · DLH" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <!-- Flugzahl rechts vor dem Pfeil; die Mindestbreite hält die Pfeile
+             über die Zeilen hinweg in einer Spalte. -->
+        <TextView
+            android:id="@+id/tv_airline_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:minWidth="48dp"
+            android:gravity="end"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+            android:textStyle="bold"
+            tools:text="12" />
+
+        <ImageView
+            android:id="@+id/iv_airline_chevron"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginStart="8dp"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_chevron_right"
+            app:tint="?attr/colorOnSurfaceVariant" />
+    </LinearLayout>
+</FrameLayout>

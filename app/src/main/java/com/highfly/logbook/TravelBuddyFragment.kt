@@ -37,8 +37,17 @@ class TravelBuddyFragment : Fragment() {
     /** Alle Reisebuddies vor der Suche, damit die Eingabe nur filtern muss. */
     private var allBuddies: List<TravelBuddyStats.Buddy> = emptyList()
 
+    /**
+     * Rang je Name in der ungefilterten Liste. In der Suche bleibt dieser
+     * Rang stehen, statt der Position im Suchergebnis.
+     */
+    private var buddyRanks: Map<String, Int> = emptyMap()
+
     /** Aktueller Suchtext des Kopfs; filtert die Liste nach dem Namen. */
     private var searchQuery: String = ""
+
+    /** Beschriftung der Suche im geschlossenen Zustand (Lupe). */
+    private var searchClosedDescRes: Int = R.string.travel_buddy_search_desc
 
     /** Ob das Suchfeld oben im Kopf ausgeklappt ist. */
     private var searchOpen = false
@@ -76,7 +85,6 @@ class TravelBuddyFragment : Fragment() {
      * Gesucht wird nach dem Namen des Reisebuddies.
      */
     private fun setupSearch() {
-        binding.ivSearch.contentDescription = getString(R.string.travel_buddy_search_desc)
         binding.etSearch.setHint(R.string.travel_buddy_search_hint)
         // Text vor dem Beobachter setzen: die wiederhergestellte Suche soll
         // nicht schon hier, sondern erst beim Eintreffen der Liste greifen.
@@ -92,11 +100,25 @@ class TravelBuddyFragment : Fragment() {
         binding.ivSearch.setOnClickListener {
             toggleSearch(!searchOpen)
         }
+        updateSearchIcon(searchOpen)
         if (searchOpen) {
             binding.etSearch.visibility = View.VISIBLE
             binding.etSearch.alpha = 1f
             setSearchProgress(1f)
         }
+    }
+
+    /**
+     * Tauscht das Symbol der Suche: Lupe geschlossen, X geoeffnet. Das X
+     * schliesst das Feld und loescht die Eingabe (siehe [toggleSearch]).
+     */
+    private fun updateSearchIcon(open: Boolean) {
+        binding.ivSearch.setImageResource(
+            if (open) R.drawable.ic_close else R.drawable.ic_search
+        )
+        binding.ivSearch.contentDescription = getString(
+            if (open) R.string.search_clear_desc else searchClosedDescRes
+        )
     }
 
     /**
@@ -108,6 +130,7 @@ class TravelBuddyFragment : Fragment() {
     private fun toggleSearch(open: Boolean) {
         searchAnimator?.cancel()
         searchOpen = open
+        updateSearchIcon(open)
         if (open) {
             binding.etSearch.visibility = View.VISIBLE
             binding.etSearch.requestFocus()
@@ -194,6 +217,11 @@ class TravelBuddyFragment : Fragment() {
 
     private fun render(buddies: List<TravelBuddyStats.Buddy>, flights: Int) {
         allBuddies = buddies
+        // Rang der ungefilterten Liste: die Liste ist nach Flugzahl sortiert,
+        // der Rang ist die Position darin. In der Suche bleibt er stehen.
+        buddyRanks = buddies.withIndex().associate { (index, buddy) ->
+            buddy.name to index + 1
+        }
         val hasBuddies = buddies.isNotEmpty()
         // Ohne eingetragenen Buddy wäre "0 Reisebuddies auf 0 Flügen" nur eine
         // Fehlermeldung in Zahlensprache, deshalb bleibt die Zeile dann leer.
@@ -209,7 +237,9 @@ class TravelBuddyFragment : Fragment() {
      * Filtert die Liste nach der Sucheingabe - im Namen des Buddies, ohne
      * Gross- und Kleinschreibung zu beachten. Ohne Eingabe ist die Liste
      * komplett. Der Balken einer Zeile bleibt am Maximum der ungefilterten
-     * Liste gemessen, damit die Balken beim Tippen nicht mitspringen.
+     * Liste gemessen, damit die Balken beim Tippen nicht mitspringen. In der
+     * Suche trägt das Rangzeichen keine Medaille, sondern den Rang der
+     * ungefilterten Liste.
      */
     private fun applyFilter() {
         val query = searchQuery.trim()
@@ -234,7 +264,8 @@ class TravelBuddyFragment : Fragment() {
         } else {
             binding.tvTravelBuddyEmpty.visibility = View.GONE
         }
-        adapter.submit(filtered, allBuddies.maxOfOrNull { it.flights } ?: 0)
+        adapter.showMedals = query.isEmpty()
+        adapter.submit(filtered, allBuddies.maxOfOrNull { it.flights } ?: 0, buddyRanks)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
