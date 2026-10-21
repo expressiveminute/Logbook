@@ -8,7 +8,6 @@ import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.core.content.ContextCompat
 import androidx.core.os.bundleOf
-import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
@@ -27,7 +26,7 @@ import java.time.format.DateTimeFormatter
  * Geöffnet wird die Seite durch einen Tipp auf eine Zeile der Reisebuddy-Liste
  * ([TravelBuddyFragment]).
  */
-class TravelBuddyDetailFragment : Fragment() {
+class TravelBuddyDetailFragment : LogbookFragment() {
 
     private var _binding: FragmentFlightRouteDetailBinding? = null
     private val binding get() = _binding!!

@@ -6,8 +6,10 @@ import kotlin.math.roundToLong
 /**
  * Geschätzte Passagierzahlen der Kachel "Passagiere": Pro Flug die maximale
  * Sitzplatzanzahl des eingetragenen Flugzeugtyps (siehe [AircraftSeats])
- * mal der eingestellten Auslastung. Ein Ground Transfer ist kein Flug und
- * zählt nicht; ein unbekannter Typ bekommt den Durchschnitt des Datensatzes.
+ * mal der eingestellten Auslastung. Nur Flüge der Reiseart "On Duty" zählen -
+ * bei Deadhead, Dienstreise, Privat und Ground Transfer ist die Besatzung
+ * nicht im Flugdienst, die Passagiere werden dem Flug nicht zugerechnet; ein
+ * unbekannter Typ bekommt den Durchschnitt des Datensatzes.
  *
  * Die Zahlen sind Schätzungen: Die Sitzplätze sind die zertifizierten
  * Single-Class-Maxima, die reale Bestuhlung der Airline liegt meist darunter,
@@ -57,32 +59,43 @@ object PassengersCalculator {
             LOAD_FACTOR_STEP_PERCENT) * LOAD_FACTOR_STEP_PERCENT
 
     /**
+     * Ob der Eintrag als "On Duty" geflogen wurde. Nur diese Flüge zählen:
+     * Bei Deadhead, Dienstreise, Privat und Ground Transfer ist die Besatzung
+     * nicht im Flugdienst. Die Reiseart wird über
+     * [ChartData.normalizeFlightType] verglichen, damit auch anders
+     * geschriebene Einträge („on duty") richtig erkannt werden; ein Eintrag
+     * ohne Reiseart zählt nicht.
+     */
+    fun isOnDuty(entry: LogbookEntry): Boolean =
+        ChartData.normalizeFlightType(entry.flightType) == ChartData.ON_DUTY_CANONICAL
+
+    /**
      * Geschätzte Passagiere eines Flugs: maximale Sitzplatzanzahl des Typs
      * (Durchschnitt des Datensatzes bei unbekanntem Typ) mal Auslastung.
-     * Ein Ground Transfer ist kein Flug und zählt 0.
+     * Nur ein Flug als "On Duty" zählt, alles andere ergibt 0.
      */
     fun passengersPerFlight(
         entry: LogbookEntry,
         loadFactorPercent: Int,
         catalog: AircraftSeats.Catalog
     ): Long {
-        if (!DashboardStats.isFlying(entry)) return 0
+        if (!isOnDuty(entry)) return 0
         val seats = catalog.seatsFor(entry.aircraftType)?.toDouble()
             ?: catalog.averageSeats
         return (seats * normalizeLoadFactor(loadFactorPercent) / 100.0).roundToLong()
     }
 
     /**
-     * Passagiere je Kalenderjahr, neustes Jahr zuerst. Ground Transfers
-     * zählen nicht - ein Jahr ohne geflogenen Flug erscheint nicht.
+     * Passagiere je Kalenderjahr, neustes Jahr zuerst. Nur Flüge als
+     * "On Duty" zählen - ein Jahr ohne solchen Flug erscheint nicht.
      */
     fun byYear(
         entries: List<LogbookEntry>,
         loadFactorPercent: Int,
         catalog: AircraftSeats.Catalog
     ): List<YearPassengers> {
-        val flying = DashboardStats.flyingEntries(entries)
-        return flying.groupBy { it.date.year }
+        val onDuty = entries.filter { isOnDuty(it) }
+        return onDuty.groupBy { it.date.year }
             .map { (year, yearEntries) ->
                 YearPassengers(
                     year = year,

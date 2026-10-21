@@ -90,15 +90,22 @@ bleibt die ganze Kachel weg. `AirportSatellite` lädt Bild und Randkoordinaten (
 Web-Mercator-Maßstab in die Ansicht, sodass der Flughafen mittig sitzt, und markiert ihn mit
 einer Nadel; die Kachel blendet sich sanft ein. Der Quellennachweis
 (`satellite_credit_cloudless`, englisch, `translatable="false"`) steht in der Kachel unter dem
-Bild.
+Bild und ist die volle von EOX verlangte Namensnennung samt Link:
+„Sentinel-2 cloudless - https://s2maps.eu by EOX IT Services GmbH (Contains modified Copernicus
+Sentinel data 2016 & 2017, CC BY 4.0)“ – der Copernicus-Hinweis erfüllt zugleich den Quellenvermerk
+der Sentinel-Datenlizenz (Weitergabe nur mit Quellenangabe).
 
 Erzeugt werden die Bilder von `tools/build_airport_satellite.py` (einmalig lokal, die App lädt
 nichts nach). Quelle sind die Sentinel-2-Cloudless-Kacheln von EOX IT Services GmbH; verwendet
 werden **nur die 2016er und 2017er Ausgaben**, weil nur diese unter **CC BY 4.0** stehen (ab 2018
 gilt CC BY-NC-SA 4.0). Keine der beiden deckt alles ab: Die 2017er-Kacheln sind an rund der
 Hälfte der Ziele weiß, die 2016er-Ausgabe ist dort geschlossen, deshalb nimmt das Skript die
-2017er-Ausgabe und weicht nur bei weißen Lücken auf 2016 aus. Der Ausschnitt ist in Web-Mercator
-±4 km um den Flughafen (8 km breit), 640×640 px, Zoomstufe 14. Das Skript holt die Koordinaten
+2017er-Ausgabe und weicht nur bei weißen Lücken auf 2016 aus. Der Ausschnitt ist pro Flughafen
+verschieden: Ein quadratischer Kasten in Web-Mercator umfasst die Pisten-Endpunkte (OurAirports
+`runways.csv`, Public Domain) samt Flughafenkoordinate plus 1,5 km Rand, gedeckelt auf 8–18 km
+Kantenlänge, und liegt mittig auf diesem Gebiet – so bleibt auch bei Riesen wie DEN oder SVO der
+ganze Flughafen im Bild. Die Ausgabe ist 12,5 m/px breit, 640–1280 px, Zoomstufe 14 (mehr als die
+~10 m Auflösung von Sentinel-2 bringt ohnehin nichts). Das Skript holt die Koordinaten
 aus `airports.json` (`FALLBACK_COORDS` für sehr neue Flughäfen, die dort noch fehlen). Der
 Zuschnitt und die Projektion prüft `AirportSatelliteAssetTest`; das Skript muss nach jeder
 Änderung neu laufen.
@@ -161,7 +168,9 @@ Balken gemessen am Maximum der ungefilterten Liste. Oben rechts im Kopf sitzt ei
 den Flughäfen: Sie klappt ein Suchfeld aus, das im gesamten Katalog (`AirlineCatalog.search` über
 `assets/airlines/airlines.json`) nach IATA-Code, ICAO-Code und Name sucht - "LH", "DLH" und
 "Lufthansa" finden dieselbe Airline. Auch nie geflogene Airlines erscheinen dann mit 0 Flügen.
-Ein Tipp auf eine Zeile öffnet `AirlineDetailFragment` (`action_airlines_to_detail`).
+Ein Tipp auf eine Zeile öffnet `AirlineDetailFragment` (`action_airlines_to_detail`); beim
+Zurückkehren setzt die Liste an der gemerkten Scrollposition wieder auf (wie die Länderliste,
+`savedScrollPosition` in `AirlinesFragment`).
 In der Suche trägt das Rangzeichen keine Medaille, sondern den Rang der **ungefilterten Liste**
 (`AirlineAdapter.showMedals` / `RankBadgeView.setRank(rank, showMedals)`; der Rang kommt über
 `AirlineAdapter.submit(list, maxFlights, ranks)` aus der Gesamtliste, eine nie geflogene Airline
@@ -202,10 +211,44 @@ Anführungszeichen (`LH · DLH · "Lufthansa"`, `AirlineFacts.displayCallsign` m
 gespeicherten Grossbuchstaben die Wortschreibweise). Ist die Airline insolvent, trägt sie rechts
 neben dem Logo einen roten, schrägen **„Insolvent"-Stempel** (`tv_airline_insolvent`,
 `?attr/colorError` mit Rahmen aus `bg_airline_insolvent_stamp.xml`). Darunter folgt ein
-**Platzhalter** für ein Foto eines Fliegers in der Bemalung (die Bilder werden später
-nachgereicht, bis dahin nur die Kachel mit Hinweis). Dann folgen die **allgemeinen Stammdaten**
-über der Karte - unabhängig vom Logbuch, also auch für eine noch nie geflogene Airline: Gründung,
-darunter direkt das **Insolvenzjahr** (wenn vorhanden), Sitz, Hubs, Flottengröße, Allianz und ein
+**Foto** eines Fliegers in der Bemalung (Top 250, Wikimedia Commons, offline mitgeliefert in
+`assets/airlines/photos/`: `<IATA>.webp` plus die Attribution aller Fotos in `photos.json` mit
+Autor, Lizenz, Lizenz-URL und Quell-URL; die Fotos sind nach dem **IATA-Code** benannt, nicht
+nach ICAO wie die Logos, weil IATA-Codes nicht kollidieren). Unter dem Bild steht die
+Namensnennung `© Autor · Lizenz · Wikimedia Commons` (bei verkleinerten Bildern mit dem Zusatz
+*bearbeitet*, `airline_photo_edited`); ein Tipp darauf öffnet die Commons-Dateiseite. Gibt es
+kein Foto, bleibt die ganze Kachel weg (`AirlinePhotos` lädt Bilder und Attribution, begrenzter
+`LruCache` wie bei `AirportSatellite`; die Kachel blendet sich sanft ein). **Airlines der
+Lufthansa Group** (`group` in `airline_facts.json`) haben eine **Galerie** aus drei Fotos
+(`<IATA>.webp`, `<IATA>_2.webp`, `<IATA>_3.webp`), die in der Kachel seitlich gewischt werden
+(`ViewPager2` mit Punkten unter dem Bild, `AirlineDetailFragment`); die Credit-Zeile wechselt
+mit der Seite. In `photos.json` steht pro Airline ein `photos`-Array, jede Datei mit eigener
+Attribution und ihrem `file`-Feld. Erzeugt werden die Fotos von
+`tools/build_airline_photos.py`: Die Top-250-Liste rechnet das Skript zur Laufzeit aus
+`airline_facts.json` (aktiv, also ohne `dissolved`, mit Flottengröße, mit ICAO im Katalog,
+absteigend nach Flotte). Quelle ist die Commons-API (Dateinamensraum); andere Foto-Seiten
+(planespotters.net, airliners.net) verbieten das Kopieren. Erlaubt sind nur Lizenzen aus der
+Whitelist Public Domain, CC0, CC BY und GFDL (nicht NC/ND); die Auswahl sucht Name +
+„aircraft" (Katalogname, Fallback englischer Wikipedia-Titel für veraltete Namen wie EU),
+filtert hart (JPEG/PNG, mindestens 1200×700 px, Querformat, Lizenz, bekannter Autor, Airline
+in Titel oder Beschreibung, keine andere Airline im Titel) und wertet (Name im Titel,
+Flugzeugtyp, Breite, Seitenverhältnis, Lizenz, Abzüge für Modell/Cockpit/Innenraum/Karte/
+Unfallfoto/Militär usw.). Die Galerie ergänzt das Skript im selben Lauf inkrementell
+(`--no-gallery` schaltet sie ab): Airlines der Gruppe mit weniger als drei Fotos bekommen
+weitere, unterschiedliche Treffer (ausgeschlossen sind die schon vorhandenen Quell-URLs).
+Für Airlines, bei denen die Suche nur falsche Treffer findet (Absturzkontext, Militär, fremde
+Bemalung), steht `NO_PHOTO` im Skript – sie bekommen kein Foto, ein früherer Eintrag wird
+entfernt. Fotos von Hand nachreichen geht wie bei den Logos über
+`photos_manual/` im Repo-Root (`<IATA>.jpg` plus `<IATA>.json` mit der Attribution; manuelle
+Dateien gewinnen gegen den Download, beim Entfernen wird der Eintrag bereinigt).
+`AirlinePhotosAssetTest` prüft die Zuordnung (vorhandene webp-Dateien, vollständige
+Attribution, erlaubte Lizenz, Mindestmaße, keine Verwaisten, Abgleich mit dem Katalog,
+verschiedene Galerie-Fotos, drei Fotos je aktiver Lufthansa-Group-Airline). Dann
+folgen die **allgemeinen Stammdaten**
+über der Karte - unabhängig vom Logbuch, also auch für eine noch nie geflogene Airline: die
+**Airlinegruppe** (über der Gründung, z. B. „Lufthansa Group" bei LH, „International Airlines
+Group" bei BA), Gründung, darunter direkt der **Besitz** („Staatlich", „Aktiengesellschaft" oder
+„Privat"), dann das **Insolvenzjahr** (wenn vorhanden), Sitz, Hubs, Flottengröße, Allianz und ein
 **Wikipedia-Link** (Artikel der englischen Wikipedia, `AirlineFacts.wikiTitle` zeigt den
 Artikelnamen; ein Tipp öffnet die Seite per `Intent.ACTION_VIEW` im Standardbrowser) als Zeilen
 aus `item_airport_fact.xml` unter dem Abschnitt *Allgemein*. Zuletzt eine `RouteMiniMapView` wie
@@ -223,9 +266,16 @@ IATA-Code. Erzeugt wird die Datei von `tools/build_airline_facts.py`: Gründung 
 (P114) und Rufzeichen (P432) kommen aus Wikidata (CC0) über den SPARQL-Endpunkt, dazu der
 `wiki`-Link aus dem englischen Sitelink des gewählten Eintrags; die Flottengröße kommt aus der
 Wikipedia-Infobox (`Flottenstärke`/`fleet_size`, CC BY-SA 4.0 - daher der Quellennachweis ganz
-unten auf der Detailseite). `AirlineFacts` lädt die Datei einmalig; die Hubs werden als
-IATA-Codes gespeichert und über `AirportNames` als Städtenamen in der App-Sprache angezeigt.
-Geprüft wird das Asset von `AirlineFactsTest`.
+unten auf der Detailseite). Ebenfalls aus Wikidata kommen die **Airlinegruppe** (`group`, der
+Mutterkonzern P749 - staatliche Eigentümer wie „Government of Dubai" zählen nicht als Gruppe,
+ebenso wenig fachfremde Typen wie eine Bank; bei mehreren Eltern gewinnt der Konzern, den
+mehrere Katalog-Airlines tragen, dann „Group"/„Holdings" im Namen) und der **Besitz**
+(`ownership`: `state`, wenn ein Staat, Emirat oder Staatsfonds Eigentümer ist (P127/P31) oder
+die Airline ein „state-owned enterprise" ist, sonst `public`, wenn Airline oder Eigentümer
+börsennotiert sind, sonst `private` bei einem sonstigen Konzern-Eigentümer;
+`AirlineFacts.ownershipLabelRes` übersetzt den Schlüssel in die App-Sprache). `AirlineFacts` lädt die Datei einmalig; die Hubs
+werden als IATA-Codes gespeichert und über `AirportNames` als Städtenamen in der App-Sprache
+angezeigt. Geprüft wird das Asset von `AirlineFactsTest`.
 
 ## Karte „CO₂-Ausgleich"
 
@@ -335,18 +385,22 @@ gespeichert in `Settings.getPassengerLoadFactor`).
 
 Die Rechnung steht ohne Android-Abhängigkeiten in `PassengersCalculator` (geprüft von
 `PassengersCalculatorTest`): **Passagiere = maximale Sitzplätze des Typs × Auslastung ÷ 100**.
+Zählen tut nur die Reiseart **On Duty** (`PassengersCalculator.isOnDuty`, über
+`ChartData.normalizeFlightType` sprachunabhängig erkannt): Deadhead, Dienstreise, Privat und
+Ground Transfer werden nicht ausgewertet, ein Eintrag ohne Reiseart auch nicht.
 Die Sitzplätze kommen aus `assets/aircraft/aircraft_seats.json` (`AircraftSeats.load`, geprüft
 von `AircraftSeatsTest` und `AircraftSeatsAssetTest`): zertifizierte Single-Class-Maxima je
-Familie (A320: 186, A380: 853, …) plus Alias-Codes („320", „738", „AT72"), die
+Familie (A320: 186, A380: 853, …) plus Alias-Codes („320", „738", „AT72`), die
 `AircraftSeats.Catalog.seatsFor` per Präfix-Matching auf die Familie abbildet („A350-900",
 „Boeing 737-800", „B738", „737 MAX"). Ein unbekannter oder fehlender Typ bekommt den
-Durchschnitt des Datensatzes (≈ 273 Sitze). Ground Transfers zählen nicht.
+Durchschnitt des Datensatzes (≈ 273 Sitze).
 
 Weil die Schätzung (Maximalbestuhlung × Auslastung) eine echte Ungenauigkeit trägt, werden
 Summen auf volle Tausender gerundet (`PassengersCalculator.roundToThousands`) - Kachel und
 Jahreswerte; der Durchschnitt pro Flug bleibt eine ganze Zahl. Grundlage ist dieselbe Auswahl
 wie die Höhenstrahlung: der **Flugart-Filter** gilt (`DashboardStats.flightTypeEntries`), der
-**Zeitraum-Filter des Dashboards nicht**.
+**Zeitraum-Filter des Dashboards nicht**; innerhalb der gewählten Flugart zählen nur die
+On-Duty-Flüge, die Infozeile der Detailseite nennt beides („Flugart: … · nur On Duty").
 
 Die rechte Karte der Kachel ist wie die Höhenstrahlung glasig: halbtransparentes Teal
 (`passengers_card_bg` `#A600897B`) mit hellem 1dp-Rand (`passengers_card_stroke` `#4DFFFFFF`).
@@ -548,3 +602,26 @@ stehen. Sie erscheint mit geschlossener Tastatur wieder an ihrem üblichen Platz
 Systemleiste. Das ist eine bewusste Umkehr der früheren Regel, die sie über die Tastaturhöhe
 angehoben hat, damit man auf der Seite *Einträge* während der Eingabe wechseln konnte – der
 Seitenwechsel muss jetzt bei geschlossener Tastatur erfolgen.
+
+## Scroll-Position und Zurück-Taste – global
+
+Alle Fragmente erben von der Basisklasse **`LogbookFragment`** (nicht von `Fragment` direkt). Sie
+merkt sich in `onPause` die Scroll-Position jedes Scroll-Containers der Seite (RecyclerView,
+ScrollView, HorizontalScrollView – Schlüssel ist die View-ID, deshalb tragen alle Scroll-Container
+in den `fragment_*.xml` eine ID) und stellt sie beim Wiederaufbau der Ansicht in `onViewCreated`
+wieder her, egal ob die Rückkehr über die Zurück-Taste, den Zurück-Pfeil oder die untere Leiste
+läuft. Die Position überlebt als Instanzfeld die Navigation und als Instanzzustand Drehung und
+Prozess-Neustart. Beim RecyclerView wartet die Wiederherstellung, bis der Adapter Einträge hat
+(die Daten kommen asynchron), beim ScrollView, bis sich die Inhaltshöhe nicht mehr ändert (Kacheln
+und Bilder wachsen erst nach dem ersten Layout); beides mit einer Frist von 2 s, danach wird die
+Position auf das erreichbare Maximum begrenzt. Eine Seite, die selbst gezielt scrollt (z. B. zum
+bearbeiteten Eintrag in `EntriesFragment`), ruft `cancelPendingScrollRestore()` auf. Die früheren
+manuellen Lösungen (Dashboard, Fluggesellschaften, Länder) sind entfernt – nicht wieder
+einführen.
+
+Die **Zurück-Taste** leitet `MainActivity` über einen `OnBackPressedCallback` zuerst an das
+aktuelle Navigationsziel weiter (`BackPressAware`): Ist auf der Seite ein Suchfeld offen (alle
+fünf Listensuchen: Einträge, Fluggesellschaften, Reisebuddies, Länder, Kacheln samt
+Flughafen-Popup), wird es geschlossen und die Eingabe gelöscht – wie das Schliessen-X – und erst
+ein weiterer Druck navigiert zurück. Nimmt die Seite den Druck nicht, fällt er an den NavController
+durch. Das X im Suchfeld verhält sich wie gehabt: Eingabe löschen und Feld schliessen.

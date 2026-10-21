@@ -5,7 +5,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.progressindicator.LinearProgressIndicator
@@ -21,9 +20,10 @@ import kotlin.math.roundToInt
  *
  * Grundlage sind dieselben Einträge wie die Kachel: der Flugart-Filter gilt,
  * der Zeitraum-Filter des Dashboards nicht - die Kachel zählt alle Jahre,
- * diese Seite listet sie einzeln.
+ * diese Seite listet sie einzeln. Gezählt werden nur Flüge als "On Duty",
+ * siehe [PassengersCalculator].
  */
-class PassengersFragment : Fragment() {
+class PassengersFragment : LogbookFragment() {
 
     private var _binding: FragmentPassengersBinding? = null
     private val binding get() = _binding!!

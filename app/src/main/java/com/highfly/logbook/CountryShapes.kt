@@ -6,6 +6,8 @@ import java.io.IOException
 import java.nio.BufferUnderflowException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import kotlin.math.cos
+import kotlin.math.sin
 
 /**
  * Landesumrisse aus dem gebündelten Binär-Asset, damit die Rubbelkarte
@@ -59,6 +61,31 @@ object CountryShapes {
          * Datumslinie und hätten sonst eine viel zu große Fläche.
          */
         val latSpan: Double get() = maxLat - minLat
+
+        /**
+         * Ringe als Einheitsvektoren auf der Kugel: x, y, z je Punkt,
+         * verflacht. Einmalig gerechnet und app-weit geteilt, weil die Umrisse
+         * dieselben bleiben: Dreht der Nutzer die Rubbelkarte, projiziert der
+         * Aufbau jeden Punkt per Matrixmultiplikation ([GeoMath.Globe.unitPoint])
+         * statt der sin/cos-Rechnung in [GeoMath.Globe.point] - bei ~80.000
+         * Punkten pro Neuaufbau ist das der Unterschied zwischen flüssigem
+         * und ruckelndem Drehen.
+         */
+        val unitRings: List<DoubleArray> by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+            rings.map { ring ->
+                val count = ring.size / 2
+                val out = DoubleArray(count * 3)
+                for (i in 0 until count) {
+                    val lat = Math.toRadians(ring[i * 2 + 1].toDouble())
+                    val lon = Math.toRadians(ring[i * 2].toDouble())
+                    val cosLat = cos(lat)
+                    out[i * 3] = cosLat * cos(lon)
+                    out[i * 3 + 1] = cosLat * sin(lon)
+                    out[i * 3 + 2] = sin(lat)
+                }
+                out
+            }
+        }
     }
 
     @Volatile

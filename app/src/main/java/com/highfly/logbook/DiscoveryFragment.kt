@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.highfly.logbook.databinding.FragmentDiscoveryBinding
@@ -20,7 +19,7 @@ import java.util.Locale
  * sichtbaren Zeilen existieren und die Seite auch mit vielen Einträgen flüssig
  * scrollt.
  */
-class DiscoveryFragment : Fragment() {
+class DiscoveryFragment : LogbookFragment() {
 
     private var _binding: FragmentDiscoveryBinding? = null
     private val binding get() = _binding!!

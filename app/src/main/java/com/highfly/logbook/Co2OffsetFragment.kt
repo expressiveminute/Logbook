@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.highfly.logbook.databinding.FragmentCo2OffsetBinding
 import java.util.Locale
@@ -23,7 +22,7 @@ import kotlin.math.sqrt
  * Landes und des Flughafens steckt in [Co2OffsetModel], die Animation in
  * [Co2OffsetMapView].
  */
-class Co2OffsetFragment : Fragment() {
+class Co2OffsetFragment : LogbookFragment() {
 
     private var _binding: FragmentCo2OffsetBinding? = null
     private val binding get() = _binding!!

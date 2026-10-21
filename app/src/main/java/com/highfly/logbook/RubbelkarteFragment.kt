@@ -7,7 +7,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.core.os.bundleOf
-import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.highfly.logbook.databinding.FragmentRubbelkarteBinding
 import com.highfly.logbook.databinding.ItemContinentTileBinding
@@ -37,7 +36,7 @@ import java.text.NumberFormat
  * Bewusst ohne Zurück-Button: Die Seite ist ein Tab der Navigationsleiste und
  * wird über den Tab oder die System-Zurück-Taste verlassen.
  */
-class RubbelkarteFragment : Fragment() {
+class RubbelkarteFragment : LogbookFragment() {
 
     private var _binding: FragmentRubbelkarteBinding? = null
     private val binding get() = _binding!!

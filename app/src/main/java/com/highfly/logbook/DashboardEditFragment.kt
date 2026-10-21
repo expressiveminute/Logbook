@@ -15,7 +15,6 @@ import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import androidx.core.view.doOnLayout
-import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.color.MaterialColors
@@ -37,7 +36,7 @@ import kotlin.math.roundToInt
  * ausgeblendete Kacheln zurück. Der Schieber unten skaliert alle Kacheln
  * gemeinsam. Jede Änderung wird sofort gespeichert.
  */
-class DashboardEditFragment : Fragment() {
+class DashboardEditFragment : LogbookFragment() {
 
     private var _binding: FragmentDashboardEditBinding? = null
     private val binding get() = _binding!!

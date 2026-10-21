@@ -12,7 +12,6 @@ import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import android.widget.LinearLayout
 import androidx.core.os.bundleOf
-import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.highfly.logbook.databinding.FragmentAirlinesBinding
@@ -28,13 +27,15 @@ import java.text.Collator
  * Suchfeld aus, das nach Code ("LH", "DLH") und Name ("Lufthansa") sucht - in
  * der Rangliste und im gesamten Katalog, sodass auch nie geflogene Airlines
  * erscheinen (dann mit 0 Flügen). Ein Tipp auf eine Zeile öffnet die
- * Detailseite der Airline ([AirlineDetailFragment]).
+ * Detailseite der Airline ([AirlineDetailFragment]); beim Zurückkehren setzt
+ * die Liste an der Stelle wieder auf, an der sie verlassen wurde (über die
+ * Basisklasse [LogbookFragment]).
  *
  * Grundlage sind die Flugeinträge und der Airline-Katalog, siehe
  * [AirlineStats]. Wie die Kachel selbst zählt die Seite die Periode des
  * Dashboards mit - sonst zeigte die Kachel eine Zahl und die Liste eine andere.
  */
-class AirlinesFragment : Fragment() {
+class AirlinesFragment : LogbookFragment(), BackPressAware {
 
     private var _binding: FragmentAirlinesBinding? = null
     private val binding get() = _binding!!
@@ -199,6 +200,16 @@ class AirlinesFragment : Fragment() {
     private fun hideSearchKeyboard() {
         requireContext().getSystemService(InputMethodManager::class.java)
             ?.hideSoftInputFromWindow(binding.etSearch.windowToken, 0)
+    }
+
+    /**
+     * Die Zurück-Taste räumt zuerst das Suchfeld ab (wie das Schliessen-X) und
+     * navigiert erst beim zweiten Druck zurück.
+     */
+    override fun onBackPressed(): Boolean {
+        if (!searchOpen) return false
+        toggleSearch(false)
+        return true
     }
 
     override fun onResume() {

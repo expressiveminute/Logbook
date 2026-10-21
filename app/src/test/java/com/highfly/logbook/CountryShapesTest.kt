@@ -235,6 +235,41 @@ class CountryShapesTest {
         assertTrue("Deutschland zu klein", de.latSpan > 5.0)
     }
 
+    @Test
+    fun unitRings_bildenEinheitsvektorenJeRingpunkt() {
+        // Die Einheitsvektoren sind die schnelle Projektion für die Rubbelkarte:
+        // Jeder Vektor muss auf der Kugel liegen (Länge 1) und zum Ringpunkt
+        // passen, aus dem er gerechnet wurde.
+        val countries = CountryShapes.parse(buffer(shapes = sample()))
+        for (country in countries) {
+            assertEquals(country.rings.size, country.unitRings.size)
+            for (r in country.rings.indices) {
+                val ring = country.rings[r]
+                val units = country.unitRings[r]
+                assertEquals(ring.size / 2, units.size / 3)
+                for (i in 0 until ring.size / 2) {
+                    val lat = Math.toRadians(ring[i * 2 + 1].toDouble())
+                    val lon = Math.toRadians(ring[i * 2].toDouble())
+                    val laenge = kotlin.math.sqrt(
+                        units[i * 3] * units[i * 3] +
+                            units[i * 3 + 1] * units[i * 3 + 1] +
+                            units[i * 3 + 2] * units[i * 3 + 2]
+                    )
+                    assertEquals("Laenge ${country.iso2}[$i]", 1.0, laenge, 1e-12)
+                    assertEquals("x ${country.iso2}[$i]", kotlin.math.cos(lat) * kotlin.math.cos(lon), units[i * 3], 1e-12)
+                    assertEquals("y ${country.iso2}[$i]", kotlin.math.cos(lat) * kotlin.math.sin(lon), units[i * 3 + 1], 1e-12)
+                    assertEquals("z ${country.iso2}[$i]", kotlin.math.sin(lat), units[i * 3 + 2], 1e-12)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun unitRings_werdenNurEinmaligGerechnet() {
+        val de = CountryShapes.parse(buffer(shapes = sample())).first { it.iso2 == "DE" }
+        assertTrue(de.unitRings === de.unitRings)
+    }
+
     private companion object {
         const val ASSET_NAME = "country_shapes.bin"
     }

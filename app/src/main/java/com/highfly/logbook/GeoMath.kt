@@ -94,6 +94,24 @@ object GeoMath {
         }
 
         /**
+         * Lage des Einheitsvektors `(ux, uy, uz)` auf der Scheibe - dasselbe
+         * Ergebnis wie [point] für den zugehörigen Punkt (lat, lon), aber ohne
+         * sin/cos pro Punkt: Die trigonometrischen Werte des Blickpunkts stecken
+         * schon in dieser Instanz, und X, Y und FRONT sind linear in den
+         * Raumkoordinaten. Beim Neuaufbau der Rubbelkarte werden die
+         * Einheitsvektoren aller ~80.000 Länderpunkte einmalig vorberechnet;
+         * dreht der Nutzer die Kugel, kostet die Projektion so pro Punkt nur
+         * wenige Multiplikationen statt mehrerer Trigonometrieaufrufe.
+         */
+        fun unitPoint(ux: Double, uy: Double, uz: Double, out: DoubleArray) {
+            // cos(lat)·cos(lon - centerLon) als Skalarprodukt mit der Äquatorachse.
+            val d = ux * cosLon + uy * sinLon
+            out[X] = uy * cosLon - ux * sinLon
+            out[Y] = cosLat * uz - sinLat * d
+            out[FRONT] = cosLat * d + sinLat * uz
+        }
+
+        /**
          * Winkel auf dem Randkreis, an dem das Segment von (latA, lonA) nach
          * (latB, lonB) den Horizont schneidet. NaN, wenn beide Endpunkte auf
          * derselben Seite liegen, dann schneidet das Segment den Horizont nicht.

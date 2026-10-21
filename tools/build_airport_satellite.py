@@ -20,7 +20,19 @@ Keine der beiden Ausgaben deckt alle Ziele ab: Die 2017er-Kacheln sind an rund
 und Afrikas), die 2016er-Ausgabe füllt diese Lücken jedoch vollständig. Das
 Skript nimmt daher die 2017er-Ausgabe und weicht nur dort auf 2016 aus, wo das
 Ergebnis einfarbig weiß bleibt. Die Namensnennung zeigt die App als
-Quellennachweis unter dem Bild (`satellite_credit_cloudless`).
+Quellennachweis unter dem Bild (`satellite_credit_cloudless`) – die volle von EOX verlangte
+Attribution inklusive s2maps.eu-Link und Copernicus-Quellenvermerk.
+
+Der Ausschnitt ist pro Flughafen verschieden groß: Grundlage sind die Endpunkte aller offenen
+Pisten aus dem OurAirports-Bestand `runways.csv` (**Public Domain**,
+davidmegginson.github.io/ourairports-data). Der quadratische Kasten in Web-Mercator-Metern
+umfasst die Pisten samt Flughafenkoordinate plus `--margin-km` Rand, gedeckelt auf
+`--radius-km` … `--max-box-km` (Standard 8–18 km), und liegt mittig auf diesem Gebiet – so
+bleibt auch bei den Riesen (DEN, IST, SVO) der ganze Flughafen im Bild, wo ein fester
+8-km-Kasten um die Koordinate ihn abschneiden würde; ohne Pisten-Daten bleibt es beim
+Mindestmaß um die Koordinate. Die Ausgabe ist `TARGET_M_PER_PX` m/px breit (Standard 12,5 –
+mehr als die ~10 m Auflösung von Sentinel-2 bringt nichts), mindestens `--pixels`, höchstens
+`--max-pixels` (Standard 640–1280 px).
 
 Die Top-100-Liste stammt aus Wikipedia, „List of busiest airports by passenger
 traffic“ (Vereinigung der ACI-Ranglisten 2019 und 2024, ergänzt um weitere
@@ -30,11 +42,14 @@ dort noch fehlen, stehen in FALLBACK_COORDS.
 """
 
 import argparse
+import csv
 import io
 import json
 import math
 import os
+import socket
 import sys
+import tempfile
 import time
 import urllib.error
 import urllib.request
@@ -68,7 +83,8 @@ FALLBACK_COORDS = {
 # standard XYZ-Reihenfolge Zeile/Spalte). Beide Ausgaben stehen unter CC BY 4.0
 # und sind die jüngsten freien (ab 2018 gilt CC BY-NC-SA 4.0). Die 2017er-Ausgabe
 # ist die bessere und wird zuerst versucht; wo sie weiß bleibt, springt die
-# 2016er-Ausgabe ein (siehe Modul-Docstring).
+# 2016er-Ausgabe ein (siehe Modul-Docstring). Stand 2026-10 ist die 2017er-Layer
+# nicht mehr in den GetCapabilities gelistet, liefert aber weiterhin Kacheln.
 LAYERS = ("s2cloudless-2017_3857", "s2cloudless_3857")
 WMTS_URL = (
     "https://tiles.maps.eox.at/wmts/1.0.0/"
@@ -76,13 +92,23 @@ WMTS_URL = (
 )
 USER_AGENT = "Logbook-airport-satellite/1.0 (offline asset build)"
 
+# OurAirports veröffentlicht seine Daten als Public Domain; `runways.csv`
+# liefert die Endpunkte aller Pisten, `airports.csv` den Join IATA -> ident.
+OURAIRPORTS_AIRPORTS_CSV = "https://davidmegginson.github.io/ourairports-data/airports.csv"
+OURAIRPORTS_RUNWAYS_CSV = "https://davidmegginson.github.io/ourairports-data/runways.csv"
+OURAIRPORTS_CACHE = os.path.join(tempfile.gettempdir(), "logbook-ourairports")
+
+# Zielauflösung der Ausgabe: 12,5 m/px (wie bisher 8 km auf 640 px). Mehr als die
+# ~10 m der Sentinel-2-Kacheln (in Web-Mercator-Metern) ist ohnehin nicht drin.
+TARGET_M_PER_PX = 12.5
+
 TILE_SIZE = 256
 HALF_WORLD = 20037508.342789244  # halber Erdumfang in Web-Mercator-Metern
 EARTH_RADIUS_M = 6378137.0
 
-# Zoomstufe: so gewählt, dass der Ausschnitt in jedem Fall mindestens TARGET
-# Pixel breit ist (am Äquator 838 px bei 8 km), danach wird auf 640 px
-# herunterskaliert — das ergibt ein scharfes Bild ohne Hochrechnen.
+# Zoomstufe: so gewählt, dass der Ausschnitt in jedem Fall mindestens die
+# Zielpixelzahl breit ist (am Äquator 838 px bei 8 km), danach wird auf die
+# Zielgröße gerechnet — das ergibt ein scharfes Bild ohne Hochrechnen.
 DEFAULT_ZOOM = 14
 
 
@@ -108,6 +134,117 @@ def load_coords():
     coords = {code: (lat, lon) for code, (lat, lon) in data.items()}
     coords.update(FALLBACK_COORDS)
     return coords
+
+
+def prefer_ipv4():
+    """Lässt `urllib` nur IPv4-Adressen auflösen.
+
+    Manche Netze haben ein AAAA-Routing, über das der WMTS-Server nicht
+    antwortet; die Verbindung hängt dann bis zum Timeout. Der Build bevorzugt
+    deshalb IPv4 – die Kachelserver haben durchweg A-Records.
+    """
+    original_getaddrinfo = socket.getaddrinfo
+
+    def getaddrinfo_ipv4(host, port, family=0, type=0, proto=0, flags=0):
+        return [
+            address for address in original_getaddrinfo(host, port, family, type, proto, flags)
+            if address[0] == socket.AF_INET
+        ]
+
+    socket.getaddrinfo = getaddrinfo_ipv4
+
+
+def fetch_csv(url, cache_dir):
+    """Lädt eine OurAirports-CSV in den Cache und gibt den Pfad zurück."""
+    os.makedirs(cache_dir, exist_ok=True)
+    path = os.path.join(cache_dir, os.path.basename(url))
+    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    with urllib.request.urlopen(request, timeout=60) as response:
+        data = response.read()
+    with open(path, "wb") as fh:
+        fh.write(data)
+    return path
+
+
+def load_runway_bounds(coords, airports_csv, runways_csv):
+    """Rechteck der Pisten-Endpunkte pro IATA-Code, in Mercator-Metern.
+
+    Die Endpunkte aller offenen Pisten (`runways.csv`, Public Domain) spannen
+    pro Flughafen ein Rechteck auf – im selben Web-Mercator-Maß, in dem der
+    Ausschnitt geschnitten wird. Zurück kommt {code: (minX, minY, maxX, maxY)};
+    ohne Pisten-Daten fehlt der Code.
+    """
+    ident_by_iata = {}
+    with open(airports_csv, encoding="utf-8") as fh:
+        for row in csv.DictReader(fh):
+            iata = (row.get("iata_code") or "").strip().upper()
+            if not iata:
+                continue
+            idents = ident_by_iata.setdefault(iata, set())
+            for key in ("ident", "gps_code"):
+                value = (row.get(key) or "").strip().upper()
+                if value:
+                    idents.add(value)
+
+    endpoints = {}
+    with open(runways_csv, encoding="utf-8") as fh:
+        for row in csv.DictReader(fh):
+            if (row.get("closed") or "").strip() == "1":
+                continue
+            try:
+                points = [
+                    (float(row["le_latitude_deg"]), float(row["le_longitude_deg"])),
+                    (float(row["he_latitude_deg"]), float(row["he_longitude_deg"])),
+                ]
+            except (KeyError, TypeError, ValueError):
+                continue
+            ident = (row.get("airport_ident") or "").strip().upper()
+            endpoints.setdefault(ident, []).extend(points)
+
+    bounds = {}
+    for code, (lat, lon) in coords.items():
+        idents = ident_by_iata.get(code)
+        if not idents:
+            continue
+        xs, ys = [], []
+        for ident in idents:
+            for rlat, rlon in endpoints.get(ident, ()):
+                rx, ry = lonlat_to_merc(rlon, rlat)
+                xs.append(rx)
+                ys.append(ry)
+        if xs:
+            bounds[code] = (min(xs), min(ys), max(xs), max(ys))
+    return bounds
+
+
+def box_center_and_half_side(code, lat, lon, bounds, min_side_m, max_side_m, margin_m):
+    """Mittelpunkt (Mercator-m) und Halbkante des quadratischen Ausschnitts.
+
+    Ohne Pisten-Daten bleibt es beim Mindestmaß um die Flughafenkoordinate.
+    Mit Daten umfasst der Kasten alle Pisten-Endpunkte und die Koordinate samt
+    Rand; gedeckelt auf das Höchstmaß, damit die Bilder nicht ausufern. Der
+    Kasten liegt mittig auf diesem Gebiet, nicht auf der Koordinate – die Nadel
+    in der App markiert damit die Mitte des Flughafens.
+    """
+    cx, cy = lonlat_to_merc(lon, lat)
+    bbox = bounds.get(code)
+    if bbox is None:
+        return cx, cy, min_side_m / 2.0
+    min_x = min(bbox[0], cx)
+    max_x = max(bbox[2], cx)
+    min_y = min(bbox[1], cy)
+    max_y = max(bbox[3], cy)
+    side = max(max_x - min_x, max_y - min_y) + 2.0 * margin_m
+    side = min(max(side, min_side_m), max_side_m)
+    center_x = (min_x + max_x) / 2.0
+    center_y = (min_y + max_y) / 2.0
+    return center_x, center_y, side / 2.0
+
+
+def pixels_for(side_m, min_pixels, max_pixels):
+    """Kantenlänge der Ausgabe in Pixeln zur Zielauflösung."""
+    pixels = int(round(side_m / TARGET_M_PER_PX))
+    return min(max(pixels, min_pixels), max_pixels)
 
 
 def fetch_tile(layer, z, x, y, delay, retries=4):
@@ -154,11 +291,13 @@ def white_fraction(image):
     return sum(histogram[WHITE_LEVEL:]) / total if total else 1.0
 
 
-def build_image(layer, lat, lon, zoom, radius_m, pixels, delay):
-    """Setzt die Kacheln zusammen und schneidet den Ausschnitt aus."""
+def build_image(layer, cx, cy, zoom, radius_m, pixels, delay):
+    """Setzt die Kacheln zusammen und schneidet den Ausschnitt um (cx, cy) aus.
+
+    (cx, cy) ist der Kastenmittelpunkt in Web-Mercator-Metern.
+    """
     scale = 2 ** zoom
     span = 2.0 * HALF_WORLD / scale
-    cx, cy = lonlat_to_merc(lon, lat)
     x0, x1 = cx - radius_m, cx + radius_m
     y0, y1 = cy - radius_m, cy + radius_m
 
@@ -197,7 +336,7 @@ def build_image(layer, lat, lon, zoom, radius_m, pixels, delay):
     return crop, min_lat, min_lon, max_lat, max_lon, missing, total
 
 
-def build_best(lat, lon, zoom, radius_m, pixels, delay):
+def build_best(cx, cy, zoom, radius_m, pixels, delay):
     """Baut den Ausschnitt aus der Ausgabe mit dem wenigsten Lückenweiß.
 
     Keine der beiden Ausgaben ist überall vollständig: Die neuere 2017er-Ausgabe
@@ -211,7 +350,7 @@ def build_best(lat, lon, zoom, radius_m, pixels, delay):
     best = None
     best_white = None
     for layer in LAYERS:
-        result = build_image(layer, lat, lon, zoom, radius_m, pixels, delay)
+        result = build_image(layer, cx, cy, zoom, radius_m, pixels, delay)
         image, *_rest, missing, total = result
         white = white_fraction(image)
         if missing * 2 > total:
@@ -233,13 +372,23 @@ def main():
     parser.add_argument("--only", help="Nur diese IATA-Codes (Komma-getrennt)")
     parser.add_argument("--zoom", type=int, default=DEFAULT_ZOOM)
     parser.add_argument("--radius-km", type=float, default=4.0,
-                        help="Halbe Kantenlänge des Ausschnitts in km")
-    parser.add_argument("--pixels", type=int, default=640)
+                        help="Mindest-Halbkante des Ausschnitts in km (Fallback ohne Pisten-Daten)")
+    parser.add_argument("--max-box-km", type=float, default=18.0,
+                        help="Höchstmaß der Kantenlänge in km")
+    parser.add_argument("--margin-km", type=float, default=1.5,
+                        help="Rand um die Pisten-Endpunkte in km")
+    parser.add_argument("--pixels", type=int, default=640,
+                        help="Mindest-Kantenlänge der Ausgabe in px")
+    parser.add_argument("--max-pixels", type=int, default=1280,
+                        help="Höchstmaß der Ausgabe in px")
+    parser.add_argument("--ourairports-dir", default=None,
+                        help="Lokale OurAirports-CSVs (airports.csv, runways.csv) statt Download")
     parser.add_argument("--delay", type=float, default=0.25,
                         help="Pause zwischen zwei Kachelabrufen in Sekunden")
     parser.add_argument("--force", action="store_true",
                         help="Vorhandene Bilder überschreiben")
     args = parser.parse_args()
+    prefer_ipv4()
 
     coords = load_coords()
     codes = TOP_100
@@ -251,7 +400,26 @@ def main():
                 codes.append(c)
 
     os.makedirs(OUT_DIR, exist_ok=True)
-    radius_m = args.radius_km * 1000.0
+    min_side_m = 2.0 * args.radius_km * 1000.0
+    max_side_m = args.max_box_km * 1000.0
+    margin_m = args.margin_km * 1000.0
+
+    # Pisten-Gebiet pro Flughafen (OurAirports, Public Domain). Schlägt der
+    # Download fehl, bleibt es beim Mindestkasten – die Bilder werden dann nur
+    # neu zugeschnitten, nicht kleiner.
+    bounds = {}
+    try:
+        if args.ourairports_dir:
+            airports_csv = os.path.join(args.ourairports_dir, "airports.csv")
+            runways_csv = os.path.join(args.ourairports_dir, "runways.csv")
+        else:
+            airports_csv = fetch_csv(OURAIRPORTS_AIRPORTS_CSV, OURAIRPORTS_CACHE)
+            runways_csv = fetch_csv(OURAIRPORTS_RUNWAYS_CSV, OURAIRPORTS_CACHE)
+        bounds = load_runway_bounds(coords, airports_csv, runways_csv)
+        print(f"Pisten-Gebiet geladen: {len(bounds)} Flughäfen mit Daten", flush=True)
+    except Exception as error:  # noqa: BLE001
+        print(f"WARNUNG: OurAirports-Daten nicht verfügbar ({error}); "
+              "falle auf den Mindestkasten zurück", flush=True)
 
     done = skipped = failed = 0
     for index, code in enumerate(codes, start=1):
@@ -267,11 +435,16 @@ def main():
             print(f"[{index}/{len(codes)}] {code}: keine Koordinaten, übersprungen", flush=True)
             continue
         lat, lon = coords[code]
+        cx, cy, half_side_m = box_center_and_half_side(
+            code, lat, lon, bounds, min_side_m, max_side_m, margin_m
+        )
+        pixels = pixels_for(half_side_m * 2.0, args.pixels, args.max_pixels)
 
-        print(f"[{index}/{len(codes)}] {code} ({lat:.4f}, {lon:.4f}) …", flush=True)
+        print(f"[{index}/{len(codes)}] {code} ({lat:.4f}, {lon:.4f}), "
+              f"Kasten {half_side_m * 2.0 / 1000.0:.1f} km, {pixels} px …", flush=True)
         try:
             result = build_best(
-                lat, lon, args.zoom, radius_m, args.pixels, args.delay
+                cx, cy, args.zoom, half_side_m, pixels, args.delay
             )
         except Exception as error:  # noqa: BLE001
             failed += 1

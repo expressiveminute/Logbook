@@ -4,13 +4,12 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.highfly.logbook.databinding.FragmentFlightsYearBinding
 import java.time.Month
 import java.time.format.TextStyle
 
-class FlightsYearFragment : Fragment() {
+class FlightsYearFragment : LogbookFragment() {
 
     private var _binding: FragmentFlightsYearBinding? = null
     private val binding get() = _binding!!

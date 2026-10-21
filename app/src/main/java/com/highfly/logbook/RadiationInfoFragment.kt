@@ -7,7 +7,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.highfly.logbook.databinding.FragmentRadiationInfoBinding
 
@@ -18,7 +17,7 @@ import com.highfly.logbook.databinding.FragmentRadiationInfoBinding
  * welche Quellen die Richtwerte liefern. Die Texte stehen in den Strings
  * `radiation_info_*`, siehe auch [RadiationCalculator].
  */
-class RadiationInfoFragment : Fragment() {
+class RadiationInfoFragment : LogbookFragment() {
 
     private var _binding: FragmentRadiationInfoBinding? = null
     private val binding get() = _binding!!

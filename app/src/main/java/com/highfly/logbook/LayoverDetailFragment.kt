@@ -5,7 +5,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.os.bundleOf
-import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.highfly.logbook.databinding.FragmentLayoverDetailBinding
 import com.highfly.logbook.databinding.ItemLayoverTimelineBinding
@@ -19,7 +18,7 @@ import java.util.Locale
  * an diesem Flughafen, der jüngste oben. Der Zeitraum entspricht der Kachel,
  * von der aus die Seite geöffnet wurde.
  */
-class LayoverDetailFragment : Fragment() {
+class LayoverDetailFragment : LogbookFragment() {
 
     private var _binding: FragmentLayoverDetailBinding? = null
     private val binding get() = _binding!!

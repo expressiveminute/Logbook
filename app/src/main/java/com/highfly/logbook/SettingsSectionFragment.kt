@@ -6,7 +6,6 @@ import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Bundle
 import android.util.TypedValue
-import androidx.fragment.app.Fragment
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
@@ -35,7 +34,7 @@ import java.util.Locale
 import kotlin.math.floor
 import kotlin.math.min
 
-class SettingsSectionFragment : Fragment() {
+class SettingsSectionFragment : LogbookFragment() {
 
     private companion object {
         /** Schriftgrösse der Kachelbeschriftung, siehe [fitTileLabels]. */

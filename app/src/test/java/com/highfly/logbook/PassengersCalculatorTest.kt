@@ -7,8 +7,8 @@ import java.util.Locale
 
 /**
  * Prüft die Schätzung der Passagierzahlen ([PassengersCalculator]): Sitzplätze
- * × Auslastung pro Flug, Durchschnitt als Rückfall für unbekannte Typen, kein
- * Zählen von Ground Transfers, Jahresgruppierung und Tausender-Rundung.
+ * × Auslastung pro Flug, Durchschnitt als Rückfall für unbekannte Typen, nur
+ * Flüge als "On Duty", Jahresgruppierung und Tausender-Rundung.
  */
 class PassengersCalculatorTest {
 
@@ -21,7 +21,7 @@ class PassengersCalculatorTest {
     private fun entry(
         date: LocalDate = LocalDate.of(2026, 3, 15),
         aircraftType: String? = "A320",
-        flightType: String = "Privat"
+        flightType: String? = "On Duty"
     ) = LogbookEntry(
         date = date,
         flightType = flightType,
@@ -57,24 +57,36 @@ class PassengersCalculatorTest {
     }
 
     @Test
-    fun passengersPerFlight_groundTransferZaehltNicht() {
+    fun passengersPerFlight_nurOnDutyZaehlt() {
+        // Alles andere als "On Duty" zählt nicht - auch nicht der Ground
+        // Transfer, der als einziger Typ kein Flug ist.
+        for (type in listOf("Privat", "Deadhead", "Dienstreise", "Ferry", "Ground Transfer", null)) {
+            assertEquals(
+                "Reiseart $type darf nicht zählen",
+                0,
+                PassengersCalculator.passengersPerFlight(entry(flightType = type), 80, catalog)
+            )
+        }
+        // Auch die englische Schreibweise wird erkannt.
+        assertEquals(
+            149,
+            PassengersCalculator.passengersPerFlight(entry(flightType = "on duty"), 80, catalog)
+        )
         assertEquals(
             0,
-            PassengersCalculator.passengersPerFlight(
-                entry(flightType = "Ground Transfer"),
-                80,
-                catalog
-            )
+            PassengersCalculator.passengersPerFlight(entry(flightType = "Duty Travel"), 80, catalog)
         )
     }
 
     @Test
-    fun byYear_gruppiertNeustesZuerstUndOhneGroundTransfers() {
+    fun byYear_gruppiertNeustesZuerstUndNurOnDuty() {
         val entries = listOf(
             entry(date = LocalDate.of(2024, 5, 1), aircraftType = "A320"),
             entry(date = LocalDate.of(2026, 1, 10), aircraftType = "A320"),
             entry(date = LocalDate.of(2026, 2, 20), aircraftType = "B737"),
-            entry(date = LocalDate.of(2026, 3, 1), flightType = "Ground Transfer")
+            entry(date = LocalDate.of(2026, 3, 1), flightType = "Ground Transfer"),
+            entry(date = LocalDate.of(2026, 3, 2), flightType = "Privat"),
+            entry(date = LocalDate.of(2026, 3, 3), flightType = "Deadhead")
         )
         val years = PassengersCalculator.byYear(entries, 80, catalog)
         assertEquals(2, years.size)

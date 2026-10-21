@@ -6,7 +6,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.os.bundleOf
-import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.highfly.logbook.databinding.FragmentFlightRouteDetailBinding
 import com.highfly.logbook.databinding.ItemLayoverTimelineBinding
@@ -27,7 +26,7 @@ import java.util.Locale
  * Anders als die Detailseite einer Strecke ranken die Kennzahlen hier nicht:
  * Dieselbe Zahl gibt es nur einmal je Typ bzw. Registrierung.
  */
-class AircraftFlightsFragment : Fragment() {
+class AircraftFlightsFragment : LogbookFragment() {
 
     private var _binding: FragmentFlightRouteDetailBinding? = null
     private val binding get() = _binding!!

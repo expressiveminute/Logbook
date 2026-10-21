@@ -7,11 +7,11 @@ import org.json.JSONObject
 /**
  * Allgemeine Stammdaten der Fluggesellschaften aus
  * `assets/airlines/airline_facts.json` (erzeugt von
- * `tools/build_airline_facts.py` aus Wikidata und Wikipedia): Gründung,
- * Insolvenzjahr, Sitz, Hubs, Flottengröße, Allianz, Rufzeichen und der
- * Link zur englischen Wikipedia-Seite. Diese Daten hängen nicht vom
- * Logbuch des Nutzers ab und stehen auch für Airlines ohne eigenen Flug;
- * auf der Detailseite erscheinen sie über der Streckenkarte.
+ * `tools/build_airline_facts.py` aus Wikidata und Wikipedia): Airlinegruppe,
+ * Gründung, Besitzform, Insolvenzjahr, Sitz, Hubs, Flottengröße, Allianz,
+ * Rufzeichen und der Link zur englischen Wikipedia-Seite. Diese Daten hängen
+ * nicht vom Logbuch des Nutzers ab und stehen auch für Airlines ohne eigenen
+ * Flug; auf der Detailseite erscheinen sie über der Streckenkarte.
  *
  * Geladen wird einmalig, der Bestand ändert sich nicht. Schlüssel ist der
  * IATA-Code - derselbe kanonische Schlüssel wie im [AirlineCatalog].
@@ -21,6 +21,15 @@ object AirlineFacts {
     private const val TAG = "AirlineFacts"
     private const val ASSET = "airlines/airline_facts.json"
 
+    /** Besitzform "Staatlich" (im Asset der Schlüssel `state`). */
+    const val OWNERSHIP_STATE = "state"
+
+    /** Besitzform "Aktiengesellschaft" (im Asset der Schlüssel `public`). */
+    const val OWNERSHIP_PUBLIC = "public"
+
+    /** Besitzform "Privat" (im Asset der Schlüssel `private`). */
+    const val OWNERSHIP_PRIVATE = "private"
+
     /**
      * @param hq Sitz in englischer Schreibweise (z. B. "Cologne")
      * @param hqDe Sitz auf Deutsch, wenn abweichend (z. B. "Köln"), sonst null
@@ -28,6 +37,9 @@ object AirlineFacts {
      * @param fleet Flottengröße als Zahl, wenn bekannt
      * @param dissolved Jahr der Insolvenz/Auflösung, wenn die Airline pleite ist
      * @param wiki Link zur englischen Wikipedia-Seite der Airline
+     * @param group Airlinegruppe (Name des Mutterkonzerns, z. B. "Lufthansa Group")
+     * @param ownership Besitzform als Schlüssel: [OWNERSHIP_STATE],
+     *   [OWNERSHIP_PUBLIC] oder [OWNERSHIP_PRIVATE]
      */
     data class Facts(
         val founded: Int?,
@@ -38,7 +50,9 @@ object AirlineFacts {
         val alliance: String?,
         val callsign: String?,
         val dissolved: Int? = null,
-        val wiki: String? = null
+        val wiki: String? = null,
+        val group: String? = null,
+        val ownership: String? = null
     ) {
         /** Anzeigename des Sitzes: deutsch, wenn hinterlegt, sonst englisch. */
         val displayHq: String?
@@ -76,7 +90,9 @@ object AirlineFacts {
                         alliance = fields.optString("alliance").takeIf(String::isNotBlank),
                         callsign = fields.optString("callsign").takeIf(String::isNotBlank),
                         dissolved = fields.optInt("dissolved").takeIf { it > 0 },
-                        wiki = fields.optString("wiki").takeIf(String::isNotBlank)
+                        wiki = fields.optString("wiki").takeIf(String::isNotBlank),
+                        group = fields.optString("group").takeIf(String::isNotBlank),
+                        ownership = fields.optString("ownership").takeIf(String::isNotBlank)
                     )
                 }
                 result
@@ -92,6 +108,19 @@ object AirlineFacts {
     /** Stammdaten zum IATA-Code; `null`, wenn die Airline keine hat. */
     fun get(context: Context, iata: String): Facts? =
         load(context)[iata.trim().uppercase()]
+
+    /**
+     * String-Resource der Besitzform für die Detailseite: aus dem Schlüssel
+     * im Asset ("state", "public", "private") wird die übersetzte Beschriftung
+     * ("Staatlich", "Aktiengesellschaft", "Privat"). Ein unbekannter oder
+     * fehlender Schlüssel ergibt null - die Zeile bleibt dann weg.
+     */
+    fun ownershipLabelRes(ownership: String?): Int? = when (ownership) {
+        OWNERSHIP_STATE -> R.string.airline_ownership_state
+        OWNERSHIP_PUBLIC -> R.string.airline_ownership_public
+        OWNERSHIP_PRIVATE -> R.string.airline_ownership_private
+        else -> null
+    }
 
     /**
      * Rufzeichen zur Anzeige unter den Codes: aus den gespeicherten

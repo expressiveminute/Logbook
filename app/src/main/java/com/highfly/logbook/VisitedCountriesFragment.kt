@@ -10,10 +10,8 @@ import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import androidx.core.content.ContextCompat
 import androidx.core.os.bundleOf
-import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.highfly.logbook.databinding.FragmentVisitedCountriesBinding
 import java.text.Collator
 import java.util.Locale
@@ -33,7 +31,7 @@ import java.util.Locale
  * Ländernamen filtert. Kommt der Nutzer von einer Länderseite zurück, bleibt
  * die Liste an der Stelle stehen, an der er das Land angetippt hat.
  */
-class VisitedCountriesFragment : Fragment() {
+class VisitedCountriesFragment : LogbookFragment(), BackPressAware {
 
     private var _binding: FragmentVisitedCountriesBinding? = null
     private val binding get() = _binding!!
@@ -43,14 +41,6 @@ class VisitedCountriesFragment : Fragment() {
 
     /** Suchfeld offen oder zu; steuert Lupe und Titelumschaltung. */
     private var searchActive = false
-
-    /**
-     * Position, an der die Liste beim Zurückkommen wieder aufsetzt. Sie wird
-     * beim Verlassen der Seite gemerkt und nach dem Neuladen wiederhergestellt,
-     * damit ein Tipp auf ein Land nicht oben in der Liste endet.
-     */
-    private var savedScrollPosition = RecyclerView.NO_POSITION
-    private var savedScrollOffset = 0
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -133,17 +123,6 @@ class VisitedCountriesFragment : Fragment() {
                 items.size
             )
         }
-        // Rückkehr von einer Länderseite: an der gemerkten Stelle aufsetzen.
-        if (hasCountries && savedScrollPosition != RecyclerView.NO_POSITION) {
-            val position = savedScrollPosition
-            val offset = savedScrollOffset
-            savedScrollPosition = RecyclerView.NO_POSITION
-            val list = binding.visitedCountriesList
-            list.post {
-                (list.layoutManager as? LinearLayoutManager)
-                    ?.scrollToPositionWithOffset(position, offset)
-            }
-        }
     }
 
     /** Ein Tipp auf ein Land öffnet dessen Länderseite mit der Karte. */
@@ -214,21 +193,13 @@ class VisitedCountriesFragment : Fragment() {
     }
 
     /**
-     * Merkt sich die Scrollposition der Liste, bevor die Seite verlassen
-     * wird - zum Beispiel für den Tipp auf ein Land, nach dem die Liste an
-     * derselben Stelle wieder erscheinen soll.
+     * Die Zurück-Taste räumt zuerst das Suchfeld ab (wie das Schliessen-X) und
+     * navigiert erst beim zweiten Druck zurück.
      */
-    private fun saveScrollPosition() {
-        val layoutManager =
-            binding.visitedCountriesList.layoutManager as? LinearLayoutManager ?: return
-        val position = layoutManager.findFirstVisibleItemPosition()
-        savedScrollPosition = position.takeIf { it >= 0 } ?: RecyclerView.NO_POSITION
-        val first = layoutManager.findViewByPosition(position)
-        savedScrollOffset = if (first != null) {
-            first.top - binding.visitedCountriesList.paddingTop
-        } else {
-            0
-        }
+    override fun onBackPressed(): Boolean {
+        if (!searchActive) return false
+        toggleSearch(false)
+        return true
     }
 
     /** Die App ist deutschsprachig, values-en liefert die englischen Namen. */
@@ -236,7 +207,6 @@ class VisitedCountriesFragment : Fragment() {
         locale.language.isEmpty() || locale.language == Settings.LANG_DE
 
     override fun onDestroyView() {
-        saveScrollPosition()
         super.onDestroyView()
         loadGeneration++
         _binding = null

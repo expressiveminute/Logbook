@@ -6,7 +6,6 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.core.os.bundleOf
 import androidx.core.view.isEmpty
-import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.highfly.logbook.databinding.FragmentAchievementsBinding
 import com.highfly.logbook.databinding.ItemAchievementTimelineBinding
@@ -24,7 +23,7 @@ import java.time.format.DateTimeFormatter
  * Zeitstrahl wird bei jeder Rückkehr neu gezeichnet, damit er nach einer
  * Änderung an einem Eintrag sofort stimmt.
  */
-class AchievementsFragment : Fragment() {
+class AchievementsFragment : LogbookFragment() {
 
     private var _binding: FragmentAchievementsBinding? = null
     private val binding get() = _binding!!

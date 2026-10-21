@@ -44,6 +44,14 @@ import kotlin.math.sqrt
  * Die Umrisse werden einmalig im Hintergrund geladen, die gezeichneten Pfade
  * bei jeder Größenänderung und Drehung neu gebaut. [onDraw] zeichnet danach nur
  * noch fertige Pfade und bleibt auch mit über 230 Ländern flüssig.
+ *
+ * Damit das Drehen flüssig bleibt, zahlt der Aufbau nicht mit Trigonometrie
+ * pro Punkt: Die Ringe liegen als Einheitsvektoren bereit
+ * ([CountryShapes.Country.unitRings]) und werden pro Neuaufbau je Punkt einmal
+ * per Matrixmultiplikation projiziert ([GeoMath.Globe.unitPoint]). Während
+ * einer Geste werden Ländername und Städte nicht neu aufgebaut - ihre
+ * Regionsauflösung pro Land wäre pro Fingerzug zu teuer; beim Loslassen
+ * zeichnet [gesteEnde] einmalig mit Beschriftung neu.
  */
 class RubbelkarteView @JvmOverloads constructor(
     context: Context,
@@ -504,15 +512,13 @@ class RubbelkarteView @JvmOverloads constructor(
     private val buildProjection = FloatArray(2)
 
     /**
-     * Lage zweier Ringpunkte, je ein Puffer für den Aufbau-Thread und für den
-     * Zeichen-Thread. [projectGlobe] schreibt in [buildPoint] beziehungsweise
-     * [drawPoint]; beide Threads dürfen sich keinen Puffer teilen, sonst liest
-     * einer die halbe Rechnung des anderen.
+     * Lage eines Punktes, je ein Puffer für den Aufbau-Thread und für den
+     * Zeichen-Thread. [projectGlobe] und [GeoMath.Globe.unitPoint] schreiben in
+     * [buildPoint] beziehungsweise [drawPoint]; beide Threads dürfen sich
+     * keinen Puffer teilen, sonst liest einer die halbe Rechnung des anderen.
      */
     private val buildPoint = DoubleArray(3)
     private val drawPoint = DoubleArray(3)
-    private val pointA = DoubleArray(3)
-    private val pointB = DoubleArray(3)
 
     @Volatile
     private var shapes: List<Shape> = emptyList()
@@ -576,6 +582,41 @@ class RubbelkarteView @JvmOverloads constructor(
 
     /** Nach einem Zoomen ist der Rest der Geste kein Klick mehr. */
     private var scaled = false
+
+    /**
+     * Finger auf dem Bildschirm. Während einer Geste werden Ländername und
+     * Städte nicht neu aufgebaut: Beide brauchen die teure Regionsauflösung
+     * ([Region.setPath]) pro Land, und die frisst bei jedem Fingerzug so viel
+     * Zeit, dass das Drehen ruckelt. Beim Loslassen wird einmalig mit
+     * Beschriftung neu aufgebaut, siehe [gesteEnde].
+     */
+    @Volatile
+    private var gestureActive = false
+
+    /**
+     * Ob das gerade gezeichnete Bild Ländernamen trägt. Während einer Geste
+     * gebaute Bilder tragen keine; [gesteEnde] stößt dann den Neuaufbau mit
+     * Beschriftung an.
+     */
+    @Volatile
+    private var drawnHatNamen = false
+
+    /**
+     * Gefilterte und sortierte Stadtkandidaten für [fuelleStaedte]. Rein aus
+     * den Assetdaten, deshalb einmalig berechnet statt bei jedem Aufbau.
+     */
+    @Volatile
+    private var stadtKandidatenCache: List<MapCity>? = null
+
+    /**
+     * Pro Ring des Aufbaus die projizierten Werte: X, Y und FRONT je Punkt,
+     * einmalig pro Ring berechnet und für Sichtbarkeit wie Horizontschnitte
+     * wieder gelesen. Gehören dem Aufbau-Thread; es läuft nie mehr als ein
+     * Aufbau zugleich ([building]).
+     */
+    private var ringX = DoubleArray(0)
+    private var ringY = DoubleArray(0)
+    private var ringF = DoubleArray(0)
 
     /**
      * Zoomstufe der Kugel. Sie steckt nur im Radius, deshalb ist ein eigener
@@ -844,6 +885,8 @@ class RubbelkarteView @JvmOverloads constructor(
                 tapY = touchY
                 draggedPx = 0f
                 scaled = false
+                // Ab jetzt bis zum Loslassen ohne Beschriftung neu aufbauen.
+                gestureActive = true
                 return true
             }
 
@@ -892,14 +935,39 @@ class RubbelkarteView @JvmOverloads constructor(
             }
 
             MotionEvent.ACTION_UP -> {
+                gesteEnde()
                 if (!scaled && draggedPx <= touchSlop) performClick()
                 return true
             }
 
-            MotionEvent.ACTION_CANCEL -> return true
+            MotionEvent.ACTION_CANCEL -> {
+                gesteEnde()
+                return true
+            }
         }
         return super.onTouchEvent(event)
     }
+
+    /**
+     * Ende einer Geste: Beschriftungen, die während des Drehens oder Zoomens
+     * ausgesetzt waren, werden einmalig neu aufgebaut. Ein Tipp ohne Zug
+     * stößt nichts an - dann lief während der Geste kein Aufbau ohne Namen.
+     */
+    private fun gesteEnde() {
+        gestureActive = false
+        if (!beschriftungFehlt()) return
+        built = false
+        rebuildIfNeeded()
+    }
+
+    /**
+     * Ob das gezeichnete Bild Beschriftung tragen müsste, sie aber nicht hat:
+     * Während einer Geste wird ohne Namen aufgebaut; endet die Geste, während
+     * der Aufbau noch läuft, muss der fertige Zustand einmalig nachgereicht
+     * werden, sonst bliebe die Kugel bis zur nächsten Drehung namenlos.
+     */
+    private fun beschriftungFehlt(): Boolean =
+        !drawnHatNamen && zoom >= ZOOM_LABELS && !gestureActive
 
     /** Vergrößert oder verkleinert die Kugel um [faktor]. */
     private fun zoomBy(faktor: Float) {
@@ -1099,6 +1167,10 @@ class RubbelkarteView @JvmOverloads constructor(
         building = true
         val generation = ++buildGeneration
         val visitedSnapshot = visitedIso2
+        // Während einer Geste ohne Beschriftung aufbauen, siehe [gestureActive].
+        // Der Wert wird hier auf dem Hauptthread gelesen und dem Aufbau mitgegeben,
+        // der Thread liest selbst nichts aus der View.
+        val mitNamen = zoom >= ZOOM_LABELS && !gestureActive
         // Der Aufbau-Thread liest nichts aus der View. Für die Städte braucht er
         // aber einen Context zum Lesen des Assets, also wandert der
         // Anwendungskontext mit - nicht die View, an die die View hängt.
@@ -1110,7 +1182,7 @@ class RubbelkarteView @JvmOverloads constructor(
             // - und ohne finally bliebe building dauerhaft true, sodass die
             // Kugel gar nichts mehr neu aufbaut.
             val builtShapes = try {
-                buildGlobe(list, visitedSnapshot, state, generation, zoom, appContext)
+                buildGlobe(list, visitedSnapshot, state, generation, zoom, mitNamen, appContext)
             } catch (e: RuntimeException) {
                 Log.e(TAG, "Kugel konnte nicht neu aufgebaut werden", e)
                 null
@@ -1133,13 +1205,15 @@ class RubbelkarteView @JvmOverloads constructor(
                 // waehrend des Drehens neben dem Land.
                 shapes = builtShapes
                 drawnState = state
+                drawnHatNamen = mitNamen
                 invalidate()
                 // Waehrend des Aufbaus ist der Finger weitergewandert. Ohne
                 // diesen Auftrag bliebe die Kugel auf dem Stand des Aufbaus
                 // stehen, bis der naechste Fingerimpuls kommt - das war der
-                // Verspaetungseffekt beim Drehen.
+                // Verspaetungseffekt beim Drehen. Dasselbe gilt, wenn die Geste
+                // endete, während ein Aufbau ohne Beschriftung noch lief.
                 built = false
-                if (needsRebuild(state)) rebuildIfNeeded()
+                if (needsRebuild(state) || beschriftungFehlt()) rebuildIfNeeded()
             }
         }.start()
     }
@@ -1176,7 +1250,8 @@ class RubbelkarteView @JvmOverloads constructor(
      * kommen fertig als [state] mit, sonst entstuende ein Bild, das zu keiner
      * Kugel gehoert, die der Nutzer je gesehen hat. Dasselbe gilt für [zoom]:
      * Ob ein Name gesetzt wird, hängt an der Zoomstufe, und die muss zu dem
-     * Zustand gehören, aus dem die Pfade gerechnet sind.
+     * Zustand gehören, aus dem die Pfade gerechnet sind. [mitNamen] schaltet
+     * die Beschriftung ab - während einer Geste, siehe [gestureActive].
      */
     private fun buildGlobe(
         list: List<CountryShapes.Country>,
@@ -1184,6 +1259,7 @@ class RubbelkarteView @JvmOverloads constructor(
         state: GlobeState,
         generation: Int,
         zoom: Float,
+        mitNamen: Boolean,
         appContext: Context
     ): List<Shape> {
         val globe = state.globe
@@ -1199,12 +1275,11 @@ class RubbelkarteView @JvmOverloads constructor(
             textSize = sp(LABEL_TEXT_SP)
         }
         val rand = LABEL_RAND_DP * density
-        val mitNamen = zoom >= ZOOM_LABELS
         val result = ArrayList<Shape>(list.size)
         for (country in list) {
             if (generation != buildGeneration) return result
             if (country.iso2 == ANTARCTICA) continue
-            val path = globeRings(country.rings, globe, cx, cy, radius) ?: continue
+            val path = globeRings(country.unitRings, globe, cx, cy, radius) ?: continue
             val bounds = RectF().apply { path.computeBounds(this, true) }
             val name = if (german) country.nameDe else country.nameEn
             val label = if (mitNamen) {
@@ -1224,7 +1299,7 @@ class RubbelkarteView @JvmOverloads constructor(
             )
         }
         val geordnet = drawOrder(result)
-        if (zoom >= ZOOM_STAEDTE) {
+        if (mitNamen && zoom >= ZOOM_STAEDTE) {
             fuelleStaedte(geordnet, globe, cx, cy, radius, german, appContext)
         }
         return geordnet
@@ -1333,6 +1408,21 @@ class RubbelkarteView @JvmOverloads constructor(
     }
 
     /**
+     * Die beschriftbaren Städte: Hauptstädte und die grössten Städte, nach
+     * Bedeutung sortiert. Das Ergebnis hängt nur von den Assetdaten ab, nicht
+     * von der Kugellage, und wird deshalb einmalig zwischengespeichert statt
+     * bei jedem Neuaufbau erneut gefiltert und sortiert.
+     */
+    private fun stadtKandidaten(appContext: Context): List<MapCity> {
+        stadtKandidatenCache?.let { return it }
+        val list = MapCities.load(appContext)
+            .filter { it.isCapital || it.rank <= STADT_RANG }
+            .sortedBy { it.importance() }
+        stadtKandidatenCache = list
+        return list
+    }
+
+    /**
      * Sucht zu jedem sichtbaren Land seine Hauptstadt und bis zu
      * [STADT_PRO_LAND] weitere grosse Städte.
      *
@@ -1359,9 +1449,7 @@ class RubbelkarteView @JvmOverloads constructor(
         german: Boolean,
         appContext: Context
     ) {
-        val kandidaten = MapCities.load(appContext)
-            .filter { it.isCapital || it.rank <= STADT_RANG }
-            .sortedBy { it.importance() }
+        val kandidaten = stadtKandidaten(appContext)
         if (kandidaten.isEmpty()) return
         val kleinsteLaenge = STADT_MIN_LAND_DP * density
         var budget = STADT_MAX
@@ -1439,9 +1527,16 @@ class RubbelkarteView @JvmOverloads constructor(
      * Wandelt die Ringe eines Landes in einen Pfad auf der Kugel um. Ringe, die
      * vollständig auf der Rückseite liegen, fallen weg; die übrigen werden an
      * den Horizontlinien abgeschnitten, damit die Kugel geschlossen wirkt.
+     *
+     * [unitRings] trägt die Ringpunkte als Einheitsvektoren (siehe
+     * [CountryShapes.Country.unitRings]). Jeder Punkt wird genau einmal
+     * projiziert und landet in den Ringpuffern [ringX]/[ringY]/[ringF] -
+     * Sichtbarkeit und Horizontschnitte lesen nur noch diese Werte. Rechnet
+     * man dagegen jeden Punkt mehrfach mit [GeoMath.Globe.point] nach, kostet
+     * der Neuaufbau der ~80.000 Punkte bei jedem Fingerzug zu viel Zeit.
      */
     private fun globeRings(
-        rings: List<FloatArray>,
+        unitRings: List<DoubleArray>,
         center: GeoMath.Globe,
         cx: Float,
         cy: Float,
@@ -1449,27 +1544,39 @@ class RubbelkarteView @JvmOverloads constructor(
     ): Path? {
         val path = Path()
         var any = false
-        for (ring in rings) {
-            val count = ring.size / 2
+        for (unitRing in unitRings) {
+            val count = unitRing.size / 3
             if (count < 3) continue
-            if (!anyVisible(ring, count, center)) continue
+            ensureRingBuffers(count)
+            // Einmalig pro Ring projizieren: X, Y und FRONT je Punkt.
+            var anyVisible = false
+            for (i in 0 until count) {
+                center.unitPoint(
+                    unitRing[i * 3], unitRing[i * 3 + 1], unitRing[i * 3 + 2],
+                    buildPoint
+                )
+                ringX[i] = buildPoint[GeoMath.Globe.X]
+                ringY[i] = buildPoint[GeoMath.Globe.Y]
+                ringF[i] = buildPoint[GeoMath.Globe.FRONT]
+                if (ringF[i] > ZERO_EPS) anyVisible = true
+            }
+            if (!anyVisible) continue
             runPath.reset()
             val crossings = ArrayList<Crossing>(4)
             for (i in 0 until count) {
                 val j = (i + 1) % count
-                val lonA = ring[i * 2].toDouble()
-                val latA = ring[i * 2 + 1].toDouble()
-                val lonB = ring[j * 2].toDouble()
-                val latB = ring[j * 2 + 1].toDouble()
-                    val visA = isVisible(lonA, latA, center, pointA)
-                    val visB = isVisible(lonB, latB, center, pointB)
-                    if (visA == visB) continue
-                    val alpha = horizonAlpha(lonA, latA, lonB, latB, center)
-                    // cos/sin von NaN ergeben NaN, und ein NaN in moveTo/lineTo
-                    // landet ungeprueft im nativen Path. Also lieber die
-                    // Schnittstelle weglassen als den Pfad zu vergiften.
-                    if (!alpha.isFinite()) continue
-                    crossings.add(
+                val visA = ringF[i] > ZERO_EPS
+                val visB = ringF[j] > ZERO_EPS
+                if (visA == visB) continue
+                val alpha = horizonWinkel(
+                    ringX[i], ringY[i], ringF[i],
+                    ringX[j], ringY[j], ringF[j]
+                )
+                // cos/sin von NaN ergeben NaN, und ein NaN in moveTo/lineTo
+                // landet ungeprueft im nativen Path. Also lieber die
+                // Schnittstelle weglassen als den Pfad zu vergiften.
+                if (!alpha.isFinite()) continue
+                crossings.add(
                     Crossing(
                         segment = i,
                         entering = visB,
@@ -1482,17 +1589,15 @@ class RubbelkarteView @JvmOverloads constructor(
 
             if (crossings.isEmpty()) {
                 for (i in 0 until count) {
-                    if (!projectGlobe(
-                            ring[i * 2 + 1].toDouble(), ring[i * 2].toDouble(),
-                            center, cx, cy, radius, buildPoint, buildProjection
-                        )
-                    ) {
-                        continue
-                    }
+                    // Nicht `> ZERO_EPS`: ein NaN ist im Vergleich mit jedem
+                    // Wert false und wuerde durchrutschen.
+                    if (!(ringF[i] > ZERO_EPS)) continue
+                    val x = (cx + ringX[i] * radius).toFloat()
+                    val y = (cy - ringY[i] * radius).toFloat()
                     if (i == 0) {
-                        runPath.moveTo(buildProjection[0], buildProjection[1])
+                        runPath.moveTo(x, y)
                     } else {
-                        runPath.lineTo(buildProjection[0], buildProjection[1])
+                        runPath.lineTo(x, y)
                     }
                 }
                 runPath.close()
@@ -1511,15 +1616,11 @@ class RubbelkarteView @JvmOverloads constructor(
                     val start = enter.segment + 1
                     for (s in 0 until steps) {
                         val index = (start + s) % count
-                        if (!projectGlobe(
-                                ring[index * 2 + 1].toDouble(),
-                                ring[index * 2].toDouble(),
-                                center, cx, cy, radius, buildPoint, buildProjection
-                            )
-                        ) {
-                            continue
-                        }
-                        runPath.lineTo(buildProjection[0], buildProjection[1])
+                        if (!(ringF[index] > ZERO_EPS)) continue
+                        runPath.lineTo(
+                            (cx + ringX[index] * radius).toFloat(),
+                            (cy - ringY[index] * radius).toFloat()
+                        )
                     }
                     runPath.lineTo(exit.x, exit.y)
                     appendHorizonArc(exit.alpha, enter.alpha, cx, cy, radius, runPath)
@@ -1541,18 +1642,31 @@ class RubbelkarteView @JvmOverloads constructor(
         val y: Float
     )
 
-    private fun anyVisible(ring: FloatArray, count: Int, center: GeoMath.Globe): Boolean {
-        for (i in 0 until count) {
-            if (isVisible(ring[i * 2].toDouble(), ring[i * 2 + 1].toDouble(), center, pointA)) {
-                return true
-            }
-        }
-        return false
+    /** Sorgt dafür, dass die Ringpuffer mindestens [count] Punkte fassen. */
+    private fun ensureRingBuffers(count: Int) {
+        if (ringX.size >= count) return
+        ringX = DoubleArray(count)
+        ringY = DoubleArray(count)
+        ringF = DoubleArray(count)
     }
 
-    private fun isVisible(lon: Double, lat: Double, center: GeoMath.Globe, out: DoubleArray): Boolean {
-        center.point(lat, lon, out)
-        return out[GeoMath.Globe.FRONT] > ZERO_EPS
+    /**
+     * Schnittpunkt eines Ringsegments mit dem Horizont der Kugel, als Winkel auf
+     * dem Randkreis. Arbeitet auf den bereits projizierten Werten [ringX],
+     * [ringY] und [ringF] - dieselbe Rechnung wie [GeoMath.Globe.horizon], ohne
+     * die Endpunkte ein zweites Mal zu projizieren.
+     */
+    private fun horizonWinkel(
+        ax: Double, ay: Double, af: Double,
+        bx: Double, by: Double, bf: Double
+    ): Double {
+        if (af == bf || (af > 0.0) == (bf > 0.0)) return Double.NaN
+        val t = af / (af - bf)
+        val x = ax + t * (bx - ax)
+        val y = ay + t * (by - ay)
+        val len = sqrt(x * x + y * y)
+        if (len < 1e-12) return Double.NaN
+        return atan2(y / len, x / len)
     }
 
     /**
@@ -1578,16 +1692,6 @@ class RubbelkarteView @JvmOverloads constructor(
         out[1] = (cy - scratch[GeoMath.Globe.Y] * radius).toFloat()
         return true
     }
-
-    /**
-     * Schnittpunkt eines Ringsegments mit dem Horizont der Kugel, als Winkel auf
-     * dem Randkreis.
-     */
-    private fun horizonAlpha(
-        lonA: Double, latA: Double,
-        lonB: Double, latB: Double,
-        center: GeoMath.Globe
-    ): Double = center.horizon(latA, lonA, latB, lonB, pointA, pointB)
 
     private fun appendHorizonArc(
         from: Double,

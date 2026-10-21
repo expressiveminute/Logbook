@@ -30,7 +30,7 @@ class AirportSatelliteAssetTest {
         "DMK", "HKT", "DPS", "SGN", "HAN", "NKG", "WUH", "MSP", "DTW", "BOS"
     )
 
-    /** Flughafenmittelpunkte, um die der Ausschnitt liegen muss. */
+    /** Flughafenkoordinaten (aus `airports.json`): Sie müssen im Ausschnitt liegen. */
     private val airports = mapOf(
         "MUC" to (48.3538 to 11.7861),
         "FRA" to (50.0333 to 8.5706),
@@ -43,7 +43,9 @@ class AirportSatelliteAssetTest {
         "MEX" to (19.4363 to -99.0721),
         "DEL" to (28.5665 to 77.1031),
         "JNB" to (-26.1392 to 28.246),
-        "LAX" to (33.9425 to -118.408)
+        "LAX" to (33.9425 to -118.408),
+        "DEN" to (39.8617 to -104.673),
+        "OSL" to (60.1939 to 11.1004)
     )
 
     private fun number(json: String, field: String): Double =
@@ -68,34 +70,48 @@ class AirportSatelliteAssetTest {
         }
     }
 
+    /**
+     * Die Flughafenkoordinate liegt im Ausschnitt, der Mittelpunkt in deren
+     * Nähe – der Kasten ist pro Flughafen auf das Pistengebiet zentriert, nicht
+     * exakt auf die Koordinate (die liegt z. B. in Madrid am Südrand).
+     */
     @Test
-    fun ausschnittLiegtAufDemFlughafen() {
+    fun flughafenLiegtImAusschnitt() {
         for ((code, expected) in airports) {
             val minLat = number(json(code), "min_lat")
             val minLon = number(json(code), "min_lon")
             val maxLat = number(json(code), "max_lat")
             val maxLon = number(json(code), "max_lon")
-            assertEquals("$code Breite", expected.first, (minLat + maxLat) / 2.0, 0.01)
-            assertEquals("$code Länge", expected.second, (minLon + maxLon) / 2.0, 0.01)
+            assertTrue(
+                "$code: Koordinate liegt nicht im Ausschnitt",
+                expected.first in minLat..maxLat && expected.second in minLon..maxLon
+            )
+            assertEquals("$code Mittelpunkt Breite", expected.first, (minLat + maxLat) / 2.0, 0.05)
+            assertEquals("$code Mittelpunkt Länge", expected.second, (minLon + maxLon) / 2.0, 0.05)
         }
     }
 
     /**
-     * Der Ausschnitt ist in Web-Mercator 8 km breit. In Längengraden ist das
-     * immer dieselbe Spanne; in Breitengraden schrumpft sie mit cos(Breite).
+     * Der Ausschnitt ist in Web-Mercator quadratisch und pro Flughafen so groß,
+     * dass das ganze Pistengebiet samt Rand hineinpasst: mindestens 8 km,
+     * höchstens 18 km Kantenlänge (Generator: `--radius-km` … `--max-box-km`).
      */
     @Test
-    fun ausschnittIstAchtKilometerGross() {
-        for ((code, expected) in airports) {
+    fun ausschnittIstQuadratischUndImRahmen() {
+        for ((code, _) in airports) {
             val json = json(code)
-            val spanLat = number(json, "max_lat") - number(json, "min_lat")
-            val spanLon = number(json, "max_lon") - number(json, "min_lon")
-            val expectedLon = 8000.0 / 111_319.49
-            val expectedLat = 8000.0 * Math.cos(Math.toRadians(expected.first)) / 111_319.49
-            assertEquals("$code Längenspanne", expectedLon, spanLon, 0.0002)
-            assertEquals("$code Breitenspanne", expectedLat, spanLat, 0.0002)
+            val spanX = mercX(number(json, "max_lon")) - mercX(number(json, "min_lon"))
+            val spanY = mercY(number(json, "max_lat")) - mercY(number(json, "min_lat"))
+            assertEquals("$code quadratisch (Mercator)", spanX, spanY, spanX * 0.02)
+            assertTrue("$code Kasten zu klein: $spanX m", spanX >= 7_900.0)
+            assertTrue("$code Kasten zu groß: $spanX m", spanX <= 18_100.0)
         }
     }
+
+    private fun mercX(lon: Double): Double = Math.toRadians(lon) * 6_378_137.0
+
+    private fun mercY(lat: Double): Double =
+        Math.log(Math.tan(Math.PI / 4.0 + Math.toRadians(lat) / 2.0)) * 6_378_137.0
 
     @Test
     fun quellennachweisIstGesetzt() {

@@ -11,7 +11,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import android.widget.LinearLayout
-import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.highfly.logbook.databinding.FragmentTravelBuddiesBinding
@@ -26,7 +25,7 @@ import com.highfly.logbook.databinding.FragmentTravelBuddiesBinding
  * [TravelBuddyStats]. Wie die Kachel selbst zählt die Seite die Periode des
  * Dashboards mit - sonst zeigte die Kachel eine Zahl und die Liste eine andere.
  */
-class TravelBuddyFragment : Fragment() {
+class TravelBuddyFragment : LogbookFragment(), BackPressAware {
 
     private var _binding: FragmentTravelBuddiesBinding? = null
     private val binding get() = _binding!!
@@ -186,6 +185,16 @@ class TravelBuddyFragment : Fragment() {
     private fun hideSearchKeyboard() {
         requireContext().getSystemService(InputMethodManager::class.java)
             ?.hideSoftInputFromWindow(binding.etSearch.windowToken, 0)
+    }
+
+    /**
+     * Die Zurück-Taste räumt zuerst das Suchfeld ab (wie das Schliessen-X) und
+     * navigiert erst beim zweiten Druck zurück.
+     */
+    override fun onBackPressed(): Boolean {
+        if (!searchOpen) return false
+        toggleSearch(false)
+        return true
     }
 
     override fun onResume() {

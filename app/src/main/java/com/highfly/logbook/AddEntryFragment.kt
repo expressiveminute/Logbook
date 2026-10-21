@@ -26,7 +26,6 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.core.view.doOnLayout
-import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -38,7 +37,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.roundToInt
 
-class AddEntryFragment : Fragment() {
+class AddEntryFragment : LogbookFragment() {
 
     private var _binding: FragmentAddEntryBinding? = null
 

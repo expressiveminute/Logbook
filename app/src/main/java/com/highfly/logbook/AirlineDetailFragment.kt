@@ -10,32 +10,41 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.LinearLayout
+import androidx.core.content.ContextCompat
 import androidx.core.os.bundleOf
-import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.RecyclerView
+import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.color.MaterialColors
 import com.highfly.logbook.databinding.FragmentAirlineDetailBinding
 import com.highfly.logbook.databinding.ItemAirportFactBinding
 import java.time.format.DateTimeFormatter
+import kotlin.math.roundToInt
 
 /**
  * Detailseite zu einer Airline der Kachel "Fluggesellschaften": oben mittig
  * zentriert das Logo (oder der Code gross, wenn keines hinterlegt ist), darunter
  * der Name, darunter die Codes ohne Beschriftung (IATA, ICAO) und das
  * Rufzeichen in Anführungszeichen. Eine insolvente Airline trägt rechts neben
- * dem Logo einen roten "Insolvent"-Stempel. Dann folgt ein Platzhalter für ein
- * Foto eines Fliegers in der Bemalung - die Bilder werden später nachgereicht.
- * Darüber hinaus die allgemeinen Stammdaten der Airline aus `AirlineFacts`
- * (Gründung, Insolvenz, Sitz, Hubs, Flottengröße, Allianz, Wikipedia-Link) -
- * sie hängen nicht vom Logbuch ab und stehen auch für eine noch nie geflogene
- * Airline. Über der Karte stehen diese Zeilen, darunter die Karte wie bei
+ * dem Logo einen roten "Insolvent"-Stempel. Dann folgt ein Foto eines Fliegers
+ * in der Bemalung (Top 250, Wikimedia Commons, offline mitgeliefert) mit
+ * Namensnennung darunter - Airlines der Lufthansa Group haben eine Galerie
+ * aus drei Fotos, seitlich gewischt; gibt es keines, bleibt die Kachel weg.
+ * Darüber
+ * hinaus die allgemeinen Stammdaten der Airline aus `AirlineFacts`
+ * (Airlinegruppe, Gründung, Besitz, Insolvenz, Sitz, Hubs, Flottengröße,
+ * Allianz, Wikipedia-Link) - sie hängen nicht vom Logbuch ab und stehen auch
+ * für eine noch nie geflogene Airline. Über der Karte stehen diese Zeilen,
+ * darunter die Karte wie bei
  * Reisebuddy mit allen Strecken, die mit der Airline geflogen wurden, und unter
  * der Karte die Kenndaten aus dem eigenen Logbuch (die Zeilen aus
  * item_airport_fact.xml). Ganz unten steht der Quellennachweis der Stammdaten.
  * Ein Tipp auf die Karte öffnet die Weltkarte mit voreingestelltem Filter auf
  * die Airline.
  */
-class AirlineDetailFragment : Fragment() {
+class AirlineDetailFragment : LogbookFragment() {
 
     private var _binding: FragmentAirlineDetailBinding? = null
     private val binding get() = _binding!!
@@ -45,6 +54,12 @@ class AirlineDetailFragment : Fragment() {
 
     /** Verwirft das Ergebnis eines bereits verlassenen Ladevorgangs. */
     private var loadGeneration = 0
+
+    /** Dasselbe für den Ladevorgang des Fotos. */
+    private var photoGeneration = 0
+
+    /** Seitenwechsel-Listener der Fotogalerie, zum Abmelden in onDestroyView. */
+    private var pageCallback: ViewPager2.OnPageChangeCallback? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -83,6 +98,7 @@ class AirlineDetailFragment : Fragment() {
         }
 
         load()
+        loadPhoto()
     }
 
     /**
@@ -130,6 +146,139 @@ class AirlineDetailFragment : Fragment() {
                 bind(info, logo, facts, airline, routes)
             }
         }.start()
+    }
+
+    /**
+     * Legt das mitgelieferte Foto der Bemalung (Top 250, Wikimedia Commons)
+     * als eigene Kachel zwischen die Codes und die Stammdaten, falls es für
+     * diese Airline existiert, und blendet sie sanft ein. Airlines der
+     * Lufthansa Group haben bis zu drei Fotos; die Kachel zeigt sie als
+     * Galerie, seitlich gewischt, mit Punkten unter dem Bild. Unter dem Bild
+     * steht die Namensnennung des gerade angezeigten Fotos
+     * (`© Autor · Lizenz · Wikimedia Commons`); ein Tipp darauf öffnet dessen
+     * Commons-Dateiseite. Alles offline aus `assets/`.
+     */
+    private fun loadPhoto() {
+        val generation = ++photoGeneration
+        val appContext = requireContext().applicationContext
+        val target = code
+        binding.airlineImageCard.visibility = View.GONE
+        Thread {
+            // Die Fotos sind nach dem IATA-Code benannt; der Zielcode kann
+            // auch ein ICAO-Code oder Rohtext sein.
+            val iata = AirlineCatalog.info(appContext, target)?.iata
+                ?: target
+            val photos = AirlinePhotos.load(appContext, iata)
+            view?.post {
+                if (generation != photoGeneration || _binding == null) return@post
+                if (photos.isEmpty()) return@post
+                setupPhotoGallery(photos)
+            }
+        }.start()
+    }
+
+    /** Baut die Fotokachel samt Galerie (Pager, Punkte, Credit) auf. */
+    private fun setupPhotoGallery(photos: List<AirlinePhoto>) {
+        val pager = binding.vpAirlinePhoto
+        pager.adapter = AirlinePhotoAdapter(
+            photos,
+            getString(R.string.airline_photo_desc)
+        )
+        // Punkte unter dem Bild - nur bei mehr als einem Foto.
+        val indicator = binding.galleryIndicator
+        indicator.removeAllViews()
+        if (photos.size > 1) {
+            indicator.visibility = View.VISIBLE
+            val dotSize = dp(GALLERY_DOT_DP)
+            val dotMargin = dp(GALLERY_DOT_MARGIN_DP)
+            photos.forEachIndexed { index, _ ->
+                val dot = View(requireContext())
+                dot.background = galleryDotDrawable(index == pager.currentItem)
+                val params = LinearLayout.LayoutParams(dotSize, dotSize)
+                params.setMargins(dotMargin, 0, dotMargin, 0)
+                indicator.addView(dot, params)
+            }
+            pageCallback = object : ViewPager2.OnPageChangeCallback() {
+                override fun onPageSelected(position: Int) {
+                    for (i in 0 until indicator.childCount) {
+                        indicator.getChildAt(i).background =
+                            galleryDotDrawable(i == position)
+                    }
+                    updatePhotoCredit(photos[position.coerceIn(photos.indices)])
+                }
+            }
+            pager.registerOnPageChangeCallback(pageCallback!!)
+        } else {
+            indicator.visibility = View.GONE
+        }
+        updatePhotoCredit(photos[0])
+        // Sanfter Übergang statt hartem Erscheinen.
+        binding.airlineImageCard.alpha = 0f
+        binding.airlineImageCard.visibility = View.VISIBLE
+        binding.airlineImageCard.animate()
+            .alpha(1f)
+            .setDuration(PHOTO_FADE_MS)
+            .start()
+    }
+
+    /** Namensnennung des gerade angezeigten Fotos samt Link auf die Datei. */
+    private fun updatePhotoCredit(photo: AirlinePhoto) {
+        val edited = if (photo.modified) {
+            " · " + getString(R.string.airline_photo_edited)
+        } else {
+            ""
+        }
+        binding.tvAirlinePhotoCredit.text =
+            "© ${photo.author} · ${photo.license}$edited · Wikimedia Commons"
+        // Wie die Wikipedia-Zeile: unterstrichen und Akzentfarbe, ein
+        // Tipp öffnet die Commons-Dateiseite im Standardbrowser.
+        binding.tvAirlinePhotoCredit.setTextColor(
+            MaterialColors.getColor(
+                binding.tvAirlinePhotoCredit,
+                com.google.android.material.R.attr.colorPrimary
+            )
+        )
+        binding.tvAirlinePhotoCredit.paintFlags =
+            binding.tvAirlinePhotoCredit.paintFlags or Paint.UNDERLINE_TEXT_FLAG
+        binding.tvAirlinePhotoCredit.setOnClickListener {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(photo.sourceUrl)))
+        }
+    }
+
+    /** Punkt der Galerie-Anzeige: aktive oder inaktive Seite. */
+    private fun galleryDotDrawable(active: Boolean) = ContextCompat.getDrawable(
+        requireContext(),
+        if (active) R.drawable.bg_gallery_dot_active else R.drawable.bg_gallery_dot
+    )!!
+
+    private fun dp(value: Int): Int =
+        (value * resources.displayMetrics.density).roundToInt()
+
+    /** Adapter der Fotogalerie: ein Bild pro Seite, mittig beschnitten. */
+    private class AirlinePhotoAdapter(
+        private val photos: List<AirlinePhoto>,
+        private val description: String
+    ) : RecyclerView.Adapter<AirlinePhotoAdapter.PhotoHolder>() {
+
+        class PhotoHolder(val image: ImageView) : RecyclerView.ViewHolder(image)
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PhotoHolder {
+            val image = ImageView(parent.context).apply {
+                layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
+                scaleType = ImageView.ScaleType.CENTER_CROP
+            }
+            return PhotoHolder(image)
+        }
+
+        override fun onBindViewHolder(holder: PhotoHolder, position: Int) {
+            holder.image.setImageBitmap(photos[position].bitmap)
+            holder.image.contentDescription = description
+        }
+
+        override fun getItemCount(): Int = photos.size
     }
 
     private fun bind(
@@ -194,20 +343,32 @@ class AirlineDetailFragment : Fragment() {
     }
 
     /**
-     * Allgemeine Stammdaten über der Karte - unabhängig vom Logbuch: Gründung,
-     * Insolvenzjahr, Sitz, Hubs, Flottengröße, Allianz und ein Link zur
-     * englischen Wikipedia-Seite aus `AirlineFacts`. Zeilen ohne Wert bleiben
-     * weg; ohne jeden Wert bleibt der ganze Abschnitt unsichtbar (der
-     * Quellennachweis ganz unten hängt daran).
+     * Allgemeine Stammdaten über der Karte - unabhängig vom Logbuch:
+     * Airlinegruppe, Gründung, Besitzform, Insolvenzjahr, Sitz, Hubs,
+     * Flottengröße, Allianz und ein Link zur englischen Wikipedia-Seite aus
+     * `AirlineFacts`. Zeilen ohne Wert bleiben weg; ohne jeden Wert bleibt
+     * der ganze Abschnitt unsichtbar (der Quellennachweis ganz unten hängt
+     * daran).
      */
     private fun renderGeneralFacts(facts: AirlineFacts.Facts?) {
         val context = requireContext()
         binding.generalFactsContainer.removeAllViews()
         if (facts != null) {
+            // Die Airlinegruppe steht über der Gründung.
+            facts.group?.let {
+                addFact(binding.generalFactsContainer, R.string.airline_fact_group, it)
+            }
             facts.founded?.let {
                 addFact(binding.generalFactsContainer, R.string.airline_fact_founded, it.toString())
             }
-            // Das Insolvenzjahr steht direkt unter der Gründung.
+            // Der Besitz steht direkt unter der Gründung.
+            AirlineFacts.ownershipLabelRes(facts.ownership)?.let { labelRes ->
+                addFact(
+                    binding.generalFactsContainer,
+                    R.string.airline_fact_ownership,
+                    getString(labelRes)
+                )
+            }
             facts.dissolved?.let {
                 addFact(binding.generalFactsContainer, R.string.airline_fact_insolvency, it.toString())
             }
@@ -376,13 +537,27 @@ class AirlineDetailFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         loadGeneration++
-        if (_binding != null) binding.airlineMap.cancelRouteAnimation()
+        photoGeneration++
+        if (_binding != null) {
+            pageCallback?.let { binding.vpAirlinePhoto.unregisterOnPageChangeCallback(it) }
+            binding.airlineMap.cancelRouteAnimation()
+        }
+        pageCallback = null
         _binding = null
     }
 
     companion object {
         /** Name des Navigationsarguments, siehe `nav_graph.xml`. */
         const val ARG_CODE = "code"
+
+        /** Dauer der Einblendung des Fotos in Millisekunden. */
+        private const val PHOTO_FADE_MS = 400L
+
+        /** Durchmesser eines Punkts der Galerie-Anzeige. */
+        private const val GALLERY_DOT_DP = 6
+
+        /** Abstand zwischen zwei Punkten der Galerie-Anzeige. */
+        private const val GALLERY_DOT_MARGIN_DP = 4
 
         val DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
     }

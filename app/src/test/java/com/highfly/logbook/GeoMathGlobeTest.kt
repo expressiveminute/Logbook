@@ -246,6 +246,38 @@ class GeoMathGlobeTest {
         assertTrue(g.horizon(0.0, 100.0, 10.0, 140.0, a, b).isNaN())
     }
 
+    @Test
+    fun unitPointLiefertDasselbeErgebnisWiePoint() {
+        // unitPoint projiziert den Einheitsvektor ohne sin/cos pro Punkt und ist
+        // die schnelle Variante für den Neuaufbau der Rubbelkarte: Das Ergebnis
+        // muss exakt der direkten Rechnung aus (lat, lon) entsprechen.
+        for (viewLat in doubleArrayOf(0.0, 25.0, -45.0, 70.0, -80.0)) {
+            for (viewLon in doubleArrayOf(-170.0, 0.0, 11.0, 95.0, 179.0)) {
+                val g = globe(viewLon, viewLat)
+                for (lat in -85..85 step 7) {
+                    for (lon in -180..180 step 13) {
+                        val latRad = Math.toRadians(lat.toDouble())
+                        val lonRad = Math.toRadians(lon.toDouble())
+                        val cosLat = cos(latRad)
+                        g.unitPoint(
+                            cosLat * cos(lonRad),
+                            cosLat * sin(lonRad),
+                            sin(latRad),
+                            schraegPunkt
+                        )
+                        g.point(lat.toDouble(), lon.toDouble(), p)
+                        assertEquals("X $lat/$lon", p[Globe.X], schraegPunkt[Globe.X], 1e-12)
+                        assertEquals("Y $lat/$lon", p[Globe.Y], schraegPunkt[Globe.Y], 1e-12)
+                        assertEquals(
+                            "FRONT $lat/$lon",
+                            p[Globe.FRONT], schraegPunkt[Globe.FRONT], 1e-12
+                        )
+                    }
+                }
+            }
+        }
+    }
+
     private fun raumX(lat: Double, lon: Double): Double =
         cos(Math.toRadians(lat)) * cos(Math.toRadians(lon))
 

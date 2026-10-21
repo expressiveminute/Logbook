@@ -15,7 +15,6 @@ import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
 import androidx.core.content.ContextCompat
 import androidx.core.view.doOnPreDraw
-import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -26,7 +25,7 @@ import com.google.android.material.snackbar.Snackbar
 import com.highfly.logbook.databinding.FragmentEntriesBinding
 import java.time.format.DateTimeFormatter
 
-class EntriesFragment : Fragment(), ImeVisibilityAware {
+class EntriesFragment : LogbookFragment(), ImeVisibilityAware, BackPressAware {
 
     private var _binding: FragmentEntriesBinding? = null
 
@@ -268,6 +267,16 @@ class EntriesFragment : Fragment(), ImeVisibilityAware {
             ?.hideSoftInputFromWindow(binding.etEntrySearch.windowToken, 0)
     }
 
+    /**
+     * Die Zurück-Taste räumt zuerst das Suchfeld ab (wie das Schliessen-X) und
+     * navigiert erst beim zweiten Druck zurück.
+     */
+    override fun onBackPressed(): Boolean {
+        if (!searchActive) return false
+        closeSearch()
+        return true
+    }
+
     private fun renderEntries() {
         val query = binding.etEntrySearch.text?.toString()?.trim().orEmpty().lowercase()
         val visible = allEntries.filter { entry ->
@@ -292,6 +301,9 @@ class EntriesFragment : Fragment(), ImeVisibilityAware {
         val pendingScroll = scrollToEntryId
         if (pendingScroll != null) {
             scrollToEntryId = null
+            // Die Seite scrollt selbst gezielt zum bearbeiteten Eintrag; die
+            // globale Wiederherstellung der Scroll-Position darf nicht dagegen.
+            cancelPendingScrollRestore()
             // Die Adapterposition holen wir aus dem Adapter, weil zwischen den
             // Kacheln Monatsüberschriften stehen und die Indexe der Kacheln
             // dadurch nicht mit denen der gefilterten Liste übereinstimmen.

@@ -5,7 +5,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.highfly.logbook.databinding.FragmentTimeDetailBinding
 import com.highfly.logbook.databinding.ItemDashboardTileBinding
@@ -15,7 +14,7 @@ import com.highfly.logbook.databinding.ItemDashboardTileBinding
  * der laengste, der kuerzeste und der mittlere Flug sowie die Verteilung der
  * Flugdauern. Ground Transfers zaehlen nicht mit, wie bei der Distanz.
  */
-class TimeDetailFragment : Fragment() {
+class TimeDetailFragment : LogbookFragment() {
 
     private var _binding: FragmentTimeDetailBinding? = null
 

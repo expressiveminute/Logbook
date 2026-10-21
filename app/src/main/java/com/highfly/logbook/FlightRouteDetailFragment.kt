@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.highfly.logbook.databinding.FragmentFlightRouteDetailBinding
 import com.highfly.logbook.databinding.ItemRouteStatBinding
@@ -20,7 +19,7 @@ import java.util.Locale
  * der Flüge ganz vorn stehen, nach der Distanz aber weiter hinten, weil die
  * Flüge kurz sind.
  */
-class FlightRouteDetailFragment : Fragment() {
+class FlightRouteDetailFragment : LogbookFragment() {
 
     private var _binding: FragmentFlightRouteDetailBinding? = null
     private val binding get() = _binding!!

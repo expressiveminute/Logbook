@@ -7,6 +7,7 @@ import android.view.View
 import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.activity.addCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsAnimationCompat
@@ -106,6 +107,7 @@ class MainActivity : AppCompatActivity() {
         )
         setupActionBarWithNavController(navController, appBarConfiguration)
         setupBottomNav(navController)
+        setupBackPressHandler()
         navController.addOnDestinationChangedListener { _, destination, _ ->
             updateHeaderAndContent()
             if (destination.id == R.id.nav_dashboard) refreshDashboardHeader()
@@ -113,6 +115,29 @@ class MainActivity : AppCompatActivity() {
 
         setupDashboardFilter()
         refreshDashboardHeader()
+    }
+
+    /**
+     * Leitet die Zurueck-Taste zuerst an das aktuelle Ziel der Navigation
+     * weiter (siehe [BackPressAware]): Ist dort ein Suchfeld offen, wird es
+     * geschlossen und die Eingabe geloescht - erst ein zweiter Druck kehrt
+     * zur vorherigen Seite zurueck. Uebernimmt die Seite den Druck nicht, faellt
+     * er an den NavController durch (Zurueck im Stapel bzw. App verlassen).
+     */
+    private fun setupBackPressHandler() {
+        onBackPressedDispatcher.addCallback(this) {
+            val host = supportFragmentManager
+                .findFragmentById(R.id.nav_host_fragment_content_main) as? NavHostFragment
+            val current = host?.childFragmentManager?.primaryNavigationFragment
+            val consumed = (current as? BackPressAware)?.onBackPressed() == true
+            if (!consumed) {
+                // Diesen Callback abschalten und den Druck erneut ausloesen,
+                // damit der naechste (der NavController) an die Reihe kommt.
+                isEnabled = false
+                onBackPressedDispatcher.onBackPressed()
+                isEnabled = true
+            }
+        }
     }
 
     /**

@@ -14,7 +14,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
-import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -28,7 +27,7 @@ import org.osmdroid.views.overlay.Polyline
 import kotlin.math.hypot
 import kotlin.math.ln
 
-class WorldMapFragment : Fragment() {
+class WorldMapFragment : LogbookFragment() {
 
     companion object {
         private const val TAG = "WorldMapFragment"

@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.highfly.logbook.databinding.FragmentAirportDetailBinding
 import com.highfly.logbook.databinding.ItemAirportFactBinding
@@ -20,7 +19,7 @@ import kotlin.math.abs
  * alle Flugverbindungen als Großkreisbögen; unter der Karte steht, wie viele
  * Verbindungen es ab diesem Flughafen gibt.
  */
-class AirportDetailFragment : Fragment() {
+class AirportDetailFragment : LogbookFragment() {
 
     private var _binding: FragmentAirportDetailBinding? = null
     private val binding get() = _binding!!

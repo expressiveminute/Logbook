@@ -47,6 +47,7 @@
 
     <ScrollView
         android:layout_width="match_parent"
+        android:id="@+id/flights_year_scroll"
         android:layout_height="0dp"
         android:layout_marginTop="12dp"
         app:layout_constraintBottom_toBottomOf="parent"

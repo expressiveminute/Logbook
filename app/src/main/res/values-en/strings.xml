@@ -94,11 +94,11 @@
     <string name="passengers_load_factor_percent">%1$d%%</string>
     <string name="passengers_detail_title">Passengers</string>
     <string name="passengers_detail_subtitle">Estimated from maximum seats and load factor of %1$d%%</string>
-    <string name="passengers_filter_flight_type">Flight type: %1$s</string>
+    <string name="passengers_filter_flight_type">Flight type: %1$s · On Duty only</string>
     <string name="passengers_adjust_desc">Adjust load factor</string>
     <string name="passengers_adjust_title">Adjust load factor</string>
     <string name="passengers_adjust_hint">Determines how many passengers are estimated per flight (seats × load factor).</string>
-    <string name="passengers_empty">No flights recorded yet.</string>
+    <string name="passengers_empty">No On Duty flights recorded yet.</string>
     <string name="search_clear_desc">Clear and close search</string>
     <string name="tile_detail_continents">By continent</string>
     <string name="tile_detail_aircraft_types">Aircraft types</string>
@@ -541,7 +541,8 @@
         <item quantity="other">%1$d flights</item>
     </plurals>
     <!-- Airline detail page -->
-    <string name="airline_image_placeholder">Livery photo coming soon</string>
+    <string name="airline_photo_desc">Photo of an aircraft in the airline\'s livery</string>
+    <string name="airline_photo_edited">edited</string>
     <string name="airline_fact_flights">Flights</string>
     <string name="airline_fact_first">First flight</string>
     <string name="airline_fact_last">Last flight</string>
@@ -551,7 +552,12 @@
     <string name="airline_fact_types">Aircraft types</string>
     <string name="airline_general_title">General</string>
     <string name="airline_user_title">Your flights</string>
+    <string name="airline_fact_group">Airline group</string>
     <string name="airline_fact_founded">Founded</string>
+    <string name="airline_fact_ownership">Ownership</string>
+    <string name="airline_ownership_state">State-owned</string>
+    <string name="airline_ownership_public">Public company</string>
+    <string name="airline_ownership_private">Private</string>
     <string name="airline_fact_insolvency">Insolvency</string>
     <string name="airline_fact_hq">Headquarters</string>
     <string name="airline_fact_hubs">Hubs</string>
@@ -598,7 +604,7 @@
     <string name="import_review_summary_unknown">Unknown</string>
 
     <string name="settings_version_label">Version %1$s</string>
-    <string name="settings_version" translatable="false">0.0.30</string>
+    <string name="settings_version" translatable="false">0.0.31</string>
     <string name="settings_made_with_prefix">Made with</string>
     <string name="settings_made_with_suffix">by expressiveminute</string>
 

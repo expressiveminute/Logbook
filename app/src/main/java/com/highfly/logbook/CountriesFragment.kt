@@ -25,7 +25,7 @@ import java.util.Locale
  * Kontinents und trägt dessen Namen als Überschrift. Das ist der Weg von den
  * Kontinent-Kacheln unter der Rubbelkarte - dieselbe Liste, nur gefiltert.
  */
-class CountriesFragment : Fragment() {
+class CountriesFragment : LogbookFragment() {
 
     private var _binding: FragmentCountriesBinding? = null
     private val binding get() = _binding!!

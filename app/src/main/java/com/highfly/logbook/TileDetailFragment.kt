@@ -26,7 +26,7 @@ import kotlin.math.floor
 import kotlin.math.min
 import kotlin.math.roundToInt
 
-class TileDetailFragment : Fragment() {
+class TileDetailFragment : LogbookFragment(), BackPressAware {
 
     private var _binding: FragmentTileDetailBinding? = null
     private val binding get() = _binding!!
@@ -472,6 +472,21 @@ class TileDetailFragment : Fragment() {
     private fun hideSearchKeyboard() {
         requireContext().getSystemService(InputMethodManager::class.java)
             ?.hideSoftInputFromWindow(binding.etSearch.windowToken, 0)
+    }
+
+    /**
+     * Die Zurück-Taste schliesst zuerst das Suchergebnis-Popup, dann räumt
+     * sie das Suchfeld ab (wie das Schliessen-X) und navigiert erst beim
+     * dritten Druck zurück.
+     */
+    override fun onBackPressed(): Boolean {
+        if (airportPopupOpen) {
+            dismissAirportSearchPopup()
+            return true
+        }
+        if (!searchOpen) return false
+        toggleSearch(false)
+        return true
     }
 
     /**

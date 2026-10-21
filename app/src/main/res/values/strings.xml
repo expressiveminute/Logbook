@@ -61,7 +61,7 @@
     <string name="co2_offset_credit_label">Luftbild: %1$s</string>
     <string name="co2_offset_credit_hessen">© HVBG Hessen (dl-de/zero-2.0)</string>
     <string name="co2_offset_credit_bayern">© Bayerische Vermessungsverwaltung (CC BY 4.0)</string>
-    <string name="satellite_credit_cloudless" translatable="false">Sentinel-2 Cloudless 2016/2017 by EOX IT Services GmbH (CC BY 4.0)</string>
+    <string name="satellite_credit_cloudless" translatable="false">Sentinel-2 cloudless - https://s2maps.eu by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2016 &amp; 2017, CC BY 4.0)</string>
     <string name="tile_radiation">Höhenstrahlung</string>
     <string name="radiation_unit" translatable="false">mSv</string>
     <string name="radiation_total_title">Gesamt</string>
@@ -97,11 +97,11 @@
     <string name="passengers_load_factor_percent">%1$d %%</string>
     <string name="passengers_detail_title">Passagiere</string>
     <string name="passengers_detail_subtitle">Geschätzt aus maximaler Sitzplatzanzahl und Auslastung von %1$d %%</string>
-    <string name="passengers_filter_flight_type">Flugart: %1$s</string>
+    <string name="passengers_filter_flight_type">Flugart: %1$s · nur On Duty</string>
     <string name="passengers_adjust_desc">Auslastung einstellen</string>
     <string name="passengers_adjust_title">Auslastung einstellen</string>
     <string name="passengers_adjust_hint">Bestimmt, wie viele Passagiere pro Flug geschätzt werden (Sitzplätze × Auslastung).</string>
-    <string name="passengers_empty">Noch keine Flüge erfasst.</string>
+    <string name="passengers_empty">Noch keine Flüge als On Duty erfasst.</string>
     <string name="search_clear_desc">Suche löschen und schließen</string>
     <string name="tile_detail_continents">Nach Kontinent</string>
     <string name="tile_detail_aircraft_types">Flugzeugtypen</string>
@@ -552,7 +552,8 @@
         <item quantity="other">%1$d Flüge</item>
     </plurals>
     <!-- Detailseite einer Fluggesellschaft -->
-    <string name="airline_image_placeholder">Foto der Bemalung folgt in Kürze</string>
+    <string name="airline_photo_desc">Foto eines Flugzeugs in der Bemalung der Fluggesellschaft</string>
+    <string name="airline_photo_edited">bearbeitet</string>
     <string name="airline_fact_flights">Flüge</string>
     <string name="airline_fact_first">Erster Flug</string>
     <string name="airline_fact_last">Letzter Flug</string>
@@ -562,7 +563,12 @@
     <string name="airline_fact_types">Flugzeugtypen</string>
     <string name="airline_general_title">Allgemein</string>
     <string name="airline_user_title">Deine Flüge</string>
+    <string name="airline_fact_group">Airlinegruppe</string>
     <string name="airline_fact_founded">Gründung</string>
+    <string name="airline_fact_ownership">Besitz</string>
+    <string name="airline_ownership_state">Staatlich</string>
+    <string name="airline_ownership_public">Aktiengesellschaft</string>
+    <string name="airline_ownership_private">Privat</string>
     <string name="airline_fact_insolvency">Insolvenz</string>
     <string name="airline_fact_hq">Sitz</string>
     <string name="airline_fact_hubs">Hubs</string>
@@ -610,7 +616,7 @@
     <string name="import_review_summary_unknown">Unbekannt</string>
 
     <string name="settings_version_label">Version %1$s</string>
-    <string name="settings_version" translatable="false">0.0.30</string>
+    <string name="settings_version" translatable="false">0.0.31</string>
     <string name="settings_made_with_prefix">Made with</string>
     <string name="settings_made_with_suffix">by expressiveminute</string>
 

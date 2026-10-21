@@ -64,6 +64,76 @@ class AirlineFactsTest {
     }
 
     @Test
+    fun lufthansaHatAirlinegruppeUndBesitz() {
+        val lh = entry("LH")
+        assertTrue("LH-Block fehlt", lh.isNotEmpty())
+        assertTrue(
+            "Airlinegruppe fehlt: $lh",
+            lh.contains("\"group\":\"Lufthansa Group\"")
+        )
+        assertTrue(
+            "Besitz fehlt: $lh",
+            lh.contains("\"ownership\":\"public\"")
+        )
+    }
+
+    @Test
+    fun britishAirwaysHatIagAlsAirlinegruppe() {
+        val ba = entry("BA")
+        assertTrue("BA-Block fehlt", ba.isNotEmpty())
+        assertTrue(
+            "Airlinegruppe fehlt: $ba",
+            ba.contains("\"group\":\"International Airlines Group\"")
+        )
+    }
+
+    @Test
+    fun emiratesIstStaatlich() {
+        val ek = entry("EK")
+        assertTrue("EK-Block fehlt", ek.isNotEmpty())
+        assertTrue(
+            "Besitz fehlt oder ist nicht staatlich: $ek",
+            ek.contains("\"ownership\":\"state\"")
+        )
+    }
+
+    @Test
+    fun besitzformenSindDieBekanntenSchluessel() {
+        val values = Regex("\"ownership\":\"([a-z]+)\"")
+            .findAll(file.readText())
+            .map { it.groupValues[1] }
+            .toList()
+        assertTrue("keine Besitzformen im Asset", values.isNotEmpty())
+        assertTrue(
+            "unbekannter Besitz-Schlüssel: $values",
+            values.all { it in setOf("state", "public", "private") }
+        )
+    }
+
+    @Test
+    fun airlinegruppenSindNamenUndKeinStaat() {
+        val groups = Regex("\"group\":\"([^\"]+)\"")
+            .findAll(file.readText())
+            .map { it.groupValues[1] }
+            .toList()
+        assertTrue("keine Airlinegruppen im Asset", groups.isNotEmpty())
+        assertTrue(
+            "staatlicher Eigentümer als Airlinegruppe: $groups",
+            groups.none { it.contains("Government", ignoreCase = true) }
+        )
+    }
+
+    @Test
+    fun ownershipLabelResLiefertDieBeschriftung() {
+        assertEquals(R.string.airline_ownership_state, AirlineFacts.ownershipLabelRes("state"))
+        assertEquals(R.string.airline_ownership_public, AirlineFacts.ownershipLabelRes("public"))
+        assertEquals(R.string.airline_ownership_private, AirlineFacts.ownershipLabelRes("private"))
+        assertEquals(null, AirlineFacts.ownershipLabelRes(null))
+        assertEquals(null, AirlineFacts.ownershipLabelRes(""))
+        assertEquals(null, AirlineFacts.ownershipLabelRes("unbekannt"))
+    }
+
+    @Test
     fun lufthansaHatWikiLinkAufDenEnglischenArtikel() {
         val lh = entry("LH")
         assertTrue("LH-Block fehlt", lh.isNotEmpty())

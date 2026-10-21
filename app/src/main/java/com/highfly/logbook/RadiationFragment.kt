@@ -5,7 +5,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.highfly.logbook.databinding.FragmentRadiationBinding
 
@@ -19,7 +18,7 @@ import com.highfly.logbook.databinding.FragmentRadiationBinding
  * der Zeitraum-Filter des Dashboards nicht - die Kachel zeigt das laufende
  * Jahr, diese Seite listet alle Jahre.
  */
-class RadiationFragment : Fragment() {
+class RadiationFragment : LogbookFragment() {
 
     private var _binding: FragmentRadiationBinding? = null
     private val binding get() = _binding!!

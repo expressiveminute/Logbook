@@ -5,6 +5,7 @@ import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
 import android.content.Context
 import android.content.res.Configuration
+import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -35,6 +36,13 @@ import kotlin.math.round
  * zugewiesene Rechteck, zeichnet darüber die Küstenlinien und zuletzt die
  * Strecke selbst. Die Küstendaten werden einmalig im Hintergrund geladen und
  * von allen Instanzen geteilt, damit die Liste ohne Verzögerung aufbaut.
+ *
+ * Im Ruhezustand ([PlanePhase.IDLE], so in der Listenansicht) ist der Inhalt
+ * statisch: Er wird einmal in eine Bitmap gerendert und pro Bild nur noch als
+ * fertiges Bild gezeichnet. Land, Grenzen und Städte für alle Ringe der Welt
+ * pro Zeile und Frame neu zu projizieren, macht das Scrollen in einer Liste
+ * mit vielen Karten sonst spürbar langsam. Nur die Animation ([PlanePhase.DRAWING]
+ * und [PlanePhase.CRUISING]) zeichnet weiterhin jeden Frame vollständig neu.
  */
 class RouteMiniMapView @JvmOverloads constructor(
     context: Context,
@@ -395,6 +403,15 @@ class RouteMiniMapView @JvmOverloads constructor(
     /** Puffer zum Entrollen der Ringe, wird wiederverwendet. */
     private var ringBuffer = FloatArray(0)
 
+    /**
+     * Gerenderter Ruhezustand der Karte, siehe Klassenkopf. Wird bei jeder
+     * Inhaltsänderung ([setRoute], [setRoutes]), Größenänderung und nach dem
+     * Nachladen der Kartendaten neu gezeichnet; bis dahin zeichnet [onDraw] das
+     * fertige Bild, statt Land und Grenzen pro Frame neu aufzubauen.
+     */
+    private var bildCache: Bitmap? = null
+    private var bildCacheDirty = true
+
     init {
         routePaint.color = MaterialColors.getColor(
             this, com.google.android.material.R.attr.colorPrimary
@@ -426,6 +443,7 @@ class RouteMiniMapView @JvmOverloads constructor(
         toLabel = toCode
         cityLanguage = Settings.getCityLabelLanguage(context)
         projection = null
+        markBildCacheDirty()
         stopAnimators()
         planePhase = PlanePhase.IDLE
         routeProgress = 1f
@@ -454,6 +472,7 @@ class RouteMiniMapView @JvmOverloads constructor(
         toLabel = null
         cityLanguage = Settings.getCityLabelLanguage(context)
         projection = null
+        markBildCacheDirty()
         stopAnimators()
         planePhase = PlanePhase.IDLE
         routeProgress = 1f
@@ -560,15 +579,63 @@ class RouteMiniMapView @JvmOverloads constructor(
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         projection = null
+        markBildCacheDirty()
         bounds.set(0f, 0f, w.toFloat(), h.toFloat())
         clipPath.reset()
         clipPath.addRoundRect(bounds, cornerRadius, cornerRadius, Path.Direction.CW)
+    }
+
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        // Die Bitmap gibt der Garbage Collector frei; sie darf hier nicht
+        // recycelt werden, solange ein aufgezeichneter Frame sie noch referenziert.
+        bildCache = null
+        bildCacheDirty = true
+    }
+
+    /**
+     * Markiert den Bitmap-Cache als veraltet. Auf dem Hauptthread aufrufen;
+     * der nächste [onDraw] zeichnet den Inhalt dann einmal neu in die Bitmap.
+     */
+    private fun markBildCacheDirty() {
+        bildCacheDirty = true
     }
 
     override fun onDraw(canvas: Canvas) {
         val w = width.toFloat()
         val h = height.toFloat()
         if (w <= 0f || h <= 0f) return
+        if (planePhase == PlanePhase.IDLE) {
+            // Ruhezustand: fertiges Bild zeichnen, siehe Klassenkopf.
+            canvas.drawBitmap(statischeBitmap(w.toInt(), h.toInt()), 0f, 0f, null)
+            return
+        }
+        zeichneInhalt(canvas, w, h)
+    }
+
+    /**
+     * Die Bitmap mit dem gerenderten Ruhezustand, bei Bedarf neu aufgebaut. Die
+     * Bitmap wird wiederverwendet, solange sie die passende Größe hat - beim
+     * Recycling der Zeilen einer Liste entsteht so kein neuer Speicher.
+     */
+    private fun statischeBitmap(w: Int, h: Int): Bitmap {
+        var bitmap = bildCache
+        if (bildCacheDirty || bitmap == null || bitmap.isRecycled ||
+            bitmap.width != w || bitmap.height != h
+        ) {
+            if (bitmap == null || bitmap.isRecycled || bitmap.width != w || bitmap.height != h) {
+                bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+                bildCache = bitmap
+            }
+            bitmap.eraseColor(Color.TRANSPARENT)
+            zeichneInhalt(Canvas(bitmap), w.toFloat(), h.toFloat())
+            bildCacheDirty = false
+        }
+        return bitmap
+    }
+
+    /** Zeichnet den vollständigen Inhalt: Ozean, Land, Grenzen, Städte, Strecke. */
+    private fun zeichneInhalt(canvas: Canvas, w: Float, h: Float) {
         if (bounds.isEmpty) bounds.set(0f, 0f, w, h)
         canvas.drawRoundRect(bounds, cornerRadius, cornerRadius, oceanPaint)
 
@@ -642,7 +709,11 @@ class RouteMiniMapView @JvmOverloads constructor(
             }
             views.forEach { reference ->
                 val view = reference.get() ?: return@forEach
-                view.post { view.invalidate() }
+                // Die Bitmap enthält noch keine Landdaten, sie muss neu gezeichnet werden.
+                view.post {
+                    view.markBildCacheDirty()
+                    view.invalidate()
+                }
             }
         }.start()
     }

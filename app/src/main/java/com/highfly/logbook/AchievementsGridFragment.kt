@@ -10,7 +10,6 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.Space
 import android.widget.TextView
-import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.color.MaterialColors
 import com.highfly.logbook.databinding.FragmentAchievementsGridBinding
@@ -24,7 +23,7 @@ import com.highfly.logbook.databinding.FragmentAchievementsGridBinding
  * Die Zeilen und Kacheln entstehen im Code, weil die Zahl der Erfolge von den
  * Kontinenten abhängt und die Kategorien unterschiedlich viele Einträge haben.
  */
-class AchievementsGridFragment : Fragment() {
+class AchievementsGridFragment : LogbookFragment() {
 
     private var _binding: FragmentAchievementsGridBinding? = null
     private val binding get() = _binding!!

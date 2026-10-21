@@ -5,7 +5,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
@@ -30,7 +29,7 @@ import com.highfly.logbook.databinding.ItemAvatarChoiceBinding
 import java.io.File
 import kotlin.math.roundToInt
 
-class ProfileFragment : Fragment() {
+class ProfileFragment : LogbookFragment() {
 
     private var _binding: FragmentProfileBinding? = null
 

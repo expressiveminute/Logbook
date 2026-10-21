@@ -12,7 +12,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.core.view.doOnLayout
-import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.color.MaterialColors
 import com.highfly.logbook.databinding.FragmentDistanceDetailBinding
@@ -27,7 +26,7 @@ import com.highfly.logbook.databinding.FragmentDistanceDetailBinding
  * längsten Flugs gezeichnet ist, erscheint der kürzeste, danach die drei
  * Grafiken. Ground Transfers zählen nicht mit, wie überall bei der Distanz.
  */
-class DistanceDetailFragment : Fragment() {
+class DistanceDetailFragment : LogbookFragment() {
 
     private companion object {
         /**

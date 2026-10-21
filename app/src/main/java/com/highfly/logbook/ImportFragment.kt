@@ -16,7 +16,6 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
-import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -24,7 +23,7 @@ import com.highfly.logbook.databinding.FragmentImportBinding
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-class ImportFragment : Fragment() {
+class ImportFragment : LogbookFragment() {
 
     private var _binding: FragmentImportBinding? = null
     private val binding get() = _binding!!

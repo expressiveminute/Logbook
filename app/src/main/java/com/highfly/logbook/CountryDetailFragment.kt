@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.highfly.logbook.databinding.FragmentCountryDetailBinding
 import java.util.Locale
@@ -14,7 +13,7 @@ import java.util.Locale
  * Flughäfen, den Verbindungen innerhalb des Landes und den Auslandsflügen als
  * kurzen, verblassenden Linien am Flughafen des Landes.
  */
-class CountryDetailFragment : Fragment() {
+class CountryDetailFragment : LogbookFragment() {
 
     private var _binding: FragmentCountryDetailBinding? = null
     private val binding get() = _binding!!
