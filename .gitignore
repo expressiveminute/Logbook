@@ -21,4 +21,6 @@ __pycache__/
 *.apk
 *.idsig
 *.aab
+*.keystore
+*.jks
 keystore.properties
