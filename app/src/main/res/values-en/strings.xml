@@ -832,6 +832,7 @@
         <item quantity="one">%1$d month</item>
         <item quantity="other">%1$d months</item>
     </plurals>
+    <string name="story_row_avg_months">Every %1$s months</string>
     <string name="story_insights_layover_count_title">Most frequent layovers</string>
     <string name="story_insights_layover_hours_title">Most time on layover</string>
     <string name="story_insights_layover_countries_title">Your layover countries</string>

@@ -256,6 +256,14 @@ Der Knopf zum Zurücksetzen des Filters (`btn_filter_reset`, Pfeil zurück) sitz
 neben** dem Filterknopf und ist nur sichtbar, solange ein Filter aktiv ist; ein Tipp darauf setzt den
 Filter zurück (`activeMapFilter = MapFilter()` samt `applyFilters()`).
 
+Die Weltkarte hat **keine schwebende Navigationsleiste** (`MainActivity` blendet sie aus) und
+`MainActivity` setzt deshalb kein `contentHost`-Padding-Top für sie. Stattdessen wendet
+`WorldMapFragment` die Systemleisten-Insets selbst an (`ViewCompat.setOnApplyWindowInsetsListener`):
+die oberen Buttons (`btn_back` links, `btn_filter` und `btn_filter_reset` rechts) bekommen
+`statusBars.top` als oberen Margin, die Stats-Karte und die Zoom-Knopfspalte (`map_controls`)
+`systemBars.bottom` als unteren. Der Zurückbutton (`btn_back`) navigiert per
+`findNavController().navigateUp()` zurück.
+
 ## Seite „Fluggesellschaften"
 
 Die Kachel *Fluggesellschaften* öffnet `AirlinesFragment` (`fragment_airlines.xml`), nicht mehr
@@ -482,7 +490,7 @@ Die Kachel *Passagiere* (Ikone `ic_passengers`, volle Breite, dieselbe Höhe wie
 Höhenstrahlungs-Kachel) ist eine reine Besatzungs-Kachel: `DashboardPrefs.isTileAvailable`
 lässt sie nur bei der Rolle *Crew* zu (`role.isCrew`) - im Dashboard und im Bearbeiten-Dialog
 gleichermaßen. Sie zeigt die geschätzte Gesamtzahl der Passagiere über **alle Jahre** (auf volle
-Tausender gerundet); rechts daneben steht der Durchschnitt pro Flug. Ein Tipp öffnet
+Hunderter gerundet); rechts daneben steht der Durchschnitt pro Flug. Ein Tipp öffnet
 `PassengersFragment` mit der Passagierzahl je Kalenderjahr (neuestes Jahr oben, Balken zum
 stärksten Jahr); das Adjust-Symbol oben rechts im Kopf (`ic_adjust`) öffnet einen Dialog, der
 die Auslastung zwischen 50 und 100 % in 5er-Schritten einstellt (Standard 80 %, pro Nutzer
@@ -505,7 +513,7 @@ bilden auf Familie bzw. Variante ab („A350-900“, „Boeing 737-800“, „B7
 unbekannter oder fehlender Typ bekommt den Durchschnitt des Datensatzes (≈ 255 Sitze).
 
 Weil die Schätzung (Vollbesetzung × Auslastung) eine echte Ungenauigkeit trägt, werden
-Summen auf volle Tausender gerundet (`PassengersCalculator.roundToThousands`) - Kachel und
+Summen auf volle Hunderter gerundet (`PassengersCalculator.roundToHundreds`) - Kachel und
 Jahreswerte; der Durchschnitt pro Flug bleibt eine ganze Zahl. Grundlage ist dieselbe Auswahl
 wie die Höhenstrahlung: der **Flugart-Filter** gilt (`DashboardStats.flightTypeEntries`), der
 **Zeitraum-Filter des Dashboards nicht**; innerhalb der gewählten Flugart zählen nur die
@@ -725,12 +733,13 @@ nur bei Crew die geschätzten Passagiere, die Reiseklassen-Verteilung, Gesamtstr
 und die nötige CO₂-Kompensation. **Insights** zeigt Layover-Auswertungen — ausschließlich über
 Einträge, die als Layover markiert sind: häufigste Layover-Ziele (ohne Dauer, dafür die Flagge des
 Landes direkt hinter dem Dreilettercode), Ziele mit den meisten Layover-Stunden und Top-5-Länder nach
-summierten Layover-Stunden (doppelt hohe Zeilen: oben rechts die Zeit in Stunden, darunter unten
-rechts die Zeit in Tagen, beides als Flip-Zahl mit Count-up, Tage-Format wie
-`LayoverTimeScale.daysText`; auf der Länder-Seite steht der Ländername fett über der Flagge, und
-unter den Tagen folgt eine weitere Zeile mit der Zeit in Monaten, nur wenn es mehr als ein halber
-Monat ist), häufigster Layover-Buddy, Top-5-Lieblingsziele und Top-5-unbeliebte Ziele (beide nur über
-Layover-Ziele, mit der Zahl der Monate als Unterzeile unter dem Dreilettercode).
+summierten Layover-Stunden (doppelt hohe Zeilen: rechts die Einheit h/d/m, links daneben die
+Flipzahlen, symmetrisch übereinander – z. B. „120 h" über „5 d" über „0,2 m", jede mit eigener
+Flip-Zahl und Count-up, Tage-Format wie `LayoverTimeScale.daysText`; auf der Länder-Seite steht der
+Ländername fett über der Flagge, und unter den Tagen folgt eine weitere Zeile mit der Zeit in
+Monaten, nur wenn es mehr als ein halber Monat ist), häufigster Layover-Buddy, Top-5-Lieblingsziele
+(mit dem durchschnittlichen Abstand als Unterzeile: „Alle x,x Monate") und Top-5-unbeliebte Ziele
+(ohne Monatsangabe).
 
 Die reine Auswertung steht ohne Android in `StoryStats` (geprüft von `StoryStatsTest`, 23 Tests):
 `playStats(entries, seatsCatalog, loadFactorPercent, homebase, today, lookups)` und
@@ -738,7 +747,7 @@ Die reine Auswertung steht ohne Android in `StoryStats` (geprüft von `StoryStat
 Konventionen: Die Flugzahl zählt jeden Eintrag wie die Kachel *Flüge*, Distanz/Zeit/Ziele/Länder/
 Flugzeug/Strecken nur echte Flüge (`DashboardStats.isFlying`); die **Homebase zählt nicht** als
 Ziel; Strecken sind ungerichtet (sortiertes Paar); der häufigste Buddy wie bei den Reisebuddies;
-Passagiere wie die Kachel *Passagiere* (On Duty × Sitze × Auslastung, auf Tausender gerundet).
+Passagiere wie die Kachel *Passagiere* (On Duty × Sitze × Auslastung, auf Hunderter gerundet).
 Lieblingsziele sind häufig + regelmäßig (Score = Flüge + verschiedene Monate, nur Ziele mit
 mindestens zwei Flügen), unbeliebte selten + lange her (sortiert nach Flügen, Monaten, letztem
 Datum aufsteigend) – beides ausschließlich über **Layover-Ziele**: In der Insights-Story werden
@@ -750,8 +759,10 @@ Die Seiten baut `StoryPages` (`StoryPages.play/insights`) aus drei Seitentypen (
 `HeroNumber` (große Zahl mit Einheit, optional zweite Zahl und Fußzeile), `HeroText` (großer Text,
 z. B. die Stammstrecke) und `Ranking` (gruppierte Zeilen mit Rang, Flagge, Label, Unterzeile und
 Wert). Eine Zeile kann doppelt so hoch sein (`Row.tall`) und trägt dann unter dem Hauptwert weitere
-Wert-Zahlen, unten rechts untereinander (`Row.stackedValues`, z. B. die Tage unter den Stunden,
-darunter die Monate – jede mit eigener Flip-Zahl und Count-up). Eine Flagge steht entweder direkt
+Wert-Zahlen, zweispaltig rechtsbündig (`Row.stackedValues`, z. B. die Tage unter den Stunden,
+darunter die Monate – links die Flipzahlen rechtsbündig, rechts die Einheiten h/d/m in fester
+Spaltenbreite, so dass alle symmetrisch übereinander stehen; jede mit eigener Flip-Zahl und
+Count-up). Eine Flagge steht entweder direkt
 hinter dem Label (`Row.labelFlag`, z. B. hinter dem Dreilettercode) oder unter dem Label, das dann
 fett darüber steht (`Row.subFlag`). Leere Abschnitte und die
 Crew-only-Passagiere-Seite werden ausgelassen; bei leerem

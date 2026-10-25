@@ -462,10 +462,16 @@ class StoryPageView @JvmOverloads constructor(
         }
         labelRow.addView(
             TextView(context).apply {
+                // Mit labelFlag: feste Breite (48 dp), damit alle Flaggen in
+                // einer Spalte synchron übereinander stehen - sonst schiebt
+                // das Label mit weight 1 die Flagge nach rechts und die Codes
+                // haben bei proportionaler Schrift unterschiedliche Breiten.
+                // Ohne labelFlag: weight 1, damit lange Labels (Ländernamen)
+                // den Platz ausfüllen.
                 layoutParams = LinearLayout.LayoutParams(
-                    0,
+                    if (row.labelFlag != null) dp(48) else 0,
                     LinearLayout.LayoutParams.WRAP_CONTENT,
-                    1f
+                    if (row.labelFlag != null) 0f else 1f
                 )
                 setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyLarge)
                 setTextColor(ContextCompat.getColor(context, R.color.story_text))
@@ -504,8 +510,13 @@ class StoryPageView @JvmOverloads constructor(
         rowLayout.addView(labelColumn)
 
         // Wert als kleine Flip-Uhr, noch leer - flippen tut er beim Auftritt.
+        // Feste Höhe nötig: Ohne Kinder (vor setText) wäre die Höhe sonst 0.
         val valueView = FlipNumberView(context).apply {
             setDigitHeightPx(dp(26))
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                dp(26)
+            )
         }
         rowValues += RowValue(
             view = valueView,
@@ -513,27 +524,50 @@ class StoryPageView @JvmOverloads constructor(
             target = row.valueTarget,
             format = row.valueFormat
         )
-        val valueRow = LinearLayout(context).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-        }
-        valueRow.addView(valueView)
-        row.suffix?.let { suffix -> valueRow.addView(suffixView(suffix)) }
         if (row.stackedValues.isEmpty()) {
+            // Einfach: Zahl und Suffix in einer Zeile.
+            val valueRow = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+            }
+            valueRow.addView(valueView)
+            row.suffix?.let { suffix -> valueRow.addView(suffixView(suffix)) }
             rowLayout.addView(valueRow)
         } else {
-            // Weitere Zahlen darunter (unten rechts), z. B. die Zeit in Tagen
-            // unter den Stunden - als eigene Flip-Uhren mit Count-up, in der
-            // Stagger-Reihenfolge direkt nach dem Hauptwert der Zeile.
-            val valueColumn = LinearLayout(context).apply {
+            // Zweispaltig: links die Zahlen (rechtsbündig), rechts die
+            // Einheiten (linksbündig, feste Breite) - so stehen alle Zahlen
+            // und alle Einheiten symmetrisch übereinander, die Einheit ganz
+            // rechts (h, d, m).
+            val columns = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+            }
+            val numbersColumn = LinearLayout(context).apply {
                 orientation = LinearLayout.VERTICAL
-                // Alle Zeilen enden rechts bündig untereinander.
+                layoutParams = LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f
+                )
                 gravity = Gravity.END
             }
-            valueColumn.addView(valueRow)
+            val unitsColumn = LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(
+                    dp(28), LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { marginStart = dp(4) }
+            }
+            // Hauptwert in beide Spalten.
+            numbersColumn.addView(valueView)
+            unitsColumn.addView(row.suffix?.let { suffix ->
+                unitTextView(suffix)
+            } ?: emptyUnitView())
+            // Gestapelte Werte darunter (z. B. Tage unter den Stunden).
             row.stackedValues.forEach { stacked ->
                 val stackedView = FlipNumberView(context).apply {
                     setDigitHeightPx(dp(26))
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        dp(26)
+                    ).apply { topMargin = dp(4) }
                 }
                 rowValues += RowValue(
                     view = stackedView,
@@ -541,21 +575,43 @@ class StoryPageView @JvmOverloads constructor(
                     target = stacked.target,
                     format = stacked.format
                 )
-                val stackedRow = LinearLayout(context).apply {
-                    orientation = LinearLayout.HORIZONTAL
-                    gravity = Gravity.CENTER_VERTICAL
-                    layoutParams = LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.WRAP_CONTENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT
-                    ).apply { topMargin = dp(4) }
-                }
-                stackedRow.addView(stackedView)
-                stacked.suffix?.let { suffix -> stackedRow.addView(suffixView(suffix)) }
-                valueColumn.addView(stackedRow)
+                numbersColumn.addView(stackedView)
+                unitsColumn.addView(
+                    stacked.suffix?.let { suffix ->
+                        unitTextView(suffix).apply {
+                            (layoutParams as LinearLayout.LayoutParams).topMargin = dp(4)
+                        }
+                    } ?: emptyUnitView().apply {
+                        (layoutParams as LinearLayout.LayoutParams).topMargin = dp(4)
+                    }
+                )
             }
-            rowLayout.addView(valueColumn)
+            columns.addView(numbersColumn)
+            columns.addView(unitsColumn)
+            rowLayout.addView(columns)
         }
         return rowLayout
+    }
+
+    /** Einheit (h/d/m) in der rechten Spalte: gleiche Höhe wie die Flip-Zahl. */
+    private fun unitTextView(suffix: String): TextView =
+        TextView(context).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                dp(26)
+            ).apply { marginStart = dp(4) }
+            gravity = Gravity.CENTER_VERTICAL
+            setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyMedium)
+            setTextColor(ContextCompat.getColor(context, R.color.story_text_variant))
+            text = suffix
+        }
+
+    /** Leerer Platzhalter in der Einheiten-Spalte (gleiche Höhe wie ein Suffix). */
+    private fun emptyUnitView(): View = View(context).apply {
+        layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            dp(26)
+        )
     }
 
     /** Eine Flagge (Länder-Emoji) in Standardgrösse. */

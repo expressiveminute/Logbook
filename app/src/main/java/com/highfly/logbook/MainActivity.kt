@@ -370,7 +370,7 @@ class MainActivity : AppCompatActivity() {
             bottom = navBarBottom
         )
         binding.contentHost.updatePadding(
-            top = if (showHeader) 0 else statusBarTop,
+            top = if (showHeader || isWorldMap) 0 else statusBarTop,
             left = if (showHeader) 0 else navBarLeft,
             right = if (showHeader) 0 else navBarRight,
             // Die Navigationsleiste schwebt über dem Inhalt: Die Seite läuft

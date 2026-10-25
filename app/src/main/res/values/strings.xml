@@ -845,6 +845,7 @@
         <item quantity="one">%1$d Monat</item>
         <item quantity="other">%1$d Monate</item>
     </plurals>
+    <string name="story_row_avg_months">Alle %1$s Monate</string>
     <string name="story_insights_layover_count_title">Häufigste Layover-Ziele</string>
     <string name="story_insights_layover_hours_title">Meiste Zeit im Layover</string>
     <string name="story_insights_layover_countries_title">Deine Layover-Länder</string>

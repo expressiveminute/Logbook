@@ -34,9 +34,9 @@
             android:textColor="?attr/colorOnSurfaceVariant" />
     </LinearLayout>
 
-    <!-- Der Zurueck-Pfeil bleibt ausgeblendet: Die Weltkarte ist ein
-         Top-Level-Ziel der unteren Leiste, und das Pfeil-Icon links oben
-         sah wie ein zweiter Filter-Reset aus (btn_filter_reset). -->
+    <!-- Zurueck-Pfeil: Die Weltkarte ist ein Top-Level-Ziel der unteren
+         Leiste, der Pfeil navigiert dennoch zurueck (z. B. nach einer
+         Filterauswahl oder zum Dashboard). -->
     <FrameLayout
         android:id="@+id/btn_back"
         android:layout_width="48dp"
@@ -46,8 +46,7 @@
         android:layout_marginTop="8dp"
         android:background="@drawable/bg_icon_button"
         android:clickable="true"
-        android:focusable="true"
-        android:visibility="gone">
+        android:focusable="true">
 
         <ImageView
             android:layout_width="24dp"

@@ -673,7 +673,7 @@ class FirstFragment : LogbookFragment() {
 
     /**
      * Passagiere-Kachel: links die geschätzte Gesamtzahl über alle Jahre (auf
-     * volle Tausender gerundet) samt eingestellter Auslastung, rechts der
+     * volle Hunderter gerundet) samt eingestellter Auslastung, rechts der
      * Durchschnitt pro Flug - gerechnet aus der Sitzplatzanzahl des
      * Flugzeugtyps und der Auslastung, siehe [PassengersCalculator].
      */
@@ -687,7 +687,7 @@ class FirstFragment : LogbookFragment() {
             TileValueAnimator.animate(
                 this,
                 PassengersCalculator.passengersText(
-                    PassengersCalculator.roundToThousands(passengers.totalPassengers),
+                    PassengersCalculator.roundToHundreds(passengers.totalPassengers),
                     locale
                 )
             )

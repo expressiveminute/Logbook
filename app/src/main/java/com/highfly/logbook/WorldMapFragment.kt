@@ -22,6 +22,8 @@ import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -159,10 +161,26 @@ class WorldMapFragment : LogbookFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Knopfspalte und Stats-Karte schweben als feste Elemente über der
-        // Navigationsleiste; die Karte läuft darunter bis zum Rand.
-        binding.mapControls.addBottomNavMargin()
-        binding.statsCard.addBottomNavMargin()
+        // Insets selbst anwenden: MainActivity setzt kein contentHost-Padding
+        // fuer die Weltkarte (sie hat keine Navigationsleiste), das Fragment
+        // positioniert die schwebenden Elemente direkt an den Systemleisten.
+        ViewCompat.setOnApplyWindowInsetsListener(view) { _, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val margin = (8 * resources.displayMetrics.density).toInt()
+            // Obere Buttons unterhalb der Statusleiste.
+            listOf(binding.btnBack, binding.btnFilter, binding.btnFilterReset).forEach { btn ->
+                (btn.layoutParams as? ViewGroup.MarginLayoutParams)?.topMargin = bars.top + margin
+                btn.requestLayout()
+            }
+            // Untere Elemente (Stats-Karte, Zoom-Knöpfe) oberhalb der
+            // Systemleiste; die Weltkarte hat keine schwebende Nav-Leiste.
+            val bottomMargin = (16 * resources.displayMetrics.density).toInt()
+            (binding.statsCard.layoutParams as? ViewGroup.MarginLayoutParams)
+                ?.bottomMargin = bars.bottom + bottomMargin
+            (binding.mapControls.layoutParams as? ViewGroup.MarginLayoutParams)
+                ?.bottomMargin = bars.bottom + (4 * resources.displayMetrics.density).toInt()
+            insets
+        }
 
         // Filter aus Navigationsargumenten lesen
         val filterTravelBuddy = arguments?.getString("filterTravelBuddy")?.trim().orEmpty()
@@ -174,8 +192,8 @@ class WorldMapFragment : LogbookFragment() {
             activeMapFilter = activeMapFilter.copy(airline = filterAirline)
         }
 
-        // btn_back ist im Layout dauerhaft ausgeblendet (sah wie ein zweiter
-        // Filter-Reset aus); die Weltkarte ist Top-Level-Ziel der unteren Leiste.
+        // Zurueck-Pfeil oben links: navigiert zurueck (z. B. zum Dashboard).
+        binding.btnBack.setOnClickListener { findNavController().navigateUp() }
         binding.btnZoomIn.setOnClickListener { mapView?.controller?.zoomIn() }
         binding.btnZoomOut.setOnClickListener { mapView?.controller?.zoomOut() }
         binding.btnReset.setOnClickListener { mapView?.let { setStandardView(it) } }

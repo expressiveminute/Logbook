@@ -101,11 +101,11 @@ class PassengersFragment : LogbookFragment() {
                 R.string.time_route_flights,
                 year.flights
             )
-            // Summen auf volle Tausender gerundet - die Schätzung trägt keine
-            // Genauigkeit auf Hunderter (siehe [PassengersCalculator]).
+            // Summen auf volle Hunderter gerundet - die Schätzung trägt keine
+            // Genauigkeit auf Zehner (siehe [PassengersCalculator]).
             row.findViewById<TextView>(R.id.tv_passenger_year_value).text =
                 PassengersCalculator.passengersText(
-                    PassengersCalculator.roundToThousands(year.passengers),
+                    PassengersCalculator.roundToHundreds(year.passengers),
                     locale
                 )
             val bar = row.findViewById<LinearProgressIndicator>(R.id.bar_passenger_year)

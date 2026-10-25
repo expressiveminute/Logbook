@@ -8,7 +8,7 @@ import java.util.Locale
 /**
  * Prüft die Schätzung der Passagierzahlen ([PassengersCalculator]): Sitzplätze
  * × Auslastung pro Flug, Durchschnitt als Rückfall für unbekannte Typen, nur
- * Flüge als "On Duty", Jahresgruppierung und Tausender-Rundung.
+ * Flüge als "On Duty", Jahresgruppierung und Hunderter-Rundung.
  */
 class PassengersCalculatorTest {
 
@@ -121,13 +121,13 @@ class PassengersCalculatorTest {
     }
 
     @Test
-    fun roundToThousands_rundetAufVolleTausender() {
-        assertEquals(0, PassengersCalculator.roundToThousands(0))
-        assertEquals(0, PassengersCalculator.roundToThousands(499))
-        assertEquals(1000, PassengersCalculator.roundToThousands(500))
-        assertEquals(1000, PassengersCalculator.roundToThousands(1499))
-        assertEquals(2000, PassengersCalculator.roundToThousands(1500))
-        assertEquals(1284000, PassengersCalculator.roundToThousands(1284390))
+    fun roundToHundreds_rundetAufVolleHunderter() {
+        assertEquals(0, PassengersCalculator.roundToHundreds(0))
+        assertEquals(0, PassengersCalculator.roundToHundreds(49))
+        assertEquals(100, PassengersCalculator.roundToHundreds(50))
+        assertEquals(100, PassengersCalculator.roundToHundreds(149))
+        assertEquals(200, PassengersCalculator.roundToHundreds(150))
+        assertEquals(1284400, PassengersCalculator.roundToHundreds(1284390))
     }
 
     @Test

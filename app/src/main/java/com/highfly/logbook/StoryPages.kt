@@ -162,7 +162,7 @@ object StoryPages {
                 titleRes = R.string.story_play_passengers_title,
                 labelRes = R.string.story_play_passengers_title,
                 target = PassengersCalculator
-                    .roundToThousands(stats.passengersTotal)
+                    .roundToHundreds(stats.passengersTotal)
                     .toDouble(),
                 format = groupedInt(locale),
                 footnote = context.getString(R.string.story_play_passengers_footnote)
@@ -344,7 +344,8 @@ object StoryPages {
         }
 
         // 5. Die Top-fünf Lieblingsziele (häufig und regelmäßig besucht) -
-        //    nur Ziele, die als Layover markiert sind.
+        //    nur Ziele, die als Layover markiert sind. Der Untertitel nennt
+        //    den durchschnittlichen Abstand zwischen zwei Besuchen.
         if (stats.favoriteDestinations.isNotEmpty()) {
             pages += StoryPage.Ranking(
                 iconRes = R.drawable.ic_heart,
@@ -357,11 +358,15 @@ object StoryPages {
                                 label = dest.code,
                                 value = String.format(locale, "%,d", dest.flights),
                                 suffix = "×",
-                                subLabel = context.resources.getQuantityString(
-                                    R.plurals.story_row_months,
-                                    dest.months,
-                                    dest.months
-                                ),
+                                subLabel = if (dest.flights > 0) {
+                                    context.getString(
+                                        R.string.story_row_avg_months,
+                                        LayoverTimeScale.trimmedDecimal(
+                                            dest.months.toDouble() / dest.flights,
+                                            locale
+                                        )
+                                    )
+                                } else null,
                                 valueTarget = dest.flights.toDouble(),
                                 valueFormat = groupedInt(locale)
                             )
@@ -372,7 +377,7 @@ object StoryPages {
         }
 
         // 6. Die Top-fünf Ziele, die man weniger mag (selten, lange her) -
-        //    ebenfalls nur Layover-Ziele.
+        //    ebenfalls nur Layover-Ziele, ohne Monatsangabe.
         if (stats.dislikedDestinations.isNotEmpty()) {
             pages += StoryPage.Ranking(
                 iconRes = R.drawable.ic_heart_broken,
@@ -385,11 +390,6 @@ object StoryPages {
                                 label = dest.code,
                                 value = String.format(locale, "%,d", dest.flights),
                                 suffix = "×",
-                                subLabel = context.resources.getQuantityString(
-                                    R.plurals.story_row_months,
-                                    dest.months,
-                                    dest.months
-                                ),
                                 valueTarget = dest.flights.toDouble(),
                                 valueFormat = groupedInt(locale)
                             )
