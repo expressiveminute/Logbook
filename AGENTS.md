@@ -25,7 +25,13 @@ Release-APKs sind mit `*.apk`/`*.idsig` in `.gitignore` und werden nicht committ
    ```bash
    cp app/build/outputs/apk/release/app-release.apk Releases/app-release-vX.Y.Z.apk
    ```
-   Name des Release-Ordners ist Plural: `Releases/`.
+   Danach die Signatur prüfen – der SHA-256-Fingerabdruck muss `1f269077…` sein:
+   ```bash
+   apksigner verify --print-certs Releases/app-release-vX.Y.Z.apk | grep "SHA-256"
+   ```
+   Steht dort `9f8aff1a…` (Debug-Zertifikat), wurde die APK falsch überschrieben – erneut
+   aus `app/build/outputs/apk/release/` kopieren. Name des Release-Ordners ist Plural:
+   `Releases/`.
 4. Commit-Message ist die reine Version (`v0.0.3`), Branch `main`.
 5. Hochladen und Tag-Erstellung auf GitHub übernimmt der Nutzer.
 
