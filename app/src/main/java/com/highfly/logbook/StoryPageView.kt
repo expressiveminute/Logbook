@@ -388,7 +388,12 @@ class StoryPageView @JvmOverloads constructor(
         }
     }
 
-    /** Eine Zeile der Rangliste: Rang, Flagge, Label und Wert als Flip-Uhr. */
+    /**
+     * Eine Zeile der Rangliste: Rang, Flagge, Label und Wert als Flip-Uhr.
+     * [StoryPage.Ranking.Row.tall] macht die Zeile doppelt so hoch,
+     * [StoryPage.Ranking.Row.centerFlag] zeigt eine Flagge in der Mitte und
+     * [StoryPage.Ranking.Row.subValue] eine zweite Flip-Zahl unten rechts.
+     */
     private fun buildRow(row: StoryPage.Ranking.Row, rank: Int): View {
         val rowLayout = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -402,7 +407,10 @@ class StoryPageView @JvmOverloads constructor(
                 setColor(ContextCompat.getColor(context, R.color.story_row_bg))
             }
             val padH = dp(12)
-            val padV = dp(10)
+            // Doppelte Höhe bei tall: 20 dp statt 10 dp oben/unten - zusammen
+            // mit den zwei übereinanderliegenden Werten (26 + 4 + 26 dp)
+            // ergibt das genau die doppelte Zeilenhöhe (48 dp auf 96 dp).
+            val padV = dp(if (row.tall) 20 else 10)
             setPadding(padH, padV, padH, padV)
         }
 
@@ -474,6 +482,23 @@ class StoryPageView @JvmOverloads constructor(
         }
         rowLayout.addView(labelColumn)
 
+        // Flagge in der Mitte der Zeile (zwischen Label und Wert).
+        row.centerFlag?.let { flag ->
+            rowLayout.addView(
+                TextView(context).apply {
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply {
+                        marginStart = dp(8)
+                        marginEnd = dp(8)
+                    }
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+                    text = flag
+                }
+            )
+        }
+
         // Wert als kleine Flip-Uhr, noch leer - flippen tut er beim Auftritt.
         val valueView = FlipNumberView(context).apply {
             setDigitHeightPx(dp(26))
@@ -484,22 +509,60 @@ class StoryPageView @JvmOverloads constructor(
             target = row.valueTarget,
             format = row.valueFormat
         )
-        rowLayout.addView(valueView)
-        row.suffix?.let { suffix ->
-            rowLayout.addView(
-                TextView(context).apply {
-                    layoutParams = LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.WRAP_CONTENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT
-                    ).apply { marginStart = dp(4) }
-                    setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyMedium)
-                    setTextColor(ContextCompat.getColor(context, R.color.story_text_variant))
-                    text = suffix
-                }
+        val valueRow = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        valueRow.addView(valueView)
+        row.suffix?.let { suffix -> valueRow.addView(suffixView(suffix)) }
+        if (row.subValue == null) {
+            rowLayout.addView(valueRow)
+        } else {
+            // Zweite Zahl darunter (unten rechts), z. B. die Zeit in Tagen
+            // unter den Stunden - als eigene Flip-Uhr mit Count-up, in der
+            // Stagger-Reihenfolge direkt nach dem Hauptwert der Zeile.
+            val subValueView = FlipNumberView(context).apply {
+                setDigitHeightPx(dp(26))
+            }
+            rowValues += RowValue(
+                view = subValueView,
+                text = row.subValue,
+                target = row.subValueTarget,
+                format = row.subValueFormat
             )
+            val subValueRow = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { topMargin = dp(4) }
+            }
+            subValueRow.addView(subValueView)
+            row.subSuffix?.let { subSuffix -> subValueRow.addView(suffixView(subSuffix)) }
+            val valueColumn = LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                // Beide Zeilen enden rechts bündig untereinander.
+                gravity = Gravity.END
+            }
+            valueColumn.addView(valueRow)
+            valueColumn.addView(subValueRow)
+            rowLayout.addView(valueColumn)
         }
         return rowLayout
     }
+
+    /** Suffix rechts neben einem Wert (z. B. "h" oder "×"). */
+    private fun suffixView(suffix: String): TextView =
+        TextView(context).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { marginStart = dp(4) }
+            setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyMedium)
+            setTextColor(ContextCompat.getColor(context, R.color.story_text_variant))
+            text = suffix
+        }
 
     private fun labelView(@androidx.annotation.StringRes res: Int): TextView =
         TextView(context).apply {

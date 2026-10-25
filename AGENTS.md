@@ -612,9 +612,11 @@ Eintragereihenfolge — beim CSV-Import die Reihenfolge der Datei (die erste Zei
 Flug des Tages), ein manuell eingetragener Flug landet als Neuestes oben im Tag. Ein Tag bleibt
 ein Block; `EntryDayOrder` (im `EntriesFragment.renderEntries`) ordnet nur innerhalb des Tages um.
 Drei Regeln bestimmen die Reihenfolge: **Layover** steht immer ganz oben — auch wenn der Flug
-zugleich der Rückflug des Vortags ist. Ganz unten steht der erste Flug des Tages: Endete der Vortag
-mit einem Layover, ist es der **Rückflug** (die Umkehrung der Layover-Strecke, sofern nicht selbst
-wieder ein Layover). Dazwischen werden **Hin- und Rückflüge ab der Homebase zu Paaren gruppiert**
+zugleich der Rückflug des Vortags ist. Ganz unten steht der erste Flug des Tages: Endete der
+**jüngste Tag mit Flügen** mit einem Layover, ist es der **Rückflug** (die Umkehrung der
+Layover-Strecke, sofern nicht selbst wieder ein Layover) — Ruhetage ohne Flug dazwischen werden
+übergangen, der Rückflug steht also auch am übernächsten oder einem späteren Tag unten. Dazwischen
+werden **Hin- und Rückflüge ab der Homebase zu Paaren gruppiert**
 (`pairUp`): Der Hinflug (Abflug ab der Homebase) steht unten, der Rückflug (die Umkehrung) direkt
 darüber; die Paare sortieren sich nach der **Position des Hinflugs** in der Eintragereihenfolge.
 Flüge ohne passenden Gegenflug (z. B. ein Anschlussflug an einem anderen Ort) behalten ihre
@@ -685,11 +687,14 @@ Hintergrund-Thread (`LogbookRepository`, `Homebase.current`, `AircraftSeats`, `C
 Top-3-Ziele und Top-3-Länder (jeweils getrennt Privat / On Duty, On Duty nur bei Crew),
 Top-Reisebuddies, häufigster und am weitesten geflogenes Flugzeug, die häufigste Strecke,
 nur bei Crew die geschätzten Passagiere, die Reiseklassen-Verteilung, Gesamtstrecke, Gesamtflugzeit
-und die nötige CO₂-Kompensation. **Insights** zeigt Layover-Auswertungen: häufigste
-Layover-Ziele, Ziele mit den meisten Layover-Stunden, Top-5-Länder nach summierten
-Layover-Stunden, häufigster Layover-Buddy, Top-5-Lieblingsziele und Top-5-unbeliebte Ziele.
+und die nötige CO₂-Kompensation. **Insights** zeigt Layover-Auswertungen — ausschließlich über
+Einträge, die als Layover markiert sind: häufigste Layover-Ziele (ohne Dauer, dafür die Flagge des
+Landes in der Mitte der Zeile), Ziele mit den meisten Layover-Stunden und Top-5-Länder nach
+summierten Layover-Stunden (doppelt hohe Zeilen: oben rechts die Stunden, darunter unten rechts die
+Tage, beides als Flip-Zahl mit Count-up, Tage-Format wie `LayoverTimeScale.daysText`), häufigster
+Layover-Buddy, Top-5-Lieblingsziele und Top-5-unbeliebte Ziele (beide nur über Layover-Ziele).
 
-Die reine Auswertung steht ohne Android in `StoryStats` (geprüft von `StoryStatsTest`, 19 Tests):
+Die reine Auswertung steht ohne Android in `StoryStats` (geprüft von `StoryStatsTest`, 23 Tests):
 `playStats(entries, seatsCatalog, loadFactorPercent, homebase, today, lookups)` und
 `insightsStats(entries, homebase, lookups)` mit `Lookups(countryOf, countryNameOf)`.
 Konventionen: Die Flugzahl zählt jeden Eintrag wie die Kachel *Flüge*, Distanz/Zeit/Ziele/Länder/
@@ -698,13 +703,18 @@ Ziel; Strecken sind ungerichtet (sortiertes Paar); der häufigste Buddy wie bei 
 Passagiere wie die Kachel *Passagiere* (On Duty × Sitze × Auslastung, auf Tausender gerundet).
 Lieblingsziele sind häufig + regelmäßig (Score = Flüge + verschiedene Monate, nur Ziele mit
 mindestens zwei Flügen), unbeliebte selten + lange her (sortiert nach Flügen, Monaten, letztem
-Datum aufsteigend) – beides über **alle** Ziele, nicht nur Layovers, sonst wäre Insights für
-Passagiere ohne Layover leer. Layover-Ziel ist das `toAirport` des `layover`-Eintrags.
+Datum aufsteigend) – beides ausschließlich über **Layover-Ziele**: In der Insights-Story werden
+nur Ziele gezeigt, die als Layover markiert sind. Layover-Ziel ist das `toAirport` des
+`layover`-Eintrags; die Flagge dazu löst `StoryStats` über das Zielland auf
+(`LayoverDestination.flag`).
 
 Die Seiten baut `StoryPages` (`StoryPages.play/insights`) aus drei Seitentypen (`StoryPage`):
 `HeroNumber` (große Zahl mit Einheit, optional zweite Zahl und Fußzeile), `HeroText` (großer Text,
 z. B. die Stammstrecke) und `Ranking` (gruppierte Zeilen mit Rang, Flagge, Label, Unterzeile und
-Wert). Leere Abschnitte und die Crew-only-Passagiere-Seite werden ausgelassen; bei leerem
+Wert). Eine Zeile trägt optional eine zweite Wert-Zahl darunter (unten rechts, z. B. die Tage unter
+den Stunden) und kann doppelt so hoch sein (`Row.tall`); eine Flagge lässt sich auch in der Mitte der
+Zeile zeigen (`Row.centerFlag`, zwischen Label und Wert). Leere Abschnitte und die
+Crew-only-Passagiere-Seite werden ausgelassen; bei leerem
 Logbuch gibt es eine einzelne Hinweisseite. Strings liegen unter `story_*` in `values` (deutsch)
 und `values-en` (englisch).
 

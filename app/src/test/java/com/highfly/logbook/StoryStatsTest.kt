@@ -354,17 +354,39 @@ class StoryStatsTest {
     }
 
     @Test
+    fun insightsStats_layoverDestinationsCarryCountryFlag() {
+        val lookups = StoryStats.Lookups(
+            countryOf = { code -> mapOf("JFK" to "US", "SIN" to "SG")[code] }
+        )
+        val entries = listOf(
+            entry("MUC", "JFK", LocalDate.of(2026, 1, 10), layover = true, layoverHours = 20),
+            entry("MUC", "SIN", LocalDate.of(2026, 2, 10), layover = true, layoverHours = 30)
+        )
+
+        val stats = StoryStats.insightsStats(entries, lookups = lookups)
+
+        assertEquals(
+            AirportData.flagEmoji("US"),
+            stats.topLayoverByCount.first { it.code == "JFK" }.flag
+        )
+        assertEquals(
+            AirportData.flagEmoji("SG"),
+            stats.topLayoverByCount.first { it.code == "SIN" }.flag
+        )
+    }
+
+    @Test
     fun insightsStats_favoritesNeedRepeatedVisitsAndRewardRegularity() {
         val entries = listOf(
-            // HAM: 3 Flüge in 3 Monaten - häufig und regelmäßig.
-            entry("MUC", "HAM", LocalDate.of(2026, 1, 10)),
-            entry("MUC", "HAM", LocalDate.of(2026, 2, 10)),
-            entry("MUC", "HAM", LocalDate.of(2026, 3, 10)),
-            // LHR: 2 Flüge im selben Monat - häufig, aber nicht regelmäßig.
-            entry("MUC", "LHR", LocalDate.of(2026, 4, 10)),
-            entry("MUC", "LHR", LocalDate.of(2026, 4, 20)),
+            // HAM: 3 Layover in 3 Monaten - häufig und regelmäßig.
+            entry("MUC", "HAM", LocalDate.of(2026, 1, 10), layover = true),
+            entry("MUC", "HAM", LocalDate.of(2026, 2, 10), layover = true),
+            entry("MUC", "HAM", LocalDate.of(2026, 3, 10), layover = true),
+            // LHR: 2 Layover im selben Monat - häufig, aber nicht regelmäßig.
+            entry("MUC", "LHR", LocalDate.of(2026, 4, 10), layover = true),
+            entry("MUC", "LHR", LocalDate.of(2026, 4, 20), layover = true),
             // MUC ist Homebase und zählt nie als Ziel.
-            entry("HAM", "MUC", LocalDate.of(2026, 5, 10))
+            entry("HAM", "MUC", LocalDate.of(2026, 5, 10), layover = true)
         )
 
         val stats = StoryStats.insightsStats(entries, homebase = "MUC")
@@ -379,11 +401,11 @@ class StoryStatsTest {
     @Test
     fun insightsStats_dislikedAreRareAndLongAgo() {
         val entries = listOf(
-            entry("MUC", "HAM", LocalDate.of(2026, 1, 10)),
-            entry("MUC", "HAM", LocalDate.of(2026, 2, 10)),
-            entry("MUC", "OLD", LocalDate.of(2020, 1, 10)),
-            entry("MUC", "MID", LocalDate.of(2023, 1, 10)),
-            entry("MUC", "MID", LocalDate.of(2023, 2, 10))
+            entry("MUC", "HAM", LocalDate.of(2026, 1, 10), layover = true),
+            entry("MUC", "HAM", LocalDate.of(2026, 2, 10), layover = true),
+            entry("MUC", "OLD", LocalDate.of(2020, 1, 10), layover = true),
+            entry("MUC", "MID", LocalDate.of(2023, 1, 10), layover = true),
+            entry("MUC", "MID", LocalDate.of(2023, 2, 10), layover = true)
         )
 
         val stats = StoryStats.insightsStats(entries, homebase = "MUC")
@@ -395,10 +417,28 @@ class StoryStatsTest {
     }
 
     @Test
+    fun insightsStats_favoritesAndDislikedUseOnlyLayoverFlights() {
+        val entries = listOf(
+            // HAM nur ohne Layover-Markierung: zählt nicht mit.
+            entry("MUC", "HAM", LocalDate.of(2026, 1, 10)),
+            entry("MUC", "HAM", LocalDate.of(2026, 2, 10)),
+            entry("MUC", "HAM", LocalDate.of(2026, 3, 10)),
+            // LHR mit Layover-Markierung: zählt mit.
+            entry("MUC", "LHR", LocalDate.of(2026, 4, 10), layover = true),
+            entry("MUC", "LHR", LocalDate.of(2026, 4, 20), layover = true)
+        )
+
+        val stats = StoryStats.insightsStats(entries, homebase = "MUC")
+
+        assertEquals(listOf("LHR"), stats.favoriteDestinations.map { it.code })
+        assertEquals(listOf("LHR"), stats.dislikedDestinations.map { it.code })
+    }
+
+    @Test
     fun insightsStats_favoritesAndDislikedExcludeHomebase() {
         val entries = listOf(
-            entry("HAM", "MUC", LocalDate.of(2026, 1, 10)),
-            entry("LHR", "MUC", LocalDate.of(2026, 2, 10))
+            entry("HAM", "MUC", LocalDate.of(2026, 1, 10), layover = true),
+            entry("LHR", "MUC", LocalDate.of(2026, 2, 10), layover = true)
         )
 
         val stats = StoryStats.insightsStats(entries, homebase = "MUC")

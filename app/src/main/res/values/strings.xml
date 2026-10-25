@@ -648,7 +648,7 @@
     <string name="import_review_summary_unknown">Unbekannt</string>
 
     <string name="settings_version_label">Version %1$s</string>
-    <string name="settings_version" translatable="false">0.0.31</string>
+    <string name="settings_version" translatable="false">0.0.34</string>
     <string name="settings_made_with_prefix">Made with</string>
     <string name="settings_made_with_suffix">by expressiveminute</string>
 
@@ -838,8 +838,8 @@
     <string name="story_play_co2_title">Dein CO₂-Fußabdruck</string>
     <string name="story_play_co2_footnote">≈ %1$s Bäume binden das in einem Jahr</string>
     <string name="story_unit_hours">h</string>
+    <string name="story_unit_days">d</string>
     <string name="story_unit_tonnes">t</string>
-    <string name="story_row_hours">%1$d h</string>
     <plurals name="story_row_months">
         <item quantity="one">%1$d Monat</item>
         <item quantity="other">%1$d Monate</item>

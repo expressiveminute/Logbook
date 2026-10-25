@@ -245,7 +245,8 @@ object StoryPages {
         val locale = Settings.language(context)
         val pages = mutableListOf<StoryPage>()
 
-        // 1. Die häufigsten Layover-Ziele.
+        // 1. Die häufigsten Layover-Ziele - ohne Dauer, dafür die Flagge des
+        //    Landes in der Mitte der Zeile.
         if (stats.topLayoverByCount.isNotEmpty()) {
             pages += StoryPage.Ranking(
                 iconRes = R.drawable.ic_umbrella,
@@ -258,9 +259,7 @@ object StoryPages {
                                 label = dest.code,
                                 value = String.format(locale, "%,d", dest.count),
                                 suffix = "×",
-                                subLabel = if (dest.hours > 0) {
-                                    context.getString(R.string.story_row_hours, dest.hours)
-                                } else null,
+                                centerFlag = dest.flag,
                                 valueTarget = dest.count.toDouble(),
                                 valueFormat = groupedInt(locale)
                             )
@@ -270,7 +269,8 @@ object StoryPages {
             )
         }
 
-        // 2. Die Layover-Ziele mit der meisten Zeit.
+        // 2. Die Layover-Ziele mit der meisten Zeit: doppelt hohe Zeilen,
+        //    oben rechts die Stunden, darunter unten rechts die Tage.
         if (stats.topLayoverByHours.isNotEmpty()) {
             pages += StoryPage.Ranking(
                 iconRes = R.drawable.ic_time,
@@ -284,7 +284,12 @@ object StoryPages {
                                 value = String.format(locale, "%,d", dest.hours),
                                 suffix = context.getString(R.string.story_unit_hours),
                                 valueTarget = dest.hours.toDouble(),
-                                valueFormat = groupedInt(locale)
+                                valueFormat = groupedInt(locale),
+                                tall = true,
+                                subValue = LayoverTimeScale.daysText(dest.hours, locale),
+                                subSuffix = context.getString(R.string.story_unit_days),
+                                subValueTarget = dest.hours / LayoverTimeScale.DAY_HOURS.toDouble(),
+                                subValueFormat = daysFormat(locale)
                             )
                         }
                     )
@@ -292,7 +297,8 @@ object StoryPages {
             )
         }
 
-        // 3. Die Top-fünf Länder mit der gesamten Layoverzeit.
+        // 3. Die Top-fünf Länder mit der gesamten Layoverzeit - wie Seite 2
+        //    mit Stunden oben rechts und Tagen darunter unten rechts.
         if (stats.topLayoverCountries.isNotEmpty()) {
             pages += StoryPage.Ranking(
                 iconRes = R.drawable.ic_countries,
@@ -307,7 +313,12 @@ object StoryPages {
                                 suffix = context.getString(R.string.story_unit_hours),
                                 flag = country.flag,
                                 valueTarget = country.hours.toDouble(),
-                                valueFormat = groupedInt(locale)
+                                valueFormat = groupedInt(locale),
+                                tall = true,
+                                subValue = LayoverTimeScale.daysText(country.hours, locale),
+                                subSuffix = context.getString(R.string.story_unit_days),
+                                subValueTarget = country.hours / LayoverTimeScale.DAY_HOURS.toDouble(),
+                                subValueFormat = daysFormat(locale)
                             )
                         }
                     )
@@ -337,7 +348,8 @@ object StoryPages {
             )
         }
 
-        // 5. Die Top-fünf Lieblingsziele (häufig und regelmäßig besucht).
+        // 5. Die Top-fünf Lieblingsziele (häufig und regelmäßig besucht) -
+        //    nur Ziele, die als Layover markiert sind.
         if (stats.favoriteDestinations.isNotEmpty()) {
             pages += StoryPage.Ranking(
                 iconRes = R.drawable.ic_heart,
@@ -364,7 +376,8 @@ object StoryPages {
             )
         }
 
-        // 6. Die Top-fünf Ziele, die man weniger mag (selten, lange her).
+        // 6. Die Top-fünf Ziele, die man weniger mag (selten, lange her) -
+        //    ebenfalls nur Layover-Ziele.
         if (stats.dislikedDestinations.isNotEmpty()) {
             pages += StoryPage.Ranking(
                 iconRes = R.drawable.ic_heart_broken,
@@ -463,4 +476,11 @@ object StoryPages {
     /** Formatierung mit einer Nachkommastelle. */
     private fun oneDecimal(locale: Locale): (Double) -> String =
         { value -> String.format(locale, "%,.1f", value) }
+
+    /**
+     * Formatierung der Tage-Zahl: höchstens eine Nachkommastelle, ganze
+     * Tage ohne (wie [LayoverTimeScale.daysText]).
+     */
+    private fun daysFormat(locale: Locale): (Double) -> String =
+        { value -> LayoverTimeScale.trimmedDecimal(value, locale) }
 }

@@ -8,10 +8,12 @@ import java.time.LocalDate
  * Die Tagesordnung der Seite "Einträge": Innerhalb eines Tages steht der
  * erste Flug unten, der letzte oben. Ein Layover-Flug ist immer der letzte
  * Flug des Tages (ganz oben); der erste Flug des Tages steht ganz unten - der
- * Rückflug nach einem Layover am Vortag. Dazwischen werden Hin- und Rückflüge
- * ab der Homebase zu Paaren gruppiert (Hinflug unten, Rückflug direkt darüber),
- * die Paare sortieren sich nach der Position des Hinflugs in der
- * Eintragereihenfolge. Die Tests spiegeln die Beispiele aus der Aufgabe.
+ * Rückflug nach einem Layover am jüngsten Tag mit Flügen davor (Ruhetage
+ * ohne Flug dazwischen werden übersprungen). Dazwischen werden Hin- und
+ * Rückflüge ab der Homebase zu Paaren gruppiert (Hinflug unten, Rückflug
+ * direkt darüber), die Paare sortieren sich nach der Position des Hinflugs
+ * in der Eintragereihenfolge. Die Tests spiegeln die Beispiele aus der
+ * Aufgabe.
  */
 class EntryDayOrderTest {
 
@@ -81,6 +83,63 @@ class EntryDayOrderTest {
         val ordered = EntryDayOrder.reorder(entries, setOf("MUC"))
 
         assertEquals(listOf("MUC-DUS", "SOF-MUC", "MUC-SOF", "MUC-BER"), routes(ordered))
+    }
+
+    @Test
+    fun rueckflugNachLayoverMitRuhetagDazwischenStehtGanzUnten() {
+        // Wie rueckflugNachLayoverAmVortagStehtGanzUnten, aber mit einem
+        // Ruhetag ohne Flug dazwischen: Der Rückflug am übernächsten Tag ist
+        // trotzdem der erste Flug des Tages (unten).
+        val d1 = LocalDate.of(2024, 1, 1)
+        val d3 = LocalDate.of(2024, 1, 3)
+        val entries = listOf(
+            entry(4, d3, "SOF", "MUC"),
+            entry(3, d3, "MUC", "DUS"),
+            entry(2, d1, "MUC", "SOF", layover = true),
+            entry(1, d1, "MUC", "BER"),
+        )
+
+        val ordered = EntryDayOrder.reorder(entries, setOf("MUC"))
+
+        assertEquals(listOf("MUC-DUS", "SOF-MUC", "MUC-SOF", "MUC-BER"), routes(ordered))
+    }
+
+    @Test
+    fun rueckflugNachLayoverMitZweiRuhetagenDazwischenStehtGanzUnten() {
+        // Zwei Ruhetage zwischen Layover und Rückflug: Auch am
+        // überübernächsten Tag steht der Rückflug als erster Flug unten.
+        val d1 = LocalDate.of(2024, 1, 1)
+        val d4 = LocalDate.of(2024, 1, 4)
+        val entries = listOf(
+            entry(4, d4, "SOF", "MUC"),
+            entry(3, d4, "MUC", "DUS"),
+            entry(2, d1, "MUC", "SOF", layover = true),
+            entry(1, d1, "MUC", "BER"),
+        )
+
+        val ordered = EntryDayOrder.reorder(entries, setOf("MUC"))
+
+        assertEquals(listOf("MUC-DUS", "SOF-MUC", "MUC-SOF", "MUC-BER"), routes(ordered))
+    }
+
+    @Test
+    fun keinRueckflugWennDerJuengsteVortagMitFluegenKeinLayoverHatte() {
+        // Layover am 1.1., am 2.1. ein Flug ohne Layover, am 3.1. die
+        // Umkehrung der Layover-Strecke: Die Regel greift nicht, denn der
+        // jüngste Tag mit Flügen endete nicht mit einem Layover - Flüge an
+        // einem Zwischentag beenden die Layover-Kette.
+        val d1 = LocalDate.of(2024, 1, 1)
+        val d2 = LocalDate.of(2024, 1, 2)
+        val d3 = LocalDate.of(2024, 1, 3)
+        val entries = listOf(
+            entry(4, d3, "SOF", "MUC"),
+            entry(3, d2, "SOF", "LHR"),
+            entry(2, d1, "MUC", "SOF", layover = true),
+        )
+
+        val ordered = EntryDayOrder.reorder(entries, setOf("MUC"))
+
+        assertEquals(listOf("SOF-MUC", "SOF-LHR", "MUC-SOF"), routes(ordered))
     }
 
     @Test

@@ -1,5 +1,7 @@
 package com.highfly.logbook
 
+import java.time.LocalDate
+
 /**
  * Die Reihenfolge der Kacheln auf der Seite "Einträge" innerhalb eines Tages.
  *
@@ -13,9 +15,11 @@ package com.highfly.logbook
  *
  * 1. Ein mit Layover markierter Flug ist immer der letzte Flug des Tages und
  *    steht ganz oben - auch wenn er zugleich der Rückflug des Vortags ist.
- * 2. Der erste Flug des Tages steht ganz unten: Endete der Vortag mit einem
- *    Layover, ist es der Rückflug dieser Strecke (die Umkehrung, sofern nicht
- *    selbst wieder ein Layover).
+ * 2. Der erste Flug des Tages steht ganz unten: Endete der jüngste Tag mit
+ *    Flügen mit einem Layover, ist es der Rückflug dieser Strecke (die
+ *    Umkehrung, sofern nicht selbst wieder ein Layover). Liegen zwischen
+ *    beiden Tagen Ruhetage ohne Flug, gilt die Regel trotzdem - der
+ *    Rückflug steht auch am übernächsten oder einem späteren Tag unten.
  * 3. Dazwischen gruppiert die Klasse Hin- und Rückflüge ab der Homebase zu
  *    Paaren: Der Hinflug (Abflug ab der Homebase) steht unten, der Rückflug
  *    (die Umkehrung der Strecke) direkt darüber. Die Paare sortieren sich nach
@@ -57,14 +61,36 @@ object EntryDayOrder {
         if (entries.size < 2) return entries
         val byDate = entries.groupBy { it.date }
         return byDate.flatMap { (date, day) ->
-            orderDay(day, byDate[date.minusDays(1)].orEmpty(), homebases)
+            orderDay(day, previousFlightDay(byDate, date), homebases)
         }
+    }
+
+    /**
+     * Der jüngste Tag vor [date] mit Flügen: Tag für Tag rückwärts, bis ein
+     * Tag mit Einträgen auftaucht. Ruhetage ohne Flug dazwischen werden
+     * übersprungen, damit die Rückflug-Regel auch greift, wenn der Rückflug
+     * erst am übernächsten oder einem späteren Tag stattfindet. Hat der
+     * jüngste Tag mit Flügen kein Layover, endet die Suche dort - Flüge an
+     * einem Zwischentag beenden die Layover-Kette.
+     */
+    private fun previousFlightDay(
+        byDate: Map<LocalDate, List<LogbookEntry>>,
+        date: LocalDate
+    ): List<LogbookEntry> {
+        val oldest = byDate.keys.minOrNull() ?: return emptyList()
+        var previous = date.minusDays(1)
+        while (previous >= oldest) {
+            byDate[previous]?.let { return it }
+            previous = previous.minusDays(1)
+        }
+        return emptyList()
     }
 
     /**
      * Ordnet einen Tag. [day] kommt von oben nach unten (letzter Flug zuerst),
      * die Chronologie des Tages ist also die umgekehrte Reihenfolge. Das
-     * Ergebnis steht wieder von oben nach unten.
+     * Ergebnis steht wieder von oben nach unten. [previousDay] ist der
+     * jüngste Tag mit Flügen davor (siehe [previousFlightDay]).
      */
     private fun orderDay(
         day: List<LogbookEntry>,
@@ -74,8 +100,8 @@ object EntryDayOrder {
         val chrono = day.asReversed()
         val layovers = chrono.filter { it.layover }
         val withoutLayover = chrono.filter { !it.layover }
-        // Endete der Vortag mit einem Layover, ist der erste Flug des Tages
-        // der Rückflug: die Umkehrung der Layover-Strecke.
+        // Endete der jüngste Tag mit Flügen mit einem Layover, ist der erste
+        // Flug des Tages der Rückflug: die Umkehrung der Layover-Strecke.
         val first = if (previousDay.any { it.layover }) {
             val layoverRoutes = previousDay.filter { it.layover }
             withoutLayover.firstOrNull { entry ->

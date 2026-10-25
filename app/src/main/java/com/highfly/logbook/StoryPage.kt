@@ -80,7 +80,11 @@ sealed interface StoryPage {
 
         /**
          * Eine Zeile: Rang über [label] (mit optionaler Flagge und
-         * Unterzeile), rechts der Wert als Flip-Uhr mit Suffix.
+         * Unterzeile), rechts der Wert als Flip-Uhr mit Suffix. Eine Zeile
+         * kann eine zweite Wert-Zahl darunter tragen ([subValue], z. B. die
+         * Zeit in Tagen unter den Stunden) und doppelt so hoch sein
+         * ([tall]); eine Flagge lässt sich auch in der Mitte der Zeile zeigen
+         * ([centerFlag], zwischen Label und Wert).
          */
         data class Row(
             val label: String,
@@ -96,7 +100,18 @@ sealed interface StoryPage {
              */
             val valueTarget: Double? = null,
             /** Formatiert einen Zwischenwert des Count-up. */
-            val valueFormat: ((Double) -> String)? = null
+            val valueFormat: ((Double) -> String)? = null,
+            /** Flagge in der Mitte der Zeile (zwischen Label und Wert). */
+            val centerFlag: String? = null,
+            /** Doppelte Zeilenhöhe (für zwei untereinander stehende Werte). */
+            val tall: Boolean = false,
+            /** Fertig formatierte zweite Zahl unter [value] (unten rechts). */
+            val subValue: String? = null,
+            val subSuffix: String? = null,
+            /** Zielwert des Count-up der zweiten Zahl (wie [valueTarget]). */
+            val subValueTarget: Double? = null,
+            /** Formatiert einen Zwischenwert des Count-up der zweiten Zahl. */
+            val subValueFormat: ((Double) -> String)? = null
         )
     }
 }

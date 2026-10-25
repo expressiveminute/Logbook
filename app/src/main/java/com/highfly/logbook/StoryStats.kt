@@ -70,12 +70,14 @@ object StoryStats {
     /** Eine Reiseklasse mit Flugzahl, in Anzeige-Reihenfolge der Kachel. */
     data class ClassShare(val classCanonical: String, val flights: Int)
 
-    /** Ein Layover-Ziel mit Zahl und Gesamtdauer in Stunden. */
+    /** Ein Layover-Ziel mit Zahl, Gesamtdauer in Stunden und Länderflagge. */
     data class LayoverDestination(
         val code: String,
         val count: Int,
         val hours: Int,
-        val lastDate: LocalDate? = null
+        val lastDate: LocalDate? = null,
+        /** Flagge des Landes, in dem das Ziel liegt; null, wenn unbekannt. */
+        val flag: String? = null
     )
 
     /** Ein Land mit gesamter Layoverzeit in Stunden. */
@@ -206,25 +208,23 @@ object StoryStats {
     }
 
     /**
-     * Die Insights-Story: die Layover-Auswertung. Die ersten vier Punkte
-     * gelten den Layover-Zielen ([LogbookEntry.layover]); die Lieblings-
-     * und unbeliebten Ziele gelten allen angeflogenen Zielen - sie sind die
-     * Ausnahme, denn auch wer nie ein Layover erfasst hat (die Rolle Fluggast
-     * kennt keines), soll in der Story etwas sehen.
+     * Die Insights-Story: die Layover-Auswertung. Alle sechs Ranglisten
+     * gelten ausschließlich den Layover-Flügen ([LogbookEntry.layover]) -
+     * auch die Lieblings- und unbeliebten Ziele: In der Layover-Story
+     * werden nur Ziele gezeigt, die als Layover erfasst wurden.
      */
     fun insightsStats(
         entries: List<LogbookEntry>,
         homebase: String? = null,
         lookups: Lookups = Lookups()
     ): InsightsStats {
-        val flying = DashboardStats.flyingEntries(entries)
         val home = homebase?.trim()?.uppercase()?.takeIf(String::isNotEmpty)
         val homeCountry = home?.let(lookups.countryOf)
             ?.trim()?.uppercase()?.takeIf(String::isNotEmpty)
         val layovers = entries.filter { it.layover }
 
-        val byDestination = layoverDestinations(layovers)
-        val affinities = destinationAffinities(flying, home)
+        val byDestination = layoverDestinations(layovers, lookups)
+        val affinities = destinationAffinities(layovers, home)
 
         return InsightsStats(
             topLayoverByCount = byDestination
@@ -362,11 +362,19 @@ object StoryStats {
             })
         }.filter { it.flights > 0 }
 
-    /** Layover-Ziele: Zahl und Gesamtdauer je Zielflughafen. */
-    private fun layoverDestinations(entries: List<LogbookEntry>): List<LayoverDestination> {
+    /**
+     * Layover-Ziele: Zahl und Gesamtdauer je Zielflughafen, dazu die Flagge
+     * des Landes, in dem das Ziel liegt (gespeichert im Eintrag, sonst über
+     * [Lookups.countryOf] am Flughafencode aufgelöst).
+     */
+    private fun layoverDestinations(
+        entries: List<LogbookEntry>,
+        lookups: Lookups
+    ): List<LayoverDestination> {
         val counts = HashMap<String, Int>()
         val hours = HashMap<String, Int>()
         val lastDates = HashMap<String, LocalDate>()
+        val flags = HashMap<String, String>()
         for (entry in entries) {
             val code = entry.toAirport.trim().uppercase()
             if (code.isEmpty()) continue
@@ -374,9 +382,13 @@ object StoryStats {
             hours[code] = (hours[code] ?: 0) + (entry.layoverHours ?: 0)
             val bisher = lastDates[code]
             if (bisher == null || entry.date > bisher) lastDates[code] = entry.date
+            if (!flags.containsKey(code)) {
+                val iso2 = iso2Of(entry.toCountry, code, lookups.countryOf)
+                if (iso2 != null) flags[code] = AirportData.flagEmoji(iso2)
+            }
         }
         return counts.map { (code, count) ->
-            LayoverDestination(code, count, hours[code] ?: 0, lastDates[code])
+            LayoverDestination(code, count, hours[code] ?: 0, lastDates[code], flags[code])
         }
     }
 
