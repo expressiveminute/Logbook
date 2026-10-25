@@ -35,8 +35,11 @@ import com.google.android.material.color.MaterialColors
  * rechte Fensterplatz ist F bei 3+3 oder K bei 3+4+3).
  *
  * Hat ein Eintrag eine Reiseklasse, die laut Layout nicht zur Reihe passt (z. B.
- * Reihe 20A in Business auf einer A320 mit Business Reihe 1–6), wird der Sitzplatz
- * trotzdem im passenden Klassenbereich angezeigt, nur weiter hinten.
+ * Reihe 20A in Business auf einer A320 mit Business Reihe 1–6), landet der
+ * Sitzplatz trotzdem im passenden Klassenbereich. Alle Sitzplätze eines
+ * Bereichs werden proportional auf dessen Reihen verteilt (mit einem halben
+ * Reihenabstand zum Rand), sodass die Abstände der Reihen zueinander erhalten
+ * bleiben und kein Punkt den Klassenbereich verlässt.
  */
 class SeatHeatmapView @JvmOverloads constructor(
     context: Context,
@@ -61,6 +64,71 @@ class SeatHeatmapView @JvmOverloads constructor(
 
         /** Weichzeichnung der Heatmap-Flächen. */
         private const val HEAT_BLUR_DP = 2f
+
+        /**
+         * Index des Abschnitts, in den ein Sitzplatz der Reihe [row] mit der
+         * Klasse [className] gehört. Die Klasse gewinnt (z. B. Reihe 20A in
+         * Business auf einer A320 → Business-Abschnitt). Ohne passende Klasse
+         * entscheidet die Reihe; Reihen in einer Lücke (z. B. 12–14 bei der
+         * A330) oder hinter dem letzten Abschnitt gehören zum Abschnitt davor,
+         * Reihen vor dem ersten Abschnitt zum ersten. So landet jeder
+         * Sitzplatz in einem Klassenbereich.
+         */
+        fun sectionIndexFor(
+            layout: AircraftLayout.Layout,
+            row: Int,
+            className: String?
+        ): Int {
+            className?.let { name ->
+                layout.sectionForClass(name)?.let { return layout.sections.indexOf(it) }
+            }
+            layout.sectionForRow(row)?.let { return layout.sections.indexOf(it) }
+            // Reihe in einer Lücke oder hinter dem letzten Abschnitt:
+            // der letzte Abschnitt, der vor der Reihe endet.
+            var last = 0
+            for (i in layout.sections.indices) {
+                if (layout.sections[i].endRow < row) last = i else break
+            }
+            return last
+        }
+
+        /**
+         * Relative Position (0..1) der Reihe [row] innerhalb eines Abschnitts,
+         * der bei [startRow] beginnt und [sectionRows] Reihen umfasst.
+         * [seatRows] sind die Reihen, die in diesem Abschnitt tatsächlich
+         * Sitzplätze haben.
+         *
+         * Liegen alle belegten Reihen innerhalb des Abschnitts, bleibt die
+         * Position unverändert (Mitte der Reihe). Liegen Reihen außerhalb
+         * (z. B. Reihe 20 in Business auf einer A320), werden die belegten
+         * Reihen proportional auf den Abschnitt gestaucht, sodass alle
+         * Sitzplätze im Klassenbereich bleiben – mit einem halben
+         * Reihenabstand zum Rand. Reihenfolge und Abstandsverhältnisse
+         * der Reihen zueinander bleiben erhalten.
+         */
+        fun relativeRowPosition(
+            startRow: Int,
+            sectionRows: Int,
+            seatRows: List<Int>,
+            row: Int
+        ): Float {
+            val rows = sectionRows.coerceAtLeast(1)
+            val raw = (row - startRow + 0.5f) / rows
+            val half = 0.5f / rows
+            if (seatRows.isEmpty()) return raw.coerceIn(half, 1f - half)
+            val lo = seatRows.minOf { (it - startRow + 0.5f) / rows }
+            val hi = seatRows.maxOf { (it - startRow + 0.5f) / rows }
+            return when {
+                // Alle belegten Reihen innerhalb des Abschnitts:
+                // Position wie gehabt (Mitte der Reihe).
+                lo >= half && hi <= 1f - half -> raw
+                // Nur eine Reihe außerhalb: an den jeweiligen Rand ziehen.
+                hi <= lo -> if (raw > 1f) 1f - half else half
+                // Reihen außerhalb: proportional auf den nutzbaren Bereich
+                // stauchen, Reihenfolge und Abstände bleiben erhalten.
+                else -> half + (raw - lo) / (hi - lo) * (1f - 2f * half)
+            }
+        }
     }
 
     /** Aktuelles Kabinenlayout. */
@@ -321,40 +389,34 @@ class SeatHeatmapView @JvmOverloads constructor(
             }
         }
 
-        // Y-Mitte der Reihe [row] innerhalb des Abschnitts [sectionIdx]
+        // Reihen mit Sitzplätzen je Abschnitt. Sitze, deren Klasse laut Layout
+        // nicht zur Reihe passt (z. B. Reihe 20A in Business auf einer A320),
+        // landen über sectionIndexFor im genannten Klassenbereich.
+        val blockRows = Array(layout.sections.size) { mutableListOf<Int>() }
+        for ((seatKey, heatData) in seatHeat) {
+            val parsed = SeatStats.parse(seatKey, layout) ?: continue
+            if (parsed.letter !in seatLetters) continue
+            blockRows[sectionIndexFor(layout, parsed.row, heatData.className)]
+                .add(parsed.row)
+        }
+
+        // Y-Mitte der Reihe [row] innerhalb des Abschnitts [sectionIdx].
+        // Die belegten Reihen werden proportional auf den Abschnitt verteilt
+        // (mit halbem Reihenabstand zum Rand), damit die Relationen der
+        // Reihen zueinander erhalten bleiben und kein Punkt den
+        // Klassenbereich verlässt.
         fun blockCenterY(sectionIdx: Int, row: Int): Float {
             val section = layout.sections[sectionIdx]
-            val relRow = ((row - section.startRow + 0.5f) / sectionRows[sectionIdx])
-                .coerceIn(0f, 1f)
+            val relRow = relativeRowPosition(
+                section.startRow, sectionRows[sectionIdx], blockRows[sectionIdx], row
+            )
             return sectionBlockTops[sectionIdx] + relRow * sectionBlockHeights[sectionIdx]
         }
 
-        // Y-Mitte einer Reihe auf dem Anzeige-Raster. Reihen ohne Abschnitt
-        // (nicht belegte Reihen) liegen am Übergang zum nächsten Abschnitt.
-        fun rowCenterY(row: Int): Float {
-            for (i in layout.sections.indices) {
-                val section = layout.sections[i]
-                if (row in section.startRow..section.endRow) return blockCenterY(i, row)
-            }
-            var assignedBefore = 0
-            for (i in layout.sections.indices) {
-                if (row > layout.sections[i].endRow) assignedBefore += sectionRows[i] else break
-            }
-            return (cabinTop + (assignedBefore + 0.5f) * blockRowHeight)
-                .coerceIn(cabinTop, cabinBottom)
-        }
-
         // Welche Abschnitte haben mindestens einen erfassten Sitzplatz?
-        // (erst über die Klasse des Eintrags, sonst über die Reihe – wie bei
-        // der Platzierung der Heatmap)
-        val sectionsWithSeats = BooleanArray(layout.sections.size)
-        for ((seatKey, heatData) in seatHeat) {
-            val parsed = SeatStats.parse(seatKey, layout) ?: continue
-            val section = heatData.className?.let { layout.sectionForClass(it) }
-                ?: layout.sectionForRow(parsed.row)
-            val idx = layout.sections.indexOf(section)
-            if (idx >= 0) sectionsWithSeats[idx] = true
-        }
+        // (genau die Abschnitte, in denen Punkte gezeichnet werden)
+        val sectionsWithSeats =
+            BooleanArray(layout.sections.size) { blockRows[it].isNotEmpty() }
 
         // --- Klassenabschnitte (mit kleinem Abstand zwischen den Klassen) ---
         for (i in layout.sections.indices) {
@@ -379,16 +441,12 @@ class SeatHeatmapView @JvmOverloads constructor(
 
                 val seatX = seatCenterX(letterIdx)
 
-                // Y-Position: Bei bekannter Klasse innerhalb des Abschnitts,
-                // sonst an der tatsächlichen Reihe.
-                val seatY = if (heatData.className != null) {
-                    val sectionIdx = layout.sectionForClass(heatData.className)
-                        ?.let { layout.sections.indexOf(it) } ?: -1
-                    if (sectionIdx >= 0) blockCenterY(sectionIdx, parsed.row)
-                    else rowCenterY(parsed.row)
-                } else {
-                    rowCenterY(parsed.row)
-                }
+                // Y-Position: Im Klassenbereich des Eintrags (die Klasse
+                // gewinnt, sonst die Reihe); Reihen außerhalb des Abschnitts
+                // werden proportional hineingestaucht.
+                val seatY = blockCenterY(
+                    sectionIndexFor(layout, parsed.row, heatData.className), parsed.row
+                )
 
                 val fraction = heatData.count.toFloat() / maxCount
                 val alpha = HEAT_MIN_ALPHA + fraction * (HEAT_MAX_ALPHA - HEAT_MIN_ALPHA)

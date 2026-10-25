@@ -232,7 +232,7 @@ object StoryPages {
         }
 
         return Story(
-            titleRes = R.string.dashboard_story_play,
+            titleRes = R.string.dashboard_story,
             pages = pages.ifEmpty { listOf(emptyPage(context)) }
         )
     }
@@ -246,7 +246,7 @@ object StoryPages {
         val pages = mutableListOf<StoryPage>()
 
         // 1. Die häufigsten Layover-Ziele - ohne Dauer, dafür die Flagge des
-        //    Landes in der Mitte der Zeile.
+        //    Landes direkt hinter dem Dreilettercode.
         if (stats.topLayoverByCount.isNotEmpty()) {
             pages += StoryPage.Ranking(
                 iconRes = R.drawable.ic_umbrella,
@@ -259,7 +259,7 @@ object StoryPages {
                                 label = dest.code,
                                 value = String.format(locale, "%,d", dest.count),
                                 suffix = "×",
-                                centerFlag = dest.flag,
+                                labelFlag = dest.flag,
                                 valueTarget = dest.count.toDouble(),
                                 valueFormat = groupedInt(locale)
                             )
@@ -286,10 +286,7 @@ object StoryPages {
                                 valueTarget = dest.hours.toDouble(),
                                 valueFormat = groupedInt(locale),
                                 tall = true,
-                                subValue = LayoverTimeScale.daysText(dest.hours, locale),
-                                subSuffix = context.getString(R.string.story_unit_days),
-                                subValueTarget = dest.hours / LayoverTimeScale.DAY_HOURS.toDouble(),
-                                subValueFormat = daysFormat(locale)
+                                stackedValues = layoverTimeValues(context, locale, dest.hours)
                             )
                         }
                     )
@@ -297,8 +294,9 @@ object StoryPages {
             )
         }
 
-        // 3. Die Top-fünf Länder mit der gesamten Layoverzeit - wie Seite 2
-        //    mit Stunden oben rechts und Tagen darunter unten rechts.
+        // 3. Die Top-fünf Länder mit der gesamten Layoverzeit: wie Seite 2
+        //    mit Stunden oben rechts und Tagen darunter unten rechts, dazu der
+        //    Ländername fett oben und die Flagge darunter (statt davor).
         if (stats.topLayoverCountries.isNotEmpty()) {
             pages += StoryPage.Ranking(
                 iconRes = R.drawable.ic_countries,
@@ -311,14 +309,11 @@ object StoryPages {
                                 label = country.name,
                                 value = String.format(locale, "%,d", country.hours),
                                 suffix = context.getString(R.string.story_unit_hours),
-                                flag = country.flag,
+                                subFlag = country.flag,
                                 valueTarget = country.hours.toDouble(),
                                 valueFormat = groupedInt(locale),
                                 tall = true,
-                                subValue = LayoverTimeScale.daysText(country.hours, locale),
-                                subSuffix = context.getString(R.string.story_unit_days),
-                                subValueTarget = country.hours / LayoverTimeScale.DAY_HOURS.toDouble(),
-                                subValueFormat = daysFormat(locale)
+                                stackedValues = layoverTimeValues(context, locale, country.hours)
                             )
                         }
                     )
@@ -478,9 +473,38 @@ object StoryPages {
         { value -> String.format(locale, "%,.1f", value) }
 
     /**
-     * Formatierung der Tage-Zahl: höchstens eine Nachkommastelle, ganze
-     * Tage ohne (wie [LayoverTimeScale.daysText]).
+     * Formatierung einer Zeit-Zahl (Tage, Monate): höchstens eine
+     * Nachkommastelle, ganze ohne (wie [LayoverTimeScale.daysText]).
      */
-    private fun daysFormat(locale: Locale): (Double) -> String =
+    private fun trimmedFormat(locale: Locale): (Double) -> String =
         { value -> LayoverTimeScale.trimmedDecimal(value, locale) }
+
+    /**
+     * Die Zeit eines Layover-Werts als gestapelte Flip-Zahlen unter den
+     * Stunden: die Tage, darunter die Monate - die Monate aber nur, wenn es
+     * mehr als ein halber Monat ist (ab 361 h).
+     */
+    private fun layoverTimeValues(
+        context: Context,
+        locale: Locale,
+        hours: Int
+    ): List<StoryPage.Ranking.Row.StackedValue> {
+        val days = StoryPage.Ranking.Row.StackedValue(
+            text = LayoverTimeScale.daysText(hours, locale),
+            suffix = context.getString(R.string.story_unit_days),
+            target = hours / LayoverTimeScale.DAY_HOURS.toDouble(),
+            format = trimmedFormat(locale)
+        )
+        val months = hours / LayoverTimeScale.MONTH_HOURS.toDouble()
+        if (months <= 0.5) return listOf(days)
+        return listOf(
+            days,
+            StoryPage.Ranking.Row.StackedValue(
+                text = LayoverTimeScale.trimmedDecimal(months, locale),
+                suffix = context.getString(R.string.story_unit_months),
+                target = months,
+                format = trimmedFormat(locale)
+            )
+        )
+    }
 }

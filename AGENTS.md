@@ -489,18 +489,22 @@ die Auslastung zwischen 50 und 100 % in 5er-Schritten einstellt (Standard 80 %, 
 gespeichert in `Settings.getPassengerLoadFactor`).
 
 Die Rechnung steht ohne Android-Abhängigkeiten in `PassengersCalculator` (geprüft von
-`PassengersCalculatorTest`): **Passagiere = maximale Sitzplätze des Typs × Auslastung ÷ 100**.
+`PassengersCalculatorTest`): **Passagiere = Sitzplätze des Typs bei Vollbesetzung × Auslastung
+÷ 100**.
 Zählen tut nur die Reiseart **On Duty** (`PassengersCalculator.isOnDuty`, über
 `ChartData.normalizeFlightType` sprachunabhängig erkannt): Deadhead, Dienstreise, Privat und
 Ground Transfer werden nicht ausgewertet, ein Eintrag ohne Reiseart auch nicht.
 Die Sitzplätze kommen aus `assets/aircraft/aircraft_seats.json` (`AircraftSeats.load`, geprüft
-von `AircraftSeatsTest` und `AircraftSeatsAssetTest`): zertifizierte Single-Class-Maxima je
-Familie (A320: 186, A380: 853, …) plus Alias-Codes („320", „738", „AT72`), die
-`AircraftSeats.Catalog.seatsFor` per Präfix-Matching auf die Familie abbildet („A350-900",
-„Boeing 737-800", „B738", „737 MAX"). Ein unbekannter oder fehlender Typ bekommt den
-Durchschnitt des Datensatzes (≈ 273 Sitze).
+von `AircraftSeatsTest` und `AircraftSeatsAssetTest`): realistische Vollbesetzungen je Typ
+(A319: 139, A320: 168, A320neo: 180, A321: 200, A321neo: 216, A330-300: 252, A340-300: 279,
+A340-600: 281, A350-900: 277, A350-1000: 300, A380: 503); Familien ohne eigene Zahl behalten das
+zertifizierte Single-Class-Maximum als obere Schranke (z. B. B737: 230). Varianten mit eigener
+Zahl stehen neben ihrer Familie und gewinnen per Präfix-Matching (längste Übereinstimmung:
+„A320neo“ → A320NEO mit 180, nicht A320 mit 168). Alias-Codes („320“, „738“, „AT72“, „20N“)
+bilden auf Familie bzw. Variante ab („A350-900“, „Boeing 737-800“, „B738“, „737 MAX“). Ein
+unbekannter oder fehlender Typ bekommt den Durchschnitt des Datensatzes (≈ 255 Sitze).
 
-Weil die Schätzung (Maximalbestuhlung × Auslastung) eine echte Ungenauigkeit trägt, werden
+Weil die Schätzung (Vollbesetzung × Auslastung) eine echte Ungenauigkeit trägt, werden
 Summen auf volle Tausender gerundet (`PassengersCalculator.roundToThousands`) - Kachel und
 Jahreswerte; der Durchschnitt pro Flug bleibt eine ganze Zahl. Grundlage ist dieselbe Auswahl
 wie die Höhenstrahlung: der **Flugart-Filter** gilt (`DashboardStats.flightTypeEntries`), der
@@ -553,6 +557,34 @@ holt `clampCodeRadius()` ihn so weit herein, wie der Platz es zulässt – bei *
 gegen die halbe Breite, bei **Nord und Süd** gegen die halbe Höhe (der Code steht dort über bzw.
 unter dem Buchstaben, nicht daneben). Ohne die Höhen-Schranke landete der Nord/Süd-Code knapp
 außerhalb der Ansicht, obwohl er waagerecht mittig saß.
+
+## Seite „Sitzplatz" – Flugzeugschema mit Heatmap
+
+Die Kachel *Sitzplatz* (Icon `ic_seat_place`) öffnet `SeatDetailFragment` (`fragment_seat_detail.xml`):
+oben das Schema eines Flugzeugs von oben (`SeatHeatmapView`) mit einer Heatmap der erfassten
+Sitzplätze, darunter die Kennzahlen (Anzahl, häufigster Platz, Fenster-/Gang-Anteil,
+durchschnittliche Position). Grundlage ist dieselbe Auswahl wie die Kachel selbst: der
+**Flugart-Filter** gilt (`DashboardStats.flightTypeEntries`), der **Zeitraum-Filter des Dashboards
+nicht** – die Seite wertet alle Jahre aus. Das Kabinenlayout ist das häufigste unter den Einträgen
+mit Sitzplatz (`AircraftLayout.mostCommonLayout`, Fallback `AircraftLayout.DEFAULT`).
+
+`AircraftLayout` kennt die Layouts gängiger Typen (Reihenzahl, Klassenabschnitte, Sitzbuchstaben,
+Gänge; A ist immer links am Fenster, rechter Fensterplatz F bei 3+3 bzw. K bei 3+4+3). Das Schema
+zeichnet abgerundete Nase und Heck (Kontrollpunkte senkrecht über den Seiten, dadurch nahtloser
+Übergang in den geraden Rumpf), gepfeilte Tragflächen und Leitwerk im Stil von `ic_flight`. Die
+Kabine ist in Klassenabschnitte geteilt und dezent mit den Klassenfarben gefüllt; nicht belegte
+Reihen (z. B. 12–14 bei der A330) werden ausgeblendet, damit die Abstände zwischen den Klassen
+gleich groß sind, und beschriftet werden nur Klassen mit erfassten Sitzplätzen.
+
+Jeder Sitzplatz erscheint als Heatmap-Fläche (solider Kern mit weichem Rand, 3-Stopp-RadialGradient;
+die Häufigkeit skaliert Deckkraft und Radius). Die Platzierung respektiert die Relationen der
+Reihen: Die Klasse des Eintrags bestimmt den Klassenbereich (Reihe 20A in Business auf einer A320
+landet im Business-Bereich), Reihen in einer Lücke gehören zum Abschnitt davor. Alle Sitzplätze
+eines Bereichs werden proportional auf dessen Reihen verteilt, mit einem halben Reihenabstand zum
+Rand – Reihenfolge und Abstandsverhältnisse bleiben erhalten, kein Punkt verlässt den
+Klassenbereich. Die reine Platzierungslogik (`sectionIndexFor`, `relativeRowPosition`) steht ohne
+Android im Companion von `SeatHeatmapView` (geprüft von `SeatHeatmapViewTest`); die Auswertung der
+Sitzplätze in `SeatStats` (geprüft von `SeatStatsTest`).
 
 ## Homebase
 
@@ -670,11 +702,14 @@ Der Platz der Kachel steht in `DashboardPrefs.DEFAULT_ROWS`; dafür wurde `KEY_T
 `tiles_standard_v15` erhöht – das setzt das vom Nutzer umsortierte Raster einmalig zurück, wie es
 die Konvention bei einer neuen Kachel vorsieht.
 
-## Story – Play (Dashboard) und Insights (Layover-Seite)
+## Story – „Story" (Dashboard) und Insights (Layover-Seite)
 
-Zwei bisher funktionslose Knöpfe öffnen eine **Story** im Stil von Social Media:
-`btn_dashboard_story` („Play", Toolbar des Dashboards, `activity_main.xml`) und
+Zwei Knöpfe öffnen eine **Story** im Stil von Social Media:
+`btn_dashboard_story` („Story", Toolbar des Dashboards, `activity_main.xml`) und
 `btn_layover_overview` (Stern oben rechts auf der Layover-Detailseite, `fragment_tile_detail.xml`).
+Der Story-Knopf und das Nutzericon sitzen in der Dashboard-Kopfzeile bündig mit den sichtbaren
+Kachelkanten (`FirstFragment.alignDashboardHeader` misst die Kanten nach der Kachel-Skalierung und
+setzt das Padding der Kopfzeile über `MainActivity.alignDashboardHeader`).
 Beide starten die `StoryActivity` (`StoryActivity.start(context, MODE_PLAY/MODE_INSIGHTS)`,
 Manifest-Eintrag ohne Export): oben segmentierte Fortschrittsbalken, darunter der Inhalt, Tippen
 auf die rechte Zweidrittel-Seite geht weiter, auf die linke Drittelseite zurück, jede Seite läuft
@@ -683,16 +718,19 @@ zehn Sekunden (`PAGE_MS`) und die letzte schließt die Story. Der Timer pausiert
 Edge-to-Edge mit dunklem Hintergrund (`story_scrim`). Daten lädt die Activity auf einem
 Hintergrund-Thread (`LogbookRepository`, `Homebase.current`, `AircraftSeats`, `CountryShapes`).
 
-**Play** zeigt Highlights aus dem ganzen Logbuch (Reihenfolge): Flüge gesamt und dieses Jahr,
+**Story** zeigt Highlights aus dem ganzen Logbuch (Reihenfolge): Flüge gesamt und dieses Jahr,
 Top-3-Ziele und Top-3-Länder (jeweils getrennt Privat / On Duty, On Duty nur bei Crew),
 Top-Reisebuddies, häufigster und am weitesten geflogenes Flugzeug, die häufigste Strecke,
 nur bei Crew die geschätzten Passagiere, die Reiseklassen-Verteilung, Gesamtstrecke, Gesamtflugzeit
 und die nötige CO₂-Kompensation. **Insights** zeigt Layover-Auswertungen — ausschließlich über
 Einträge, die als Layover markiert sind: häufigste Layover-Ziele (ohne Dauer, dafür die Flagge des
-Landes in der Mitte der Zeile), Ziele mit den meisten Layover-Stunden und Top-5-Länder nach
-summierten Layover-Stunden (doppelt hohe Zeilen: oben rechts die Stunden, darunter unten rechts die
-Tage, beides als Flip-Zahl mit Count-up, Tage-Format wie `LayoverTimeScale.daysText`), häufigster
-Layover-Buddy, Top-5-Lieblingsziele und Top-5-unbeliebte Ziele (beide nur über Layover-Ziele).
+Landes direkt hinter dem Dreilettercode), Ziele mit den meisten Layover-Stunden und Top-5-Länder nach
+summierten Layover-Stunden (doppelt hohe Zeilen: oben rechts die Zeit in Stunden, darunter unten
+rechts die Zeit in Tagen, beides als Flip-Zahl mit Count-up, Tage-Format wie
+`LayoverTimeScale.daysText`; auf der Länder-Seite steht der Ländername fett über der Flagge, und
+unter den Tagen folgt eine weitere Zeile mit der Zeit in Monaten, nur wenn es mehr als ein halber
+Monat ist), häufigster Layover-Buddy, Top-5-Lieblingsziele und Top-5-unbeliebte Ziele (beide nur über
+Layover-Ziele, mit der Zahl der Monate als Unterzeile unter dem Dreilettercode).
 
 Die reine Auswertung steht ohne Android in `StoryStats` (geprüft von `StoryStatsTest`, 23 Tests):
 `playStats(entries, seatsCatalog, loadFactorPercent, homebase, today, lookups)` und
@@ -711,9 +749,11 @@ nur Ziele gezeigt, die als Layover markiert sind. Layover-Ziel ist das `toAirpor
 Die Seiten baut `StoryPages` (`StoryPages.play/insights`) aus drei Seitentypen (`StoryPage`):
 `HeroNumber` (große Zahl mit Einheit, optional zweite Zahl und Fußzeile), `HeroText` (großer Text,
 z. B. die Stammstrecke) und `Ranking` (gruppierte Zeilen mit Rang, Flagge, Label, Unterzeile und
-Wert). Eine Zeile trägt optional eine zweite Wert-Zahl darunter (unten rechts, z. B. die Tage unter
-den Stunden) und kann doppelt so hoch sein (`Row.tall`); eine Flagge lässt sich auch in der Mitte der
-Zeile zeigen (`Row.centerFlag`, zwischen Label und Wert). Leere Abschnitte und die
+Wert). Eine Zeile kann doppelt so hoch sein (`Row.tall`) und trägt dann unter dem Hauptwert weitere
+Wert-Zahlen, unten rechts untereinander (`Row.stackedValues`, z. B. die Tage unter den Stunden,
+darunter die Monate – jede mit eigener Flip-Zahl und Count-up). Eine Flagge steht entweder direkt
+hinter dem Label (`Row.labelFlag`, z. B. hinter dem Dreilettercode) oder unter dem Label, das dann
+fett darüber steht (`Row.subFlag`). Leere Abschnitte und die
 Crew-only-Passagiere-Seite werden ausgelassen; bei leerem
 Logbuch gibt es eine einzelne Hinweisseite. Strings liegen unter `story_*` in `values` (deutsch)
 und `values-en` (englisch).

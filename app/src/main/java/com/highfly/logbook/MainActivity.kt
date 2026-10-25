@@ -116,10 +116,29 @@ class MainActivity : AppCompatActivity() {
         setupDashboardFilter()
         refreshDashboardHeader()
 
-        // Der Play-Knopf in der Dashboard-Kopfzeile öffnet die Story.
+        // Der Story-Knopf in der Dashboard-Kopfzeile öffnet die Story.
         binding.btnDashboardStory.setOnClickListener {
             StoryActivity.start(this, StoryActivity.MODE_PLAY)
         }
+    }
+
+    /**
+     * Richtet die Dashboard-Kopfzeile an den sichtbaren Kachelrändern aus:
+     * [tileLeftPx] und [tileRightPx] sind die Bildschirm-Positionen der
+     * Kachelkanten - der Avatar steht links bündig zu ihnen, der Story-Knopf
+     * rechts. FirstFragment ruft das nach dem Vermessen des Rasters mit den
+     * echten Kanten (die Kacheln schrumpfen um die Skalierung nach innen).
+     */
+    fun alignDashboardHeader(tileLeftPx: Int, tileRightPx: Int) {
+        val header = binding.dashboardHeader
+        val pos = IntArray(2)
+        header.getLocationOnScreen(pos)
+        header.setPadding(
+            (tileLeftPx - pos[0]).coerceAtLeast(0),
+            header.paddingTop,
+            (pos[0] + header.width - tileRightPx).coerceAtLeast(0),
+            header.paddingBottom
+        )
     }
 
     /**

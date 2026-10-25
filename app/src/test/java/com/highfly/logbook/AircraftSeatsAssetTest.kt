@@ -1,5 +1,6 @@
 package com.highfly.logbook
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -57,5 +58,51 @@ class AircraftSeatsAssetTest {
     fun durchschnittLiegtImPlausiblenBereich() {
         val average = seats.values.average()
         assertTrue("Durchschnitt $average outside 150..350", average in 150.0..350.0)
+    }
+
+    @Test
+    fun realistischeVollbesetzungenSindEingetragen() {
+        // Realistische Sitzplätze bei Vollbesetzung je Typ (typische
+        // 2-/3-Klassen-Bestuhlung).
+        val erwartet = mapOf(
+            "A319" to 139,
+            "A320" to 168,
+            "A320NEO" to 180,
+            "A321" to 200,
+            "A321NEO" to 216,
+            "A330300" to 252,
+            "A340300" to 279,
+            "A340600" to 281,
+            "A350900" to 277,
+            "A3501000" to 300,
+            "A380" to 503
+        )
+        for ((typ, sitze) in erwartet) {
+            assertEquals("Falsche Vollbesetzung für $typ", sitze, seats[typ])
+        }
+    }
+
+    @Test
+    fun variantenWerdenUeberDieFamilieGefunden() {
+        // Auflösung über die echte Matching-Logik: Varianten mit eigener
+        // Zahl gewinnen vor ihrer Familie, Neo-Kurzcodes vor der Basisfamilie.
+        val catalog = AircraftSeats.Catalog(seats, aliases)
+        assertEquals(139, catalog.seatsFor("A319"))
+        assertEquals(168, catalog.seatsFor("A320"))
+        assertEquals(168, catalog.seatsFor("A320-200"))
+        assertEquals(180, catalog.seatsFor("A320neo"))
+        assertEquals(180, catalog.seatsFor("A20N"))
+        assertEquals(200, catalog.seatsFor("A321"))
+        assertEquals(216, catalog.seatsFor("A321neo"))
+        assertEquals(216, catalog.seatsFor("A21N"))
+        assertEquals(252, catalog.seatsFor("A330-300"))
+        assertEquals(440, catalog.seatsFor("A330-200"))
+        assertEquals(279, catalog.seatsFor("A340-300"))
+        assertEquals(281, catalog.seatsFor("A340-600"))
+        assertEquals(277, catalog.seatsFor("A350-900"))
+        assertEquals(300, catalog.seatsFor("A350-1000"))
+        assertEquals(480, catalog.seatsFor("A350"))
+        assertEquals(503, catalog.seatsFor("A380-800"))
+        assertEquals(503, catalog.seatsFor("A380"))
     }
 }

@@ -11,11 +11,12 @@ import kotlin.math.roundToLong
  * nicht im Flugdienst, die Passagiere werden dem Flug nicht zugerechnet; ein
  * unbekannter Typ bekommt den Durchschnitt des Datensatzes.
  *
- * Die Zahlen sind Schätzungen: Die Sitzplätze sind die zertifizierten
- * Single-Class-Maxima, die reale Bestuhlung der Airline liegt meist darunter,
- * und die Auslastung ist ein Mittelwert. Deshalb werden Summen auf volle
- * Tausender gerundet ([roundToThousands]) - sie sollen keine Genauigkeit auf
- * Hunderter oder Einer vortäuschen.
+ * Die Zahlen sind Schätzungen: Die Sitzplätze sind realistische
+ * Vollbesetzungen je Typ (zertifiziertes Maximum als obere Schranke, wo
+ * kein Typ bekannt ist), die reale Bestuhlung der Airline liegt meist
+ * darunter, und die Auslastung ist ein Mittelwert. Deshalb werden Summen auf
+ * volle Tausender gerundet ([roundToThousands]) - sie sollen keine
+ * Genauigkeit auf Hunderter oder Einer vortäuschen.
  *
  * Grundlage ist dieselbe Auswahl wie die Kachel "Höhenstrahlung": der
  * Flugart-Filter gilt, der Zeitraum-Filter des Dashboards nicht - die Kachel
@@ -70,9 +71,9 @@ object PassengersCalculator {
         ChartData.normalizeFlightType(entry.flightType) == ChartData.ON_DUTY_CANONICAL
 
     /**
-     * Geschätzte Passagiere eines Flugs: maximale Sitzplatzanzahl des Typs
-     * (Durchschnitt des Datensatzes bei unbekanntem Typ) mal Auslastung.
-     * Nur ein Flug als "On Duty" zählt, alles andere ergibt 0.
+     * Geschätzte Passagiere eines Flugs: Sitzplatzanzahl des Typs bei
+     * Vollbesetzung (Durchschnitt des Datensatzes bei unbekanntem Typ)
+     * mal Auslastung. Nur ein Flug als "On Duty" zählt, alles andere ergibt 0.
      */
     fun passengersPerFlight(
         entry: LogbookEntry,

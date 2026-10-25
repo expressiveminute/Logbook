@@ -5,15 +5,20 @@ import android.util.Log
 import org.json.JSONObject
 
 /**
- * Maximale Sitzplatzanzahl der gängigen Flugzeugfamilien aus
- * `assets/aircraft/aircraft_seats.json` (Single-Class-/High-Density-Maximum,
- * zertifiziert). Grundlage für die geschätzte Passagierzahl der Kachel
- * "Passagiere": Pro Flug gilt die Sitzplatzanzahl des eingetragenen Typs,
- * ein unbekannter Typ bekommt den Durchschnitt des Datensatzes.
+ * Sitzplatzanzahl bei Vollbesetzung der gängigen Flugzeugtypen aus
+ * `assets/aircraft/aircraft_seats.json`. Grundlage für die geschätzte
+ * Passagierzahl der Kachel "Passagiere": Pro Flug gilt die Sitzplatzanzahl
+ * des eingetragenen Typs, ein unbekannter Typ bekommt den Durchschnitt des
+ * Datensatzes.
  *
- * Neben den Familiennamen ("A320", "B737") kennt der Datensatz Aliase - die
- * üblichen Kurzcodes ("320", "738", "AT72") -, die [Catalog.seatsFor] auf die
- * Familie abbildet.
+ * Wo ein Typ bekannt ist, steht die realistische Vollbesetzung (typische
+ * 2-/3-Klassen-Bestuhlung); Familien ohne eigene Zahl behalten das
+ * zertifizierte Single-Class-Maximum als obere Schranke. Neben den
+ * Familiennamen ("A320", "B737") gibt es Varianten mit eigener Zahl
+ * ("A320NEO", "A330300", "A350900") - die Präfix-Suche findet die längste
+ * Übereinstimmung, eine Variante schlägt also ihre Familie ("A320neo" →
+ * 180, nicht 168). Aliase - die üblichen Kurzcodes ("320", "738", "AT72",
+ * "20N") - bilden auf die Familie bzw. Variante ab.
  *
  * Geladen wird einmalig, der Bestand ändert sich nicht.
  */
@@ -39,9 +44,9 @@ object AircraftSeats {
         }
 
         /**
-         * Mittlere Sitzplatzanzahl über alle Familien - der Rückfall für
-         * unbekannte Typen. Ist der Datensatz leer (defektes Asset), greift
-         * [DEFAULT_AVERAGE_SEATS].
+         * Mittlere Sitzplatzanzahl über alle Einträge (Familien und
+         * Varianten) - der Rückfall für unbekannte Typen. Ist der Datensatz
+         * leer (defektes Asset), greift [DEFAULT_AVERAGE_SEATS].
          */
         val averageSeats: Double =
             if (seats.isEmpty()) DEFAULT_AVERAGE_SEATS.toDouble() else seats.values.average()

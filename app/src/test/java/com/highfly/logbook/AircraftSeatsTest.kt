@@ -65,6 +65,30 @@ class AircraftSeatsTest {
     }
 
     @Test
+    fun seatsFor_varianteMitEigenerZahlSchlaegtDieFamilie() {
+        // Varianten mit eigener Zahl stehen neben ihrer Familie; die längste
+        // Präfix-Übereinstimmung gewinnt.
+        val mitVarianten = AircraftSeats.Catalog(
+            seats = mapOf(
+                "A320" to 168,
+                "A320NEO" to 180,
+                "A350" to 480,
+                "A350900" to 277,
+                "A3501000" to 300
+            ),
+            aliases = mapOf("20N" to "A320NEO")
+        )
+        assertEquals(180, mitVarianten.seatsFor("A320neo"))
+        assertEquals(180, mitVarianten.seatsFor("Airbus A320 NEO"))
+        assertEquals(180, mitVarianten.seatsFor("A20N"))
+        assertEquals(168, mitVarianten.seatsFor("A320"))
+        assertEquals(168, mitVarianten.seatsFor("A320-200"))
+        assertEquals(277, mitVarianten.seatsFor("A350-900"))
+        assertEquals(300, mitVarianten.seatsFor("A350-1000"))
+        assertEquals(480, mitVarianten.seatsFor("A350"))
+    }
+
+    @Test
     fun seatsForfindetAliasAlsPraefixUndAufDemZiffernteil() {
         // "737 MAX" beginnt mit dem Alias "737".
         assertEquals(230, catalog.seatsFor("737 MAX"))

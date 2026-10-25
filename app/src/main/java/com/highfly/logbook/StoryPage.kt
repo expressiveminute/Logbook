@@ -81,10 +81,11 @@ sealed interface StoryPage {
         /**
          * Eine Zeile: Rang über [label] (mit optionaler Flagge und
          * Unterzeile), rechts der Wert als Flip-Uhr mit Suffix. Eine Zeile
-         * kann eine zweite Wert-Zahl darunter tragen ([subValue], z. B. die
-         * Zeit in Tagen unter den Stunden) und doppelt so hoch sein
-         * ([tall]); eine Flagge lässt sich auch in der Mitte der Zeile zeigen
-         * ([centerFlag], zwischen Label und Wert).
+         * kann beliebig viele weitere Wert-Zahlen darunter tragen
+         * ([stackedValues], z. B. die Zeit in Tagen unter den Stunden) und
+         * doppelt so hoch sein ([tall]). Eine Flagge lässt sich direkt hinter
+         * dem Label zeigen ([labelFlag], z. B. hinter dem Dreilettercode) oder
+         * darunter ([subFlag] - das Label steht dann fett darüber).
          */
         data class Row(
             val label: String,
@@ -101,17 +102,26 @@ sealed interface StoryPage {
             val valueTarget: Double? = null,
             /** Formatiert einen Zwischenwert des Count-up. */
             val valueFormat: ((Double) -> String)? = null,
-            /** Flagge in der Mitte der Zeile (zwischen Label und Wert). */
-            val centerFlag: String? = null,
-            /** Doppelte Zeilenhöhe (für zwei untereinander stehende Werte). */
+            /** Flagge direkt hinter dem Label (z. B. hinter dem Dreilettercode). */
+            val labelFlag: String? = null,
+            /** Flagge unter dem Label; das Label steht dann fett darüber. */
+            val subFlag: String? = null,
+            /** Doppelte Zeilenhöhe (für untereinander stehende Werte). */
             val tall: Boolean = false,
-            /** Fertig formatierte zweite Zahl unter [value] (unten rechts). */
-            val subValue: String? = null,
-            val subSuffix: String? = null,
-            /** Zielwert des Count-up der zweiten Zahl (wie [valueTarget]). */
-            val subValueTarget: Double? = null,
-            /** Formatiert einen Zwischenwert des Count-up der zweiten Zahl. */
-            val subValueFormat: ((Double) -> String)? = null
-        )
+            /** Weitere Wert-Zahlen unter [value] (unten rechts). */
+            val stackedValues: List<StackedValue> = emptyList()
+        ) {
+
+            /** Eine Wert-Zahl unter dem Hauptwert der Zeile (unten rechts). */
+            data class StackedValue(
+                /** Fertig formatierter Wert. */
+                val text: String,
+                val suffix: String? = null,
+                /** Zielwert für den Count-up; null für reines Flippen. */
+                val target: Double? = null,
+                /** Formatiert einen Zwischenwert des Count-up. */
+                val format: ((Double) -> String)? = null
+            )
+        }
     }
 }

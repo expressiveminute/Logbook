@@ -418,9 +418,30 @@ class FirstFragment : LogbookFragment() {
                 resizeStatTiles(container, spans)
                 applyHorizontalScale(container, scale)
                 fitTileTopValues(container)
+                alignDashboardHeader(container, scale)
                 updateFabVisibility()
             }
         })
+    }
+
+    /**
+     * Richtet die Dashboard-Kopfzeile an den sichtbaren Kachelrändern aus:
+     * Avatar links bündig mit den Kacheln, Story-Knopf rechts bündig. Die
+     * Kacheln schrumpfen an jeder Seite um eine halbe Spalte mal (1 - scale)
+     * nach innen (siehe [DashboardPrefs.horizontalScale]) - die Kopfzeile
+     * folgt der sichtbaren Kante, nicht dem Raster. Die Positionen werden am
+     * Bildschirm gemessen, damit auch Systemleisten-Einzüge stimmen.
+     */
+    private fun alignDashboardHeader(container: LinearLayout, scale: Float) {
+        val activity = requireActivity() as? MainActivity ?: return
+        if (container.width <= 0) return
+        val inset = (1f - scale) * (container.width / 3f) / 2f
+        val pos = IntArray(2)
+        container.getLocationOnScreen(pos)
+        activity.alignDashboardHeader(
+            (pos[0] + inset).roundToInt(),
+            (pos[0] + container.width - inset).roundToInt()
+        )
     }
 
     /**

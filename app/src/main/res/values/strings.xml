@@ -201,7 +201,7 @@
     <string name="dashboard_filter_selected">Ausgewählt</string>
     <!-- Kopfzeile: zweite Zeile "Funktion · Arbeitgeber" und der Story-Knopf. -->
     <string name="dashboard_header_subtitle">%1$s · %2$s</string>
-    <string name="dashboard_story_play">Play</string>
+    <string name="dashboard_story">Story</string>
     <string name="period_all">Gesamt</string>
     <!-- Im Filter der Kachelzeile ausgeschrieben, dort steht der ganze Zeitraum. -->
     <string name="period_all_range">Gesamter Zeitraum</string>
@@ -839,6 +839,7 @@
     <string name="story_play_co2_footnote">≈ %1$s Bäume binden das in einem Jahr</string>
     <string name="story_unit_hours">h</string>
     <string name="story_unit_days">d</string>
+    <string name="story_unit_months">Mon.</string>
     <string name="story_unit_tonnes">t</string>
     <plurals name="story_row_months">
         <item quantity="one">%1$d Monat</item>

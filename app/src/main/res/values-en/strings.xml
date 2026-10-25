@@ -198,7 +198,7 @@
     <string name="dashboard_filter_selected">Selected</string>
     <!-- Header: second line "function · employer" and the story button. -->
     <string name="dashboard_header_subtitle">%1$s · %2$s</string>
-    <string name="dashboard_story_play">Play</string>
+    <string name="dashboard_story">Story</string>
     <string name="period_all">All</string>
     <string name="period_all_range">All Time</string>
     <string name="period_this_month">This Month</string>
@@ -826,6 +826,7 @@
     <string name="story_play_co2_footnote">≈ %1$s trees bind that in a year</string>
     <string name="story_unit_hours">h</string>
     <string name="story_unit_days">d</string>
+    <string name="story_unit_months">mo</string>
     <string name="story_unit_tonnes">t</string>
     <plurals name="story_row_months">
         <item quantity="one">%1$d month</item>
