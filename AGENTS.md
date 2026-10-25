@@ -20,20 +20,25 @@ Release-APKs sind mit `*.apk`/`*.idsig` in `.gitignore` und werden nicht committ
 1. `versionCode` und `versionName` in `app/build.gradle.kts` erhöhen. Der `versionCode` muss
    monoton steigen, sonst lehnt Android ein Update ab bzw. Obtainium erkennt es nicht.
 2. `./gradlew :app:assembleRelease` bauen.
-3. Die signierte APK **immer in den Ordner `Releases/`** legen, nicht in den Projektroot:
+3. Die **bereits signierte** APK **immer in den Ordner `Releases/`** legen, nicht in den
+   Projektroot – `assembleRelease` signiert selbst (siehe Signatur unten):
    ```bash
-   apksigner sign --ks ~/.android/debug.keystore --ks-pass pass:android --key-pass pass:android \
-     --ks-key-alias androiddebugkey --v3-signing-enabled true --v4-signing-enabled true \
-     --out Releases/app-release-vX.Y.Z.apk app/build/outputs/apk/release/app-release-unsigned.apk
+   cp app/build/outputs/apk/release/app-release.apk Releases/app-release-vX.Y.Z.apk
    ```
-   Die `.idsig` entsteht daneben. Name des Release-Ordners ist Plural: `Releases/`.
+   Name des Release-Ordners ist Plural: `Releases/`.
 4. Commit-Message ist die reine Version (`v0.0.3`), Branch `main`.
 5. Hochladen und Tag-Erstellung auf GitHub übernimmt der Nutzer.
 
-**Signatur:** Die bisherigen Releases sind mit dem Debug-Zertifikat `9f8aff1a…` signiert
-(`C=US, O=Android, CN=Android Debug`). Es muss dasselbe bleiben, sonst verweigert Android das
-Update ("inkompatible Signatur"). Ein Wechsel auf `backups/logbook/logbook-release.keystore` wäre
-sinnvoller, ist aber nur als großer Versionssprung möglich.
+**Signatur:** Seit v0.0.32 signiert Gradle die Release-APK selbst über den `signingConfigs`-Block
+in `app/build.gradle.kts`; Keystore, Alias und Passwörter kommen aus `keystore.properties` im
+Projektroot (in `.gitignore`, nie committen). Das Zertifikat lautet
+`CN=Logbook, OU=highfly, O=highfly, L=Berlin, ST=Berlin, C=DE`, SHA-256 `1f269077…`, und muss
+unbedingt dasselbe bleiben – sonst verweigert Android das Update bzw. meldet Obtainium
+"Signing certificate mismatch". Die fertige APK **nicht** noch einmal mit `apksigner` und dem
+Debug-Keystore überschreiben: `~/.android/debug.keystore` (`C=US, O=Android, CN=Android Debug`,
+`9f8aff1a…`) war nur bis v0.0.31 in Gebrauch und überschreibt die richtige Signatur. Die
+Ausgabe von `assembleRelease` heißt `app-release.apk` (signiert, ohne `-unsigned`), ein `.idsig`
+entsteht nicht.
 
 ## Logo und Launcher-Icons
 
