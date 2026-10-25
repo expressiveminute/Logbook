@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Abgerundeter Hintergrund für den Reiseart-Balken: volle Rundung (Pill-Form)
+     bei 28dp Höhe. clipToOutline auf dem Balken-Container schneidet die
+     farbigen Segmente an diesen abgerundeten Ecken zu. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <corners android:radius="14dp" />
+    <solid android:color="?attr/colorSurfaceContainerHighest" />
+</shape>

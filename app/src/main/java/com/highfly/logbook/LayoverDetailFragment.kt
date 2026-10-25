@@ -44,6 +44,9 @@ class LayoverDetailFragment : LogbookFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Platz unter der schwebenden Navigationsleiste.
+        binding.detailScroll.addBottomNavPadding()
+
         code = requireArguments().getString(ARG_AIRPORT_CODE)?.trim()?.uppercase() ?: ""
 
         binding.btnBack.setOnClickListener {

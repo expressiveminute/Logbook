@@ -32,6 +32,8 @@ class RadiationInfoFragment : LogbookFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        // Platz unter der schwebenden Navigationsleiste.
+        binding.radiationInfoScroll.addBottomNavPadding()
         binding.btnRadiationInfoBack.setOnClickListener { findNavController().navigateUp() }
         // Link zum Bundesamt für Strahlenschutz: unterstrichen und
         // öffnet die Seite direkt im Standardbrowser des Systems.

@@ -4,8 +4,15 @@ import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.LinearGradient
 import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.Point
+import android.graphics.Rect
+import android.graphics.Shader
+import android.graphics.drawable.Drawable
 import android.os.Bundle
+import android.os.SystemClock
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
@@ -14,6 +21,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
+import androidx.core.content.ContextCompat
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -52,6 +60,9 @@ class WorldMapFragment : LogbookFragment() {
         @JvmStatic
         fun startZoom(standardZoom: Double): Double =
             (standardZoom + START_ZOOM_STEPS).coerceAtMost(MAX_ZOOM)
+
+        /** Takt der Layover-Animation: stößt das Neuzeichnen der Karte an. */
+        private const val LAYOVER_FRAME_MS = 33L
     }
 
     private var _binding: FragmentWorldMapBinding? = null
@@ -72,6 +83,18 @@ class WorldMapFragment : LogbookFragment() {
     private var airportsData: Map<String, GeoPoint>? = null
     private var citiesData: List<MapCity>? = null
     private var countriesData: List<CountryLabelOverlay.Country>? = null
+
+    /** Plan der Layover-Animation, null wenn sie nicht läuft. */
+    private var layoverPlan: LayoverAnimation.Plan? = null
+
+    /** Overlay, das Flugzeuge und Spuren der Layover-Animation zeichnet. */
+    private var layoverOverlay: LayoverOverlay? = null
+
+    /** Ob der Takt der Layover-Animation gerade läuft. */
+    private var layoverTickerActive = false
+
+    /** Zeitpunkt der Pause, damit die Animation danach nahtlos weiterläuft. */
+    private var layoverPausedAtMs: Long? = null
 
     private class RouteLine(
         val from: String,
@@ -136,6 +159,11 @@ class WorldMapFragment : LogbookFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Knopfspalte und Stats-Karte schweben als feste Elemente über der
+        // Navigationsleiste; die Karte läuft darunter bis zum Rand.
+        binding.mapControls.addBottomNavMargin()
+        binding.statsCard.addBottomNavMargin()
+
         // Filter aus Navigationsargumenten lesen
         val filterTravelBuddy = arguments?.getString("filterTravelBuddy")?.trim().orEmpty()
         if (filterTravelBuddy.isNotBlank()) {
@@ -146,12 +174,22 @@ class WorldMapFragment : LogbookFragment() {
             activeMapFilter = activeMapFilter.copy(airline = filterAirline)
         }
 
-        binding.btnBack.setOnClickListener { findNavController().navigateUp() }
+        // btn_back ist im Layout dauerhaft ausgeblendet (sah wie ein zweiter
+        // Filter-Reset aus); die Weltkarte ist Top-Level-Ziel der unteren Leiste.
         binding.btnZoomIn.setOnClickListener { mapView?.controller?.zoomIn() }
         binding.btnZoomOut.setOnClickListener { mapView?.controller?.zoomOut() }
         binding.btnReset.setOnClickListener { mapView?.let { setStandardView(it) } }
         binding.btnRotate.setOnClickListener { toggleMapOrientation() }
         binding.btnFilter.setOnClickListener { showFilterDialog() }
+        // Der Zurueck-Pfeil neben dem Filter setzt den Kartenfilter zurueck;
+        // er ist nur sichtbar, solange ein Filter aktiv ist.
+        binding.btnFilterReset.setOnClickListener {
+            activeMapFilter = MapFilter()
+            applyFilters()
+        }
+        // Blendet die Flugspuren der Layover-Animation erneut ein, nachdem
+        // sie ausgeblendet wurden.
+        binding.btnLayoverTrails.setOnClickListener { replayLayoverAnimation() }
         binding.statsCard.setOnClickListener {
             val iata = selectedIata ?: return@setOnClickListener
             findNavController().navigate(
@@ -383,7 +421,16 @@ class WorldMapFragment : LogbookFragment() {
         val reached = MapSelection.connected(allRoutes.map { it.from to it.to }, selected)
         val connections = connectionCounts(allRoutes)
 
+        // Die Layover-Animation planen, bevor die Linien gezeichnet werden.
+        // Mit Layover = „Ja" bestehen die gefilterten Linien nur aus
+        // Layover-Strecken - auch Rückflüge und Anschlussflüge, die nicht am
+        // Hub starten. Die animierten Spuren ersetzen sie alle: Eine statische
+        // Linie wäre schon vor der Animation sichtbar und ginge nach ihr nicht
+        // weg; am Ende bleiben nur die Dreilettercodes der Ziele sichtbar.
+        val layoverActive = updateLayoverAnimation() != null
+
         filtered.forEach { route ->
+            if (layoverActive) return@forEach
             val polyline = Polyline().apply {
                 setPoints(route.points)
                 outlinePaint.color = routeColor
@@ -397,6 +444,10 @@ class WorldMapFragment : LogbookFragment() {
             }
             mv.overlays.add(polyline)
         }
+
+        // Die Spuren zeichnen vor den Flughafen-Badges, damit die
+        // Dreilettercodes auch über den Spuren lesbar bleiben.
+        layoverOverlay?.let { mv.overlays.add(it) }
 
         mv.overlays.add(
             AirportOverlay(
@@ -597,14 +648,6 @@ class WorldMapFragment : LogbookFragment() {
         val dialog = BottomSheetDialog(requireContext())
         dialog.setContentView(sheetView)
 
-        sheetView.findViewById<View>(R.id.btn_filter_clear).apply {
-            visibility = if (activeMapFilter.isActive()) View.VISIBLE else View.GONE
-            setOnClickListener {
-                activeMapFilter = MapFilter()
-                applyFilters()
-                dialog.dismiss()
-            }
-        }
         sheetView.findViewById<View>(R.id.btn_filter_apply).setOnClickListener {
             activeMapFilter = MapFilter(
                 flightType = filterTravelType.text?.toString()?.trim().orEmpty(),
@@ -653,6 +696,108 @@ class WorldMapFragment : LogbookFragment() {
         buildOverlays(mv)
         updateFilterButton()
         mv.invalidate()
+    }
+
+    /** Takt der Layover-Animation: stößt das Neuzeichnen der Karte an. */
+    private val layoverTicker = object : Runnable {
+        override fun run() {
+            val mv = mapView ?: return
+            val overlay = layoverOverlay
+            val plan = layoverPlan
+            if (overlay == null || plan == null) {
+                layoverTickerActive = false
+                return
+            }
+            mv.invalidate()
+            if (LayoverAnimation.isFinished(SystemClock.uptimeMillis() - overlay.startTimeMs, plan)) {
+                // Ein letztes Bild, dann Schluss: Die Spuren sind zu diesem
+                // Zeitpunkt bereits ausgeblendet, nur die Dreilettercodes
+                // bleiben sichtbar.
+                layoverTickerActive = false
+                return
+            }
+            mv.postDelayed(this, LAYOVER_FRAME_MS)
+        }
+    }
+
+    private fun startLayoverTicker() {
+        val mv = mapView ?: return
+        if (layoverTickerActive || layoverPlan == null || layoverPausedAtMs != null) return
+        layoverTickerActive = true
+        mv.postDelayed(layoverTicker, LAYOVER_FRAME_MS)
+    }
+
+    private fun stopLayoverTicker() {
+        layoverTickerActive = false
+        mapView?.removeCallbacks(layoverTicker)
+    }
+
+    /** Pausiert die Animation; onResume schiebt die Pause wieder heraus. */
+    private fun pauseLayoverAnimation() {
+        if (layoverPausedAtMs == null && layoverTickerActive) {
+            layoverPausedAtMs = SystemClock.uptimeMillis()
+        }
+        stopLayoverTicker()
+    }
+
+    private fun resumeLayoverAnimation() {
+        val pausedAt = layoverPausedAtMs ?: return
+        layoverPausedAtMs = null
+        // Die Pause wird der Animation abgezogen, das Tempo bleibt gleich.
+        layoverOverlay?.let { it.startTimeMs += SystemClock.uptimeMillis() - pausedAt }
+        startLayoverTicker()
+    }
+
+    /** Startet die Animation erneut, wenn der Nutzer die Spuren sehen will. */
+    private fun replayLayoverAnimation() {
+        val overlay = layoverOverlay ?: return
+        overlay.startTimeMs = SystemClock.uptimeMillis()
+        layoverPausedAtMs = null
+        startLayoverTicker()
+        mapView?.invalidate()
+    }
+
+    /** Ob Systemanimationen laufen dürfen (Einstellung „Animationsdauer"). */
+    private fun animationsEnabled(): Boolean =
+        android.provider.Settings.Global.getFloat(
+            requireContext().contentResolver,
+            android.provider.Settings.Global.ANIMATOR_DURATION_SCALE,
+            1f
+        ) != 0f
+
+    /**
+     * Plant die Layover-Animation, wenn der Layover-Filter auf „Ja" steht,
+     * und legt das Overlay dafür an bzw. behält das laufende bei. Ohne
+     * Layover-Filter oder mit abgeschalteten Systemanimationen bleibt der
+     * Plan leer und die statischen Linien zeichnen wie gehabt. Zurückgegeben
+     * wird der Plan, damit buildOverlays die Linien ab dem Hub aussparen kann.
+     */
+    private fun updateLayoverAnimation(): LayoverAnimation.Plan? {
+        if (_binding == null) return null
+        val plan = if (animationsEnabled() && activeMapFilter.layover == "yes") {
+            val context = requireContext()
+            val resolveAirline = airlineKeyResolver(context)
+            val layoverEntries =
+                entriesData.filter { activeMapFilter.matches(it, resolveAirline) }
+            LayoverAnimation.plan(layoverEntries) { AirportData.location(context, it) }
+        } else {
+            null
+        }
+        layoverPlan = plan
+        if (plan == null) {
+            layoverOverlay = null
+            stopLayoverTicker()
+            binding.btnLayoverTrails.visibility = View.GONE
+            return null
+        }
+        var overlay = layoverOverlay
+        if (overlay == null || overlay.plan != plan) {
+            overlay = LayoverOverlay(requireContext(), plan, routeColor)
+            layoverOverlay = overlay
+        }
+        binding.btnLayoverTrails.visibility = View.VISIBLE
+        startLayoverTicker()
+        return plan
     }
 
     /**
@@ -732,6 +877,9 @@ class WorldMapFragment : LogbookFragment() {
                     binding.root, com.google.android.material.R.attr.colorOnSurface
                 )
             )
+        // Der Zurueck-Pfeil erscheint nur, solange ein Filter aktiv ist; das
+        // Zuruecksetzen selbst sitzt als Knopf auf der Karte (btn_filter_reset).
+        binding.btnFilterReset.visibility = if (active) View.VISIBLE else View.GONE
     }
 
     /**
@@ -1034,17 +1182,171 @@ class WorldMapFragment : LogbookFragment() {
         }
     }
 
+    /**
+     * Zeichnet die Layover-Animation der Weltkarte: Vom Hub starten
+     * Flugzeuge in Richtung jedes Layover-Ziels und ziehen eine nach vorn
+     * kraeftiger werdende Spur hinter sich her. Nach der Ankunft des letzten
+     * Flugzeugs stehen die Spuren noch zwei Sekunden und blenden dann aus.
+     * Die Dreilettercodes zeichnet weiterhin [AirportOverlay].
+     */
+    private class LayoverOverlay(
+        context: Context,
+        val plan: LayoverAnimation.Plan,
+        color: Int
+    ) : Overlay() {
+
+        private val density = context.resources.displayMetrics.density
+        private val plane: Drawable? =
+            ContextCompat.getDrawable(context, R.drawable.ic_flight)?.mutate()
+        private val planeSize = RouteMiniMapView.PLANE_SIZE_DP * density
+        private val planeBounds = Rect()
+        private val reusePoint = Point()
+        private val trailPath = Path()
+        private val headOut = FloatArray(3)
+        private val trailPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = 2f * density
+            strokeCap = Paint.Cap.ROUND
+            strokeJoin = Paint.Join.ROUND
+        }
+        private val trailColor = Color.argb(
+            235, Color.red(color), Color.green(color), Color.blue(color)
+        )
+
+        /** Projektionspuffer des aktuellen Streckenzugs, wächst bei Bedarf. */
+        private var scratch = FloatArray(0)
+
+        /** Startzeit der Animation; wird bei Pause und Replay verschoben. */
+        var startTimeMs: Long = SystemClock.uptimeMillis()
+
+        init {
+            plane?.setTint(color)
+        }
+
+        override fun draw(canvas: Canvas, mapView: MapView, shadow: Boolean) {
+            if (shadow) return
+            val elapsed = SystemClock.uptimeMillis() - startTimeMs
+            val alpha = LayoverAnimation.trailAlpha(elapsed, plan)
+            if (alpha <= 0) return
+            val projection = mapView.projection
+            for (route in plan.routes) {
+                drawRoute(canvas, projection, route, elapsed, alpha)
+            }
+        }
+
+        private fun drawRoute(
+            canvas: Canvas,
+            projection: org.osmdroid.views.Projection,
+            route: LayoverAnimation.Route,
+            elapsedMs: Long,
+            alpha: Int
+        ) {
+            val count = route.points.size
+            if (count < 2) return
+            val needed = count * 2
+            if (scratch.size < needed) scratch = FloatArray(needed)
+            val projected = scratch
+            var i = 0
+            for (point in route.points) {
+                projection.toPixels(GeoPoint(point.lat, point.lon), reusePoint)
+                projected[i++] = reusePoint.x.toFloat()
+                projected[i++] = reusePoint.y.toFloat()
+            }
+            val total = RouteDeparture.length(projected, count)
+            if (total <= 0f) return
+            val fraction = LayoverAnimation.planeFraction(elapsedMs, route)
+            val head = fraction * total
+            if (!RouteDeparture.pointAt(projected, count, head, headOut)) return
+            drawTrail(canvas, projected, count, head, alpha)
+            // Das Flugzeug ist nur unterwegs zu sehen; am Ziel bleibt die Spur.
+            if (fraction < 1f) {
+                drawPlane(canvas, headOut[0], headOut[1], headOut[2])
+            }
+        }
+
+        /**
+         * Die Spur vom Hub bis zur Spitze: ein Verlauf von durchsichtig am
+         * Hub zur vollen Akzentfarbe vorn, mit der Deckkraft [alpha] der
+         * aktuellen Phase.
+         */
+        private fun drawTrail(
+            canvas: Canvas,
+            points: FloatArray,
+            count: Int,
+            head: Float,
+            alpha: Int
+        ) {
+            if (head <= 0.5f) return
+            trailPath.reset()
+            var covered = 0f
+            var moved = false
+            var i = 1
+            while (i < count && covered <= head) {
+                val ax = points[(i - 1) * 2]
+                val ay = points[(i - 1) * 2 + 1]
+                val dx = points[i * 2] - ax
+                val dy = points[i * 2 + 1] - ay
+                val segment = hypot(dx.toDouble(), dy.toDouble()).toFloat()
+                if (segment > 0f) {
+                    val next = covered + segment
+                    val t = ((head - covered) / segment).coerceIn(0f, 1f)
+                    val x = ax + dx * t
+                    val y = ay + dy * t
+                    if (moved) {
+                        trailPath.lineTo(x, y)
+                    } else {
+                        trailPath.moveTo(ax, ay)
+                        trailPath.lineTo(x, y)
+                        moved = true
+                    }
+                    covered = next
+                }
+                i++
+            }
+            if (!moved) return
+            trailPaint.shader = LinearGradient(
+                points[0], points[1],
+                headOut[0], headOut[1],
+                Color.TRANSPARENT, trailColor, Shader.TileMode.CLAMP
+            )
+            trailPaint.alpha = alpha
+            canvas.drawPath(trailPath, trailPaint)
+            trailPaint.shader = null
+        }
+
+        /** Das Flugzeugsymbol an der Spitze der Spur, in Fahrtrichtung gedreht. */
+        private fun drawPlane(canvas: Canvas, x: Float, y: Float, rotation: Float) {
+            val symbol = plane ?: return
+            val half = planeSize / 2f
+            canvas.save()
+            canvas.rotate(rotation, x, y)
+            planeBounds.set(
+                (x - half).toInt(), (y - half).toInt(),
+                (x + half).toInt(), (y + half).toInt()
+            )
+            symbol.bounds = planeBounds
+            symbol.draw(canvas)
+            canvas.restore()
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         mapView?.onResume()
+        resumeLayoverAnimation()
     }
 
     override fun onPause() {
         super.onPause()
+        pauseLayoverAnimation()
         mapView?.onPause()
     }
 
     override fun onDestroyView() {
+        stopLayoverTicker()
+        layoverOverlay = null
+        layoverPlan = null
+        layoverPausedAtMs = null
         loadThread?.interrupt()
         loadThread = null
         mapView?.onDetach()

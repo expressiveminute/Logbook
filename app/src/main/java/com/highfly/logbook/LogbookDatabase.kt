@@ -22,6 +22,7 @@ class LogbookDatabase(context: Context, name: String = DATABASE_NAME) :
                 $COL_DATE TEXT NOT NULL,
                 $COL_FLIGHT_TYPE TEXT,
                 $COL_CLASS_TYPE TEXT,
+                $COL_SEAT TEXT,
                 $COL_FROM_AIRPORT TEXT NOT NULL,
                 $COL_TO_AIRPORT TEXT NOT NULL,
                 $COL_AIRLINE TEXT,
@@ -63,6 +64,9 @@ class LogbookDatabase(context: Context, name: String = DATABASE_NAME) :
         if (oldVersion < 7) {
             db.execSQL("ALTER TABLE $TABLE_ENTRIES ADD COLUMN $COL_LAYOVER_HOURS INTEGER")
         }
+        if (oldVersion < 8) {
+            db.execSQL("ALTER TABLE $TABLE_ENTRIES ADD COLUMN $COL_SEAT TEXT")
+        }
     }
 
     fun insert(entry: LogbookEntry) {
@@ -85,6 +89,7 @@ class LogbookDatabase(context: Context, name: String = DATABASE_NAME) :
             val dateIdx = cursor.getColumnIndexOrThrow(COL_DATE)
             val flightTypeIdx = cursor.getColumnIndexOrThrow(COL_FLIGHT_TYPE)
             val classTypeIdx = cursor.getColumnIndexOrThrow(COL_CLASS_TYPE)
+            val seatIdx = cursor.getColumnIndexOrThrow(COL_SEAT)
             val fromIdx = cursor.getColumnIndexOrThrow(COL_FROM_AIRPORT)
             val toIdx = cursor.getColumnIndexOrThrow(COL_TO_AIRPORT)
             val airlineIdx = cursor.getColumnIndexOrThrow(COL_AIRLINE)
@@ -101,7 +106,7 @@ class LogbookDatabase(context: Context, name: String = DATABASE_NAME) :
             val functionIdx = cursor.getColumnIndexOrThrow(COL_FUNCTION)
             val travelBuddyIdx = cursor.getColumnIndexOrThrow(COL_TRAVEL_BUDDY)
             return cursor.toEntry(
-                idIdx, dateIdx, flightTypeIdx, classTypeIdx,
+                idIdx, dateIdx, flightTypeIdx, classTypeIdx, seatIdx,
                 fromIdx, toIdx, airlineIdx, flightNumberIdx,
                 aircraftTypeIdx, registrationIdx, distanceIdx, minutesIdx,
                 layoverIdx, layoverHoursIdx, commentIdx,
@@ -153,6 +158,7 @@ class LogbookDatabase(context: Context, name: String = DATABASE_NAME) :
             val dateIdx = cursor.getColumnIndexOrThrow(COL_DATE)
             val flightTypeIdx = cursor.getColumnIndexOrThrow(COL_FLIGHT_TYPE)
             val classTypeIdx = cursor.getColumnIndexOrThrow(COL_CLASS_TYPE)
+            val seatIdx = cursor.getColumnIndexOrThrow(COL_SEAT)
             val fromIdx = cursor.getColumnIndexOrThrow(COL_FROM_AIRPORT)
             val toIdx = cursor.getColumnIndexOrThrow(COL_TO_AIRPORT)
             val airlineIdx = cursor.getColumnIndexOrThrow(COL_AIRLINE)
@@ -171,7 +177,7 @@ class LogbookDatabase(context: Context, name: String = DATABASE_NAME) :
 
             while (cursor.moveToNext()) {
                 val entry = cursor.toEntry(
-                    idIdx, dateIdx, flightTypeIdx, classTypeIdx,
+                    idIdx, dateIdx, flightTypeIdx, classTypeIdx, seatIdx,
                     fromIdx, toIdx, airlineIdx, flightNumberIdx,
                     aircraftTypeIdx, registrationIdx, distanceIdx, minutesIdx,
                     layoverIdx, layoverHoursIdx, commentIdx,
@@ -189,6 +195,7 @@ class LogbookDatabase(context: Context, name: String = DATABASE_NAME) :
         dateIdx: Int,
         flightTypeIdx: Int,
         classTypeIdx: Int,
+        seatIdx: Int,
         fromIdx: Int,
         toIdx: Int,
         airlineIdx: Int,
@@ -215,6 +222,7 @@ class LogbookDatabase(context: Context, name: String = DATABASE_NAME) :
             date = date,
             flightType = getString(flightTypeIdx),
             classType = getString(classTypeIdx),
+            seat = if (isNull(seatIdx)) null else getString(seatIdx),
             fromAirport = getString(fromIdx),
             toAirport = getString(toIdx),
             airline = getString(airlineIdx),
@@ -243,6 +251,7 @@ class LogbookDatabase(context: Context, name: String = DATABASE_NAME) :
         put(COL_DATE, entry.date.toString())
         put(COL_FLIGHT_TYPE, entry.flightType)
         put(COL_CLASS_TYPE, entry.classType)
+        put(COL_SEAT, entry.seat)
         put(COL_FROM_AIRPORT, entry.fromAirport)
         put(COL_TO_AIRPORT, entry.toAirport)
         put(COL_AIRLINE, entry.airline)
@@ -262,7 +271,7 @@ class LogbookDatabase(context: Context, name: String = DATABASE_NAME) :
 
     companion object {
         const val DATABASE_NAME = "logbook.db"
-        const val DATABASE_VERSION = 7
+        const val DATABASE_VERSION = 8
 
         /**
          * Datenbankname eines Nutzerplatzes. Nutzer 1 benutzt die bisherige
@@ -276,6 +285,7 @@ class LogbookDatabase(context: Context, name: String = DATABASE_NAME) :
         const val COL_DATE = "date"
         const val COL_FLIGHT_TYPE = "flight_type"
         const val COL_CLASS_TYPE = "class_type"
+        const val COL_SEAT = "seat"
         const val COL_FROM_AIRPORT = "from_airport"
         const val COL_TO_AIRPORT = "to_airport"
         const val COL_AIRLINE = "airline"

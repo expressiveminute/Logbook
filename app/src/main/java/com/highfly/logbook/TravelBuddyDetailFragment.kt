@@ -57,6 +57,9 @@ class TravelBuddyDetailFragment : LogbookFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Platz unter der schwebenden Navigationsleiste.
+        binding.scrollView.addBottomNavPadding()
+
         buddyName = requireArguments().getString(ARG_NAME).orEmpty()
 
         binding.btnBack.setOnClickListener {

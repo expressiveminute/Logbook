@@ -28,6 +28,10 @@
             android:name=".WelcomeActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".StoryActivity"
+            android:exported="false" />
     </application>
 
 </manifest>

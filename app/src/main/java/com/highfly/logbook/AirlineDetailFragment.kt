@@ -72,6 +72,9 @@ class AirlineDetailFragment : LogbookFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Platz unter der schwebenden Navigationsleiste.
+        binding.detailScroll.addBottomNavPadding()
+
         code = requireArguments().getString(ARG_CODE)?.trim()?.uppercase().orEmpty()
 
         binding.btnBack.setOnClickListener {
@@ -497,9 +500,12 @@ class AirlineDetailFragment : LogbookFragment() {
     }
 
     /**
-     * Karte wie bei Reisebuddy: alle Strecken der Airline als animierte Karte.
-     * Unter der Karte steht, wie viele Flüge es auf wie vielen verschiedenen
-     * Strecken waren. Ohne Strecke bleibt die Karte samt Titel weg.
+     * Karte wie bei Reisebuddy: alle Strecken der Airline, statisch und ohne
+     * Animation - die Aufbau-Animation zeichnete die Karte samt Land und
+     * Grenzen jedes Frame neu, was das Scrollen der Seite spürbar ruckeln
+     * liess. Unter der Karte steht, wie viele Flüge es auf wie vielen
+     * verschiedenen Strecken waren. Ohne Strecke bleibt die Karte samt Titel
+     * weg.
      */
     private fun renderMap(
         airline: AirlineStats.Airline?,
@@ -509,7 +515,6 @@ class AirlineDetailFragment : LogbookFragment() {
         binding.tvAirlineMapTitle.visibility = View.VISIBLE
         binding.airlineMapCard.visibility = View.VISIBLE
         binding.airlineMap.setRoutes(routes)
-        binding.airlineMap.playRouteAnimation()
         val distinctRoutes = routes.map { it.third }.distinct().size
         binding.tvAirlineMapStats.text = getString(
             R.string.airline_map_stats, airline.flights, distinctRoutes
@@ -540,7 +545,6 @@ class AirlineDetailFragment : LogbookFragment() {
         photoGeneration++
         if (_binding != null) {
             pageCallback?.let { binding.vpAirlinePhoto.unregisterOnPageChangeCallback(it) }
-            binding.airlineMap.cancelRouteAnimation()
         }
         pageCallback = null
         _binding = null

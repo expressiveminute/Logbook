@@ -7,6 +7,7 @@
     android:layout_height="match_parent"
     android:background="?android:attr/colorBackground"
     android:fillViewport="true"
+    android:clipToPadding="false"
     tools:context=".ProfileFragment">
 
     <LinearLayout
@@ -22,12 +23,16 @@
             android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
             android:textStyle="bold" />
 
+        <!-- Avatar und Name nebeneinander, als Gruppe mittig zentriert:
+             Der Name sitzt rechts neben dem Userbild. Ein Tipp auf den
+             Namen oeffnet den Dialog zum Aendern. -->
         <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
             android:layout_marginTop="24dp"
-            android:gravity="center_horizontal"
-            android:orientation="vertical">
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
             <FrameLayout
                 android:id="@+id/avatar_tile"
@@ -47,50 +52,28 @@
                     android:scaleType="fitCenter" />
             </FrameLayout>
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/profile_name_layout"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                app:boxCornerRadiusBottomEnd="16dp"
-                app:boxCornerRadiusBottomStart="16dp"
-                app:boxCornerRadiusTopEnd="16dp"
-                app:boxCornerRadiusTopStart="16dp">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/profile_name_input"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="@string/profile_name_hint"
-                    android:imeOptions="actionDone"
-                    android:inputType="textPersonName"
-                    android:maxLines="1" />
-            </com.google.android.material.textfield.TextInputLayout>
-
             <!--
-                Sobald ein Name dasteht, zeigt diese Zeile ihn mittig an und
-                das Eingabefeld mit seinem Rahmen ist weg. Ein Klick hier holt
-                das Eingabefeld zurueck.
+                Steht ein Name, zeigt diese Zeile ihn fett an; sonst den
+                Platzhalter "Name" in dezenter Farbe. Ein Klick oeffnet den
+                Dialog zum Aendern (siehe ProfileFragment.showNameDialog).
             -->
             <TextView
                 android:id="@+id/profile_name_display"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
+                android:layout_marginStart="16dp"
                 android:clickable="true"
                 android:contentDescription="@string/profile_name_edit"
+                android:ellipsize="end"
                 android:focusable="true"
                 android:foreground="?attr/selectableItemBackground"
-                android:gravity="center"
+                android:gravity="center_vertical"
+                android:maxLines="2"
                 android:minHeight="48dp"
                 android:paddingStart="8dp"
                 android:paddingEnd="8dp"
                 android:textAppearance="@style/TextAppearance.Material3.TitleLarge"
-                android:textStyle="bold"
-                android:visibility="gone"
-                tools:text="Joe Hardi"
-                tools:visibility="visible" />
+                android:textStyle="bold" />
         </LinearLayout>
 
         <!-- Profil -->

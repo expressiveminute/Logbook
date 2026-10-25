@@ -6,7 +6,11 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.HorizontalScrollView
 import android.widget.ScrollView
+import androidx.activity.ComponentActivity
 import androidx.core.os.bundleOf
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.doOnNextLayout
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -55,6 +59,63 @@ abstract class LogbookFragment : Fragment() {
 
     /** Wird bei jedem Abbruch der Wiederherstellung erhöht. */
     private var restoreGeneration = 0
+
+    /**
+     * Fügt unten Platz für die schwebende Navigationsleiste hinzu (Höhe +
+     * Abstand + Systemleiste), damit der Inhalt nicht hinter der Leiste
+     * verschwindet. Wirkt als Padding, z. B. für Listen: Der letzte Eintrag
+     * lässt sich so ganz über die Leiste hinaus nach oben scrollen.
+     *
+     * Angewendet wird beim ersten Layout ([doOnNextLayout]), aber gepostet:
+     * Ein `requestLayout()` direkt aus dem Layout-Callback heraus verläuft
+     * sich – die Elternkette (bis zur `FragmentContainerView`) trägt mitten im
+     * Layout noch das Force-Layout-Flag und lässt den Request nicht bis zur
+     * ViewRootImpl durch, sodass kein neuer Layout-Durchlauf geplant und der
+     * Platz nie wirksam würde (betraf die Fragment-Wurzeln wie
+     * `profile_scroll`, bei Kindansichten griff zufällig ein späterer
+     * Durchlauf). Nach dem Posten läuft der Runnable außerhalb des
+     * Layout-Passes, der Request kommt an und die nächste Traversale wendet
+     * den Platz an.
+     */
+    protected fun View.addBottomNavPadding() = doOnNextLayout {
+        post {
+            val space = bottomNavSpacePx()
+            setPadding(paddingLeft, paddingTop, paddingRight, paddingBottom + space)
+        }
+    }
+
+    /**
+     * Fügt unten Platz für die schwebende Navigationsleiste hinzu (Höhe +
+     * Abstand + Systemleiste) als Margin, z. B. für den schwebenden Plus-Knopf
+     * oder eine Kachelzeile am unteren Rand. Wie [addBottomNavPadding] gepostet
+     * angewendet, damit der Layout-Request nicht im Layout-Pass verloren geht.
+     */
+    protected fun View.addBottomNavMargin() = doOnNextLayout {
+        post {
+            val lp = layoutParams as? ViewGroup.MarginLayoutParams ?: return@post
+            lp.bottomMargin += bottomNavSpacePx()
+            layoutParams = lp
+        }
+    }
+
+    /**
+     * Platz der Navigationsleiste über dem Seiteninhalt, in px: die echte
+     * Leiste (`bottom_nav`) wird gemessen – ihre Höhe enthält bereits das
+     * untere Systemleisten-Inset als Padding, der untere Abstand kommt als
+     * Margin hinzu. So ist der Platz exakt, egal welche Insets das Fragment
+     * selbst sieht. Rückfall über das Systemleisten-Inset, falls die Leiste
+     * noch nicht vermessen wurde.
+     */
+    private fun View.bottomNavSpacePx(): Int {
+        val bar = (context as? ComponentActivity)?.findViewById<View>(R.id.bottom_nav)
+        if (bar != null && bar.height > 0) {
+            val margin = (bar.layoutParams as? ViewGroup.MarginLayoutParams)?.bottomMargin ?: 0
+            return bar.height + margin
+        }
+        val navBar = ViewCompat.getRootWindowInsets(this)
+            ?.getInsets(WindowInsetsCompat.Type.systemBars())?.bottom ?: 0
+        return (BOTTOM_NAV_SPACE_DP * resources.displayMetrics.density).toInt() + navBar
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -242,8 +303,11 @@ abstract class LogbookFragment : Fragment() {
      * Stellt die vertikale Scroll-Position wieder her. Der Inhalt wächst teils
      * erst nach dem ersten Layout (Kacheln, Bilder); gewartet wird, bis sich
      * die Inhaltshöhe zwischen zwei Durchläufen nicht mehr ändert, längstens
-     * [RESTORE_DEADLINE_MS]. Danach wird die Position auf das erreichbare
-     * Maximum begrenzt, falls der Inhalt inzwischen kürzer geworden ist.
+     * [RESTORE_DEADLINE_MS]. Passt der Inhalt zwischendurch ganz in die
+     * Ansicht (leer asynchron aufgebauter Inhalt wie das Dashboard-Raster),
+     * wird ebenfalls weiter gewartet statt die Position zu verwerfen. Danach
+     * wird die Position auf das erreichbare Maximum begrenzt, falls der
+     * Inhalt inzwischen kürzer geworden ist.
      */
     private fun restoreScrollView(scroll: ScrollView, state: ScrollState.Vertical) {
         val generation = restoreGeneration
@@ -264,8 +328,15 @@ abstract class LogbookFragment : Fragment() {
                 val contentHeight = scroll.getChildAt(0).height
                 val maxScroll = (contentHeight - scroll.height).coerceAtLeast(0)
                 if (maxScroll <= 0) {
-                    // Der Inhalt passt ganz in die Ansicht - nichts zu scrollen.
-                    pendingScrollRestores.remove(scroll.id)
+                    // Der Inhalt passt (noch) ganz in die Ansicht. Eine Seite
+                    // wie das Dashboard baut ihr Raster erst asynchron auf
+                    // und ist zwischendurch leer; deshalb wird nicht sofort
+                    // verworfen, sondern bis zur Frist weiter gewartet.
+                    if (SystemClock.uptimeMillis() < deadline) {
+                        scroll.post(this)
+                    } else {
+                        pendingScrollRestores.remove(scroll.id)
+                    }
                     return
                 }
                 val settled = !scroll.isLayoutRequested && contentHeight == lastHeight
@@ -301,7 +372,13 @@ abstract class LogbookFragment : Fragment() {
                 val contentWidth = scroll.getChildAt(0).width
                 val maxScroll = (contentWidth - scroll.width).coerceAtLeast(0)
                 if (maxScroll <= 0) {
-                    pendingScrollRestores.remove(scroll.id)
+                    // Wie bei der vertikalen Variante: Der Inhalt kann erst
+                    // noch asynchron wachsen, weiter warten statt verwerfen.
+                    if (SystemClock.uptimeMillis() < deadline) {
+                        scroll.post(this)
+                    } else {
+                        pendingScrollRestores.remove(scroll.id)
+                    }
                     return
                 }
                 val settled = !scroll.isLayoutRequested && contentWidth == lastWidth

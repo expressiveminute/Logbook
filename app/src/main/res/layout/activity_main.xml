@@ -191,11 +191,19 @@
         android:background="?android:attr/colorBackground">
 
         <include layout="@layout/content_main" />
-    </FrameLayout>
 
-    <com.highfly.logbook.BottomTabBar
-        android:id="@+id/bottom_nav"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        <!-- Schwebende Navigationsleiste: als Pill über dem Inhalt der Seite,
+             mit Abstand zu den Rändern (seitlich je 12 dp, unten 8 dp; das
+             untere Systemleisten-Inset kommt als Padding aus MainActivity
+             hinzu). -->
+        <com.highfly.logbook.BottomTabBar
+            android:id="@+id/bottom_nav"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="12dp"
+            android:layout_marginBottom="8dp" />
+    </FrameLayout>
 
 </LinearLayout>

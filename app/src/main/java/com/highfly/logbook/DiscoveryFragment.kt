@@ -39,6 +39,9 @@ class DiscoveryFragment : LogbookFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Der letzte Eintrag bleibt über der schwebenden Navigationsleiste sichtbar.
+        binding.discoveryList.addBottomNavPadding()
+
         binding.discoveryList.layoutManager = LinearLayoutManager(requireContext())
         binding.discoveryList.setHasFixedSize(true)
         adapter = DiscoveryAdapter(requireContext())

@@ -147,4 +147,17 @@
     <color name="continent_oceania">#FF5C6BC0</color>
     <color name="continent_antarctica">#FF90A4AE</color>
     <color name="continent_unknown">#FF757575</color>
+
+    <!-- Story-Hintergrund und Flip-Uhr-Karten (immer dunkel, wie bei
+         Social-Media-Stories) -->
+    <color name="story_scrim">#F2141218</color>
+    <color name="story_text">#FFE8E3EA</color>
+    <color name="story_text_variant">#FFC9C4CE</color>
+    <color name="story_progress_track">#40FFFFFF</color>
+    <color name="story_progress_fill">#FFFFFFFF</color>
+    <color name="story_card_top">#FF37333D</color>
+    <color name="story_card_bottom">#FF262229</color>
+    <color name="story_digit">#FFF3EEE6</color>
+    <color name="story_fold">#30FFFFFF</color>
+    <color name="story_row_bg">#33FFFFFF</color>
 </resources>

@@ -48,6 +48,12 @@ class CountryDetailFragment : LogbookFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        // Der Detailtext schwebt als festes Element über der
+        // Navigationsleiste; die Karte darüber endet über ihm (und hebt
+        // damit den Fokus-FAB in der Karte mit an).
+        binding.tvCountryAirportDetail.addBottomNavMargin()
+
         binding.btnCountryDetailBack.setOnClickListener { findNavController().navigateUp() }
         binding.fabCountryFocus.setOnClickListener { binding.countryMap.zoomToFocus() }
         // Ein Klick auf ein Flughafen-Badge blendet unten den Detailtext ein.

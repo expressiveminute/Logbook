@@ -53,6 +53,8 @@ class VisitedCountriesFragment : LogbookFragment(), BackPressAware {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.btnVisitedCountriesBack.setOnClickListener { findNavController().navigateUp() }
+        // Platz unter der schwebenden Navigationsleiste.
+        binding.visitedCountriesList.addBottomNavPadding()
         binding.visitedCountriesList.layoutManager = LinearLayoutManager(requireContext())
         adapter = VisitedCountriesAdapter(::openCountry)
         binding.visitedCountriesList.adapter = adapter

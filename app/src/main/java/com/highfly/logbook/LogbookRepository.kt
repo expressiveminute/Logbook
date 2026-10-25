@@ -57,6 +57,8 @@ object LogbookRepository {
         db = LogbookDatabase(app, LogbookDatabase.databaseNameFor(id))
         openUserId = id
         cache = null
+        // Die Homebase des vorigen Nutzers darf nicht stehen bleiben.
+        Homebase.update(emptyList())
     }
 
     @Synchronized
@@ -84,6 +86,8 @@ object LogbookRepository {
         cache?.let { return it }
         val fresh = activeDb()?.getAll()?.sortedByDescending { it.date } ?: emptyList()
         cache = fresh
+        // Homebase zentral mitführen: meistgenutzter Flughafen des Logbuchs.
+        Homebase.update(fresh)
         return fresh
     }
 
@@ -218,6 +222,7 @@ object LogbookRepository {
         appContext = null
         cache = null
         openUserId = 1
+        Homebase.update(emptyList())
     }
 
     @Synchronized

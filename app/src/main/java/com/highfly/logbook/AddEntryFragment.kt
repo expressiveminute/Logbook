@@ -94,6 +94,11 @@ class AddEntryFragment : LogbookFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Unter dem Formular bleibt scrollbarer Leerraum für die schwebende
+        // Navigationsleiste, damit die untersten Felder nicht hinter ihr
+        // verschwinden.
+        binding.scrollView.addBottomNavPadding()
+
         editingEntryId = requireArguments().getLong("entryId", -1L)
 
         // Beim Bearbeiten steht der Fokus sofort im Feld "Fluggesellschaft" und
@@ -510,6 +515,9 @@ class AddEntryFragment : LogbookFragment() {
             }.takeIf { it != -1 }
         }
         if (classIndex != null) selectClass(classIndex)
+
+        // Sitzplatz eintragen (nur bei Privat mit Reiseklasse sichtbar).
+        binding.etSeat.setText(entry.seat.orEmpty())
 
         // Mit Leerzeichen, damit das Kästchen wieder in beide Felder zerlegbar
         // bleibt - ohne Trenner ist die Grenze beim Speichern nicht erkennbar.
@@ -1329,6 +1337,11 @@ private fun clearSuggestedRoute() {
         binding.classSection.visibility = if (hasType) View.VISIBLE else View.GONE
         binding.detailsSection.visibility = if (hasType) View.VISIBLE else View.GONE
 
+        // Sitzplatz nur bei Privat mit ausgewählter Reiseklasse.
+        val isPrivate = selectedFlightTypeIndex == PRIVATE_INDEX
+        binding.seatSection.visibility =
+            if (isPrivate && selectedClassIndex != null) View.VISIBLE else View.GONE
+
         val revealAirports = hasType &&
             airline.isNotEmpty() && flightNumber.isNotEmpty() && date
         binding.airportSection.visibility = if (revealAirports) View.VISIBLE else View.GONE
@@ -1483,6 +1496,7 @@ private fun clearSuggestedRoute() {
             date = confirmedDate,
             flightType = selectedFlightType(),
             classType = selectedClassType(),
+            seat = binding.etSeat.text?.toString()?.trim()?.uppercase()?.ifEmpty { null },
             fromAirport = from,
             toAirport = to,
             airline = airline.uppercase(),

@@ -49,6 +49,9 @@
         <action
             android:id="@+id/action_dashboard_to_achievements"
             app:destination="@id/nav_achievements" />
+        <action
+            android:id="@+id/action_dashboard_to_seat_detail"
+            app:destination="@id/nav_seat_detail" />
     </fragment>
 
     <fragment
@@ -263,6 +266,10 @@
         <action
             android:id="@+id/action_flights_year_to_months"
             app:destination="@id/nav_flights_months" />
+        <!-- Der Reiseart-Balken oben öffnet das Kreisdiagramm der Reisearten. -->
+        <action
+            android:id="@+id/action_flights_year_to_tile_detail"
+            app:destination="@id/nav_tile_detail" />
     </fragment>
 
     <fragment
@@ -418,4 +425,11 @@
         android:id="@+id/nav_achievements_grid"
         android:name="com.highfly.logbook.AchievementsGridFragment"
         tools:layout="@layout/fragment_achievements_grid" />
+
+    <!-- Detailseite der Kachel "Sitzplatz": Flugzeug-Schema von oben mit
+         Heatmap der erfassten Sitzplätze. -->
+    <fragment
+        android:id="@+id/nav_seat_detail"
+        android:name="com.highfly.logbook.SeatDetailFragment"
+        tools:layout="@layout/fragment_seat_detail" />
 </navigation>

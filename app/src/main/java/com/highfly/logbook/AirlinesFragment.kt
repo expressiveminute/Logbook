@@ -80,6 +80,9 @@ class AirlinesFragment : LogbookFragment(), BackPressAware {
         savedInstanceState?.getString(KEY_SEARCH_QUERY)?.let { searchQuery = it }
         searchOpen = savedInstanceState?.getBoolean(KEY_SEARCH_OPEN) ?: false
         binding.btnAirlinesBack.setOnClickListener { findNavController().navigateUp() }
+        // Platz unter der schwebenden Navigationsleiste: Der letzte Eintrag
+        // scrollt ganz über die Leiste hinaus.
+        binding.airlineList.addBottomNavPadding()
         binding.airlineList.layoutManager = LinearLayoutManager(requireContext())
         adapter = AirlineAdapter()
         adapter.onItemClick = { airline ->

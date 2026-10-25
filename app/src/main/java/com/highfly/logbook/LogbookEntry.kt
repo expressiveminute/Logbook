@@ -7,6 +7,12 @@ data class LogbookEntry(
     val date: LocalDate,
     val flightType: String? = null,
     val classType: String? = null,
+    /**
+     * Sitzplatz im Flugzeug, z. B. "1A", "24D" oder "12F". Wird nur bei der
+     * Reiseart Privat mit ausgewählter Reiseklasse erfasst. A ist links am
+     * Fenster, bei Kurzstrecke ist F rechts am Fenster, bei Langstrecke K.
+     */
+    val seat: String? = null,
     val fromAirport: String,
     val toAirport: String,
     val airline: String? = null,

@@ -25,6 +25,9 @@ class FlightsMonthsFragment : LogbookFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Platz unter der schwebenden Navigationsleiste.
+        binding.monthsScroll.addBottomNavPadding()
+
         val year = requireArguments().getInt("year")
 
         binding.btnMonthBack.setOnClickListener {

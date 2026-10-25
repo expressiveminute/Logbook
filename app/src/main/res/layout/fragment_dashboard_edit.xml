@@ -55,7 +55,8 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:fillViewport="true">
+        android:fillViewport="true"
+        android:clipToPadding="false">
 
         <LinearLayout
             android:id="@+id/edit_content"
@@ -81,87 +82,97 @@
         </LinearLayout>
     </ScrollView>
 
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginTop="2dp"
-        android:background="?attr/colorOutlineVariant" />
-
+    <!-- Untere Bedienleiste (Skalierung und Aktionen): Sie schwebt als
+         festes Element über der Navigationsleiste. Der Kachel-Grid darüber
+         läuft bis zum unteren Rand und bekommt unten scrollbaren Leerraum. -->
     <LinearLayout
+        android:id="@+id/edit_bottom_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingStart="20dp"
-        android:paddingTop="8dp"
-        android:paddingEnd="20dp">
+        android:orientation="vertical">
 
-        <TextView
-            android:layout_width="wrap_content"
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="2dp"
+            android:background="?attr/colorOutlineVariant" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:labelFor="@id/scale_slider"
-            android:text="@string/dashboard_scale_label"
-            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="20dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="20dp">
 
-        <com.google.android.material.slider.Slider
-            android:id="@+id/scale_slider"
-            android:layout_width="0dp"
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:labelFor="@id/scale_slider"
+                android:text="@string/dashboard_scale_label"
+                android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+            <com.google.android.material.slider.Slider
+                android:id="@+id/scale_slider"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:stepSize="1"
+                android:value="90"
+                android:valueFrom="85"
+                android:valueTo="100"
+                app:tickVisible="true" />
+
+            <TextView
+                android:id="@+id/tv_scale_value"
+                android:layout_width="48dp"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                tools:text="100 %" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_weight="1"
-            android:stepSize="1"
-            android:value="90"
-            android:valueFrom="85"
-            android:valueTo="100"
-            app:tickVisible="true" />
+            android:orientation="horizontal"
+            android:paddingStart="16dp"
+            android:paddingTop="4dp"
+            android:paddingEnd="16dp">
 
-        <TextView
-            android:id="@+id/tv_scale_value"
-            android:layout_width="48dp"
-            android:layout_height="wrap_content"
-            android:gravity="end"
-            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            tools:text="100 %" />
-    </LinearLayout>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_dashboard_edit_add"
+                style="@style/SettingsActionButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:maxLines="1"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:text="@string/dashboard_add_tile" />
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:paddingStart="16dp"
-        android:paddingTop="4dp"
-        android:paddingEnd="16dp">
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_dashboard_edit_reset"
+                style="@style/SettingsActionButton"
+                android:layout_width="0dp"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:maxLines="1"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:text="@string/dashboard_reset" />
+        </LinearLayout>
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_dashboard_edit_add"
-            style="@style/SettingsActionButton"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:maxLines="1"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:text="@string/dashboard_add_tile" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_dashboard_edit_reset"
-            style="@style/SettingsActionButton"
-            android:layout_width="0dp"
-            android:layout_marginStart="8dp"
-            android:layout_weight="1"
-            android:maxLines="1"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:text="@string/dashboard_reset" />
+            android:id="@+id/btn_dashboard_edit_done"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="16dp"
+            android:text="@string/dashboard_done" />
     </LinearLayout>
-
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btn_dashboard_edit_done"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="16dp"
-        android:text="@string/dashboard_done" />
 </LinearLayout>

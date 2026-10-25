@@ -33,7 +33,31 @@
         <item name="android:orientation">horizontal</item>
     </style>
 
-    <!-- Auswahlkachel: bewusst flach, damit mehrere Kacheln in eine Zeile passen. -->
+    <!--
+        Block für eine segmentierte Auswahl: Beschriftung oben, Regler
+        (SegmentedOptionView) darunter, voll breit. Die Regler ersetzen die
+        früheren Auswahlkacheln auf den Einstellungsseiten.
+    -->
+    <style name="SettingsBlock">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:orientation">vertical</item>
+    </style>
+
+    <style name="SettingsBlockLabel">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginBottom">8dp</item>
+        <item name="android:textAppearance">?attr/textAppearanceLabelLarge</item>
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!--
+        Auswahlkachel: bewusst flach, damit mehrere Kacheln in eine Zeile passen.
+        Nur noch die Willkommens-Tour nutzt sie (welcome_page_profile.xml);
+        die Einstellungsseiten arbeiten mit SegmentedOptionView.
+    -->
     <style name="SettingsTile" parent="">
         <item name="android:layout_width">0dp</item>
         <item name="android:layout_height">40dp</item>

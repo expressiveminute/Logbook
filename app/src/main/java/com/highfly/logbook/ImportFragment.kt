@@ -55,6 +55,10 @@ class ImportFragment : LogbookFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Unter dem Inhalt bleibt scrollbarer Leerraum für die schwebende
+        // Navigationsleiste.
+        binding.importScroll.addBottomNavPadding()
+
         binding.btnBackImport.setOnClickListener { findNavController().navigateUp() }
 
         binding.tileModeOverwrite.setOnClickListener { selectMode(ImportMode.OVERWRITE) }

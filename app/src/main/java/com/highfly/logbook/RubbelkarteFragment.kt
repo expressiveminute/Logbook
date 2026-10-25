@@ -53,6 +53,8 @@ class RubbelkarteFragment : LogbookFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        // Die Kachelzeile sitzt über der schwebenden Navigationsleiste.
+        binding.continentScroll.addBottomNavMargin()
         applyMapArea()
         binding.btnCountries.setOnClickListener {
             findNavController().navigate(R.id.action_rubbelkarte_to_countries)

@@ -12,6 +12,7 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:fillViewport="true"
+        android:clipToPadding="false"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -450,6 +451,65 @@
                             </LinearLayout>
                         </LinearLayout>
                     </FrameLayout>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+
+            <!-- Sitzplatz: nur bei Reiseart Privat mit ausgewählter Reiseklasse.
+                 Eingabe wie "1A", "24D" oder "12F". Gleicher Aufbau wie die
+                 übrigen Eingabefelder (InputTile mit schwebender Beschriftung). -->
+            <LinearLayout
+                android:id="@+id/seat_section"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="vertical"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:clipChildren="false"
+                    android:clipToPadding="false"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="@android:color/transparent"
+                    app:contentPaddingStart="0dp"
+                    app:contentPaddingEnd="0dp"
+                    app:contentPaddingBottom="0dp"
+                    app:contentPaddingTop="12dp"
+                    app:strokeWidth="0dp"
+                    app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full">
+
+                    <com.highfly.logbook.InputTile
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:minHeight="52dp"
+                        android:paddingStart="20dp"
+                        android:paddingEnd="4dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:labelFor="@id/et_seat"
+                            android:text="@string/seat_label"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                            android:textColor="?attr/colorOnSurfaceVariant"
+                            android:textStyle="bold" />
+
+                        <EditText
+                            android:id="@+id/et_seat"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="@null"
+                            android:hint="@string/seat_hint"
+                            android:imeOptions="actionDone"
+                            android:inputType="textCapCharacters"
+                            android:maxLength="4"
+                            android:maxLines="1"
+                            android:textSize="17sp"
+                            android:textColor="?attr/colorOnSurface" />
+                    </com.highfly.logbook.InputTile>
                 </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
 

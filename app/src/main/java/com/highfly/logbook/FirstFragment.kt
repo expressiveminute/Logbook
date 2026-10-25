@@ -45,6 +45,13 @@ class FirstFragment : LogbookFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Der Plus-Knopf schwebt über der Navigationsleiste.
+        binding.fabAdd.addBottomNavMargin()
+
+        // Platz unter der schwebenden Navigationsleiste: Die unterste
+        // Kachelzeile scrollt ganz über die Leiste hinaus.
+        binding.dashboardScroll.addBottomNavPadding()
+
         binding.fabAdd.setOnClickListener {
             findNavController().navigate(R.id.action_dashboard_to_add_entry)
         }
@@ -162,6 +169,10 @@ class FirstFragment : LogbookFragment() {
                 Settings.getPassengerLoadFactor(appContext),
                 AircraftSeats.load(appContext)
             )
+            // Die Sitzplatz-Kachel nur anzeigen, wenn Sitzplätze erfasst sind
+            // (gleiche Auswahl wie die Detailseite: Flugart-Filter, kein Zeitraum).
+            val hasSeatData = DashboardStats.flightTypeEntries(appContext)
+                .any { !it.seat.isNullOrBlank() }
 
             view?.post {
                 if (generation != loadGeneration || _binding == null) return@post
@@ -175,7 +186,8 @@ class FirstFragment : LogbookFragment() {
                     co2,
                     radiation,
                     passengers,
-                    entries
+                    entries,
+                    hasSeatData
                 )
             }
         }.start()
@@ -198,7 +210,8 @@ class FirstFragment : LogbookFragment() {
         co2: Co2Calculator.Details,
         radiation: RadiationStats.Summary,
         passengers: PassengersCalculator.Summary,
-        entries: List<LogbookEntry>
+        entries: List<LogbookEntry>,
+        hasSeatData: Boolean = true
     ) {
         TileValueAnimator.cancelAll()
         container.removeAllViews()
@@ -225,7 +238,11 @@ class FirstFragment : LogbookFragment() {
         packedRows.forEachIndexed { rowIndex, rowIds ->
             // Kacheln, die zur Rolle nicht passen (Layover, Funktion), fehlen
             // hier ganz; die Spalten richten sich nur nach den sichtbaren.
-            val visibleIds = rowIds.filter { DashboardPrefs.isTileAvailable(it, role) }
+            // Die Sitzplatz-Kachel erscheint nur, wenn Sitzplätze erfasst sind.
+            val visibleIds = rowIds.filter {
+                DashboardPrefs.isTileAvailable(it, role) &&
+                    (it != "seat" || hasSeatData)
+            }
             if (visibleIds.isEmpty()) return@forEachIndexed
             val row = LinearLayout(requireContext()).apply {
                 orientation = LinearLayout.HORIZONTAL
@@ -831,6 +848,10 @@ class FirstFragment : LogbookFragment() {
                 // Die Erfolgs-Kachel öffnet die Seite mit dem Fortschritt und
                 // dem Zeitstrahl der erreichten Erfolge.
                 findNavController().navigate(R.id.action_dashboard_to_achievements)
+            }
+            id == "seat" -> {
+                // Die Sitzplatz-Kachel öffnet das Flugzeug-Schema mit Heatmap.
+                findNavController().navigate(R.id.action_dashboard_to_seat_detail)
             }
             ChartData.isBarChart(id) || ChartData.isPieChart(id) -> {
                 val bundle = Bundle().apply { putString("tileId", id) }

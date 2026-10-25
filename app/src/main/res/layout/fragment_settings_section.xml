@@ -7,6 +7,7 @@
     android:layout_height="match_parent"
     android:background="?android:attr/colorBackground"
     android:fillViewport="true"
+    android:clipToPadding="false"
     tools:context=".SettingsSectionFragment">
 
     <LinearLayout
@@ -43,6 +44,12 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
+        <!--
+            Die Punkte sind nach Themen gruppiert: innerhalb einer Gruppe
+            liegen sie mit 12 dp Abstand beieinander, zwischen zwei Gruppen
+            (anderer Inhalt) mit 28 dp. Die Auswahlen laufen als Regler
+            (SegmentedOptionView) wie die Reiseklasse unter "Neuer Flug".
+        -->
         <LinearLayout
             android:id="@+id/content_profile"
             android:layout_width="match_parent"
@@ -51,41 +58,41 @@
             android:orientation="vertical"
             android:visibility="gone">
 
-            <LinearLayout style="@style/SettingsRow">
+            <!-- Thema: Rolle -->
+            <LinearLayout style="@style/SettingsBlock">
 
                 <TextView
-                    style="@style/SettingsRowLabel"
+                    style="@style/SettingsBlockLabel"
                     android:text="@string/settings_role" />
 
-                <LinearLayout style="@style/SettingsRowValue">
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/role_crew_tile"
-                        style="@style/SettingsTile"
-                        android:layout_marginEnd="3dp">
-
-                        <TextView
-                            android:id="@+id/role_crew_label"
-                            style="@style/SettingsTileLabel"
-                            android:text="@string/role_crew" />
-                    </com.google.android.material.card.MaterialCardView>
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/role_passenger_tile"
-                        style="@style/SettingsTile">
-
-                        <TextView
-                            android:id="@+id/role_passenger_label"
-                            style="@style/SettingsTileLabel"
-                            android:text="@string/role_passenger" />
-                    </com.google.android.material.card.MaterialCardView>
-                </LinearLayout>
+                <com.highfly.logbook.SegmentedOptionView
+                    android:id="@+id/role_selector"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
             </LinearLayout>
 
+            <!-- Nur für die Rolle Crew; bei Passagier ausgeblendet. -->
+            <LinearLayout
+                android:id="@+id/crew_function_group"
+                style="@style/SettingsBlock"
+                android:layout_marginTop="12dp">
+
+                <TextView
+                    style="@style/SettingsBlockLabel"
+                    android:text="@string/function_label" />
+
+                <com.highfly.logbook.SegmentedOptionView
+                    android:id="@+id/crew_function_selector"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+
+            <!-- Thema: Standardwerte für neue Flüge -->
             <!--
                 Die Fluggesellschaft gehoert beiden Rollen: Sie ist die
                 Vorbefuellung fuer das Feld "Fluggesellschaft" eines neuen
-                Flugs und steht deshalb ausserhalb der Besatzungs-Gruppe.
+                Flugs und steht deshalb zusammen mit der bevorzugten
+                Arbeitsposition in dieser Gruppe.
             -->
             <!--
                 Die Fluggesellschaft steht als Eingabekachel wie im Formular
@@ -97,7 +104,7 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="28dp"
                 android:clipChildren="false"
                 android:clipToPadding="false"
                 app:cardBackgroundColor="@android:color/transparent"
@@ -147,109 +154,23 @@
             </com.google.android.material.card.MaterialCardView>
 
             <LinearLayout
-                android:id="@+id/crew_function_group"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
+                style="@style/SettingsBlock"
+                android:layout_marginTop="12dp">
 
-                <LinearLayout style="@style/SettingsRow">
+                <TextView
+                    style="@style/SettingsBlockLabel"
+                    android:text="@string/profile_preferred_class_label" />
 
-                    <TextView
-                        style="@style/SettingsRowLabel"
-                        android:text="@string/function_label" />
-
-                    <LinearLayout style="@style/SettingsRowValue">
-
-                        <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/crew_function_purser_ii_tile"
-                            style="@style/SettingsTile"
-                            android:layout_marginEnd="3dp">
-
-                            <TextView
-                                android:id="@+id/crew_function_purser_ii_label"
-                                style="@style/SettingsTileLabel"
-                                android:text="@string/crew_function_purser_ii" />
-                        </com.google.android.material.card.MaterialCardView>
-
-                        <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/crew_function_purser_i_tile"
-                            style="@style/SettingsTile"
-                            android:layout_marginEnd="3dp">
-
-                            <TextView
-                                android:id="@+id/crew_function_purser_i_label"
-                                style="@style/SettingsTileLabel"
-                                android:text="@string/crew_function_purser_i" />
-                        </com.google.android.material.card.MaterialCardView>
-
-                        <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/crew_function_flight_attendant_tile"
-                            style="@style/SettingsTile">
-
-                            <TextView
-                                android:id="@+id/crew_function_flight_attendant_label"
-                                style="@style/SettingsTileLabel"
-                                android:text="@string/crew_function_flight_attendant" />
-                        </com.google.android.material.card.MaterialCardView>
-                    </LinearLayout>
-                </LinearLayout>
-
-                <LinearLayout style="@style/SettingsRow">
-
-                    <TextView
-                        style="@style/SettingsRowLabel"
-                        android:text="@string/profile_preferred_class_label" />
-
-                    <LinearLayout style="@style/SettingsRowValue">
-
-                        <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/preferred_class_economy_tile"
-                            style="@style/SettingsTile"
-                            android:layout_marginEnd="3dp">
-
-                            <TextView
-                                android:id="@+id/preferred_class_economy_label"
-                                style="@style/SettingsTileLabel"
-                                android:text="@string/class_economy" />
-                        </com.google.android.material.card.MaterialCardView>
-
-                        <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/preferred_class_premium_economy_tile"
-                            style="@style/SettingsTile"
-                            android:layout_marginEnd="3dp">
-
-                            <TextView
-                                android:id="@+id/preferred_class_premium_economy_label"
-                                style="@style/SettingsTileLabel"
-                                android:contentDescription="@string/class_premium_economy"
-                                android:text="@string/class_premium_economy_short" />
-                        </com.google.android.material.card.MaterialCardView>
-
-                        <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/preferred_class_business_tile"
-                            style="@style/SettingsTile"
-                            android:layout_marginEnd="3dp">
-
-                            <TextView
-                                android:id="@+id/preferred_class_business_label"
-                                style="@style/SettingsTileLabel"
-                                android:text="@string/class_business" />
-                        </com.google.android.material.card.MaterialCardView>
-
-                        <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/preferred_class_first_tile"
-                            style="@style/SettingsTile">
-
-                            <TextView
-                                android:id="@+id/preferred_class_first_label"
-                                style="@style/SettingsTileLabel"
-                                android:text="@string/class_first" />
-                        </com.google.android.material.card.MaterialCardView>
-                    </LinearLayout>
-                </LinearLayout>
+                <com.highfly.logbook.SegmentedOptionView
+                    android:id="@+id/preferred_class_selector"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
             </LinearLayout>
 
-            <LinearLayout style="@style/SettingsRow">
+            <!-- Thema: Hilfe -->
+            <LinearLayout
+                style="@style/SettingsRow"
+                android:layout_marginTop="28dp">
 
                 <TextView
                     style="@style/SettingsRowLabel"
@@ -291,7 +212,9 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical" />
 
-            <LinearLayout style="@style/SettingsRow">
+            <LinearLayout
+                style="@style/SettingsRow"
+                android:layout_marginTop="12dp">
 
                 <TextView
                     style="@style/SettingsRowLabel"
@@ -308,85 +231,6 @@
         </LinearLayout>
 
         <LinearLayout
-            android:id="@+id/content_themes"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:orientation="vertical"
-            android:visibility="gone">
-
-            <LinearLayout style="@style/SettingsRow">
-
-                <TextView
-                    style="@style/SettingsRowLabel"
-                    android:text="@string/settings_appearance" />
-
-                <LinearLayout style="@style/SettingsRowValue">
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/dark_mode_tile"
-                        style="@style/SettingsTile"
-                        android:layout_marginEnd="3dp">
-
-                        <TextView
-                            android:id="@+id/dark_mode_label"
-                            style="@style/SettingsTileLabel"
-                            android:text="@string/settings_dark_mode" />
-                    </com.google.android.material.card.MaterialCardView>
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/light_mode_tile"
-                        style="@style/SettingsTile"
-                        android:layout_marginEnd="3dp">
-
-                        <TextView
-                            android:id="@+id/light_mode_label"
-                            style="@style/SettingsTileLabel"
-                            android:text="@string/settings_light_mode" />
-                    </com.google.android.material.card.MaterialCardView>
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/system_mode_tile"
-                        style="@style/SettingsTile">
-
-                        <TextView
-                            android:id="@+id/system_mode_label"
-                            style="@style/SettingsTileLabel"
-                            android:text="@string/settings_system_mode" />
-                    </com.google.android.material.card.MaterialCardView>
-                </LinearLayout>
-            </LinearLayout>
-
-            <LinearLayout style="@style/SettingsRow">
-
-                <TextView
-                    style="@style/SettingsRowLabel"
-                    android:text="@string/settings_accent_color" />
-
-                <LinearLayout style="@style/SettingsRowValue">
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/accent_brown_tile"
-                        style="@style/SettingsTile"
-                        android:layout_marginEnd="3dp"
-                        android:contentDescription="@string/settings_accent_brown" />
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/accent_magenta_tile"
-                        style="@style/SettingsTile"
-                        android:layout_marginEnd="3dp"
-                        android:contentDescription="@string/settings_accent_magenta" />
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/accent_turquoise_tile"
-                        style="@style/SettingsTile"
-                        android:contentDescription="@string/settings_accent_turquoise" />
-                </LinearLayout>
-            </LinearLayout>
-
-        </LinearLayout>
-
-        <LinearLayout
             android:id="@+id/content_customization"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -394,7 +238,60 @@
             android:orientation="vertical"
             android:visibility="gone">
 
-            <LinearLayout style="@style/SettingsRow">
+            <!-- Thema: Darstellung -->
+            <LinearLayout style="@style/SettingsBlock">
+
+                <TextView
+                    style="@style/SettingsBlockLabel"
+                    android:text="@string/settings_appearance" />
+
+                <com.highfly.logbook.SegmentedOptionView
+                    android:id="@+id/theme_mode_selector"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+
+            <!-- Die Akzentfarbe als Farbkreise in den Zellen des Reglers. -->
+            <LinearLayout
+                style="@style/SettingsBlock"
+                android:layout_marginTop="12dp">
+
+                <TextView
+                    style="@style/SettingsBlockLabel"
+                    android:text="@string/settings_accent_color" />
+
+                <com.highfly.logbook.SegmentedOptionView
+                    android:id="@+id/accent_selector"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/row_compact_text"
+                style="@style/SettingsRow"
+                android:layout_marginTop="12dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground">
+
+                <TextView
+                    style="@style/SettingsRowLabel"
+                    android:contentDescription="@string/settings_compact_text_subtitle"
+                    android:text="@string/settings_compact_text" />
+
+                <LinearLayout style="@style/SettingsRowValue">
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/compact_text_switch"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Thema: Voreinstellungen -->
+            <LinearLayout
+                style="@style/SettingsRow"
+                android:layout_marginTop="28dp">
 
                 <TextView
                     style="@style/SettingsRowLabel"
@@ -409,37 +306,23 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <LinearLayout style="@style/SettingsRow">
+            <LinearLayout
+                style="@style/SettingsBlock"
+                android:layout_marginTop="12dp">
 
                 <TextView
-                    style="@style/SettingsRowLabel"
+                    style="@style/SettingsBlockLabel"
                     android:text="@string/settings_language" />
 
-                <LinearLayout style="@style/SettingsRowValue">
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/lang_de_tile"
-                        style="@style/SettingsTile">
-
-                        <TextView
-                            android:id="@+id/lang_de_label"
-                            style="@style/SettingsTileLabel"
-                            android:text="@string/settings_lang_de" />
-                    </com.google.android.material.card.MaterialCardView>
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/lang_en_tile"
-                        style="@style/SettingsTile">
-
-                        <TextView
-                            android:id="@+id/lang_en_label"
-                            style="@style/SettingsTileLabel"
-                            android:text="@string/settings_lang_en" />
-                    </com.google.android.material.card.MaterialCardView>
-                </LinearLayout>
+                <com.highfly.logbook.SegmentedOptionView
+                    android:id="@+id/language_selector"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
             </LinearLayout>
 
-            <LinearLayout style="@style/SettingsRow">
+            <LinearLayout
+                style="@style/SettingsRow"
+                android:layout_marginTop="12dp">
 
                 <TextView
                     style="@style/SettingsRowLabel"
@@ -457,7 +340,7 @@
 
                         <!-- saveEnabled=false: Der Text wird bei jedem Aufbau neu
                              aus den Einstellungen gesetzt. Sonst stellt die Ansicht
-                             beim Sprachwechsel ihren alten (anderssprachigen) Text
+                             beim Sprachwechsel ihren alten (andersprachigen) Text
                              wieder her und überschreibt die Übersetzung. -->
                         <com.google.android.material.textfield.MaterialAutoCompleteTextView
                             android:id="@+id/default_period_dropdown"
@@ -472,7 +355,9 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <LinearLayout style="@style/SettingsRow">
+            <LinearLayout
+                style="@style/SettingsRow"
+                android:layout_marginTop="12dp">
 
                 <TextView
                     style="@style/SettingsRowLabel"
@@ -501,27 +386,6 @@
                     </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>
             </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/row_compact_text"
-                style="@style/SettingsRow"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?attr/selectableItemBackground">
-
-                <TextView
-                    style="@style/SettingsRowLabel"
-                    android:contentDescription="@string/settings_compact_text_subtitle"
-                    android:text="@string/settings_compact_text" />
-
-                <LinearLayout style="@style/SettingsRowValue">
-
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/compact_text_switch"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
-                </LinearLayout>
-            </LinearLayout>
         </LinearLayout>
 
         <LinearLayout
@@ -532,6 +396,7 @@
             android:orientation="vertical"
             android:visibility="gone">
 
+            <!-- Thema: Sichern und Wiederherstellen -->
             <LinearLayout style="@style/SettingsRow">
 
                 <TextView
@@ -547,7 +412,9 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <LinearLayout style="@style/SettingsRow">
+            <LinearLayout
+                style="@style/SettingsRow"
+                android:layout_marginTop="12dp">
 
                 <TextView
                     style="@style/SettingsRowLabel"
@@ -562,13 +429,14 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Danger Zone: Beide Aktionen benötigen die Passphrase FLIGHTS,
-                 siehe [PassphraseConfirm]. Der Strich trennt sie sichtbar von
-                 Export/Import ab, damit nichts versehentlich daneben gerät. -->
+            <!-- Thema: Gefahrenzone. Beide Aktionen benötigen die Passphrase
+                 FLIGHTS, siehe [PassphraseConfirm]. Der Strich trennt sie
+                 sichtbar von Export/Import ab, damit nichts versehentlich
+                 daneben gerät. -->
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:layout_marginTop="20dp"
+                android:layout_marginTop="28dp"
                 android:layout_marginBottom="12dp"
                 android:background="?attr/colorOutlineVariant" />
 
@@ -597,7 +465,9 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <LinearLayout style="@style/SettingsRow">
+            <LinearLayout
+                style="@style/SettingsRow"
+                android:layout_marginTop="12dp">
 
                 <TextView
                     style="@style/SettingsRowLabel"
@@ -641,6 +511,7 @@
             <LinearLayout
                 android:id="@+id/row_demo_data"
                 style="@style/SettingsRow"
+                android:layout_marginTop="12dp"
                 android:clickable="true"
                 android:focusable="true"
                 android:foreground="?attr/selectableItemBackground">

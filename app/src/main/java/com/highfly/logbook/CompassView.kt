@@ -12,17 +12,18 @@ import android.view.View
 import com.google.android.material.color.MaterialColors
 
 /**
- * Kompass der Kachel "Flughäfen". In der Mitte steht der Flughafen, von dem
- * aus am häufigsten geflogen wurde; an den vier Himmelsrichtungen die
- * Extrem-Flughäfen des Datensatzes: Norden = nördlichster, Süden =
- * südlichster, Westen = westlichster, Osten = östlichster. Derselbe Flughafen
- * darf mehrere Positionen belegen, dann steht sein Code mehrfach.
+ * Kompass der Kachel "Flughäfen". In der Mitte steht die Homebase, der
+ * meistgenutzte Flughafen des Logbuchs (siehe [Homebase]); an den vier
+ * Himmelsrichtungen die Extrem-Flughäfen des Datensatzes: Norden =
+ * nördlichster, Süden = südlichster, Westen = westlichster, Osten =
+ * östlichster. Derselbe Flughafen darf mehrere Positionen belegen, dann
+ * steht sein Code mehrfach.
  *
  * Gezeichnet wird eine Kompassrose aus vier schlanken, zweifarbigen Nadeln.
- * In der Mitte steht der Code des häufigsten Abflughafens; an jeder Nadel
- * folgt zuerst mit etwas Abstand am Nadelende der Buchstabe der
- * Himmelsrichtung, daneben der Dreilettercode - etwas grösser und fett. Ein
- * Tipp auf einen Code öffnet die Detailseite des Flughafens (siehe
+ * In der Mitte steht der Code der Homebase mit der Beschriftung darunter;
+ * an jeder Nadel folgt zuerst mit etwas Abstand am Nadelende der Buchstabe
+ * der Himmelsrichtung, daneben der Dreilettercode - etwas grösser und fett.
+ * Ein Tipp auf einen Code öffnet die Detailseite des Flughafens (siehe
  * [setOnAirportClickListener]).
  */
 class CompassView @JvmOverloads constructor(
@@ -58,6 +59,9 @@ class CompassView @JvmOverloads constructor(
         textAlign = Paint.Align.CENTER
         isFakeBoldText = true
     }
+    private val homebaseLabelPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+        textAlign = Paint.Align.CENTER
+    }
 
     private var center: Airport? = null
     private var north: Airport? = null
@@ -91,6 +95,10 @@ class CompassView @JvmOverloads constructor(
             this, com.google.android.material.R.attr.colorOnSurface
         )
         centerCodePaint.textSize = sp(20f)
+        homebaseLabelPaint.color = MaterialColors.getColor(
+            this, com.google.android.material.R.attr.colorOnSurfaceVariant
+        )
+        homebaseLabelPaint.textSize = sp(11f)
     }
 
     /**
@@ -128,8 +136,8 @@ class CompassView @JvmOverloads constructor(
         val cy = height / 2f
         val r = minOf(width, height) * 0.30f
 
-        // Kompassrose aus vier schlanken Nadeln; in der Mitte steht der Code
-        // des häufigsten Abflughafens.
+        // Kompassrose aus vier schlanken Nadeln; in der Mitte steht die
+        // Homebase.
         drawNeedles(canvas, cx, cy, r)
 
         val northText = resources.getString(R.string.compass_north)
@@ -172,11 +180,33 @@ class CompassView @JvmOverloads constructor(
         drawDirection(canvas, westText, west?.code, cx - letterRadius, cy, cx - codeRadiusX, cy)
         drawDirection(canvas, eastText, east?.code, cx + letterRadius, cy, cx + codeRadiusX, cy)
 
-        // Zentrum: Code des häufigsten Abflughafens.
+        // Zentrum: Code der Homebase mit der Beschriftung darunter, als
+        // Block um die Mitte zentriert. Die Nadelwurzeln beginnen erst bei
+        // NEEDLE_ROOT_FRACTION der Nadellänge, der Block bleibt also frei.
         val centerCode = center!!.code
-        val baseline = cy - (centerCodePaint.ascent() + centerCodePaint.descent()) / 2f
-        canvas.drawText(centerCode, cx, baseline, centerCodePaint)
-        addClickTarget(centerCode, cx, cy, centerCodePaint)
+        val homebaseLabel = resources.getString(R.string.compass_homebase)
+        val centerCodeMetrics = centerCodePaint.fontMetrics
+        val labelMetrics = homebaseLabelPaint.fontMetrics
+        val codeHeight = centerCodeMetrics.descent - centerCodeMetrics.ascent
+        val labelHeight = labelMetrics.descent - labelMetrics.ascent
+        val gap = dp(HOMEBASE_LABEL_GAP_DP)
+        val blockHeight = codeHeight + gap + labelHeight
+        val top = cy - blockHeight / 2f
+        canvas.drawText(centerCode, cx, top - centerCodeMetrics.ascent, centerCodePaint)
+        canvas.drawText(
+            homebaseLabel, cx, top + codeHeight + gap - labelMetrics.ascent,
+            homebaseLabelPaint
+        )
+        if (onAirportClickListener != null) {
+            val halfWidth = maxOf(
+                centerCodePaint.measureText(centerCode),
+                homebaseLabelPaint.measureText(homebaseLabel)
+            ) / 2f
+            clickTargets += RectF(
+                cx - halfWidth, cy - blockHeight / 2f,
+                cx + halfWidth, cy + blockHeight / 2f
+            ) to centerCode
+        }
     }
 
     /** Vier schlanke Nadeln nach Norden, Osten, Süden und Westen. */
@@ -299,6 +329,9 @@ class CompassView @JvmOverloads constructor(
 
         /** Mindestabstand des Dreilettercodes zum seitlichen Bildrand. */
         private const val CODE_MARGIN_DP = 4f
+
+        /** Abstand zwischen Homebase-Code und Beschriftung in der Mitte. */
+        private const val HOMEBASE_LABEL_GAP_DP = 2f
 
         /**
          * Radius, auf dem der Dreilettercode sitzt: der Radius des

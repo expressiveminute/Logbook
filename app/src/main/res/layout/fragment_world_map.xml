@@ -34,6 +34,9 @@
             android:textColor="?attr/colorOnSurfaceVariant" />
     </LinearLayout>
 
+    <!-- Der Zurueck-Pfeil bleibt ausgeblendet: Die Weltkarte ist ein
+         Top-Level-Ziel der unteren Leiste, und das Pfeil-Icon links oben
+         sah wie ein zweiter Filter-Reset aus (btn_filter_reset). -->
     <FrameLayout
         android:id="@+id/btn_back"
         android:layout_width="48dp"
@@ -43,13 +46,37 @@
         android:layout_marginTop="8dp"
         android:background="@drawable/bg_icon_button"
         android:clickable="true"
-        android:focusable="true">
+        android:focusable="true"
+        android:visibility="gone">
 
         <ImageView
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:layout_gravity="center"
             android:contentDescription="@string/btn_back"
+            app:srcCompat="@drawable/ic_arrow_back"
+            app:tint="?attr/colorOnSurface" />
+    </FrameLayout>
+
+    <!-- Setzt den Kartenfilter zurück; steht links neben dem Filterbutton und
+         ist nur zu sehen, solange ein Filter aktiv ist. -->
+    <FrameLayout
+        android:id="@+id/btn_filter_reset"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="72dp"
+        android:background="@drawable/bg_icon_button"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="center"
+            android:contentDescription="@string/world_map_filter_reset"
             app:srcCompat="@drawable/ic_arrow_back"
             app:tint="?attr/colorOnSurface" />
     </FrameLayout>
@@ -76,12 +103,35 @@
     </FrameLayout>
 
     <LinearLayout
+        android:id="@+id/map_controls"
         android:layout_width="48dp"
         android:layout_height="wrap_content"
         android:layout_gravity="end|bottom"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="20dp"
         android:orientation="vertical">
+
+        <!-- Blendet die Flugspuren der Layover-Animation wieder ein; nur zu
+             sehen, wenn der Layover-Filter aktiv ist. Sitzt über dem
+             Hineinzoomen-Knopf (Plus). -->
+        <FrameLayout
+            android:id="@+id/btn_layover_trails"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginBottom="4dp"
+            android:background="@drawable/bg_icon_button"
+            android:clickable="true"
+            android:focusable="true"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:contentDescription="@string/world_map_layover_trails"
+                app:srcCompat="@drawable/ic_routes"
+                app:tint="?attr/colorOnSurface" />
+        </FrameLayout>
 
         <FrameLayout
             android:id="@+id/btn_zoom_in"

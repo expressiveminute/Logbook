@@ -35,6 +35,8 @@ class RadiationFragment : LogbookFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        // Platz unter der schwebenden Navigationsleiste.
+        binding.scrollRadiation.addBottomNavPadding()
         binding.btnRadiationBack.setOnClickListener { findNavController().navigateUp() }
         binding.btnRadiationInfo.setOnClickListener {
             findNavController().navigate(R.id.action_radiation_to_info)

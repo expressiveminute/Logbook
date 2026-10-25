@@ -70,6 +70,8 @@ class EntriesFragment : LogbookFragment(), ImeVisibilityAware, BackPressAware {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        // Der letzte Eintrag bleibt über der schwebenden Navigationsleiste sichtbar.
+        binding.entriesList.addBottomNavPadding()
         binding.entriesList.layoutManager = LinearLayoutManager(requireContext())
         adapter = EntryListAdapter(requireContext(), ::openEdit, ::confirmDelete)
         binding.entriesList.adapter = adapter
@@ -286,12 +288,14 @@ class EntriesFragment : LogbookFragment(), ImeVisibilityAware, BackPressAware {
         }
         adapter.schemeColors =
             ClassColorSchemes.textColorsFor(Settings.getClassScheme(requireContext()))
-        // Die Tagesordnung (Layover immer oben, erster Flug des Tages unten)
-        // richtet sich nach dem, was tatsächlich angezeigt wird; der
-        // meistgenutzte Flughafen kommt dabei aus dem ganzen Logbuch, nicht
-        // nur dem gefilterten Rest.
-        val busiest = EntryDayOrder.busiestAirports(allEntries)
-        adapter.submit(EntryDayOrder.reorder(visible, busiest))
+        // Die Tagesordnung (Layover immer oben, Hin-/Rückflug-Paare ab der
+        // Homebase gruppiert, erster Flug des Tages unten) richtet sich nach
+        // dem, was tatsächlich angezeigt wird; die Homebase kommt dabei aus
+        // dem ganzen Logbuch, nicht nur dem gefilterten Rest, und wird zentral
+        // in LogbookRepository gepflegt.
+        val homebases = setOfNotNull(Homebase.current)
+            .ifEmpty { EntryDayOrder.busiestAirports(allEntries) }
+        adapter.submit(EntryDayOrder.reorder(visible, homebases))
         binding.entriesEmpty.setText(
             if (allEntries.isEmpty()) R.string.entries_empty else R.string.entries_no_results
         )

@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Story-Ansicht (Play & Insights): voller Bildschirm, dunkler Hintergrund,
+     oben segmentierte Fortschrittsbalken, darunter der Seiteninhalt, ganz
+     unten ein Tipp-Hinweis. Die Tap-Zonen liegen als letzte Kinder des
+     Inhalts-Containers immer oben und fangen die Klicks ab. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/story_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/story_scrim"
+    tools:context=".StoryActivity"
+    tools:ignore="Overdraw">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <!-- Kopf: Fortschrittsbalken und Titelzeile -->
+        <LinearLayout
+            android:id="@+id/story_header"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="16dp">
+
+            <LinearLayout
+                android:id="@+id/story_progress"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingTop="8dp"
+                android:paddingBottom="10dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingBottom="8dp">
+
+                <TextView
+                    android:id="@+id/tv_story_title"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textAppearance="@style/TextAppearance.Material3.TitleLarge"
+                    android:textColor="@color/story_text"
+                    android:textStyle="bold"
+                    tools:text="Play" />
+
+                <TextView
+                    android:id="@+id/tv_story_counter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="4dp"
+                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                    android:textColor="@color/story_text_variant"
+                    tools:text="1 / 11" />
+
+                <ImageButton
+                    android:id="@+id/btn_story_close"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/story_close"
+                    android:src="@drawable/ic_close"
+                    app:tint="@color/story_text" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Seiteninhalt; die Tap-Zonen liegen als letzte Kinder immer oben -->
+        <FrameLayout
+            android:id="@+id/story_content"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <!-- Tap-Zonen im Verhältnis 1:2. Das FrameLayout-Elternelement ist
+                 nötig: Die Seite wird dynamisch als erstes Kind dahinter gelegt,
+                 daher meldet Lint hier fälschlich "UselessParent". -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                tools:ignore="UselessParent">
+
+                <!-- Linke Tipp-Zone: eine Seite zurück -->
+                <View
+                    android:id="@+id/story_tap_left"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1" />
+
+                <!-- Rechte Tipp-Zone: eine Seite weiter (doppelt so breit) -->
+                <View
+                    android:id="@+id/story_tap_right"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="2" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/tv_story_hint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:padding="16dp"
+            android:text="@string/story_tap_hint"
+            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+            android:textColor="@color/story_text_variant" />
+    </LinearLayout>
+
+    <!-- Ladeanzeige über allem -->
+    <LinearLayout
+        android:id="@+id/story_loading"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <ProgressBar
+            android:layout_width="48dp"
+            android:layout_height="48dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/story_loading"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+            android:textColor="@color/story_text_variant" />
+    </LinearLayout>
+</FrameLayout>

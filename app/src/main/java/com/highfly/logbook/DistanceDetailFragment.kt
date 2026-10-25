@@ -68,6 +68,9 @@ class DistanceDetailFragment : LogbookFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Platz unter der schwebenden Navigationsleiste.
+        binding.scrollView.addBottomNavPadding()
+
         binding.btnBack.setOnClickListener { findNavController().navigateUp() }
         binding.tvDetailTitle.text = getString(R.string.tile_distance)
         binding.tvDetailSubtitle.text = getString(

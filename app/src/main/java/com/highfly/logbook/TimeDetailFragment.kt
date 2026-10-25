@@ -31,6 +31,9 @@ class TimeDetailFragment : LogbookFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Platz unter der schwebenden Navigationsleiste.
+        binding.detailScroll.addBottomNavPadding()
+
         binding.btnBack.setOnClickListener {
             findNavController().navigateUp()
         }

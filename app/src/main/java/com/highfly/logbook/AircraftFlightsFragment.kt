@@ -1,18 +1,29 @@
 package com.highfly.logbook
 
 import android.content.Context
+import android.content.Intent
+import android.graphics.Paint
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.LinearLayout
+import androidx.core.content.ContextCompat
 import androidx.core.os.bundleOf
 import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.RecyclerView
+import androidx.viewpager2.widget.ViewPager2
+import com.google.android.material.color.MaterialColors
 import com.highfly.logbook.databinding.FragmentFlightRouteDetailBinding
+import com.highfly.logbook.databinding.ItemAirportFactBinding
 import com.highfly.logbook.databinding.ItemLayoverTimelineBinding
 import com.highfly.logbook.databinding.ItemRouteStatBinding
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlin.math.roundToInt
 
 /**
  * Detailseite für einen Flugzeugtyp oder eine Registrierung aus dem Hangar:
@@ -40,6 +51,12 @@ class AircraftFlightsFragment : LogbookFragment() {
     /** Verwirft das Ergebnis eines bereits verlassenen Ladevorgangs. */
     private var loadGeneration = 0
 
+    /** Verwirft Foto und Stammdaten eines bereits verlassenen Ladevorgangs. */
+    private var infoGeneration = 0
+
+    /** Seitenwechsel-Listener der Fotogalerie, zum Abmelden in onDestroyView. */
+    private var photoPageCallback: ViewPager2.OnPageChangeCallback? = null
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -50,6 +67,9 @@ class AircraftFlightsFragment : LogbookFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        // Platz unter der schwebenden Navigationsleiste.
+        binding.scrollView.addBottomNavPadding()
 
         mode = requireArguments().getString(ARG_MODE) ?: MODE_TYPE
         value = requireArguments().getString(ARG_VALUE).orEmpty()
@@ -70,6 +90,242 @@ class AircraftFlightsFragment : LogbookFragment() {
             binding.tvEmpty.visibility = View.VISIBLE
             return
         }
+
+        // Nur der Flugzeugtyp bekommt Foto und Stammdaten über der Karte; bei
+        // einer Registrierung bleibt der Abschnitt weg.
+        if (mode == MODE_TYPE) {
+            loadTypeInfo()
+        }
+    }
+
+    /**
+     * Lädt Fotos und Stammdaten des Typs im Hintergrund (beides liegt als
+     * Asset vor und ist zwischen den Aufrufen gecacht; das Dekodieren der
+     * Fotos würde den Aufbau sonst spürbar verzögern). Wie auf der
+     * Airline-Detailseite steht der Abschnitt über der Streckenkarte.
+     */
+    private fun loadTypeInfo() {
+        val generation = ++infoGeneration
+        val appContext = requireContext().applicationContext
+        val target = value
+        binding.tvAircraftName.visibility = View.GONE
+        binding.aircraftPhotoCard.visibility = View.GONE
+        binding.tvAircraftGeneralTitle.visibility = View.GONE
+        binding.tvAircraftFactsSource.visibility = View.GONE
+        binding.aircraftFactsContainer.removeAllViews()
+        Thread {
+            val facts = AircraftFacts.get(appContext, target)
+            val code = AircraftFacts.load(appContext).resolve(target)
+            val photos = code?.let { AircraftPhotos.load(appContext, it) }.orEmpty()
+            view?.post {
+                if (generation != infoGeneration || _binding == null) return@post
+                bindTypeInfo(facts, photos)
+            }
+        }.start()
+    }
+
+    /** Zeigt Anzeigename, Fotogalerie und Stammdaten des Typs, soweit vorhanden. */
+    private fun bindTypeInfo(facts: AircraftFacts.Facts?, photos: List<AircraftPhoto>) {
+        if (facts != null) {
+            binding.tvAircraftName.text = facts.name
+            binding.tvAircraftName.visibility = View.VISIBLE
+        }
+        if (photos.isNotEmpty()) {
+            setupPhotoGallery(photos)
+        }
+        renderGeneralFacts(facts)
+    }
+
+    /** Baut die Fotokachel samt Galerie (Pager, Punkte, Credit) auf. */
+    private fun setupPhotoGallery(photos: List<AircraftPhoto>) {
+        val pager = binding.vpAircraftPhoto
+        pager.adapter = AircraftPhotoAdapter(
+            photos,
+            getString(R.string.aircraft_photo_desc)
+        )
+        // Punkte unter dem Bild - nur bei mehr als einem Foto.
+        val indicator = binding.aircraftGalleryIndicator
+        indicator.removeAllViews()
+        if (photos.size > 1) {
+            indicator.visibility = View.VISIBLE
+            val dotSize = dp(GALLERY_DOT_DP)
+            val dotMargin = dp(GALLERY_DOT_MARGIN_DP)
+            photos.forEachIndexed { index, _ ->
+                val dot = View(requireContext())
+                dot.background = galleryDotDrawable(index == pager.currentItem)
+                val params = LinearLayout.LayoutParams(dotSize, dotSize)
+                params.setMargins(dotMargin, 0, dotMargin, 0)
+                indicator.addView(dot, params)
+            }
+            photoPageCallback = object : ViewPager2.OnPageChangeCallback() {
+                override fun onPageSelected(position: Int) {
+                    for (i in 0 until indicator.childCount) {
+                        indicator.getChildAt(i).background =
+                            galleryDotDrawable(i == position)
+                    }
+                    updatePhotoCredit(photos[position.coerceIn(photos.indices)])
+                }
+            }
+            pager.registerOnPageChangeCallback(photoPageCallback!!)
+        } else {
+            indicator.visibility = View.GONE
+        }
+        updatePhotoCredit(photos[0])
+        // Sanfter Übergang statt hartem Erscheinen.
+        binding.aircraftPhotoCard.alpha = 0f
+        binding.aircraftPhotoCard.visibility = View.VISIBLE
+        binding.aircraftPhotoCard.animate()
+            .alpha(1f)
+            .setDuration(PHOTO_FADE_MS)
+            .start()
+    }
+
+    /** Namensnennung des gerade angezeigten Fotos samt Link auf die Datei. */
+    private fun updatePhotoCredit(photo: AircraftPhoto) {
+        val edited = if (photo.modified) {
+            " · " + getString(R.string.airline_photo_edited)
+        } else {
+            ""
+        }
+        binding.tvAircraftPhotoCredit.text =
+            "© ${photo.author} · ${photo.license}$edited · Wikimedia Commons"
+        // Wie die Wikipedia-Zeile: unterstrichen und Akzentfarbe, ein
+        // Tipp öffnet die Commons-Dateiseite im Standardbrowser.
+        binding.tvAircraftPhotoCredit.setTextColor(
+            MaterialColors.getColor(
+                binding.tvAircraftPhotoCredit,
+                com.google.android.material.R.attr.colorPrimary
+            )
+        )
+        binding.tvAircraftPhotoCredit.paintFlags =
+            binding.tvAircraftPhotoCredit.paintFlags or Paint.UNDERLINE_TEXT_FLAG
+        binding.tvAircraftPhotoCredit.setOnClickListener {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(photo.sourceUrl)))
+        }
+    }
+
+    /** Punkt der Galerie-Anzeige: aktive oder inaktive Seite. */
+    private fun galleryDotDrawable(active: Boolean) = ContextCompat.getDrawable(
+        requireContext(),
+        if (active) R.drawable.bg_gallery_dot_active else R.drawable.bg_gallery_dot
+    )!!
+
+    private fun dp(value: Int): Int =
+        (value * resources.displayMetrics.density).roundToInt()
+
+    /** Adapter der Fotogalerie: ein Bild pro Seite, mittig beschnitten. */
+    private class AircraftPhotoAdapter(
+        private val photos: List<AircraftPhoto>,
+        private val description: String
+    ) : RecyclerView.Adapter<AircraftPhotoAdapter.PhotoHolder>() {
+
+        class PhotoHolder(val image: ImageView) : RecyclerView.ViewHolder(image)
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PhotoHolder {
+            val image = ImageView(parent.context).apply {
+                layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
+                scaleType = ImageView.ScaleType.CENTER_CROP
+            }
+            return PhotoHolder(image)
+        }
+
+        override fun onBindViewHolder(holder: PhotoHolder, position: Int) {
+            holder.image.setImageBitmap(photos[position].bitmap)
+            holder.image.contentDescription = description
+        }
+
+        override fun getItemCount(): Int = photos.size
+    }
+
+    /**
+     * Allgemeine Stammdaten über der Karte - unabhängig vom Logbuch:
+     * Hersteller, Baubeginn, Erstauslieferung, Erstkunde und ein Link zur
+     * englischen Wikipedia-Seite aus `AircraftFacts`. Zeilen ohne Wert
+     * bleiben weg; ohne jeden Wert bleibt der ganze Abschnitt unsichtbar
+     * (der Quellennachweis hängt daran).
+     */
+    private fun renderGeneralFacts(facts: AircraftFacts.Facts?) {
+        binding.aircraftFactsContainer.removeAllViews()
+        if (facts != null) {
+            facts.manufacturer?.let {
+                addFact(
+                    binding.aircraftFactsContainer,
+                    R.string.aircraft_fact_manufacturer,
+                    it
+                )
+            }
+            facts.productionStart?.let {
+                addFact(
+                    binding.aircraftFactsContainer,
+                    R.string.aircraft_fact_production_start,
+                    it.toString()
+                )
+            }
+            facts.firstDelivery?.let {
+                addFact(
+                    binding.aircraftFactsContainer,
+                    R.string.aircraft_fact_first_delivery,
+                    formatDeliveryDate(it)
+                )
+            }
+            facts.launchCustomer?.let {
+                addFact(
+                    binding.aircraftFactsContainer,
+                    R.string.aircraft_fact_launch_customer,
+                    it
+                )
+            }
+            facts.wiki?.let { url ->
+                addFactLink(
+                    binding.aircraftFactsContainer,
+                    R.string.airline_fact_wikipedia,
+                    AirlineFacts.wikiTitle(url),
+                    url
+                )
+            }
+        }
+        val visible = binding.aircraftFactsContainer.childCount > 0
+        binding.tvAircraftGeneralTitle.visibility = if (visible) View.VISIBLE else View.GONE
+        binding.tvAircraftFactsSource.visibility = if (visible) View.VISIBLE else View.GONE
+    }
+
+    /**
+     * Erstauslieferung zur Anzeige: "1988-04-18" wird zu "18.04.1988",
+     * "1983-04" (Monat ohne Tag) zu "04.1983", ein blosses Jahr bleibt.
+     */
+    private fun formatDeliveryDate(value: String): String = when (value.length) {
+        10 -> "${value.substring(8, 10)}.${value.substring(5, 7)}.${value.substring(0, 4)}"
+        7 -> "${value.substring(5, 7)}.${value.substring(0, 4)}"
+        else -> value
+    }
+
+    /** Eine Stammdaten-Zeile aus `item_airport_fact`: Beschriftung, Wert. */
+    private fun addFact(container: ViewGroup, labelRes: Int, value: String) {
+        val row = ItemAirportFactBinding.inflate(layoutInflater, container, false)
+        row.tvFactLabel.setText(labelRes)
+        row.tvFactValue.text = value
+        container.addView(row.root)
+    }
+
+    /**
+     * Zeile wie [addFact], aber als Link: der Wert ist der Artikeltitel, ein
+     * Tipp öffnet die Wikipedia-Seite direkt im Standardbrowser des Systems.
+     */
+    private fun addFactLink(container: ViewGroup, labelRes: Int, title: String, url: String) {
+        val row = ItemAirportFactBinding.inflate(layoutInflater, container, false)
+        row.tvFactLabel.setText(labelRes)
+        row.tvFactValue.text = title
+        row.tvFactValue.setTextColor(
+            MaterialColors.getColor(row.root, com.google.android.material.R.attr.colorPrimary)
+        )
+        row.tvFactValue.paintFlags = row.tvFactValue.paintFlags or Paint.UNDERLINE_TEXT_FLAG
+        row.root.setOnClickListener {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        }
+        container.addView(row.root)
     }
 
     /**
@@ -352,7 +608,12 @@ class AircraftFlightsFragment : LogbookFragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         loadGeneration++
-        if (_binding != null) binding.routeMap.cancelRouteAnimation()
+        infoGeneration++
+        if (_binding != null) {
+            photoPageCallback?.let { binding.vpAircraftPhoto.unregisterOnPageChangeCallback(it) }
+            binding.routeMap.cancelRouteAnimation()
+        }
+        photoPageCallback = null
         TileValueAnimator.cancelAll()
         _binding = null
     }
@@ -370,5 +631,14 @@ class AircraftFlightsFragment : LogbookFragment() {
 
         /** Datumsformat der Flugliste, wie auf der Layover-Detailseite. */
         val DATE_LABEL_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
+
+        /** Dauer des sanften Einblendens der Fotokachel. */
+        private const val PHOTO_FADE_MS = 400L
+
+        /** Durchmesser eines Punkts der Galerie-Anzeige. */
+        private const val GALLERY_DOT_DP = 6
+
+        /** Abstand zwischen zwei Punkten der Galerie-Anzeige. */
+        private const val GALLERY_DOT_MARGIN_DP = 4
     }
 }

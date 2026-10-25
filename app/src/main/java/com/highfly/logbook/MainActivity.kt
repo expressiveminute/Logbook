@@ -115,6 +115,11 @@ class MainActivity : AppCompatActivity() {
 
         setupDashboardFilter()
         refreshDashboardHeader()
+
+        // Der Play-Knopf in der Dashboard-Kopfzeile öffnet die Story.
+        binding.btnDashboardStory.setOnClickListener {
+            StoryActivity.start(this, StoryActivity.MODE_PLAY)
+        }
     }
 
     /**
@@ -290,6 +295,12 @@ class MainActivity : AppCompatActivity() {
                     NavOptions.Builder()
                         .setLaunchSingleTop(true)
                         .setPopUpTo(navController.graph.findStartDestination().id, false)
+                        // Seitenwechsel als Fade-Through (Crossfade): die neue
+                        // Seite blendet ein, die alte aus - auch beim Poppen.
+                        .setEnterAnim(R.anim.nav_fade_in)
+                        .setExitAnim(R.anim.nav_fade_out)
+                        .setPopEnterAnim(R.anim.nav_fade_in)
+                        .setPopExitAnim(R.anim.nav_fade_out)
                         .build()
                 )
             }
@@ -310,10 +321,11 @@ class MainActivity : AppCompatActivity() {
                 destinationId == R.id.nav_profile
 
     private fun updateTabSelection(destinationId: Int?) {
-        if (!isMenuTab(destinationId)) {
-            binding.bottomNav.setSelectedDestination(-1)
-            return
-        }
+        // Die Auswahl wird nicht zurückgesetzt: Solange die Leiste sichtbar
+        // ist, bleibt der zuletzt gewählte Tab markiert - auch auf einer
+        // Detailseite (z. B. Airline- oder Flughafen-Detail), die über eine
+        // der Tab-Seiten aufgeht.
+        if (!isMenuTab(destinationId)) return
         binding.bottomNav.setSelectedDestination(destinationId!!)
     }
 
@@ -342,6 +354,8 @@ class MainActivity : AppCompatActivity() {
             top = if (showHeader) 0 else statusBarTop,
             left = if (showHeader) 0 else navBarLeft,
             right = if (showHeader) 0 else navBarRight,
+            // Die Navigationsleiste schwebt über dem Inhalt: Die Seite läuft
+            // bis zum unteren Rand, die Leiste liegt darüber.
             bottom = if (navSichtbar) 0 else imeBottom
         )
     }
@@ -437,6 +451,15 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Rückkehr aus der Story: Die StoryActivity hat den Flag gesetzt.
+        // Die Activity baut sich neu auf, damit MaterialCardViews und Karten
+        // (Discovery, Dashboard, Rubbelkarte) mit dem korrekten Theme zeichnen
+        // - sonst bleiben sie im falschen Modus hängen.
+        if (StoryActivity.wasLaunched) {
+            StoryActivity.wasLaunched = false
+            recreate()
+            return
+        }
         // Die Willkommens-Tour laesst sich aus den Einstellungen erneut öffnen
         // und kann dort Akzentfarbe und Erscheinungsbild ändern. Theme-Wechsel
         // meldet AppCompatDelegate zwar selbst, die Akzentfarbe nicht - sie

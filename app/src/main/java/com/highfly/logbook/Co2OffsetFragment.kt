@@ -67,6 +67,12 @@ class Co2OffsetFragment : LogbookFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        // Die Kennzahlen-Zeile schwebt als festes Element über der
+        // Navigationsleiste; die Karte darüber endet über ihr (und hebt
+        // damit die FABs in der Karte mit an).
+        binding.llCo2Stats.addBottomNavMargin()
+
         binding.btnCo2OffsetBack.setOnClickListener { findNavController().navigateUp() }
         binding.fabCo2Replay.setOnClickListener { binding.co2Map.playAnimation() }
         binding.fabCo2Zoom.setOnClickListener {

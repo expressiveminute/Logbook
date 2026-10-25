@@ -180,7 +180,9 @@ object DashboardStats {
         val airlines = nonBlankCount(entries) { it.airline }
         val layovers = entries.count { it.layover }.toString()
         val classes = nonBlankCount(entries) { it.classType }
-        val travelTypes = nonBlankCount(entries) { it.flightType }
+        // Sitzplätze: zählt Einträge mit erfasstem Sitzplatz (nur Privat mit
+        // Reiseklasse, siehe AddEntryFragment).
+        val seats = nonBlankCount(entries) { it.seat }
         val aircraftTypes = nonBlankCount(entries) { it.aircraftType }
         val countries = (entries.mapNotNull { it.toCountry }
             .filter { it.isNotBlank() }).distinct().size
@@ -199,7 +201,7 @@ object DashboardStats {
             "airlines" to Value(formatInt(context, airlines), null),
             "layover" to Value(layovers, null),
             "class" to Value(formatInt(context, classes), null),
-            "traveltype" to Value(formatInt(context, travelTypes), null),
+            "seat" to Value(formatInt(context, seats), null),
             "aircraftreg" to Value(formatInt(context, aircraftTypes), null),
             "countries" to Value(formatInt(context, countries),
                 String.format(Settings.language(context), "(%s%%)",
@@ -217,6 +219,7 @@ object DashboardStats {
         "flightroutes" -> entries.map { "${it.fromAirport}-${it.toAirport}" }.distinct().size
         "airlines" -> nonBlankCount(entries) { it.airline }
         "aircraftreg" -> nonBlankCount(entries) { it.aircraftType }
+        "seat" -> nonBlankCount(entries) { it.seat }
         "countries" -> (entries.mapNotNull { it.toCountry }
             .filter { it.isNotBlank() }).distinct().size
         "reisebuddy" -> TravelBuddyStats.build(entries).size

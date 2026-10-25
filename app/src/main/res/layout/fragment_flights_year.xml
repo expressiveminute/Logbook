@@ -50,6 +50,7 @@
         android:id="@+id/flights_year_scroll"
         android:layout_height="0dp"
         android:layout_marginTop="12dp"
+        android:clipToPadding="false"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toBottomOf="@id/header">
 
@@ -58,6 +59,68 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:paddingBottom="16dp">
+
+            <!-- Kachel "Reiseart" im Stil der Layover-Kacheln (Ältestes Layover):
+                 Sekundärcontainer-Hintergrund, 16dp Ecken, dezenter Strich.
+                 Enthält die Beschriftung, den gestapelten Balken mit Prozent-Angaben
+                 und darunter die Namen der zwei größten Anteile. -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginTop="4dp"
+                app:cardBackgroundColor="?attr/colorSecondaryContainer"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeColor="?attr/colorOutlineVariant"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="12dp"
+                    android:paddingTop="12dp"
+                    android:paddingBottom="16dp">
+
+                    <!-- Überschrift der Kachel. -->
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/tile_travel_type"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <!-- Reiseart-Balken: gestapelte Abschnitte mit Prozent-Angaben,
+                         größter Anteil links, anklickbar für das Kreisdiagramm.
+                         Abgerundete Ecken über clipToOutline. -->
+                    <LinearLayout
+                        android:id="@+id/travel_type_bar"
+                        android:layout_width="match_parent"
+                        android:layout_height="28dp"
+                        android:layout_marginTop="8dp"
+                        android:background="@drawable/bg_travel_type_bar_rounded"
+                        android:clipToOutline="true"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground"
+                        android:orientation="horizontal"
+                        android:contentDescription="@string/tile_travel_type" />
+
+                    <!-- Beschriftungszeile unter dem Balken: die zwei größten Anteile
+                         mit Name und absoluter Anzahl, linksbündig an der Position
+                         ihres Segments. Höhe wrap_content, damit zwei Zeilen
+                         vollständig sichtbar sind. -->
+                    <LinearLayout
+                        android:id="@+id/travel_type_labels"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:paddingBottom="2dp"
+                        android:orientation="horizontal" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
             <com.highfly.logbook.MonthBarChartView
                 android:id="@+id/bar_chart_year_months"

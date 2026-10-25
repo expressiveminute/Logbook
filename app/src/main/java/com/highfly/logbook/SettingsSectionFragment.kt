@@ -5,7 +5,6 @@ import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Bundle
-import android.util.TypedValue
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
@@ -20,10 +19,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
 import androidx.core.os.LocaleListCompat
-import androidx.core.view.doOnLayout
 import androidx.core.view.isVisible
 import androidx.navigation.fragment.findNavController
-import com.google.android.material.card.MaterialCardView
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.highfly.logbook.databinding.FragmentSettingsSectionBinding
@@ -31,16 +28,8 @@ import com.highfly.logbook.databinding.ItemUserRowBinding
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import kotlin.math.floor
-import kotlin.math.min
 
 class SettingsSectionFragment : LogbookFragment() {
-
-    private companion object {
-        /** Schriftgrösse der Kachelbeschriftung, siehe [fitTileLabels]. */
-        const val TILE_TEXT_MIN_SP = 8
-        const val TILE_TEXT_MAX_SP = 12
-    }
 
     private var _binding: FragmentSettingsSectionBinding? = null
 
@@ -50,6 +39,58 @@ class SettingsSectionFragment : LogbookFragment() {
 
     /** Nutzerplatz, dessen Daten der laufende Export ausliest. */
     private var pendingExportUserId = 1
+
+    /** Zellen des Reglers "Rolle" in Anzeige-Reihenfolge. */
+    private val roleLabels = listOf(R.string.role_crew, R.string.role_passenger)
+
+    /** Zellen des Reglers "Funktion": Schlüssel und Beschriftung je Index. */
+    private val crewFunctionKeys = listOf(
+        Settings.CREW_FUNCTION_PURSER_II,
+        Settings.CREW_FUNCTION_PURSER_I,
+        Settings.CREW_FUNCTION_FLIGHT_ATTENDANT
+    )
+    private val crewFunctionLabels = listOf(
+        R.string.crew_function_purser_ii,
+        R.string.crew_function_purser_i,
+        R.string.crew_function_flight_attendant
+    )
+
+    /** Zellen des Reglers "Bevorzugte Arbeitsposition". */
+    private val classLabels = listOf(
+        R.string.class_economy,
+        R.string.class_premium_economy_short,
+        R.string.class_business,
+        R.string.class_first
+    )
+
+    /** Zellen des Reglers "Erscheinungsbild" (Reihenfolge wie früher die Kacheln). */
+    private val themeModeKeys = listOf(
+        Settings.THEME_MODE_DARK,
+        Settings.THEME_MODE_LIGHT,
+        Settings.THEME_MODE_SYSTEM
+    )
+    private val themeModeLabels = listOf(
+        R.string.settings_dark_mode,
+        R.string.settings_light_mode,
+        R.string.settings_system_mode
+    )
+
+    /** Zellen des Reglers "Akzentfarbe": Schlüssel, Farbe und Name je Index. */
+    private val accentKeys = Settings.ACCENT_OPTIONS
+    private val accentColors = listOf(
+        R.color.accent_brown_primary,
+        R.color.accent_magenta_primary,
+        R.color.accent_turquoise_primary
+    )
+    private val accentNames = listOf(
+        R.string.settings_accent_brown,
+        R.string.settings_accent_magenta,
+        R.string.settings_accent_turquoise
+    )
+
+    /** Zellen des Reglers "Sprache". */
+    private val languageKeys = Settings.LANG_OPTIONS
+    private val languageLabels = listOf(R.string.settings_lang_de, R.string.settings_lang_en)
 
     private val exportLauncher = registerForActivityResult(
         ActivityResultContracts.CreateDocument("text/csv")
@@ -99,6 +140,11 @@ class SettingsSectionFragment : LogbookFragment() {
 
         sectionKey = requireArguments().getString("sectionKey") ?: "profile"
 
+        // Die Seite läuft bis zum unteren Bildschirmrand; unten bleibt
+        // scrollbarer Leerraum, damit nichts hinter der schwebenden
+        // Navigationsleiste verschwindet.
+        binding.settingsScroll.addBottomNavPadding()
+
         binding.btnSettingsSectionBack.setOnClickListener {
             findNavController().navigateUp()
         }
@@ -114,7 +160,6 @@ class SettingsSectionFragment : LogbookFragment() {
                 setupUsers()
             }
             "customization" -> {
-                binding.contentThemes.visibility = View.VISIBLE
                 binding.contentCustomization.visibility = View.VISIBLE
                 setupThemes()
                 setupCustomization()
@@ -128,61 +173,6 @@ class SettingsSectionFragment : LogbookFragment() {
                 setupDevelopment()
             }
         }
-
-        fitTileLabels()
-    }
-
-    /**
-     * Alle Kacheln einer Zeile bekommen dieselbe Schriftgrösse.
-     *
-     * Die Kacheln einer Zeile sind gleich breit, ihre Beschriftungen aber
-     * unterschiedlich lang: Ohne diese Angleichung schrumpft nur die längste
-     * Beschriftung - "Flugbegleiter" auf 11sp, während "Purser I" 12sp behält -
-     * und die Zeile wirkt unruhig. Die Angleichung braucht die gemessene
-     * Breite der Kacheln und läuft deshalb nach dem ersten Layout.
-     */
-    private fun fitTileLabels() {
-        binding.root.doOnLayout {
-            fitTileLabels(
-                binding.roleCrewLabel,
-                binding.rolePassengerLabel
-            )
-            fitTileLabels(
-                binding.crewFunctionPurserIiLabel,
-                binding.crewFunctionPurserILabel,
-                binding.crewFunctionFlightAttendantLabel
-            )
-            fitTileLabels(
-                binding.preferredClassEconomyLabel,
-                binding.preferredClassPremiumEconomyLabel,
-                binding.preferredClassBusinessLabel,
-                binding.preferredClassFirstLabel
-            )
-            fitTileLabels(
-                binding.darkModeLabel,
-                binding.lightModeLabel,
-                binding.systemModeLabel
-            )
-        }
-    }
-
-    private fun fitTileLabels(vararg labels: TextView) {
-        val density = resources.displayMetrics.scaledDensity
-        var needed = Float.MAX_VALUE
-        labels.forEach { label ->
-            val available = label.width - label.paddingLeft - label.paddingRight - dp(2)
-            val measured = label.paint.measureText(label.text, 0, label.text.length)
-            if (available <= 0 || measured <= 0f) return@forEach
-            needed = min(needed, label.textSize * available / measured)
-        }
-        if (needed == Float.MAX_VALUE) return
-        val sizeSp = floor(needed / density).toInt()
-            .coerceIn(TILE_TEXT_MIN_SP, TILE_TEXT_MAX_SP)
-        labels.forEach { label ->
-            label.setAutoSizeTextTypeUniformWithConfiguration(
-                TILE_TEXT_MIN_SP, sizeSp, 1, TypedValue.COMPLEX_UNIT_SP
-            )
-        }
     }
 
     private fun sectionTitleRes(key: String): Int = when (key) {
@@ -194,25 +184,28 @@ class SettingsSectionFragment : LogbookFragment() {
     }
 
     private fun setupProfile() {
-        binding.roleCrewTile.setOnClickListener { confirmRoleSwitch(Role.CREW, binding.roleCrewLabel) }
-        binding.rolePassengerTile.setOnClickListener {
-            confirmRoleSwitch(Role.PASSENGER, binding.rolePassengerLabel)
+        val ctx = requireContext()
+
+        binding.roleSelector.setOptions(
+            roleLabels.map { SegmentedOptionView.Option(getString(it)) },
+            selected = if (Settings.getRole(ctx).isCrew) 0 else 1
+        )
+        binding.roleSelector.onOptionSelected = { index ->
+            confirmRoleSwitch(
+                if (index == 0) Role.CREW else Role.PASSENGER,
+                roleLabels[index]
+            )
         }
 
-        binding.crewFunctionPurserIiTile.setOnClickListener {
-            applyCrewFunction(Settings.CREW_FUNCTION_PURSER_II)
-        }
-        binding.crewFunctionPurserITile.setOnClickListener {
-            applyCrewFunction(Settings.CREW_FUNCTION_PURSER_I)
-        }
-        binding.crewFunctionFlightAttendantTile.setOnClickListener {
-            applyCrewFunction(Settings.CREW_FUNCTION_FLIGHT_ATTENDANT)
+        binding.crewFunctionSelector.setOptions(
+            crewFunctionLabels.map { SegmentedOptionView.Option(getString(it)) },
+            selected = crewFunctionKeys.indexOf(Settings.getCrewFunction(ctx)).coerceAtLeast(0)
+        )
+        binding.crewFunctionSelector.onOptionSelected = { index ->
+            applyCrewFunction(crewFunctionKeys[index])
         }
 
-        binding.preferredClassEconomyTile.setOnClickListener { applyPreferredClass(0) }
-        binding.preferredClassPremiumEconomyTile.setOnClickListener { applyPreferredClass(1) }
-        binding.preferredClassBusinessTile.setOnClickListener { applyPreferredClass(2) }
-        binding.preferredClassFirstTile.setOnClickListener { applyPreferredClass(3) }
+        setupPreferredClassSelector()
 
         binding.profileAirlineInput.setText(Settings.getAirline(requireContext()))
         binding.profileAirlineInput.addTextChangedListener(object : TextWatcher {
@@ -226,9 +219,7 @@ class SettingsSectionFragment : LogbookFragment() {
             }
         })
 
-        updateRoleTiles(Settings.getRole(requireContext()))
-        updateCrewFunctionTiles(Settings.getCrewFunction(requireContext()))
-        updatePreferredClassTiles(Settings.getPreferredClassIndex(requireContext()))
+        updateRoleSelection(Settings.getRole(requireContext()))
 
         // Die Willkommens-Tour lässt sich hier erneut öffnen; sie schreibt
         // dieselben Einstellungen wie diese Seite, deshalb beim Zurückkommen
@@ -238,26 +229,64 @@ class SettingsSectionFragment : LogbookFragment() {
         }
     }
 
+    /**
+     * Die bevorzugte Arbeitsposition als Regler. Die Markierung der
+     * gewählten Klasse übernimmt die flugspezifische Klassenfarbe (wie die
+     * Reiseklassen-Auswahl unter "Neuer Flug"), die Beschriftung darauf
+     * steht in Weiss.
+     */
+    private fun setupPreferredClassSelector() {
+        val colors = ClassColorSchemes.colorsFor(Settings.getClassScheme(requireContext()))
+            .map { ContextCompat.getColor(requireContext(), it) }
+        binding.preferredClassSelector.setOptions(
+            classLabels.mapIndexed { index, labelRes ->
+                SegmentedOptionView.Option(
+                    label = getString(labelRes),
+                    highlightColor = colors[index],
+                    onHighlightColor = Color.WHITE
+                )
+            },
+            selected = Settings.getPreferredClassIndex(requireContext())
+        )
+        binding.preferredClassSelector.onOptionSelected = { applyPreferredClass(it) }
+    }
+
     private fun setupThemes() {
-        binding.darkModeTile.setOnClickListener { applyThemeMode(Settings.THEME_MODE_DARK) }
-        binding.lightModeTile.setOnClickListener { applyThemeMode(Settings.THEME_MODE_LIGHT) }
-        binding.systemModeTile.setOnClickListener { applyThemeMode(Settings.THEME_MODE_SYSTEM) }
+        val ctx = requireContext()
 
-        binding.accentBrownTile.setOnClickListener { applyAccent(Settings.ACCENT_BROWN) }
-        binding.accentMagentaTile.setOnClickListener { applyAccent(Settings.ACCENT_MAGENTA) }
-        binding.accentTurquoiseTile.setOnClickListener { applyAccent(Settings.ACCENT_TURQUOISE) }
+        binding.themeModeSelector.setOptions(
+            themeModeLabels.map { SegmentedOptionView.Option(getString(it)) },
+            selected = themeModeKeys.indexOf(Settings.getThemeMode(ctx)).coerceAtLeast(0)
+        )
+        binding.themeModeSelector.onOptionSelected = { index ->
+            applyThemeMode(themeModeKeys[index])
+        }
 
-        updateModeTiles(Settings.getThemeMode(requireContext()))
-        updateAccentTiles(Settings.getAccentColor(requireContext()))
+        binding.accentSelector.setOptions(
+            accentKeys.mapIndexed { index, _ ->
+                SegmentedOptionView.Option(
+                    swatchColor = ContextCompat.getColor(ctx, accentColors[index]),
+                    contentDescription = getString(accentNames[index])
+                )
+            },
+            selected = accentKeys.indexOf(Settings.getAccentColor(ctx)).coerceAtLeast(0)
+        )
+        binding.accentSelector.onOptionSelected = { index ->
+            applyAccent(accentKeys[index])
+        }
     }
 
     private fun setupCustomization() {
         binding.btnEditDashboard.setOnClickListener {
             findNavController().navigate(R.id.action_settings_section_to_dashboard_edit)
         }
-        binding.langDeTile.setOnClickListener { applyLanguage(Settings.LANG_DE) }
-        binding.langEnTile.setOnClickListener { applyLanguage(Settings.LANG_EN) }
-        updateLanguageTiles()
+        binding.languageSelector.setOptions(
+            languageLabels.map { SegmentedOptionView.Option(getString(it)) },
+            selected = languageKeys.indexOf(Settings.getLanguage(requireContext())).coerceAtLeast(0)
+        )
+        binding.languageSelector.onOptionSelected = { index ->
+            applyLanguage(languageKeys[index])
+        }
         setupDefaultPeriodDropdown()
         setupDefaultTimeUnitDropdown()
         setupCompactText()
@@ -535,8 +564,8 @@ class SettingsSectionFragment : LogbookFragment() {
 
     /**
      * Übernimmt das Erscheinungsbild. [Settings.THEME_MODE_SYSTEM] überlässt
-     * die Entscheidung dem Handy, gespeichert wird sie trotzdem, damit die
-     * Kachel nach dem Neustart der Activity den aktiven Zustand zeigen kann.
+     * die Entscheidung dem Handy, gespeichert wird sie trotzdem, damit der
+     * Regler nach dem Neustart der Activity den aktiven Zustand zeigen kann.
      */
     private fun applyThemeMode(mode: String) {
         if (Settings.getThemeMode(requireContext()) == mode) return
@@ -548,19 +577,12 @@ class SettingsSectionFragment : LogbookFragment() {
                 else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
             }
         )
-        updateModeTiles(mode)
+        updateThemeModeSelection(mode)
     }
 
-    private fun updateModeTiles(mode: String) {
-        highlight(binding.darkModeTile, binding.darkModeLabel, mode == Settings.THEME_MODE_DARK)
-        highlight(binding.lightModeTile, binding.lightModeLabel, mode == Settings.THEME_MODE_LIGHT)
-        highlight(binding.systemModeTile, binding.systemModeLabel, mode == Settings.THEME_MODE_SYSTEM)
-    }
-
-    private fun updateLanguageTiles() {
-        val language = Settings.getLanguage(requireContext())
-        highlight(binding.langDeTile, binding.langDeLabel, language == Settings.LANG_DE)
-        highlight(binding.langEnTile, binding.langEnLabel, language == Settings.LANG_EN)
+    private fun updateThemeModeSelection(mode: String) {
+        val index = themeModeKeys.indexOf(mode)
+        if (index >= 0) binding.themeModeSelector.select(index)
     }
 
     /**
@@ -576,155 +598,51 @@ class SettingsSectionFragment : LogbookFragment() {
         AppCompatDelegate.setApplicationLocales(
             LocaleListCompat.forLanguageTags(language)
         )
-        updateLanguageTiles()
+        updateLanguageSelection(language)
     }
 
-    private fun confirmRoleSwitch(role: Role, label: TextView) {
+    private fun updateLanguageSelection(language: String) {
+        val index = languageKeys.indexOf(language)
+        if (index >= 0) binding.languageSelector.select(index)
+    }
+
+    private fun confirmRoleSwitch(role: Role, labelRes: Int) {
         if (Settings.getRole(requireContext()) == role) return
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.role_switch_title)
-            .setMessage(getString(R.string.role_switch_message, label.text))
+            .setMessage(getString(R.string.role_switch_message, getString(labelRes)))
             .setPositiveButton(R.string.role_switch_confirm) { _, _ ->
                 Settings.setRole(requireContext(), role)
-                updateRoleTiles(role)
+                updateRoleSelection(role)
             }
             .setNegativeButton(R.string.role_switch_cancel, null)
             .show()
     }
 
-    private fun updateRoleTiles(role: Role) {
-        highlight(binding.roleCrewTile, binding.roleCrewLabel, role.isCrew)
-        highlight(binding.rolePassengerTile, binding.rolePassengerLabel, role.isPassenger)
+    private fun updateRoleSelection(role: Role) {
+        binding.roleSelector.select(if (role.isCrew) 0 else 1)
         binding.crewFunctionGroup.visibility = if (role.isCrew) View.VISIBLE else View.GONE
     }
 
     private fun applyCrewFunction(key: String) {
         if (Settings.getCrewFunction(requireContext()) == key) return
         Settings.setCrewFunction(requireContext(), key)
-        updateCrewFunctionTiles(key)
+        updateCrewFunctionSelection(key)
     }
 
-    private fun updateCrewFunctionTiles(key: String) {
-        highlight(
-            binding.crewFunctionPurserIiTile,
-            binding.crewFunctionPurserIiLabel,
-            key == Settings.CREW_FUNCTION_PURSER_II
-        )
-        highlight(
-            binding.crewFunctionPurserITile,
-            binding.crewFunctionPurserILabel,
-            key == Settings.CREW_FUNCTION_PURSER_I
-        )
-        highlight(
-            binding.crewFunctionFlightAttendantTile,
-            binding.crewFunctionFlightAttendantLabel,
-            key == Settings.CREW_FUNCTION_FLIGHT_ATTENDANT
-        )
+    private fun updateCrewFunctionSelection(key: String) {
+        val index = crewFunctionKeys.indexOf(key)
+        if (index >= 0) binding.crewFunctionSelector.select(index)
     }
 
     private fun applyPreferredClass(index: Int) {
         if (Settings.getPreferredClassIndex(requireContext()) == index) return
         Settings.setPreferredClassIndex(requireContext(), index)
-        updatePreferredClassTiles(index)
+        updatePreferredClassSelection(index)
     }
 
-    private fun updatePreferredClassTiles(index: Int) {
-        highlightClassTile(binding.preferredClassEconomyTile, binding.preferredClassEconomyLabel, 0, index == 0)
-        highlightClassTile(
-            binding.preferredClassPremiumEconomyTile,
-            binding.preferredClassPremiumEconomyLabel,
-            1,
-            index == 1
-        )
-        highlightClassTile(binding.preferredClassBusinessTile, binding.preferredClassBusinessLabel, 2, index == 2)
-        highlightClassTile(binding.preferredClassFirstTile, binding.preferredClassFirstLabel, 3, index == 3)
-    }
-
-    /**
-     * Die Auswahl der bevorzugten Reiseklasse übernimmt die flugspezifische
-     * Klassenfarbe (gleich der Reiseklassen-Auswahl unter "Neuer Flug"),
-     * inaktive Kacheln verwenden die normale Auswahl-Optik.
-     */
-    private fun highlightClassTile(card: MaterialCardView, label: TextView, index: Int, active: Boolean) {
-        if (active) {
-            val classColors = ClassColorSchemes.colorsFor(Settings.getClassScheme(requireContext()))
-            val color = ContextCompat.getColor(requireContext(), classColors[index])
-            card.setCardBackgroundColor(color)
-            card.strokeColor = color
-            label.setTextColor(Color.WHITE)
-        } else {
-            highlight(card, label, active = false)
-        }
-    }
-
-    private fun updateAccentTiles(accent: String) {
-        styleAccentTile(
-            binding.accentBrownTile,
-            R.color.accent_brown_primary,
-            accent == Settings.ACCENT_BROWN
-        )
-        styleAccentTile(
-            binding.accentMagentaTile,
-            R.color.accent_magenta_primary,
-            accent == Settings.ACCENT_MAGENTA
-        )
-        styleAccentTile(
-            binding.accentTurquoiseTile,
-            R.color.accent_turquoise_primary,
-            accent == Settings.ACCENT_TURQUOISE
-        )
-    }
-
-    /**
-     * Die Kachel ist eine reine Farbfläche in der Akzentfarbe, ohne
-     * Beschriftung. Weil die Fläche bei allen drei Kacheln unterschiedlich ist,
-     * zeigt nur noch ein kräftigerer Rahmen den aktiven Zustand an: die
-     * Konturfarbe colorOnPrimary hebt sich von der hellen Fläche ab, während
-     * inaktive Kacheln nur eine dezente Kontur behalten.
-     */
-    private fun styleAccentTile(card: MaterialCardView, colorRes: Int, active: Boolean) {
-        val context = card.context
-        card.setCardBackgroundColor(ContextCompat.getColor(context, colorRes))
-        val onPrimary = MaterialColors.getColor(
-            binding.root, com.google.android.material.R.attr.colorOnPrimary
-        )
-        val outlineVariant = MaterialColors.getColor(
-            binding.root, com.google.android.material.R.attr.colorOutlineVariant
-        )
-        card.strokeColor = if (active) onPrimary else outlineVariant
-        card.strokeWidth = if (active) dp(2) else dp(1)
-        card.isSelected = active
-    }
-
-    private fun highlight(
-        card: MaterialCardView,
-        label: TextView,
-        active: Boolean
-    ) {
-        val primaryContainer = MaterialColors.getColor(
-            binding.root, com.google.android.material.R.attr.colorPrimaryContainer
-        )
-        val onPrimaryContainer = MaterialColors.getColor(
-            binding.root, com.google.android.material.R.attr.colorOnPrimaryContainer
-        )
-        val surfaceContainerLow = MaterialColors.getColor(
-            binding.root, com.google.android.material.R.attr.colorSurfaceContainerLow
-        )
-        val onSurface = MaterialColors.getColor(
-            binding.root, com.google.android.material.R.attr.colorOnSurface
-        )
-        val outlineVariant = MaterialColors.getColor(
-            binding.root, com.google.android.material.R.attr.colorOutlineVariant
-        )
-
-        card.setCardBackgroundColor(
-            if (active) primaryContainer else surfaceContainerLow
-        )
-        card.strokeColor =
-            if (active) primaryContainer else outlineVariant
-        label.setTextColor(
-            if (active) onPrimaryContainer else onSurface
-        )
+    private fun updatePreferredClassSelection(index: Int) {
+        binding.preferredClassSelector.select(index)
     }
 
     private fun setupDefaultPeriodDropdown() {
@@ -771,14 +689,14 @@ class SettingsSectionFragment : LogbookFragment() {
     /**
      * Nach einer wiederholten Willkommens-Tour stehen die Werte der Profilseite
      * möglicherweise anders; sie werden beim Zurückkommen neu gesetzt. Die
-     * Kacheln und Felder hier tragen dieselben Werte wie die Tour.
+     * Regler und Felder hier tragen dieselben Werte wie die Tour.
      */
     override fun onResume() {
         super.onResume()
         if (sectionKey != "profile" || _binding == null) return
-        updateRoleTiles(Settings.getRole(requireContext()))
-        updateCrewFunctionTiles(Settings.getCrewFunction(requireContext()))
-        updatePreferredClassTiles(Settings.getPreferredClassIndex(requireContext()))
+        updateRoleSelection(Settings.getRole(requireContext()))
+        updateCrewFunctionSelection(Settings.getCrewFunction(requireContext()))
+        updatePreferredClassSelection(Settings.getPreferredClassIndex(requireContext()))
         val airline = Settings.getAirline(requireContext())
         if (binding.profileAirlineInput.text?.toString() != airline) {
             binding.profileAirlineInput.setText(airline)

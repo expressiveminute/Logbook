@@ -40,6 +40,8 @@ class PassengersFragment : LogbookFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        // Platz unter der schwebenden Navigationsleiste.
+        binding.scrollPassengers.addBottomNavPadding()
         binding.btnPassengersBack.setOnClickListener { findNavController().navigateUp() }
         binding.btnPassengersAdjust.setOnClickListener { showLoadFactorDialog() }
         val context = requireContext()

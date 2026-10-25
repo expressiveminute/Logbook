@@ -52,6 +52,8 @@ class CountriesFragment : LogbookFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.btnCountriesBack.setOnClickListener { findNavController().navigateUp() }
+        // Platz unter der schwebenden Navigationsleiste.
+        binding.countriesList.addBottomNavPadding()
         binding.countriesList.layoutManager = LinearLayoutManager(requireContext())
         adapter = CountryChecklistAdapter(::toggle)
         adapter.onCheckedCountChanged = ::showCount

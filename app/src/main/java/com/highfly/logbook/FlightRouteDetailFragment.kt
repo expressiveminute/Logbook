@@ -41,6 +41,9 @@ class FlightRouteDetailFragment : LogbookFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Platz unter der schwebenden Navigationsleiste.
+        binding.scrollView.addBottomNavPadding()
+
         route = requireArguments().getString(ARG_ROUTE).orEmpty()
 
         binding.btnBack.setOnClickListener {

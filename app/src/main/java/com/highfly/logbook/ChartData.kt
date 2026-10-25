@@ -97,6 +97,9 @@ object ChartData {
         ClassType(R.string.class_jump, "Jump", listOf("jump", "jump seat")),
     )
 
+    /** Alle Reiseklassen in kanonischer Schreibweise, in Anzeige-Reihenfolge. */
+    val CLASS_CANONICALS: List<String> = classTypes.map { it.canonical }
+
     private val BAR_CHART_TILES = setOf(
         "flights", "routes", "flightroutes", "layover", "aircraftreg", "countries"
     )

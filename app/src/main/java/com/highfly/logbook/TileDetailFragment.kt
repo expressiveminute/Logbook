@@ -94,6 +94,9 @@ class TileDetailFragment : LogbookFragment(), BackPressAware {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Platz unter der schwebenden Navigationsleiste.
+        binding.scrollView.addBottomNavPadding()
+
         tileId = requireArguments().getString("tileId") ?: "flights"
         // Bei einer Neuerstellung der Ansicht bleibt die Fragment-Instanz
         // erhalten, der Zustands-Bundle ist dann null. Der bereits gewählte
@@ -197,13 +200,13 @@ class TileDetailFragment : LogbookFragment(), BackPressAware {
     }
 
     /**
-     * Der Sterne-Knopf oben rechts ist nur ein Platzhalter: Er ist bereits
-     * sichtbar und anklickbar, die Übersichtsseite dahinter entsteht später.
+     * Der Sterne-Knopf oben rechts öffnet die Insights-Story: die
+     * Layover-Auswertung als animierte Seitenfolge.
      */
     private fun setupLayoverOverviewButton() {
         binding.btnLayoverOverview.visibility = View.VISIBLE
         binding.btnLayoverOverview.setOnClickListener {
-            // TODO: hier später die zusammenfassende Layover-Übersicht öffnen.
+            StoryActivity.start(requireContext(), StoryActivity.MODE_INSIGHTS)
         }
     }
 
@@ -815,24 +818,19 @@ class TileDetailFragment : LogbookFragment(), BackPressAware {
     }
 
     /**
-     * Kompass befüllen: Mitte der häufigste Abflughafen (meiste Starts),
-     * Norden der nördlichste, Süden der südlichste, Westen der westlichste,
-     * Osten der östlichste Flughafen des Datensatzes. Derselbe Flughafen darf
-     * mehrere Positionen belegen, dann wiederholt sich sein Code.
+     * Kompass befüllen: Mitte die Homebase (meistgenutzter Flughafen des
+     * ganzen Logbuchs, siehe [Homebase]), Norden der nördlichste, Süden der
+     * südlichste, Westen der westlichste, Osten der östlichste Flughafen
+     * des Datensatzes. Derselbe Flughafen darf mehrere Positionen belegen,
+     * dann wiederholt sich sein Code.
      */
     private fun setupAirportCompass(entries: List<LogbookEntry>) {
         val context = requireContext()
         val sites = airportSites(entries)
-        val fromCounts = entries.mapNotNull { it.fromAirport.takeIf(String::isNotBlank) }
-            .groupingBy { it.uppercase() }
-            .eachCount()
-        val topFrom = fromCounts.entries
-            .sortedWith(
-                compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key }
-            )
-            .firstOrNull()
-            ?.key
-        val centerInfo = topFrom?.let { top ->
+        // Die Homebase gilt über das ganze Logbuch, nicht nur über den
+        // gefilterten Zeitraum; sie wird zentral in LogbookRepository gepflegt.
+        val home = Homebase.current ?: Homebase.homebaseOf(entries)
+        val centerInfo = home?.let { top ->
             val info = AirportNames.get(context, top)
             CompassView.Airport(top, info?.cityDe ?: info?.city ?: info?.name ?: top)
         }

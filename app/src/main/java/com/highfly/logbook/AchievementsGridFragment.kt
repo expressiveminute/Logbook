@@ -40,6 +40,8 @@ class AchievementsGridFragment : LogbookFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        // Platz unter der schwebenden Navigationsleiste.
+        binding.achievementsGridScroll.addBottomNavPadding()
         binding.btnAchievementsGridBack.setOnClickListener {
             findNavController().navigateUp()
         }

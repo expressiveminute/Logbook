@@ -67,6 +67,8 @@ class TravelBuddyFragment : LogbookFragment(), BackPressAware {
         savedInstanceState?.getString(KEY_SEARCH_QUERY)?.let { searchQuery = it }
         searchOpen = savedInstanceState?.getBoolean(KEY_SEARCH_OPEN) ?: false
         binding.btnTravelBuddyBack.setOnClickListener { findNavController().navigateUp() }
+        // Platz unter der schwebenden Navigationsleiste.
+        binding.travelBuddyList.addBottomNavPadding()
         binding.travelBuddyList.layoutManager = LinearLayoutManager(requireContext())
         adapter = TravelBuddyAdapter()
         adapter.onItemClick = { buddy ->

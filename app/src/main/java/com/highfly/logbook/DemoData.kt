@@ -86,11 +86,13 @@ object DemoData {
         layover: Boolean = false,
         layoverHours: Int? = null,
         comment: String? = null,
-        function: String? = null
+        function: String? = null,
+        seat: String? = null
     ): LogbookEntry = LogbookEntry(
         date = LocalDate.parse(date),
         flightType = flightType,
         classType = classType,
+        seat = seat,
         fromAirport = from,
         toAirport = to,
         airline = airline,
@@ -135,8 +137,8 @@ object DemoData {
         // Kurzstrecke FRA <-> CDG
         flt("2022-11-04", "FRA", "CDG", "LH", "1032", "A320", "D-AIPP", 450, 75, "On Duty", "Economy"),
         flt("2022-11-05", "CDG", "FRA", "LH", "1033", "A320", "D-AIPP", 450, 75, "On Duty", "Economy"),
-        flt("2024-03-28", "FRA", "CDG", "LH", "1032", "A320", "D-AIPP", 450, 70, "Privat", "Economy", comment = "Museumsbesuch"),
-        flt("2024-03-30", "CDG", "FRA", "LH", "1033", "A320", "D-AIPP", 450, 75, "Privat", "Economy"),
+        flt("2024-03-28", "FRA", "CDG", "LH", "1032", "A320", "D-AIPP", 450, 70, "Privat", "Economy", comment = "Museumsbesuch", seat = "14A"),
+        flt("2024-03-30", "CDG", "FRA", "LH", "1033", "A320", "D-AIPP", 450, 75, "Privat", "Economy", seat = "14C"),
 
         // Interkontinental übers Atlantik ohne FRA-Abflug
         flt("2022-04-06", "MUC", "ORD", "LH", "440", "B747-8", "D-ABYT", 7040, 570, "On Duty", "Business"),
@@ -189,14 +191,14 @@ object DemoData {
         flt("2022-12-14", "LHR", "FRA", "LH", "913", "A319", "D-AILW", 655, 95, "On Duty", "Economy"),
 
         // Private, einmalige Reisen
-        flt("2023-08-01", "NUE", "PMI", "FR", "5637", "B737-800", "EI-DAN", 1400, 145, "Privat", "Economy", comment = "Sommerurlaub"),
-        flt("2023-08-12", "PMI", "NUE", "FR", "5638", "B737-800", "EI-DAN", 1400, 150, "Privat", "Economy"),
-        flt("2024-08-03", "HAJ", "AGP", "FR", "2321", "B737-800", "EI-DEN", 2300, 210, "Privat", "Economy", comment = "Andalusien"),
-        flt("2024-08-17", "AGP", "HAJ", "FR", "2322", "B737-800", "EI-DEN", 2300, 215, "Privat", "Economy"),
-        flt("2025-07-21", "FRA", "NCE", "LH", "1106", "A320", "D-AIJD", 490, 80, "Privat", "Economy", comment = "Côte d'Azur"),
-        flt("2025-07-25", "NCE", "FRA", "LH", "1107", "A320", "D-AIJD", 490, 80, "Privat", "Economy"),
-        flt("2026-06-06", "FRA", "GVA", "EW", "788", "A320", "D-ABQN", 590, 85, "Privat", "Economy"),
-        flt("2026-06-07", "GVA", "FRA", "EW", "789", "A320", "D-ABQN", 590, 80, "Privat", "Economy"),
+        flt("2023-08-01", "NUE", "PMI", "FR", "5637", "B737-800", "EI-DAN", 1400, 145, "Privat", "Economy", comment = "Sommerurlaub", seat = "12F"),
+        flt("2023-08-12", "PMI", "NUE", "FR", "5638", "B737-800", "EI-DAN", 1400, 150, "Privat", "Economy", seat = "12A"),
+        flt("2024-08-03", "HAJ", "AGP", "FR", "2321", "B737-800", "EI-DEN", 2300, 210, "Privat", "Economy", comment = "Andalusien", seat = "8D"),
+        flt("2024-08-17", "AGP", "HAJ", "FR", "2322", "B737-800", "EI-DEN", 2300, 215, "Privat", "Economy", seat = "22A"),
+        flt("2025-07-21", "FRA", "NCE", "LH", "1106", "A320", "D-AIJD", 490, 80, "Privat", "Economy", comment = "Côte d'Azur", seat = "6F"),
+        flt("2025-07-25", "NCE", "FRA", "LH", "1107", "A320", "D-AIJD", 490, 80, "Privat", "Economy", seat = "6A"),
+        flt("2026-06-06", "FRA", "GVA", "EW", "788", "A320", "D-ABQN", 590, 85, "Privat", "Economy", seat = "18C"),
+        flt("2026-06-07", "GVA", "FRA", "EW", "789", "A320", "D-ABQN", 590, 80, "Privat", "Economy", seat = "18C"),
     )
 
     // ---------------------------------------------------------------------
@@ -760,10 +762,34 @@ object DemoData {
         // Die Flugzeit schwankt um den Planwert, aber nicht beliebig: Die Bahn
         // liegt in Schritten von fuenf Minuten, wie es eine Flugplanung auch tut.
         val minutes = max(20, route.minutes + rng.nextInt(-12, 13) / 5 * 5)
+        // Alle RNG-abhängigen Felder in derselben Reihenfolge wie bisher
+        // berechnen, damit der Demodatensatz stabil bleibt.
+        val layoverHours = if (isLayover) 8 + rng.nextInt(64) else null
+        val function = if (flightType in CREW_TYPES && rng.nextInt(100) < 85) pick(rng, FUNCTIONS) else null
+        val travelBuddy = if (rng.nextInt(100) < 22) buddies(rng) else null
+        val comment = if (rng.nextInt(100) < 14) pick(rng, COMMENTS) else null
+        // Sitzplatz nur bei Privat mit Reiseklasse (wie in AddEntryFragment).
+        // Eigene Random-Instanz, aus den Feldern des Eintrags geseeded, damit
+        // der geteilte RNG nicht verbraucht wird und der Datensatz stabil bleibt.
+        val seat = if (flightType == "Privat" && classType.isNotBlank()) {
+            val seatRng = Random(
+                date.toEpochDay() * 31 + route.from.hashCode() * 7L + route.to.hashCode()
+            )
+            if (seatRng.nextInt(100) < 60) {
+                val row = 1 + seatRng.nextInt(32)
+                val letter = if (seatRng.nextInt(100) < 50) {
+                    'A'
+                } else {
+                    "ABCDEF"[seatRng.nextInt(6)]
+                }
+                "$row$letter"
+            } else null
+        } else null
         return LogbookEntry(
             date = date,
             flightType = flightType,
             classType = classType,
+            seat = seat,
             fromAirport = route.from,
             toAirport = route.to,
             airline = airframe.airline,
@@ -773,10 +799,10 @@ object DemoData {
             distanceKm = route.distanceKm,
             flightMinutes = minutes,
             layover = isLayover,
-            layoverHours = if (isLayover) 8 + rng.nextInt(64) else null,
-            function = if (flightType in CREW_TYPES && rng.nextInt(100) < 85) pick(rng, FUNCTIONS) else null,
-            travelBuddy = if (rng.nextInt(100) < 22) buddies(rng) else null,
-            comment = if (rng.nextInt(100) < 14) pick(rng, COMMENTS) else null
+            layoverHours = layoverHours,
+            function = function,
+            travelBuddy = travelBuddy,
+            comment = comment
         )
     }
 

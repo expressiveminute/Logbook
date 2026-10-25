@@ -5,8 +5,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -24,6 +22,7 @@ import androidx.navigation.fragment.findNavController
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.highfly.logbook.databinding.DialogAvatarPickerBinding
+import com.highfly.logbook.databinding.DialogProfileNameBinding
 import com.highfly.logbook.databinding.FragmentProfileBinding
 import com.highfly.logbook.databinding.ItemAvatarChoiceBinding
 import java.io.File
@@ -53,30 +52,17 @@ class ProfileFragment : LogbookFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Die Seite läuft bis zum unteren Bildschirmrand; unten bleibt
+        // scrollbarer Leerraum, damit nichts hinter der schwebenden
+        // Navigationsleiste verschwindet.
+        binding.profileScroll.addBottomNavPadding()
+
         binding.avatarTile.setOnClickListener { showAvatarDialog() }
         loadAvatarPreview()
         binding.tvSettingsVersion.text =
             getString(R.string.settings_version_label, BuildConfig.VERSION_NAME)
-        binding.profileNameInput.setText(Settings.getProfileName(requireContext()))
-        binding.profileNameInput.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
-            override fun afterTextChanged(s: Editable?) {
-                Settings.setProfileName(requireContext(), s?.toString().orEmpty())
-            }
-        })
-        binding.profileNameInput.setOnEditorActionListener { _, actionId, _ ->
-            val done = actionId == EditorInfo.IME_ACTION_DONE ||
-                actionId == EditorInfo.IME_ACTION_UNSPECIFIED
-            if (done) {
-                updateNameMode()
-                true
-            } else {
-                false
-            }
-        }
-        binding.profileNameDisplay.setOnClickListener { showNameEditor() }
-        updateNameMode()
+        binding.profileNameDisplay.setOnClickListener { showNameDialog() }
+        updateNameDisplay()
 
         binding.headerSectionProfile.setOnClickListener { openSection("profile") }
         binding.headerSectionUsers.setOnClickListener { openSection("users") }
@@ -91,41 +77,77 @@ class ProfileFragment : LogbookFragment() {
     }
 
     /**
-     * Steht ein Name, ersetzt die mittige Ueberschrift das Eingabefeld samt
-     * Rahmen. Ist das Feld leer, bleibt es zum Eintippen stehen. Wird der
-     * Name auf der Einstellungsseite geaendert, holt [onResume] den
-     * aktuellen Stand nach.
+     * Zeigt den Namen rechts neben dem Avatar an: fett in der Hauptfarbe,
+     * sobald einer gesetzt ist, sonst den Platzhalter "Name" ohne Fett in
+     * der Nebenfarbe. Wird beim Aufbau und in [onResume] aufgerufen.
      */
-    private fun updateNameMode() {
-        val name = Settings.getProfileName(requireContext())
-        val hasName = name.isNotBlank()
-        if (hasName) {
-            binding.profileNameDisplay.text = name
-        } else if (!binding.profileNameInput.text.isNullOrEmpty()) {
-            binding.profileNameInput.setText("")
-        }
-        binding.profileNameDisplay.isVisible = hasName
-        binding.profileNameLayout.isVisible = !hasName
-        if (hasName) {
-            val imm = ContextCompat.getSystemService(
-                requireContext(), InputMethodManager::class.java
+    private fun updateNameDisplay() {
+        val display = binding.profileNameDisplay
+        val name = Settings.getProfileName(requireContext()).trim()
+        if (name.isNotEmpty()) {
+            display.text = name
+            display.setTypeface(null, android.graphics.Typeface.BOLD)
+            display.setTextColor(
+                MaterialColors.getColor(
+                    display, com.google.android.material.R.attr.colorOnSurface
+                )
             )
-            imm?.hideSoftInputFromWindow(binding.profileNameInput.windowToken, 0)
+        } else {
+            display.text = getString(R.string.profile_name_hint)
+            display.setTypeface(null, android.graphics.Typeface.NORMAL)
+            display.setTextColor(
+                MaterialColors.getColor(
+                    display, com.google.android.material.R.attr.colorOnSurfaceVariant
+                )
+            )
         }
     }
 
-    /** Klick auf den fertigen Namen: Feld zurueckholen und den Cursor setzen. */
-    private fun showNameEditor() {
-        binding.profileNameDisplay.isVisible = false
-        binding.profileNameLayout.isVisible = true
-        binding.profileNameInput.requestFocus()
-        val imm = ContextCompat.getSystemService(requireContext(), InputMethodManager::class.java)
-        imm?.showSoftInput(binding.profileNameInput, InputMethodManager.SHOW_IMPLICIT)
+    /**
+     * Dialog zum Aendern des Namens: umrandetes Feld mit dem bisherigen
+     * Namen, wie beim Umbenennen eines Reisebuddies. "Speichern" uebernimmt
+     * den Text (ein leerer Text loescht den Namen und zeigt wieder den
+     * Platzhalter), "Abbrechen" laesst alles unveraendert.
+     */
+    private fun showNameDialog() {
+        val dialogBinding = DialogProfileNameBinding.inflate(layoutInflater)
+        val input = dialogBinding.profileNameInput
+        input.setText(Settings.getProfileName(requireContext()).trim())
+        input.setSelection(input.text?.length ?: 0)
+        val save = {
+            Settings.setProfileName(
+                requireContext(), input.text?.toString()?.trim().orEmpty()
+            )
+            updateNameDisplay()
+        }
+        val dialog = MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.profile_name_edit)
+            .setView(dialogBinding.root)
+            .setPositiveButton(R.string.profile_name_confirm) { _, _ -> save() }
+            .setNegativeButton(R.string.discard_cancel, null)
+            .show()
+        input.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                save()
+                dialog.dismiss()
+                true
+            } else {
+                false
+            }
+        }
+        // Tastatur oeffnen, sobald das Feld im Dialog steht.
+        input.post {
+            input.requestFocus()
+            val imm = ContextCompat.getSystemService(
+                requireContext(), InputMethodManager::class.java
+            )
+            imm?.showSoftInput(input, InputMethodManager.SHOW_IMPLICIT)
+        }
     }
 
     override fun onResume() {
         super.onResume()
-        updateNameMode()
+        updateNameDisplay()
     }
 
     private fun loadAvatarPreview() {

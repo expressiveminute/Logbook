@@ -96,34 +96,6 @@ def scale_shapes(shapes, s, ox=54, oy=54):
     return out
 
 
-def clip_polygon(poly, clip):
-    """Sutherland-Hodgman: [poly] auf die konvexe Flaeche [clip] beschneiden."""
-    def inside(p, a, b):
-        return (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]) >= 0
-
-    def intersect(c, d, a, b):
-        den = (d[0] - c[0]) * (b[1] - a[1]) - (d[1] - c[1]) * (b[0] - a[0])
-        if den == 0:
-            return c
-        t = ((a[0] - c[0]) * (b[1] - a[1]) - (a[1] - c[1]) * (b[0] - a[0])) / den
-        return (c[0] + t * (d[0] - c[0]), c[1] + t * (d[1] - c[1]))
-
-    out = poly
-    for i in range(len(clip)):
-        a, b = clip[i], clip[(i + 1) % len(clip)]
-        if not out:
-            break
-        inp, out = out, []
-        for j in range(len(inp)):
-            c, d = inp[j], inp[(j + 1) % len(inp)]
-            ic, id_ = inside(c, a, b), inside(d, a, b)
-            if ic:
-                out.append(c)
-            if ic != id_:
-                out.append(intersect(c, d, a, b))
-    return out
-
-
 def side_plane(cx, cy, length, ang_deg):
     """Flugzeug von der Seite, Nase zeigt in Richtung ang_deg (0 = rechts).
     Liefert zwei gefuellte Polygone: Rumpf samt Leitwerk und Fluegel."""
@@ -143,32 +115,55 @@ def side_plane(cx, cy, length, ang_deg):
     return [w(p) for p in fuselage], [w(p) for p in wing]
 
 
+def side_plane_from_tail(tx, ty, length, ang_deg):
+    """Wie side_plane, aber der Schwanzpunkt (-0.55, 0) liegt bei (tx, ty)."""
+    a = math.radians(ang_deg)
+    cx = tx + 0.55 * length * math.cos(a)
+    cy = ty + 0.55 * length * math.sin(a)
+    return side_plane(cx, cy, length, ang_deg)
+
+
+def center_plane(fuselage, wing, cx=54.0, bottom=44.0):
+    """Zentriert die Flugzeug-Silhouette über dem Buch: Die Mitte ihrer
+    Bounding-Box liegt bei x=[cx] (die Buchmitte), die Unterkante bei
+    y=[bottom] (die Oberkante des Buches). Skaliert wird um (54, 54), darum
+    bleibt die Position auch nach scale_shapes erhalten."""
+    pts = fuselage + wing
+    xs = [p[0] for p in pts]
+    ys = [p[1] for p in pts]
+    dx = cx - (min(xs) + max(xs)) / 2.0
+    dy = bottom - max(ys)
+    return ([(x + dx, y + dy) for (x, y) in fuselage],
+            [(x + dx, y + dy) for (x, y) in wing])
+
+
 # ------------------------------------------------------------------ Designs
 CURVE7 = bezier((34, 78), (48, 80), (52, 50), (66, 42))
 
-# Buch um soviel nach oben (Mitte) verschieben; Tal unten liegt danach hier:
+# Buch um soviel nach oben (Mitte) verschieben:
 BOOK_SHIFT = -16
-VALLEY = 67 + BOOK_SHIFT                        # tiefster Punkt der Buchkante
-# Kante des offenen Buches: senkrecht zum Buchstehen nach aussen ansteigend
-VALLEY_LINE = [(-20, -20), (128, -20),
-               (128, VALLEY - (128 - 56) / 3), (56, VALLEY), (52, VALLEY),
-               (-20, VALLEY - (52 + 20) / 3)]
 # Gesamte Szene etwas vergroessert, damit das Icon die Maske gut fuellt.
 SCENE = 1.2
+# Das Flugzeug startet aus dem aufgeklappten Buch, aber nicht aus dessen
+# Mitte: Der Schwanz liegt auf der linken Buchseite und steigt flach nach
+# rechts oben; die fertige Silhouette schwebt anschliessend mittig ueber dem
+# Buch (zentriert auf die Buchmitte, Unterkante auf Hoehe der Buchkante).
+PLANE_LEN = 25.0
+PLANE_ANG = -20
+# Ankerpunkt des Schwanzes; von dieser Verankerung aus wird das Flugzeug
+# mittig ueber dem Buch zentriert (siehe center_plane).
+PLANE_TAIL = (41.5, 58.5)
 
 
 def _logbuch(color_book_l, color_book_r, color_line, color_plane):
-    """Buch in der Mitte, Flugzeug steigt steil aus den Seiten heraus -
+    """Buch in der Mitte, darueber schwebt das Flugzeug: Der Schwanz ist auf
+    der linken Buchseite verankert (nicht in der Buchmitte), die fertige
+    Silhouette wird mittig ueber dem Buch zentriert (Unterkante auf Hoehe der
+    Buch-Oberkante) und steigt flach nach rechts oben.
     Geometrie im Entwurfsraum."""
     top, bot = 60 + BOOK_SHIFT, 84 + BOOK_SHIFT
     mid_t, mid_b = 67 + BOOK_SHIFT, 84 + BOOK_SHIFT
-    # Steiler Startwinkel (-33 Grad): das Heck versinkt nur noch im
-    # Seitenrand, Nase und Rumpf fliegen frei ueber dem Buch.
-    fuselage, wing = side_plane(58.0, 43.4, 34.0, -33)
     shapes = [
-        # Flugzeug zuerst: die Buchkante schneidet den Heckteil ab.
-        P(clip_polygon(fuselage, VALLEY_LINE), color_plane),
-        P(clip_polygon(wing, VALLEY_LINE), color_plane),
         P([(31, top), (52, mid_t), (52, bot), (31, 78 + BOOK_SHIFT)], color_book_l),
         P([(77, top), (56, mid_t), (56, bot), (77, 78 + BOOK_SHIFT)], color_book_r),
     ]
@@ -180,6 +175,16 @@ def _logbuch(color_book_l, color_book_r, color_line, color_plane):
             L((59, top + 13), (73, top + 8), 0.9, color_line),
             L((59, top + 18), (73, top + 13), 0.9, color_line),
         ]
+    # Flugzeug zuletzt (ueber dem Buch): Der Schwanz startet auf der linken
+    # Buchseite, die fertige Silhouette wird anschliessend mittig ueber dem
+    # Buch zentriert (Mitte auf die Buchmitte, Unterkante auf Hoehe der
+    # Buch-Oberkante).
+    fuselage, wing = side_plane_from_tail(PLANE_TAIL[0], PLANE_TAIL[1], PLANE_LEN, PLANE_ANG)
+    fuselage, wing = center_plane(fuselage, wing, bottom=60 + BOOK_SHIFT)
+    shapes += [
+        P(fuselage, color_plane),
+        P(wing, color_plane),
+    ]
     return scale_shapes(shapes, SCENE)
 
 

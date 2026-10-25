@@ -44,12 +44,14 @@ zeigt auf `@mipmap/ic_launcher` bzw. `@mipmap/ic_launcher_round`, beide `mipmap-
 verweisen auf den aktiven Entwurf – `anydpi` hat Vorrang vor den alten `webp`-Icons in den
 `mipmap-*dpi`-Ordnern, diese liegen nur noch als Fallback dort.
 
-Der aktive Entwurf: das offene Buch steht in der Mitte (`BOOK_SHIFT`), darüber fliegt ein
-weißes Flugzeug von der Seite (`side_plane`), dessen untere Hälfte die Buchkante `VALLEY_LINE`
-abschneidet (`clip_polygon`) – es startet halb aus dem Buch. Die ganze Szene skaliert `SCENE`,
-damit das Icon die Maske gut füllt. Das Monochrom-Themen-Icon entsteht aus derselben Geometrie
-ohne Falz und Seitenlinien. Die erzeugten `ic_launcher_*.xml` in `drawable/` tragen den Hinweis
-„Nicht von Hand aendern" – immer das Skript neu laufen lassen.
+Der aktive Entwurf: das offene Buch steht in der Mitte (`BOOK_SHIFT`); darüber schwebt ein weißes
+Flugzeug – verankert mit `side_plane_from_tail` (`PLANE_LEN`/`PLANE_ANG`/`PLANE_TAIL`) und über das
+Buch gezeichnet. `center_plane` zentriert die fertige Silhouette mittig über dem Buch (horizontale
+Mitte auf die Buchmitte, Unterkante auf Höhe der Buch-Oberkante); das Flugzeug steigt flach nach
+rechts oben. Die ganze
+Szene skaliert `SCENE`, damit das Icon die Maske gut füllt. Das Monochrom-Themen-Icon entsteht
+aus derselben Geometrie ohne Falz und Seitenlinien. Die erzeugten `ic_launcher_*.xml` in
+`drawable/` tragen den Hinweis „Nicht von Hand aendern" – immer das Skript neu laufen lassen.
 
 Das Skript schreibt zusätzlich `drawable/ic_logo_round.xml`: dasselbe Icon als Vollkreis
 (der sichtbare Kreis r=36 des adaptiven Icons auf r=54 gezogen). Es steht in den Einstellungen
@@ -142,11 +144,18 @@ hat (`Settings.Global.ANIMATOR_DURATION_SCALE` = 0).
 ## Seite „Hangar" – Detailseite
 
 Die Hangar-Kachel öffnet `TileDetailFragment` mit den Flugzeugtypen bzw. Registrierungen; ein Tipp
-auf eine Zeile öffnet `AircraftFlightsFragment` (`fragment_flight_route_detail.xml`). Oben die
-animierte Karte mit allen Flügen dieses Typs bzw. dieser Registrierung, darunter die Kennzahlen
-(Flüge, Gesamtstrecke, Gesamtflugzeit, Zeitraum). Beide Ansichten sind dieselbe Seite mit anderem
-`mode` (`MODE_TYPE`/`MODE_REG`); die Zahlen ranken nicht, denn dieselbe Zahl gibt es nur einmal je
-Typ bzw. Registrierung.
+auf eine Zeile öffnet `AircraftFlightsFragment` (`fragment_flight_route_detail.xml`). Beide Ansichten
+sind dieselbe Seite mit anderem `mode` (`MODE_TYPE`/`MODE_REG`); die Zahlen ranken nicht, denn
+dieselbe Zahl gibt es nur einmal je Typ bzw. Registrierung.
+
+Nur beim Flugzeugtyp (`MODE_TYPE`) steht **über** der Karte ein Abschnitt, der nicht vom Logbuch
+abhängt: der Anzeigename des Typs, darunter ein Foto des Typs samt Namensnennung und darunter die
+allgemeinen Stammdaten (Hersteller, Baubeginn, Erstauslieferung, Erstkunde, Wikipedia-Link) - siehe
+Abschnitt *Flugzeugtypen – Stammdaten und Fotos*. Bei einer Registrierung bleibt der Abschnitt weg;
+hat das Asset zu dem Typ weder Foto noch Stammdaten, bleibt er unsichtbar.
+
+Darunter die animierte Karte mit allen Flügen dieses Typs bzw. dieser Registrierung, direkt darunter
+die Kennzahlen (Flüge, Gesamtstrecke, Gesamtflugzeit, Zeitraum) - ohne freie Fläche dazwischen.
 
 Unter den Kennzahlen steht zusätzlich ein Zeitstrahl **aller** Flüge dieser Registrierung bzw.
 dieses Typs, der jüngste oben, im Aufbau der Layover-Detailseite: dieselbe Zeile
@@ -158,6 +167,83 @@ keine passenden Flüge gibt. Gelesen wird die Liste bei jedem `onResume` neu aus
 `DashboardStats.dashboardEntries`, damit ein gerade bearbeiteter Eintrag sofort richtig erscheint.
 Die anderen Nutzer desselben Layouts (`FlightRouteDetailFragment`, `TravelBuddyDetailFragment`)
 lassen Titel und Liste unsichtbar.
+
+## Flugzeugtypen – Stammdaten und Fotos
+
+Die Detailseite eines Flugzeugtyps (Hangar → Typ) zeigt über der Karte - wie die
+Airline-Detailseite - allgemeine Stammdaten und ein Foto; beides hängt nicht vom Logbuch ab.
+Grundlage sind zwei Assets unter `assets/aircraft/`:
+
+- `aircraft_facts.json`: je kanonischem Typ-Code Anzeigename, Hersteller, Baubeginn (Jahr),
+  Erstauslieferung (`YYYY-MM-DD`, `YYYY-MM` oder `YYYY`) und Erstkunde sowie der Link zur
+  englischen Wikipedia-Seite, dazu `aliases` (normalisierte Codes → Typ). Erzeugt wird die Datei
+  von `tools/build_aircraft_facts.py` aus der englischen Wikipedia (CC BY-SA 4.0), gelesen wird
+  die Infobox `{{Infobox aircraft}}` im Wikitext; Artikelnamen werden über Redirects aufgelöst
+  ("Sukhoi SuperJet 100" → "Yakovlev SJ-100"). Die 50 bekanntesten Typen sind die Familien aus
+  `aircraft_seats.json` plus die klassischen Jets und Turboprops. Fünf Typen bekommen einen festen
+  Hersteller-Override (`MANUFACTURER_OVERRIDE`), wo die Infobox die Fabrik statt des
+  Konstruktionsbüros nennt (Tu-154 → Tupolev, Il-86/Il-96 → Ilyushin, Yak-42 → Yakovlev, Superjet →
+  Sukhoi). **Abarten sind eigene Typen**: A320neo, A321neo, A330neo, B737MAX, E190E2 und E195E2
+  stehen neben ihren Basisfamilien (A320, A321, A330, B737, E190, E195), damit ceo und neo nicht
+  zusammenfallen; die Varianten-Codes (`20N`/`19N`, `21N`, `33X`/`338`/`339`, `7M7`-`7M9`/`37M`-`39M`,
+  `E190E2`/`E195E2`) stehen als Aliase in `EXTRA_ALIASES` und gewinnen dort gegen
+  `aircraft_seats.json`. Die Boeing-Kurzschreibweise „737-8" (MAX 8) hat bewusst keinen Alias:
+  normalisiert „7378" ist ein Präfix von „737800" (737-800 NG) und würde die NG-Varianten falsch
+  als MAX erkennen.
+- `photos/<CODE>.webp` + `<CODE>_launch.webp` + `photos/photos.json`: **zwei Fotos je Typ** in
+  einem `photos`-Array je Eintrag, je Foto mit `kind` (`manufacturer` oder `launch`) samt
+  Attribution (Autor, Lizenz, Lizenz-URL, Quell-URL, Aufnahmedatum, Maße). Das Hersteller-Foto
+  (`<CODE>.webp`) zeigt den Flieger in der Werks-/Hauslackierung (Airbus/Boeing ohne Airline),
+  das Erstkunden-Foto (`<CODE>_launch.webp`) ein Flugzeug der Airline, die den Typ zuerst
+  übernahm (`launchCustomer` aus den Stammdaten, z. B. Lufthansa für die A320neo, Malindo Air
+  für die 737 MAX). Typen ohne Erstkunden-Foto haben nur eines. Erzeugt wird es von
+  `tools/build_aircraft_photos.py` von Wikimedia Commons (Lizenz-Whitelist wie bei den
+  Airline-Fotos: PD, CC0, CC BY, GFDL - nicht NC/ND; harte Filter: JPEG/PNG, mindestens
+  1200×700 px, Querformat bis 2,5:1, bekannter Autor, Typ-Token im **Titel** - eine Erwähnung nur
+  in der Beschreibung ist meist ein Foto eines anderen Flugzeugs; harte Ausschlüsse für
+  Modell/Cockpit/Kabine/Karte/Unfall/Militär sowie Titel, die ein Triebwerk, Rumpfteil oder
+  Denkmal nennen; Wertung mit Zuschlag für junge Fotos, Ziel höchstens etwa drei Jahre; beim
+  Hersteller-Foto zusätzlich +Zuschlag, wenn keine Airline im Titel steht, beim Erstkunden-Foto
+  +Zuschlag für den Namen des Erstkunden). Manuelle Vorgaben gewinnt über
+  `aircraft_photos_manual/<CODE>.jpg` + `<CODE>.json` im Repo-Root.
+
+`AircraftFacts` lädt die Stammdaten einmalig und löst den eingetragenen Typ über
+`AircraftFacts.Catalog.resolve` auf den kanonischen Code auf (wie `AircraftSeats.Catalog.seatsFor`:
+Familien, Varianten, Herstellerwörter, Alias-Codes; die Schlüsselschreibweise bleibt erhalten,
+"Saab340"). **Reihenfolge: Alias exakt vor Code-Präfix** - sonst würde „A319neo" auf den Code
+„A319" treffen statt auf den Alias „A319NEO" → „A320neo" (A319neo gehört zur A320neo-Familie,
+nicht zur A319). `AircraftPhotos` lädt die Foto-Liste zum Code (begrenzter `LruCache`, RGB_565).
+In der App blättert eine Galerie (`ViewPager2` mit Punkt-Indikatoren wie bei der Airline-Detailseite,
+`vp_aircraft_photo` in `fragment_flight_route_detail.xml`) zwischen Hersteller- und
+Erstkunden-Foto; unter dem Bild steht die Namensnennung `© Autor · Lizenz · bearbeitet · Wikimedia
+Commons`, die mit der Seite wechselt, ein Tipp darauf öffnet die Commons-Dateiseite; die
+Stammdaten-Zeilen entstehen aus `item_airport_fact.xml`, der Wikipedia-Link öffnet den Artikel
+im Standardbrowser. Geprüft werden beide Assets von `AircraftFactsTest` und
+`AircraftPhotosAssetTest`.
+
+## Weltkarte – Layover-Animation und Filter-Zurücksetzen
+
+Auf der Weltkarte (`WorldMapFragment`) startet mit dem Filter Layover = „Ja" eine Animation: Vom
+Flughafen mit den meisten Layover-Abflügen (der Hub) starten kleine Flugzeuge (Icon `ic_flight`) in
+Richtung jedes Layover-Ziels und ziehen eine nach vorn kräftiger werdende Spur hinter sich her
+(`LinearGradient` von durchsichtig zur Akzentfarbe). Sind die Flugzeuge angekommen, bleiben die
+Spuren nur noch kurz stehen und blenden sich dann aus - nur die Dreilettercodes der Ziele
+bleiben sichtbar. Solange der Animationsplan aktiv ist, werden **keine** statischen Routenlinien
+gezeichnet: Mit Layover = „Ja" bestehen die gefilterten Linien nur aus Layover-Strecken (auch
+Rückflüge und Anschlussflüge, die nicht am Hub starten), und eine statische Linie wäre schon vor
+der Animation sichtbar und ginge nach ihr nicht weg. Ein Knopf über dem Hineinzoomen-Knopf
+(`btn_layover_trails`, `ic_routes`, in der rechten unteren Knopfspalte) blendet die Spuren erneut
+ein. Die reine Planung (Hub-Wahl,
+Zielmenge, Flugzeiten, Phasen) steht ohne Android-Abhängigkeiten in `LayoverAnimation.kt` (geprüft
+von `LayoverAnimationTest`), das Zeichnen in der inneren Klasse `LayoverOverlay` des
+`WorldMapFragment`; ein `postDelayed`-Lauf stößt nur rund `LAYOVER_FRAME_MS` (etwa 30 Bilder pro
+Sekunde) ein Neuzeichnen an, die Position kommt aus der Uhr. Die Animation pausiert mit `onPause` und
+`onWindowVisibilityChanged` und schweigt, wenn der Nutzer Systemanimationen abgeschaltet hat
+(`Settings.Global.ANIMATOR_DURATION_SCALE` = 0).
+
+Der Knopf zum Zurücksetzen des Filters (`btn_filter_reset`, Pfeil zurück) sitzt oben rechts **links
+neben** dem Filterknopf und ist nur sichtbar, solange ein Filter aktiv ist; ein Tipp darauf setzt den
+Filter zurück (`activeMapFilter = MapFilter()` samt `applyFilters()`).
 
 ## Seite „Fluggesellschaften"
 
@@ -231,11 +317,19 @@ absteigend nach Flotte). Quelle ist die Commons-API (Dateinamensraum); andere Fo
 Whitelist Public Domain, CC0, CC BY und GFDL (nicht NC/ND); die Auswahl sucht Name +
 „aircraft" (Katalogname, Fallback englischer Wikipedia-Titel für veraltete Namen wie EU),
 filtert hart (JPEG/PNG, mindestens 1200×700 px, Querformat, Lizenz, bekannter Autor, Airline
-in Titel oder Beschreibung, keine andere Airline im Titel) und wertet (Name im Titel,
-Flugzeugtyp, Breite, Seitenverhältnis, Lizenz, Abzüge für Modell/Cockpit/Innenraum/Karte/
-Unfallfoto/Militär usw.). Die Galerie ergänzt das Skript im selben Lauf inkrementell
+in Titel oder Beschreibung, keine andere Airline im Titel, keine Nicht-Außenaufnahme wie
+Modell/Cockpit/Kabine/Karte/Unfallfoto/Militär) und wertet (Name im Titel, Flugzeugtyp,
+Breite, Seitenverhältnis, Lizenz, Abzüge für Nahaufnahme/Triebwerk/Sitze). Stark zählt das
+**Aufnahmedatum** (EXIF, Ersatz Datum im Titel bzw. Upload-Datum): Fotos höchstens etwa drei
+Jahre alt sollen gewinnen, damit die Bemalung so aktuell wie möglich ist. Das Einzelfoto zeigt
+die **Standardlackierung auf einem Flaggschiff-Typ** (Sonderlackierungen wie Star Alliance oder
+Retro werden dafür ausgeschlossen, nur als Fallback erlaubt); in der **Galerie** sind
+Sonderlackierungen willkommen und werden bevorzugt. `--refresh` prüft die vorhandenen Fotos
+und ersetzt sie nur durch nachweislich jüngere (das Datum der gespeicherten Fotos wird dazu
+bei Commons nachgezogen). Die Galerie ergänzt das Skript im selben Lauf inkrementell
 (`--no-gallery` schaltet sie ab): Airlines der Gruppe mit weniger als drei Fotos bekommen
-weitere, unterschiedliche Treffer (ausgeschlossen sind die schon vorhandenen Quell-URLs).
+weitere, unterschiedliche Treffer (ausgeschlossen sind die schon vorhandenen Quell-URLs und
+Crop-Varianten desselben Fotos).
 Für Airlines, bei denen die Suche nur falsche Treffer findet (Absturzkontext, Militär, fremde
 Bemalung), steht `NO_PHOTO` im Skript – sie bekommen kein Foto, ein früherer Eintrag wird
 entfernt. Fotos von Hand nachreichen geht wie bei den Logos über
@@ -449,6 +543,17 @@ gegen die halbe Breite, bei **Nord und Süd** gegen die halbe Höhe (der Code st
 unter dem Buchstaben, nicht daneben). Ohne die Höhen-Schranke landete der Nord/Süd-Code knapp
 außerhalb der Ansicht, obwohl er waagerecht mittig saß.
 
+## Homebase
+
+Die **Homebase** ist der meistgenutzte Flughafen des Logbuchs (jede Landung und jeder Start zählt
+als eine Bewegung; Gleichstand gewinnt der alphabetisch erste Code). Sie steht ohne
+Android-Abhängigkeiten in `Homebase.kt` (geprüft von `HomebaseTest`) und wird zentral in
+`LogbookRepository.getEntries()` bei jedem Neuladen neu berechnet (`Homebase.current`; beim
+Nutzerwechsel und in `close()` zurückgesetzt) – nicht pro Seite und nicht über den Zeitraum-Filter.
+Angezeigt wird sie in der Mitte des Kompasses auf der Kachel *Flughäfen*: der Dreilettercode mit
+der Beschriftung „Homebase" darunter (`compass_homebase`). In der Tagesordnung der Seite *Einträge*
+gruppiert sie außerdem Hin- und Rückflüge zu Paaren (siehe dort).
+
 ## Hintergrund-Flugzeuge (Einträge, Discovery, Dashboard)
 
 Die drei Seiten *Einträge*, *Discovery* und *Dashboard* legen als erste Kindansicht eine
@@ -495,16 +600,17 @@ Tages steht der erste Flug des Tages unten, der letzte oben. Die Grundreihenfolg
 Eintragereihenfolge — beim CSV-Import die Reihenfolge der Datei (die erste Zeile ist der erste
 Flug des Tages), ein manuell eingetragener Flug landet als Neuestes oben im Tag. Ein Tag bleibt
 ein Block; `EntryDayOrder` (im `EntriesFragment.renderEntries`) ordnet nur innerhalb des Tages um.
-Zwei Regeln bestimmen den letzten und den ersten Flug des Tages: **Layover** steht immer ganz oben
-(`rank 0`) — auch wenn der Flug zugleich der Rückflug des Vortags ist. Ganz unten steht der erste
-Flug des Tages (`rank 2`): Endete der Vortag mit einem Layover, ist es der **Rückflug** (die
-Umkehrung der Layover-Strecke, sofern nicht selbst wieder ein Layover); endete der Vortag ohne
-Layover, ein **Abflug vom meistgenutzten Flughafen**. Alles Übrige bleibt in der übergebenen
-Reihenfolge (`rank 1`, stabiler Sort). Der meistgenutzte Flughafen kommt aus
-`EntryDayOrder.busiestAirports` über das **ganze Logbuch** (Start plus Landung je Bewegung,
-Gleichstand teilt sich den Rang), nicht nur über den gefilterten Ausschnitt; die Vortag-Regeln
-dagegen schauen auf den tatsächlich angezeigten Ausschnitt. Geprüft wird das von
-`EntryDayOrderTest` (u. a. die Beispiele der Aufgabe).
+Drei Regeln bestimmen die Reihenfolge: **Layover** steht immer ganz oben — auch wenn der Flug
+zugleich der Rückflug des Vortags ist. Ganz unten steht der erste Flug des Tages: Endete der Vortag
+mit einem Layover, ist es der **Rückflug** (die Umkehrung der Layover-Strecke, sofern nicht selbst
+wieder ein Layover). Dazwischen werden **Hin- und Rückflüge ab der Homebase zu Paaren gruppiert**
+(`pairUp`): Der Hinflug (Abflug ab der Homebase) steht unten, der Rückflug (die Umkehrung) direkt
+darüber; die Paare sortieren sich nach der **Position des Hinflugs** in der Eintragereihenfolge.
+Flüge ohne passenden Gegenflug (z. B. ein Anschlussflug an einem anderen Ort) behalten ihre
+Position. Die Homebase kommt aus `Homebase.current` über das **ganze Logbuch**, nicht nur über den
+gefilterten Ausschnitt (Fallback: `EntryDayOrder.busiestAirports`); die Vortag-Regeln dagegen
+schauen auf den tatsächlich angezeigten Ausschnitt. Geprüft wird das von `EntryDayOrderTest`
+(u. a. die Beispiele der Aufgabe).
 
 ## Seite „Achievements"
 
@@ -551,19 +657,91 @@ Der Platz der Kachel steht in `DashboardPrefs.DEFAULT_ROWS`; dafür wurde `KEY_T
 `tiles_standard_v15` erhöht – das setzt das vom Nutzer umsortierte Raster einmalig zurück, wie es
 die Konvention bei einer neuen Kachel vorsieht.
 
+## Story – Play (Dashboard) und Insights (Layover-Seite)
+
+Zwei bisher funktionslose Knöpfe öffnen eine **Story** im Stil von Social Media:
+`btn_dashboard_story` („Play", Toolbar des Dashboards, `activity_main.xml`) und
+`btn_layover_overview` (Stern oben rechts auf der Layover-Detailseite, `fragment_tile_detail.xml`).
+Beide starten die `StoryActivity` (`StoryActivity.start(context, MODE_PLAY/MODE_INSIGHTS)`,
+Manifest-Eintrag ohne Export): oben segmentierte Fortschrittsbalken, darunter der Inhalt, Tippen
+auf die rechte Zweidrittel-Seite geht weiter, auf die linke Drittelseite zurück, jede Seite läuft
+zehn Sekunden (`PAGE_MS`) und die letzte schließt die Story. Der Timer pausiert mit `onPause` und
+`onWindowFocusChanged`, der Bildschirm bleibt an (`FLAG_KEEP_SCREEN_ON`), die Seite ist
+Edge-to-Edge mit dunklem Hintergrund (`story_scrim`). Daten lädt die Activity auf einem
+Hintergrund-Thread (`LogbookRepository`, `Homebase.current`, `AircraftSeats`, `CountryShapes`).
+
+**Play** zeigt Highlights aus dem ganzen Logbuch (Reihenfolge): Flüge gesamt und dieses Jahr,
+Top-3-Ziele und Top-3-Länder (jeweils getrennt Privat / On Duty, On Duty nur bei Crew),
+Top-Reisebuddies, häufigster und am weitesten geflogenes Flugzeug, die häufigste Strecke,
+nur bei Crew die geschätzten Passagiere, die Reiseklassen-Verteilung, Gesamtstrecke, Gesamtflugzeit
+und die nötige CO₂-Kompensation. **Insights** zeigt Layover-Auswertungen: häufigste
+Layover-Ziele, Ziele mit den meisten Layover-Stunden, Top-5-Länder nach summierten
+Layover-Stunden, häufigster Layover-Buddy, Top-5-Lieblingsziele und Top-5-unbeliebte Ziele.
+
+Die reine Auswertung steht ohne Android in `StoryStats` (geprüft von `StoryStatsTest`, 19 Tests):
+`playStats(entries, seatsCatalog, loadFactorPercent, homebase, today, lookups)` und
+`insightsStats(entries, homebase, lookups)` mit `Lookups(countryOf, countryNameOf)`.
+Konventionen: Die Flugzahl zählt jeden Eintrag wie die Kachel *Flüge*, Distanz/Zeit/Ziele/Länder/
+Flugzeug/Strecken nur echte Flüge (`DashboardStats.isFlying`); die **Homebase zählt nicht** als
+Ziel; Strecken sind ungerichtet (sortiertes Paar); der häufigste Buddy wie bei den Reisebuddies;
+Passagiere wie die Kachel *Passagiere* (On Duty × Sitze × Auslastung, auf Tausender gerundet).
+Lieblingsziele sind häufig + regelmäßig (Score = Flüge + verschiedene Monate, nur Ziele mit
+mindestens zwei Flügen), unbeliebte selten + lange her (sortiert nach Flügen, Monaten, letztem
+Datum aufsteigend) – beides über **alle** Ziele, nicht nur Layovers, sonst wäre Insights für
+Passagiere ohne Layover leer. Layover-Ziel ist das `toAirport` des `layover`-Eintrags.
+
+Die Seiten baut `StoryPages` (`StoryPages.play/insights`) aus drei Seitentypen (`StoryPage`):
+`HeroNumber` (große Zahl mit Einheit, optional zweite Zahl und Fußzeile), `HeroText` (großer Text,
+z. B. die Stammstrecke) und `Ranking` (gruppierte Zeilen mit Rang, Flagge, Label, Unterzeile und
+Wert). Leere Abschnitte und die Crew-only-Passagiere-Seite werden ausgelassen; bei leerem
+Logbuch gibt es eine einzelne Hinweisseite. Strings liegen unter `story_*` in `values` (deutsch)
+und `values-en` (englisch).
+
+**Flip-Uhr:** Zahlen erscheinen als alte Flughafen-Anzeigetafel. `FlipNumberView` ist eine
+waagerechte Reihe von `FlipDigitView`-Karten (Ziffern) mit schlichten Trennzeichen dazwischen;
+`setText` flippt nur geänderte Karten und lässt neue Karten bei wachsender Zahl von links
+hinzukommen, `countTo` zählt beim Seitenauftritt von 0 hoch (1200 ms) und formatiert jeden
+Zwischenwert neu. Eine Karte (`FlipDigitView`) ist in zwei Hälften geteilt und kippt zweiteilig:
+Phase 1 (150 ms, ease-in) fällt das obere Flap der alten Ziffer 0° → -90° um die Mittelachse und
+verdunkelt sich, sein Schatten wächst auf der unteren Hälfte; Phase 2 (150 ms,
+OvershootInterpolator) landet das untere Flap der neuen Ziffer aus +90° → 0° mit leichtem Bounce
+und wird heller. Naht und Faltlinien-Gradient (`story_fold`) bleiben ausgerichtet, die Kamera
+steht 5× Kartenhöhe entfernt (`cameraDistance`). Gesamtdauer 300 ms. **Wichtig:** Die Kartenhälften
+werden nicht in `onSizeChanged` eingebaut, sondern per `post { buildCard() }` – während des
+Layouts (aus `onSizeChanged` heraus) eingefügte Kinder werden nicht gemessen, bleiben 0×0 und
+unsichtbar. Sind Systemanimationen abgeschaltet (`Settings.Global.ANIMATOR_DURATION_SCALE` = 0),
+erscheinen die Ziffern sofort ohne Flip und ohne Count-up, der Story-Timer läuft weiter.
+
+Die Seite selbst zeichnet `StoryPageView`: Icon (64 dp, Akzentfarbe), Titel, Inhalt; der Auftritt
+ist choreografiert (Icon-Pop mit Overshoot, Titel gleitet hoch, Inhalt gestaffelt, Zahlen rollen
+hoch, Zeilenwerte flippen gestaffelt). Der Hero-Wert ist höchstens 84 dp hoch und wird so
+klein, dass die breiteste Zahl in die Inhaltsbreite passt.
+
 ## Einstellungen – Aufbau nicht eigenmächtig ändern
 
 Jede Einstellung ist eine Zeile in `fragment_settings_section.xml`: **links** steht immer die
 Einstellung, **rechts** ihre Auswahl. Dafür gibt es Styles in `values/styles.xml`; neue Zeilen
-entstehen mit `SettingsRow` + `SettingsRowLabel` + `SettingsRowValue`, Auswahlkacheln mit
-`SettingsTile` + `SettingsTileLabel`, Aktionen (Export, Crash-Log) mit `SettingsActionButton`.
-Die Kacheln sind mit 40dp Höhe und 8–12sp so klein, dass mehrere Kacheln in eine Zeile passen.
+entstehen mit `SettingsRow` + `SettingsRowLabel` + `SettingsRowValue`, Aktionen (Export, Crash-Log)
+mit `SettingsActionButton`. Für Felder mit eigener Beschriftung (Fluggesellschaft, Zeiträume)
+gehört `android:labelFor` der Zeilenbeschriftung auf das Feld.
 
-Weil alle Kacheln einer Zeile gleich breit sind, aber unterschiedlich lange Beschriftungen
-haben, gleicht `SettingsSectionFragment.fitTileLabels()` die Schriftgrösse einer Zeile nach dem
-ersten Layout an - ohne das schrumpft nur die längste Beschriftung und die Zeile wirkt unruhig.
-Für Felder mit eigener Beschriftung (Fluggesellschaft, Zeiträume) gehört `android:labelFor` der
-Zeilenbeschriftung auf das Feld.
+**Auswahlen mit mehreren Werten** (Rolle, Funktion, bevorzugte Arbeitsposition, Erscheinungsbild,
+Akzentfarbe, Sprache) sind keine Kacheln mehr, sondern ein **Regler** (`SegmentedOptionView`, wie
+die Reiseklasse unter „Neuer Flug“): eine gerundete, umrandete Leiste (52 dp) mit gleich breiten
+Zellen, deren Markierung zur gewählten Zelle gleitet (250 ms). Darüber steht die Beschriftung in
+einem Block (`SettingsBlock` + `SettingsBlockLabel`). Eine Zelle trägt entweder eine Beschriftung
+(mit Auto-Size 9–14 sp) oder einen Farbkreis (Akzentfarbe); die Markierungsfarbe ist je Option
+festlegbar (die Arbeitsposition nutzt die flugspezifischen Klassenfarben, Beschriftung darauf in
+Weiss, sonst `colorPrimaryContainer`). `SettingsSectionFragment` setzt die Optionen über
+`setOptions(listOf(SegmentedOptionView.Option(...)), selected = index)` und hört auf
+`onOptionSelected`; programmatische Updates laufen über `select(index)`. Die früheren Kachel-Styles
+`SettingsTile`/`SettingsTileLabel` nutzt nur noch die Willkommens-Tour (`welcome_page_profile.xml`)
+und bleiben deshalb stehen.
+
+Die Punkte sind nach **Themen gruppiert**: innerhalb einer Gruppe 12 dp Abstand, zwischen zwei
+Gruppen mit unterschiedlichem Inhalt 28 dp (Profil: Rolle+Funktion | Fluggesellschaft+Arbeitsposition
+| Willkommens-Tour; Anpassung: Darstellung | Voreinstellungen; Daten: Sichern/Wiederherstellen |
+Gefahrenzone mit Strich und rotem Titel).
 
 Das Erscheinungsbild hat drei Werte (`Settings.THEME_MODE_SYSTEM/LIGHT/DARK`) und wird in
 `MainActivity` über `AppCompatDelegate.setDefaultNightMode` gesetzt. `THEME_MODE_SYSTEM` folgt dem
@@ -585,6 +763,64 @@ Die beiden Auswahlfelder *Standard-Zeitraum* und *Standard-Zeitanzeige* tragen b
 `android:saveEnabled="false"`, weil ihr Text bei jedem Aufbau neu aus den Einstellungen kommt.
 Ohne das stellt die Ansicht beim Activity-Neubau (z. B. beim Sprachwechsel) ihren alten,
 anderssprachigen Text wieder her.
+
+## Navigationsleiste (BottomTabBar)
+
+Die untere Navigationszeile ist eine eigene View (`BottomTabBar`). Sie **schwebt als Pill über dem
+Seiteninhalt**: Sie liegt als Overlay in `content_host` (`activity_main.xml`, `layout_gravity=
+"bottom"`, 12 dp Rand seitlich, 8 dp unten) und ist voll gerundet gezeichnet (`colorSurfaceContainer`,
+3 dp Elevation, der Schatten folgt der Rundung über einen `ViewOutlineProvider`), keine Trennlinie.
+Die Seite läuft bis zum unteren Bildschirmrand – rechts, links und **darunter** sieht man den
+Inhalt neben/unter der schwebenden Leiste (`MainActivity` setzt kein unteres Padding, solange die
+Leiste sichtbar ist).
+
+Damit trotzdem nichts **hinter** der Leiste verschwindet, räumen die betroffenen Seiten unten
+Platz ein über die Helfer in `LogbookFragment`: `addBottomNavPadding()` (Padding, für Listen und
+Scroll-Seiten – der letzte Eintrag scrollt ganz über die Leiste hinaus) und `addBottomNavMargin()`
+(Margin, nur für schwebende Bedienelemente). Gemessen wird der Platz an der echten Leiste
+(`bottom_nav`: Höhe inklusive ihres Inset-Paddings plus unterer Abstand); Rückfall ist
+`BOTTOM_NAV_SPACE_DP` (72 dp = 64 dp Leiste + 8 dp Rand) plus Systemleisten-Inset. Angewendet
+wird er beim ersten Layout (`doOnNextLayout`), aber **gepostet**: Ein `requestLayout()` direkt
+aus dem Layout-Callback heraus verläuft sich, weil die Elternkette (bis zur
+`FragmentContainerView`) mitten im Layout noch das Force-Layout-Flag trägt und den Request
+nicht bis zur ViewRootImpl durchlässt – der Platz würde nie wirksam (so geschah es bei den
+Fragment-Wurzeln, bis die Anwendung gepostet wurde). Nach dem Posten läuft der Runnable
+außerhalb des Layout-Passes, der Request kommt an und die nächste Traversale wendet den Platz
+an. **Padding** bekommen alle Scroll-Container und Listen (Einträge, Entdecken, Airlines, Länder,
+Reisebuddies, Achievements, Profil, die Einstellungsabschnitte, Import, Neuer Flug sowie die
+Detailseiten); die ScrollViews tragen dafür `clipToPadding="false"`, damit der Inhalt sichtbar
+unter die Leiste läuft. **Margin** bekommen nur schwebende Bedienelemente: `FirstFragment`
+(`fab_add`), `RubbelkarteFragment` (`continent_scroll`, die Kachelzeile),
+`DashboardEditFragment` (`edit_bottom_bar`, die Bedienleiste mit Skalierung und Aktionen – der
+Kachel-Grid darüber bekommt Padding), `Co2OffsetFragment` (`ll_co2_stats`, die Kennzahlen-Zeile –
+die Karte darüber endet über ihr und hebt die FABs mit an), `CountryDetailFragment`
+(`tv_country_airport_detail`, ebenfalls mit Karte und FAB darüber) und `WorldMapFragment`
+(`map_controls`, die Zoom-Knopfspalte, und `stats_card`). Keine Seite endet mehr fest über der
+Leiste.
+
+Die Tabs liegen als **gleichmäßig über die Leiste verteilte Zellen** (Prinzip der schwebenden
+Toolbar): Der ausgewählte Tab ist die breite **Indikator-Pill** (`colorPrimaryContainer`, 48 dp
+hoch) mit Icon und Beschriftung nebeneinander, die übrigen schmalen Icon-Zellen (48 dp). Zwischen
+allen Zellen und an beiden Rändern liegt derselbe Abstand, sodass die Icons die ganze Leiste
+gleichmäßig ausfüllen statt in der Mitte zusammengedrängt mit großen Lücken an den Seiten.
+Reicht der Platz nicht, rücken die Zellen zusammen (Abstand 0) und die Zeile wird zentriert, damit
+nichts am Rand abgeschnitten wird. Beim Wechsel gleitet der Indikator samt seiner Breite zum
+neuen Tab (320 ms, Cosinus-Ease) und mischt Icon/Beschriftung weich (Crossfade). Inaktive Tabs
+zeigen nur ihr Icon, gedimmt.
+
+Der **Seitenwechsel** zwischen den Tabs ist ein Fade-Through (Crossfade): `MainActivity.
+setupBottomNav` setzt in den `NavOptions` `nav_fade_in` (300 ms, decelerate) als enter/popEnter
+und `nav_fade_out` (150 ms, accelerate) als exit/popExit.
+
+Die **Auswahl bleibt erhalten**, solange die Leiste sichtbar ist: Öffnet man von einer Tab-Seite
+eine Detailseite (z. B. Airline- oder Flughafen-Detail), bleibt der Tab der Ausgangsseite
+markiert. `MainActivity.updateTabSelection` setzt die Auswahl nur bei Tab-Zielen neu, bei
+Nicht-Tab-Zielen bleibt der zuletzt gewählte Tab stehen (früher wurde hier `-1` gesetzt und die
+Markierung ausgeblendet).
+
+Das Design ist angelehnt an die Bottom-Navigation von Tomato (nsh07/Tomato, **GPL-3.0**): schwebende
+Leiste, Indikator mit Beschriftung, Crossfade beim Seitenwechsel. Wegen der Copyleft-Lizenz ist das
+eine eigene Umsetzung des Designprinzips, kein übernommener Code.
 
 ## Tastatur/Insets – nicht regressieren
 

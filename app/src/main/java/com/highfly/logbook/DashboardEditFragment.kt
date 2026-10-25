@@ -73,6 +73,12 @@ class DashboardEditFragment : LogbookFragment() {
 
     private val role: Role get() = Settings.getRole(requireContext())
 
+    /** true, wenn Sitzplätze erfasst sind (gleiche Auswahl wie die Detailseite). */
+    private val hasSeatData: Boolean by lazy {
+        DashboardStats.flightTypeEntries(requireContext().applicationContext)
+            .any { !it.seat.isNullOrBlank() }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -83,6 +89,12 @@ class DashboardEditFragment : LogbookFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        // Der Kachel-Grid läuft bis zum unteren Rand und bekommt unten
+        // scrollbaren Leerraum; die Bedienleiste (Skalierung, Aktionen)
+        // schwebt als festes Element über der Navigationsleiste.
+        binding.editScroll.addBottomNavPadding()
+        binding.editBottomBar.addBottomNavMargin()
 
         binding.btnDashboardEditBack.setOnClickListener {
             findNavController().navigateUp()
@@ -181,9 +193,12 @@ class DashboardEditFragment : LogbookFragment() {
 
         val packedRows = DashboardPrefs.packRows(flat, spans)
         // Kacheln, die zur Rolle nicht passen, fehlen auch hier ganz - genau
-        // wie auf dem Dashboard.
+        // wie auf dem Dashboard. Die Sitzplatz-Kachel nur bei vorhandenen Daten.
         val visibleRows = packedRows.map { ids ->
-            ids.filter { DashboardPrefs.isTileAvailable(it, role) }
+            ids.filter {
+                DashboardPrefs.isTileAvailable(it, role) &&
+                    (it != "seat" || hasSeatData)
+            }
         }
         val hasAny = visibleRows.any { it.isNotEmpty() }
         binding.tvEditEmpty.visibility = if (hasAny) View.GONE else View.VISIBLE
@@ -552,7 +567,8 @@ class DashboardEditFragment : LogbookFragment() {
 
     private fun showAddDialog() {        val used = flat.toSet()
         val available = DashboardPrefs.CATALOG.filter {
-            it.id !in used && DashboardPrefs.isTileAvailable(it.id, role)
+            it.id !in used && DashboardPrefs.isTileAvailable(it.id, role) &&
+                (it.id != "seat" || hasSeatData)
         }
         if (available.isEmpty()) return
         val names = available.map { getString(it.nameRes) }.toTypedArray()

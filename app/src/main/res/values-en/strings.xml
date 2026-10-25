@@ -19,6 +19,27 @@
     <string name="tile_layover">Layover</string>
     <string name="tile_class">Travel class</string>
     <string name="tile_travel_type">Travel type</string>
+    <plurals name="travel_type_count">
+        <item quantity="one">%1$d flight</item>
+        <item quantity="other">%1$d flights</item>
+    </plurals>
+    <string name="tile_seat">Seat</string>
+    <string name="seat_label">Seat</string>
+    <string name="seat_hint">e.g. 1A, 24D</string>
+    <!-- Detail page of the "Seat" tile. -->
+    <string name="seat_detail_title">Seat</string>
+    <string name="seat_detail_empty">No seats recorded yet.\nSeats are recorded for private flights with a class selected.</string>
+    <string name="seat_detail_empty_hint">No seats recorded</string>
+    <string name="seat_stat_total">Seats recorded</string>
+    <string name="seat_stat_most_common">Most common seat</string>
+    <string name="seat_stat_window">Window seats</string>
+    <string name="seat_stat_aisle">Aisle seats</string>
+    <string name="seat_stat_avg_position">Avg. position</string>
+    <string name="seat_stat_front_percent">%1$d %% from front</string>
+    <plurals name="seat_detail_count">
+        <item quantity="one">%1$d seat recorded</item>
+        <item quantity="other">%1$d seats recorded</item>
+    </plurals>
     <string name="tile_aircraft_reg">Hangar</string>
     <string name="tile_countries">Countries</string>
     <string name="tile_flights_singular">Flight</string>
@@ -29,6 +50,7 @@
     <string name="compass_south">S</string>
     <string name="compass_west">W</string>
     <string name="compass_east">E</string>
+    <string name="compass_homebase">Home base</string>
     <string name="airport_altitude_caption">%1$s m above sea level</string>
     <string name="airport_altitude_caption_below">%1$s m below sea level</string>
     <string name="tile_aircraft_reg_singular">Hangar</string>
@@ -210,6 +232,7 @@
     <string name="profile_avatar_current">Selected: %1$s</string>
     <string name="profile_name_hint">Name</string>
     <string name="profile_name_edit">Edit name</string>
+    <string name="profile_name_confirm">Save</string>
     <string name="profile_airline_label">Airline</string>
     <string name="profile_airline_hint">LH</string>
     <string name="profile_preferred_class_label">Preferred working position</string>
@@ -439,6 +462,8 @@
     <string name="world_map_city_language_de">German</string>
     <string name="world_map_show_entries">Show all logbook entries for this airport</string>
     <string name="world_map_rotate">Switch portrait/landscape</string>
+    <string name="world_map_filter_reset">Reset filter</string>
+    <string name="world_map_layover_trails">Show flight trails of the layover flights</string>
 
     <!-- Discovery page -->
     <string name="discovery_title">Discovery</string>
@@ -511,6 +536,13 @@
     <string name="aircraft_stat_period">Period</string>
     <string name="aircraft_map_title_type">All flights of this aircraft type</string>
     <string name="aircraft_map_title_reg">All flights of this registration</string>
+    <!-- Aircraft type detail page: photo and general facts above the map -->
+    <string name="aircraft_photo_desc">Photo of the aircraft type</string>
+    <string name="aircraft_fact_manufacturer">Manufacturer</string>
+    <string name="aircraft_fact_production_start">Production start</string>
+    <string name="aircraft_fact_first_delivery">First delivery</string>
+    <string name="aircraft_fact_launch_customer">Launch customer</string>
+    <string name="aircraft_facts_source">General data: English Wikipedia (CC BY-SA 4.0)</string>
     <string name="aircraft_flight_list_title">Flights</string>
     <string name="buddy_flight_list_title">All common flights</string>
     <string name="buddy_map_title">Common flights</string>
@@ -765,4 +797,44 @@
     <string name="ach_crew_flight_attendant">First flight as flight attendant</string>
     <string name="ach_crew_purser_i">First flight as Purser I</string>
     <string name="ach_crew_purser_ii">First flight as Purser II</string>
+
+    <!-- Story: Play & Insights (flip-clock highlights) -->
+    <string name="story_insights_title">Insights</string>
+    <string name="story_close">Close story</string>
+    <string name="story_tap_hint">Tap right to continue, left to go back</string>
+    <string name="story_loading">Preparing your story …</string>
+    <string name="story_counter">%1$d / %2$d</string>
+    <string name="story_empty_title">No flights yet</string>
+    <string name="story_empty_sub">Once you log flights, the story tells your highlights here.</string>
+    <string name="story_play_flights_title">Your flights</string>
+    <string name="story_play_flights_total">Total flights</string>
+    <string name="story_play_flights_ytd">This year</string>
+    <string name="story_play_destinations_title">Your top destinations</string>
+    <string name="story_play_countries_title">Your top countries</string>
+    <string name="story_play_buddies_title">Your travel buddies</string>
+    <string name="story_play_aircraft_title">Your aircraft</string>
+    <string name="story_play_aircraft_most_flown">Most flown type</string>
+    <string name="story_play_aircraft_furthest">Furthest type</string>
+    <string name="story_play_route_title">Your home route</string>
+    <string name="story_play_route_sub">%1$d× flown</string>
+    <string name="story_play_passengers_title">Passengers carried</string>
+    <string name="story_play_passengers_footnote">Estimated from seats and load factor</string>
+    <string name="story_play_classes_title">Your travel classes</string>
+    <string name="story_play_distance_title">Kilometers flown</string>
+    <string name="story_play_time_title">Time in the air</string>
+    <string name="story_play_co2_title">Your CO₂ footprint</string>
+    <string name="story_play_co2_footnote">≈ %1$s trees bind that in a year</string>
+    <string name="story_unit_hours">h</string>
+    <string name="story_unit_tonnes">t</string>
+    <string name="story_row_hours">%1$d h</string>
+    <plurals name="story_row_months">
+        <item quantity="one">%1$d month</item>
+        <item quantity="other">%1$d months</item>
+    </plurals>
+    <string name="story_insights_layover_count_title">Most frequent layovers</string>
+    <string name="story_insights_layover_hours_title">Most time on layover</string>
+    <string name="story_insights_layover_countries_title">Your layover countries</string>
+    <string name="story_insights_layover_buddies_title">Your layover buddies</string>
+    <string name="story_insights_favorites_title">Your favorite destinations</string>
+    <string name="story_insights_disliked_title">Less favorite destinations</string>
 </resources>
