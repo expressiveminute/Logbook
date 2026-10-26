@@ -42,9 +42,14 @@ class RadiationFragment : LogbookFragment() {
             findNavController().navigate(R.id.action_radiation_to_info)
         }
         val context = requireContext()
-        binding.tvRadiationFilterInfo.text = getString(
-            R.string.radiation_filter_flight_type,
-            FlightTypeOptions.label(context, Settings.getFlightTypeFilterKey(context))
+        // Aktiver Flugart-Filter: Der Wert leuchtet in der Akzentfarbe.
+        val typeKey = Settings.getFlightTypeFilterKey(context)
+        val typeLabel = FlightTypeOptions.label(context, typeKey)
+        binding.tvRadiationFilterInfo.text = FilterHighlight.accent(
+            binding.tvRadiationFilterInfo,
+            getString(R.string.radiation_filter_flight_type, typeLabel),
+            typeLabel,
+            typeKey != FlightTypeOptions.KEY_ALL
         )
     }
 

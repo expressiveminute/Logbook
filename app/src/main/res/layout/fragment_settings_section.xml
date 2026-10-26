@@ -396,8 +396,84 @@
             android:orientation="vertical"
             android:visibility="gone">
 
-            <!-- Thema: Sichern und Wiederherstellen -->
-            <LinearLayout style="@style/SettingsRow">
+            <!-- Thema: Daten importieren/exportieren (JSON, alle App-Daten)
+                 als eine grosse Kachel im Stil der Reiseart-Kachel auf der
+                 Flüge-Seite (Sekundaercontainer, 16dp Ecken, dezenter Strich):
+                 oben der Titel, darunter ein kurzer Beschreibungstext und
+                 unten links/rechts die beiden Knoepfe mit Symbol. -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_full_data"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="?attr/colorSecondaryContainer"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeColor="?attr/colorOutlineVariant"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="12dp"
+                    android:paddingTop="12dp"
+                    android:paddingBottom="16dp">
+
+                    <!-- Überschrift der Kachel. -->
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/data_full_title"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <!-- Kurzer Beschreibungstext, was die Datei umfasst. -->
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/data_full_description"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                    <!-- Knopfzeile: Export links, Import rechts, beide mit
+                         Symbol. -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_full_export"
+                            style="@style/SettingsActionButton"
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:text="@string/data_full_export"
+                            app:icon="@drawable/ic_export"
+                            app:iconGravity="textStart" />
+
+                        <Space
+                            android:layout_width="8dp"
+                            android:layout_height="1dp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_full_import"
+                            style="@style/SettingsActionButton"
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:text="@string/data_full_import"
+                            app:icon="@drawable/ic_import"
+                            app:iconGravity="textStart" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Thema: Datenbank als CSV sichern/wiederherstellen (nur
+                 Flugdatensatz, im CSV-Format) -->
+            <LinearLayout
+                style="@style/SettingsRow"
+                android:layout_marginTop="28dp">
 
                 <TextView
                     style="@style/SettingsRowLabel"

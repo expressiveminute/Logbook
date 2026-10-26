@@ -121,17 +121,24 @@ class TileDetailFragment : LogbookFragment(), BackPressAware {
         }
 
         val tile = DashboardPrefs.tileById(tileId)
-        binding.tvDetailTitle.text = requireContext().getString(tile.nameRes)
-        binding.tvDetailSubtitle.text = getString(
-            R.string.tile_detail_period_flight_type,
-            PeriodOptions.label(
-                requireContext(),
-                Settings.getDefaultPeriodKey(requireContext())
+        val context = requireContext()
+        binding.tvDetailTitle.text = context.getString(tile.nameRes)
+        // Aktive Filter (Zeitraum, Flugart) im Header: Ihre Werte leuchten in
+        // der Akzentfarbe.
+        val periodKey = Settings.getDefaultPeriodKey(context)
+        val periodLabel = PeriodOptions.label(context, periodKey)
+        val typeKey = Settings.getFlightTypeFilterKey(context)
+        val typeLabel = FlightTypeOptions.label(context, typeKey)
+        binding.tvDetailSubtitle.text = FilterHighlight.accent(
+            binding.tvDetailSubtitle,
+            FilterHighlight.accent(
+                binding.tvDetailSubtitle,
+                getString(R.string.tile_detail_period_flight_type, periodLabel, typeLabel),
+                periodLabel,
+                periodKey != PeriodOptions.KEY_ALL
             ),
-            FlightTypeOptions.label(
-                requireContext(),
-                Settings.getFlightTypeFilterKey(requireContext())
-            )
+            typeLabel,
+            typeKey != FlightTypeOptions.KEY_ALL
         )
 
         when {
@@ -280,9 +287,14 @@ class TileDetailFragment : LogbookFragment(), BackPressAware {
         binding.barChart.setOnItemClickListener { index ->
             openLayoverDetail(bars.getOrNull(index)?.label)
         }
-        // Die Layover-Kachel zeigt in beiden Sortierungen gleich: der Wert im
-        // Balken, "Zuletzt: …" fest am rechten Rand.
-        binding.barChart.setValueInsideBar(true)
+        // Die Layover-Kachel zeigt in beiden Sortierungen gleich, aufgebaut
+        // wie die Airlines-Zeilen: ein Balken über die volle Zeilenhöhe, dessen
+        // Länge sich rein nach dem Wert richtet, mit der Beschriftung an fester
+        // Position innen links (Dreilettercode fett oben, "Zuletzt: …" darunter,
+        // bei kurzem Balken über dessen rechten Rand hinaus) und der Zahl
+        // rechtsbündig am Diagramm-Rand, gebündelt mit der Kachel darüber.
+        binding.barChart.setStackedLabel(true)
+        binding.barChart.setValueRightAligned(true)
         binding.tvEmpty.setText(
             if (query.isEmpty()) R.string.chart_empty else R.string.layover_search_empty
         )
@@ -504,7 +516,9 @@ class TileDetailFragment : LogbookFragment(), BackPressAware {
         if (bars.isEmpty()) return
         binding.tvLayoverZeroHeader.text =
             getString(R.string.layover_zero_header, bars.size)
-        binding.barChartZero.setValueInsideBar(true)
+        binding.barChartZero.setStackedLabel(true)
+        // Wie die Rangliste: die Zahlen rechtsbündig am Diagramm-Rand.
+        binding.barChartZero.setValueRightAligned(true)
         binding.barChartZero.setShowRanks(false)
         binding.barChartZero.setOnItemClickListener { index ->
             openLayoverDetail(bars.getOrNull(index)?.label)

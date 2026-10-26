@@ -40,10 +40,22 @@ class TimeDetailFragment : LogbookFragment() {
 
         val context = requireContext()
         binding.tvDetailTitle.text = getString(R.string.tile_time)
-        binding.tvDetailSubtitle.text = getString(
-            R.string.tile_detail_period_flight_type,
-            PeriodOptions.label(context, Settings.getDefaultPeriodKey(context)),
-            FlightTypeOptions.label(context, Settings.getFlightTypeFilterKey(context))
+        // Aktive Filter (Zeitraum, Flugart): Ihre Werte leuchten in der
+        // Akzentfarbe.
+        val periodKey = Settings.getDefaultPeriodKey(context)
+        val periodLabel = PeriodOptions.label(context, periodKey)
+        val typeKey = Settings.getFlightTypeFilterKey(context)
+        val typeLabel = FlightTypeOptions.label(context, typeKey)
+        binding.tvDetailSubtitle.text = FilterHighlight.accent(
+            binding.tvDetailSubtitle,
+            FilterHighlight.accent(
+                binding.tvDetailSubtitle,
+                getString(R.string.tile_detail_period_flight_type, periodLabel, typeLabel),
+                periodLabel,
+                periodKey != PeriodOptions.KEY_ALL
+            ),
+            typeLabel,
+            typeKey != FlightTypeOptions.KEY_ALL
         )
 
         val entries = DashboardStats.flyingEntries(DashboardStats.dashboardEntries(context))

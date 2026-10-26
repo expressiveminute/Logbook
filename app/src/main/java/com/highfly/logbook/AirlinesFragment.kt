@@ -330,7 +330,17 @@ class AirlinesFragment : LogbookFragment(), BackPressAware {
             binding.tvAirlinesEmpty.visibility = View.GONE
         }
         adapter.showMedals = query.isEmpty()
-        adapter.submit(filtered, allAirlines.maxOfOrNull { it.flights } ?: 0, airlineRanks)
+        // Höchst- und zweithöchste Flugzahl der GESAMTLISTE: Der Balken misst
+        // sich am Maximum der ungefilterten Liste, damit die Suche die
+        // Abstufung nicht verändert (und der Überhang der Spitzen-Airline
+        // erkannt wird, siehe AirlineAdapter).
+        val flightCounts = allAirlines.map { it.flights }.distinct().sortedDescending()
+        adapter.submit(
+            filtered,
+            flightCounts.firstOrNull() ?: 0,
+            if (flightCounts.size >= 2) flightCounts[1] else 0,
+            airlineRanks
+        )
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

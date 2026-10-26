@@ -263,11 +263,26 @@
     <string name="settings_section_data">Daten</string>
     <string name="data_export">Export</string>
     <string name="data_import">Import</string>
-    <string name="data_export_label">Daten exportieren</string>
-    <string name="data_import_label">Daten importieren</string>
+    <string name="data_export_label">Datenbank als CSV exportieren</string>
+    <string name="data_import_label">Datenbank von CSV importieren</string>
+    <string name="data_full_title">Daten importieren/exportieren</string>
+    <string name="data_full_description">Sichere alle Daten der App - Flüge, Einstellungen, Rubbelkarte und weitere gespeicherte Werte - als eine JSON-Datei und stelle sie bei Bedarf wieder her.</string>
+    <string name="data_full_export">Export</string>
+    <string name="data_full_import">Import</string>
     <string name="export_title">Daten exportieren?</string>
     <string name="export_message">Möchtest du die in der App gespeicherten Daten als CSV-Datei exportieren?</string>
     <string name="export_confirm">Exportieren</string>
+    <string name="full_export_title">Daten exportieren?</string>
+    <string name="full_export_message">Alle Daten der App (Flüge, Einstellungen, Rubbelkarte und weitere gespeicherte Werte) werden als JSON-Datei exportiert. Möchtest du fortfahren?</string>
+    <string name="full_export_confirm">Exportieren</string>
+    <string name="full_export_success">Export erfolgreich</string>
+    <string name="full_export_error">Export fehlgeschlagen</string>
+    <string name="full_import_title">Daten importieren?</string>
+    <string name="full_import_message">Beim Importieren einer JSON-Datei werden alle gespeicherten Daten (Flüge, Einstellungen, Rubbelkarte) ersetzt. Möchtest du fortfahren?</string>
+    <string name="full_import_confirm">Importieren</string>
+    <string name="full_import_success">Import erfolgreich</string>
+    <string name="full_import_error">Import fehlgeschlagen</string>
+    <string name="full_import_invalid">Die Datei ist keine gültige JSON-Exportdatei</string>
     <string name="import_title">Daten importieren?</string>
     <string name="import_message">Beim Importieren einer CSV-Datei werden alle in der App gespeicherten Einträge überschrieben. Möchtest du fortfahren?</string>
     <string name="import_confirm">Importieren</string>
@@ -648,7 +663,7 @@
     <string name="import_review_summary_unknown">Unbekannt</string>
 
     <string name="settings_version_label">Version %1$s</string>
-    <string name="settings_version" translatable="false">0.0.34</string>
+    <string name="settings_version" translatable="false">0.0.37</string>
     <string name="settings_made_with_prefix">Made with</string>
     <string name="settings_made_with_suffix">by expressiveminute</string>
 

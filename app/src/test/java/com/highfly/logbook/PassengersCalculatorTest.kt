@@ -131,6 +131,16 @@ class PassengersCalculatorTest {
     }
 
     @Test
+    fun roundToTens_rundetAufVolleZehner() {
+        assertEquals(0, PassengersCalculator.roundToTens(0))
+        assertEquals(0, PassengersCalculator.roundToTens(4))
+        assertEquals(10, PassengersCalculator.roundToTens(5))
+        assertEquals(10, PassengersCalculator.roundToTens(14))
+        assertEquals(20, PassengersCalculator.roundToTens(15))
+        assertEquals(1284390, PassengersCalculator.roundToTens(1284388))
+    }
+
+    @Test
     fun normalizeLoadFactor_begrenztUndRundetAuf5erSchritte() {
         assertEquals(80, PassengersCalculator.normalizeLoadFactor(80))
         assertEquals(80, PassengersCalculator.normalizeLoadFactor(83))

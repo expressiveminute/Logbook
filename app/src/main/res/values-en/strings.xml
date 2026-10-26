@@ -259,11 +259,26 @@
     <string name="settings_section_data">Data</string>
     <string name="data_export">Export</string>
     <string name="data_import">Import</string>
-    <string name="data_export_label">Export data</string>
-    <string name="data_import_label">Import data</string>
+    <string name="data_export_label">Export database as CSV</string>
+    <string name="data_import_label">Import database from CSV</string>
+    <string name="data_full_title">Import/export data</string>
+    <string name="data_full_description">Back up all app data - flights, settings, scratch map and other stored values - as a single JSON file and restore it when needed.</string>
+    <string name="data_full_export">Export</string>
+    <string name="data_full_import">Import</string>
     <string name="export_title">Export data?</string>
     <string name="export_message">Do you want to export the data stored in the app as a CSV file?</string>
     <string name="export_confirm">Export</string>
+    <string name="full_export_title">Export data?</string>
+    <string name="full_export_message">All data of the app (flights, settings, scratch map and other stored values) will be exported as a JSON file. Do you want to continue?</string>
+    <string name="full_export_confirm">Export</string>
+    <string name="full_export_success">Export successful</string>
+    <string name="full_export_error">Export failed</string>
+    <string name="full_import_title">Import data?</string>
+    <string name="full_import_message">When importing a JSON file, all stored data (flights, settings, scratch map) will be replaced. Do you want to continue?</string>
+    <string name="full_import_confirm">Import</string>
+    <string name="full_import_success">Import successful</string>
+    <string name="full_import_error">Import failed</string>
+    <string name="full_import_invalid">The file is not a valid JSON export file</string>
     <string name="import_title">Import data?</string>
     <string name="import_message">Importing a CSV file will overwrite all entries stored in the app. Do you want to continue?</string>
     <string name="import_confirm">Import</string>
@@ -636,7 +651,7 @@
     <string name="import_review_summary_unknown">Unknown</string>
 
     <string name="settings_version_label">Version %1$s</string>
-    <string name="settings_version" translatable="false">0.0.34</string>
+    <string name="settings_version" translatable="false">0.0.37</string>
     <string name="settings_made_with_prefix">Made with</string>
     <string name="settings_made_with_suffix">by expressiveminute</string>
 

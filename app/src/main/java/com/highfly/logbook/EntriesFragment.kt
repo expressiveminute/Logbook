@@ -54,6 +54,14 @@ class EntriesFragment : LogbookFragment(), ImeVisibilityAware, BackPressAware {
     private var loadGeneration = 0
     private var scrollToEntryId: Long? = null
 
+    /**
+     * Ob die Startposition der Liste schon angesprungen wurde. Beim ersten
+     * Oeffnen startet die Liste nicht ganz oben, sondern bei den ersten
+     * geflogenen Eintraegen - die geplanten Fluege ("Upcoming") stehen darueber
+     * und werden erst beim Hochscrollen sichtbar.
+     */
+    private var initialScrollDone = false
+
     /** Suchfeld rechts neben der Lupe offen oder zu. */
     private var searchActive = false
 
@@ -305,6 +313,9 @@ class EntriesFragment : LogbookFragment(), ImeVisibilityAware, BackPressAware {
         val pendingScroll = scrollToEntryId
         if (pendingScroll != null) {
             scrollToEntryId = null
+            // Die Startposition ist damit erledigt, auch wenn die Daten erst
+            // spaeter eintreffen.
+            initialScrollDone = true
             // Die Seite scrollt selbst gezielt zum bearbeiteten Eintrag; die
             // globale Wiederherstellung der Scroll-Position darf nicht dagegen.
             cancelPendingScrollRestore()
@@ -323,6 +334,25 @@ class EntriesFragment : LogbookFragment(), ImeVisibilityAware, BackPressAware {
                         val listCenter = binding.entriesList.height / 2f
                         val itemCenter = item.top + item.height / 2f
                         binding.entriesList.scrollBy(0, (itemCenter - listCenter).toInt())
+                    }
+                }
+            }
+        } else if (dataLoaded && !initialScrollDone) {
+            // Erstmaliges Oeffnen mit geladenen Daten: Die geplanten Fluege
+            // ("Upcoming") stehen ganz oben in der Liste, sollen aber erst
+            // sichtbar werden, wenn man selbst hochscrollt. Die Liste startet
+            // deshalb direkt bei den ersten geflogenen Eintraegen - es sei
+            // denn, eine Wiederherstellung der Scroll-Position steht noch aus
+            // (Rueckkehr auf die Seite), die hat Vorrang.
+            initialScrollDone = true
+            if (!hasPendingScrollRestore(binding.entriesList.id)) {
+                val target = adapter.firstPastRowPosition()
+                if (target > 0) {
+                    binding.entriesList.post {
+                        val layoutManager =
+                            binding.entriesList.layoutManager as? LinearLayoutManager
+                                ?: return@post
+                        layoutManager.scrollToPositionWithOffset(target, 0)
                     }
                 }
             }

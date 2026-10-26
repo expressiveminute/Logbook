@@ -3,7 +3,9 @@
      Rangzeichen (Medaille bzw. Platznummer), Name und Codes, die Zahl der
      Flüge rechts daneben und dahinter ein Pfeil. Im Hintergrund liegt ein
      diskreter Balken, der die Flugzahl im Verhältnis zur häufigsten Airline
-     zeigt. Ein Tipp auf die Zeile öffnet die Detailseite der Airline. -->
+     zeigt; er reicht bis zum rechten Bildschirmrand und läuft dabei hinter
+     Flugzahl und Pfeil hindurch. Ein Tipp auf die Zeile öffnet die
+     Detailseite der Airline. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -14,15 +16,32 @@
     android:clickable="true"
     android:focusable="true"
     android:minHeight="56dp"
-    android:paddingHorizontal="20dp"
     android:paddingVertical="4dp">
+
+    <!-- Hintergrundbalken als direktes Kind der Wurzel: mit match_parent und
+         dem linken Randversatz läuft er bis an den rechten Bildschirmrand
+         (20dp Zeilenrand + 36dp Rangzeichen + 10dp dessen Abstand + 6dp
+         Abstand vor dem Namen = 72dp). Der kleine rechte Randversatz hält
+         den längsten Balken (bei Überhang der Zweite) nur wenig vom
+         Bildschirmrand entfernt; der Überhang der Spitzen-Airline reicht
+         weiter unverändert über den Rand hinaus. Flugzahl und Pfeil liegen
+         als Teil der Inhaltszeile darüber. -->
+    <com.highfly.logbook.VisitedCountryBarView
+        android:id="@+id/airline_bar"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_gravity="center_vertical"
+        android:layout_marginStart="72dp"
+        android:layout_marginEnd="8dp"
+        android:importantForAccessibility="no" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="center_vertical"
         android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:paddingHorizontal="20dp">
 
         <com.highfly.logbook.RankBadgeView
             android:id="@+id/badge_airline_rank"
@@ -31,46 +50,34 @@
             android:layout_marginEnd="10dp"
             android:importantForAccessibility="no" />
 
-        <FrameLayout
+        <!-- Name und Codes; der Hintergrundbalken beginnt an der linken Kante
+             dieser Spalte (siehe oben, 72dp Randversatz). -->
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
             android:layout_marginStart="6dp"
-            android:layout_weight="1">
+            android:layout_weight="1"
+            android:paddingStart="14dp"
+            android:orientation="vertical">
 
-            <!-- Hintergrundbalken erst ab dem Namen; das Rangzeichen links
-                 bleibt untermalt. -->
-            <com.highfly.logbook.VisitedCountryBarView
-                android:id="@+id/airline_bar"
+            <TextView
+                android:id="@+id/tv_airline_name"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:minHeight="48dp"
-                android:importantForAccessibility="no" />
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+                tools:text="Lufthansa" />
 
-            <LinearLayout
+            <TextView
+                android:id="@+id/tv_airline_codes"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center_vertical"
-                android:paddingStart="14dp"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/tv_airline_name"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
-                    tools:text="Lufthansa" />
-
-                <TextView
-                    android:id="@+id/tv_airline_codes"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textAppearance="@style/TextAppearance.Material3.BodySmall"
-                    android:textColor="?attr/colorOnSurfaceVariant"
-                    tools:text="LH · DLH" />
-            </LinearLayout>
-        </FrameLayout>
+                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                tools:text="LH · DLH" />
+        </LinearLayout>
 
         <!-- Flugzahl rechts vor dem Pfeil; die Mindestbreite hält die Pfeile
              über die Zeilen hinweg in einer Spalte. -->

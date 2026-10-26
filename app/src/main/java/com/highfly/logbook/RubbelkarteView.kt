@@ -130,10 +130,12 @@ class RubbelkarteView @JvmOverloads constructor(
          * Weltkugel: Bei [ZOOM_MIN] sieht man Kontinente, und erst wenn ein Land
          * gross genug auf dem Bildschirm steht, lohnt sich sein Name, erst wenn
          * man weit genug hineinzoomt, sind einzelne Städte mehr als ein Punkt.
-         * Ohne dieses Zoombereich wären beide Beschriftungen unerreichbar.
+         * Ohne diesen Zoombereich wären beide Beschriftungen unerreichbar.
+         * ZOOM_MAX ist bewusst großzügig gewählt, damit man deutlich näher an
+         * einzelne Länder heranzoomen kann als früher.
          */
         const val ZOOM_MIN = 1f
-        const val ZOOM_MAX = 4f
+        const val ZOOM_MAX = 12f
 
         /**
          * Ab dieser Zoomstufe bekommen die Länder ihren Namen, aber nur wo er

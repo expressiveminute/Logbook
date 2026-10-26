@@ -1,10 +1,12 @@
 package com.highfly.logbook
 
+import android.animation.ValueAnimator
 import android.content.Context
 import android.content.res.ColorStateList
 import android.os.Bundle
 import android.view.View
 import android.widget.ImageView
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.activity.addCallback
@@ -25,6 +27,9 @@ import androidx.navigation.ui.setupActionBarWithNavController
 import com.google.android.material.color.MaterialColors
 import com.highfly.logbook.databinding.ActivityMainBinding
 
+/** Dauer eines vollen Puls-Zyklus des Filter-Glow, in Millisekunden. */
+private const val FILTER_GLOW_PERIOD_MS = 1500L
+
 class MainActivity : AppCompatActivity() {
 
     private lateinit var appBarConfiguration: AppBarConfiguration
@@ -41,6 +46,9 @@ class MainActivity : AppCompatActivity() {
     /** Akzentfarbe und Erscheinungsbild, mit denen diese Instanz gestartet ist. */
     private var appliedAccent: String? = null
     private var appliedThemeMode: String? = null
+
+    /** Laufende Glow-Animationen der beiden Filterwoerter im Dashboard-Kopf. */
+    private val filterGlowAnimators = HashMap<TextView, ValueAnimator>()
 
     override fun attachBaseContext(newBase: Context) {
         val localized = LocaleUtils.applyLocale(newBase, Settings.getLanguage(newBase))
@@ -110,7 +118,13 @@ class MainActivity : AppCompatActivity() {
         setupBackPressHandler()
         navController.addOnDestinationChangedListener { _, destination, _ ->
             updateHeaderAndContent()
-            if (destination.id == R.id.nav_dashboard) refreshDashboardHeader()
+            if (destination.id == R.id.nav_dashboard) {
+                refreshDashboardHeader()
+                // Zurueck auf dem Dashboard: Der Glow der aktiven Filter
+                // laeuft wieder an (updateHeaderAndContent hat ihn beim
+                // Seitenwechsel gestoppt).
+                renderDashboardFilter()
+            }
         }
 
         setupDashboardFilter()
@@ -193,7 +207,76 @@ class MainActivity : AppCompatActivity() {
             android.graphics.Typeface.NORMAL
         }
         binding.tvFilterSeparator.setTypeface(null, weight)
+        // Aktiver Filter: Das Wort pulsiert in der Akzentfarbe, damit sofort
+        // sichtbar ist, dass oben ein Filter wirkt.
+        updateFilterGlow(
+            binding.tvFilterFlightType,
+            typeKey != FlightTypeOptions.KEY_ALL
+        )
+        updateFilterGlow(
+            binding.tvFilterPeriod,
+            periodKey != PeriodOptions.KEY_ALL
+        )
     }
+
+    /**
+     * Glow um ein Filterwort, solange sein Filter aktiv ist: Die Schrift
+     * pulsiert in der Akzentfarbe um die Buchstaben herum, wie ein Leuchten,
+     * damit sofort klar ist, dass oben ein Filter wirkt. Ohne aktiven Filter
+     * bleibt das Wort schlicht; sind Systemanimationen abgeschaltet, leuchtet
+     * der Glow statisch ohne Puls. Der Puls ist bewusst auffaellig (10 dp
+     * Radius) und langsam (eine volle Welle in [FILTER_GLOW_PERIOD_MS]).
+     * Der Radius muss kleiner bleiben als das Padding der Filter-TextViews
+     * (12 dp in activity_main.xml): Eine View clippt ihr Zeichnen auf ihre
+     * Bounds, ein groesserer Glow wuerde an den Kanten hart abgeschnitten und
+     * als Quadrat sichtbar.
+     */
+    private fun updateFilterGlow(view: TextView, active: Boolean) {
+        filterGlowAnimators.remove(view)?.cancel()
+        if (!active) {
+            view.setShadowLayer(0f, 0f, 0f, 0)
+            return
+        }
+        val accent = MaterialColors.getColor(
+            view, com.google.android.material.R.attr.colorPrimary
+        )
+        val glowRadius = 10f * resources.displayMetrics.density
+        if (!animationsEnabled()) {
+            view.setShadowLayer(glowRadius, 0f, 0f, accent)
+            return
+        }
+        val animator = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = FILTER_GLOW_PERIOD_MS
+            repeatMode = ValueAnimator.REVERSE
+            repeatCount = ValueAnimator.INFINITE
+            addUpdateListener {
+                // Sinus-Puls: weich auf- und abschwellen statt harter Kante.
+                val pulse =
+                    kotlin.math.sin((it.animatedValue as Float) * Math.PI).toFloat()
+                view.setShadowLayer(glowRadius * pulse, 0f, 0f, accent)
+            }
+            start()
+        }
+        filterGlowAnimators[view] = animator
+    }
+
+    /** Haelt alle Glow-Animationen der Filterwoerter an und nimmt den Glow weg. */
+    private fun stopFilterGlow() {
+        // Auf dem Willkommens-Weg ist das Binding nie initialisiert worden.
+        if (!::binding.isInitialized) return
+        filterGlowAnimators.values.forEach { it.cancel() }
+        filterGlowAnimators.clear()
+        binding.tvFilterFlightType.setShadowLayer(0f, 0f, 0f, 0)
+        binding.tvFilterPeriod.setShadowLayer(0f, 0f, 0f, 0)
+    }
+
+    /** Ob Systemanimationen laufen dürfen (Einstellung "Animationsdauer"). */
+    private fun animationsEnabled(): Boolean =
+        android.provider.Settings.Global.getFloat(
+            contentResolver,
+            android.provider.Settings.Global.ANIMATOR_DURATION_SCALE,
+            1f
+        ) != 0f
 
     /**
      * Kopfzeile des Dashboards: links der Avatar, daneben der Name des Nutzers
@@ -356,6 +439,9 @@ class MainActivity : AppCompatActivity() {
         val isImport = dest == R.id.nav_import
 
         binding.appBar.visibility = if (showHeader) View.VISIBLE else View.GONE
+        // Ausserhalb des Dashboards ist die Filterzeile nicht sichtbar; der
+        // Glow der aktiven Filter pausiert, bis das Dashboard zurueckkehrt.
+        if (!showHeader) stopFilterGlow()
         binding.appBar.setPadding(navBarLeft, if (showHeader) statusBarTop else 0, navBarRight, 0)
         val navVisible = !isAddEntry && !isWorldMap && !isImport
         // Über der Tastatur soll nichts stehen: Solange sie offen ist, bekommt
@@ -468,6 +554,12 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
+    override fun onPause() {
+        super.onPause()
+        // Im Hintergrund pulsiert kein Filter-Glow.
+        stopFilterGlow()
+    }
+
     override fun onResume() {
         super.onResume()
         // Rückkehr aus der Story: Die StoryActivity hat den Flag gesetzt.
@@ -511,5 +603,10 @@ class MainActivity : AppCompatActivity() {
         val navController = findNavController(R.id.nav_host_fragment_content_main)
         return navController.navigateUp(appBarConfiguration)
                 || super.onSupportNavigateUp()
+    }
+
+    override fun onDestroy() {
+        stopFilterGlow()
+        super.onDestroy()
     }
 }

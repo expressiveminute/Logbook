@@ -179,6 +179,31 @@ keine passenden Flüge gibt. Gelesen wird die Liste bei jedem `onResume` neu aus
 Die anderen Nutzer desselben Layouts (`FlightRouteDetailFragment`, `TravelBuddyDetailFragment`)
 lassen Titel und Liste unsichtbar.
 
+## Seite „Layover" – Detailseite
+
+Die Layover-Kachel öffnet dieselbe `TileDetailFragment` mit `MODE_LAYOVER`
+(`fragment_tile_detail.xml`): ein Balkendiagramm der Layover-Ziele, sortiert nach Anzahl oder
+Dauer (`ChartData.barChart(context, "layover", layoverSort)`). Die Balken nutzen den zweizeiligen
+Modus von `BarChartView` (`setStackedLabel(true)`), aufgebaut wie die Zeilen der Airlines-Liste:
+ein Balken über die volle Zeilenhöhe (48 dp) in der Primärfarbe mit der Deckkraft der Listenbalken
+(`STACKED_BAR_ALPHA` = 45, wie die Hintergrundbalken der Länder-, Airlines- und
+Reisebuddy-Listen in `VisitedCountryBarView`), dessen Länge sich rein nach dem Wert richtet – ohne
+Mindestbreite, damit die Abstufung zwischen den Balken sichtbar bleibt. Die Beschriftung liegt an
+fester Position links im Balken – zwei zentrierte Zeilen, oben der Dreilettercode fett, darunter
+„Zuletzt: dd.MM.yyyy" (`layover_last`), im Dark Mode in Weiß (`inBarTextColor`), sonst in der
+Oberflächen-Textfarbe – und läuft bei kurzem Balken über dessen rechten Rand hinaus (wie der Name
+in den Airlines-Zeilen über dem Balken). Die Zahl steht rechtsbündig in einer festen Spalte am
+rechten Rand des Diagramms (`setValueRightAligned(true)` auf beiden Layover-Diagrammen, Balken
+enden kurz vor der Zahlenspalte: `barLimit = width - maxCountWidth - countGap`): Alle Zeilen enden
+auf einer Linie, und der rechte Rand der Zahlen bündelt mit der rechten Kante der Kachel
+„Ältestes Layover" darüber – Diagramm und Kachelzeile sind beide `match_parent` im selben
+16-dp-gepolsterten Container, der rechte Diagramm-Rand ist also der Kachel-Rand. Ohne
+Rechtsbündigung steht die Zahl wie in den Airlines-Zeilen direkt hinter dem Balken bzw. hinter
+der Beschriftung, wenn der Balken kürzer ist als sie, damit sie sich nicht decken.
+Rangzeichen (Medaillen bzw. in der Suche die Platznummer aus der ungefilterten Liste) stehen
+links daneben; die einklappbare Null-Gruppe darunter (`barChartZero`) nutzt denselben Modus ohne
+Rangzeichen und dieselbe Rechtsbündigung, damit beide Diagramme auf einer Linie enden.
+
 ## Flugzeugtypen – Stammdaten und Fotos
 
 Die Detailseite eines Flugzeugtyps (Hangar → Typ) zeigt über der Karte - wie die
@@ -256,12 +281,22 @@ Der Knopf zum Zurücksetzen des Filters (`btn_filter_reset`, Pfeil zurück) sitz
 neben** dem Filterknopf und ist nur sichtbar, solange ein Filter aktiv ist; ein Tipp darauf setzt den
 Filter zurück (`activeMapFilter = MapFilter()` samt `applyFilters()`).
 
+Die Zoom-Knopfspalte (`map_controls`) trägt klassisch **Hineinzoomen als Plus** (`btn_zoom_in`,
+`ic_add`) und **Herauszoomen als Minus** (`btn_zoom_out`, `ic_remove`). Der dritte Knopf
+(`btn_reset`) setzt die Karte auf die Standardansicht zurück und zeigt dazu statisch den
+**Doppelpfeil nach außen** (`ic_zoom_out_expand`) – er zoomt auf die Übersicht heraus.
+
 Die Weltkarte hat **keine schwebende Navigationsleiste** (`MainActivity` blendet sie aus) und
 `MainActivity` setzt deshalb kein `contentHost`-Padding-Top für sie. Stattdessen wendet
-`WorldMapFragment` die Systemleisten-Insets selbst an (`ViewCompat.setOnApplyWindowInsetsListener`):
-die oberen Buttons (`btn_back` links, `btn_filter` und `btn_filter_reset` rechts) bekommen
-`statusBars.top` als oberen Margin, die Stats-Karte und die Zoom-Knopfspalte (`map_controls`)
-`systemBars.bottom` als unteren. Der Zurückbutton (`btn_back`) navigiert per
+`WorldMapFragment` die Systemleisten-Insets selbst an (`applyInsets`): die oberen Buttons
+(`btn_back` links, `btn_filter` und `btn_filter_reset` rechts) bekommen `statusBars.top` plus
+20 dp als oberen Margin, die Stats-Karte und die Zoom-Knopfspalte (`map_controls`)
+`systemBars.bottom` als unteren. Die Insets kommen dabei **nicht** über den
+`ViewCompat.setOnApplyWindowInsetsListener` des Fragments an – `MainActivity` konsumiert sie auf
+der Wurzelansicht (`WindowInsetsCompat.CONSUMED`), die Auslieferung stoppt dort. Das Fragment liest
+sie deshalb zusätzlich direkt über `ViewCompat.getRootWindowInsets` in `doOnLayout` (erstes Layout
+und jede Änderung, z. B. Drehung); `applyInsets` ändert die Margins nur bei tatsächlicher Änderung,
+damit daraus keine Layoutschleife entsteht. Der Zurückbutton (`btn_back`) navigiert per
 `findNavController().navigateUp()` zurück.
 
 ## Seite „Fluggesellschaften"
@@ -269,7 +304,16 @@ die oberen Buttons (`btn_back` links, `btn_filter` und `btn_filter_reset` rechts
 Die Kachel *Fluggesellschaften* öffnet `AirlinesFragment` (`fragment_airlines.xml`), nicht mehr
 `TileDetailFragment`: eine Rangliste im Aufbau der Reisebuddy-Liste (`item_airline.xml` +
 `AirlineAdapter` mit `RankBadgeView` und `VisitedCountryBarView`), absteigend nach Flugzahl, der
-Balken gemessen am Maximum der ungefilterten Liste. Oben rechts im Kopf sitzt eine Lupe wie bei
+Balken gemessen am Maximum der ungefilterten Liste. Der Hintergrundbalken ist ein direktes Kind
+der Zeilenwurzel und reicht dadurch bis kurz vor den rechten Bildschirmrand – hinter Flugzahl und
+Pfeil hindurch (`layout_marginStart` 72 dp: 20 dp Zeilenrand + 36 dp Rangzeichen + 10 dp + 6 dp
+Abstand).
+Hat die Spitzen-Airline mehr als dreimal so viele Flüge wie die zweithäufigste, überragt ihr
+Balken den rechten Rand (Anteil über 1) und die übrigen messen sich an der zweithöchsten Zahl
+(`AirlineAdapter.submit(list, maxFlights, secondMaxFlights, ranks)`). Der Balken trägt zusätzlich
+`layout_marginEnd` 8 dp, damit der längste Balken (bei Überhang der Zweite) nur wenig Abstand zum
+rechten Bildschirmrand hält, während der Überhang der Spitzen-Airline unverändert über den Rand
+hinausreicht. Oben rechts im Kopf sitzt eine Lupe wie bei
 den Flughäfen: Sie klappt ein Suchfeld aus, das im gesamten Katalog (`AirlineCatalog.search` über
 `assets/airlines/airlines.json`) nach IATA-Code, ICAO-Code und Name sucht - "LH", "DLH" und
 "Lufthansa" finden dieselbe Airline. Auch nie geflogene Airlines erscheinen dann mit 0 Flügen.
@@ -278,7 +322,7 @@ Zurückkehren setzt die Liste an der gemerkten Scrollposition wieder auf (wie di
 `savedScrollPosition` in `AirlinesFragment`).
 In der Suche trägt das Rangzeichen keine Medaille, sondern den Rang der **ungefilterten Liste**
 (`AirlineAdapter.showMedals` / `RankBadgeView.setRank(rank, showMedals)`; der Rang kommt über
-`AirlineAdapter.submit(list, maxFlights, ranks)` aus der Gesamtliste, eine nie geflogene Airline
+`AirlineAdapter.submit` aus der Gesamtliste, eine nie geflogene Airline
 trägt keinen Rang) - dasselbe gilt für die Suche der Reisebuddies (`TravelBuddyAdapter`) und der
 Kacheln Layover, Flughäfen und Hangar (`BarChartView.setShowMedals`, Rang fest über
 `BarChartView.Item.rank` aus der Gesamtliste; die Länderliste rechnet ihn ohnehin über
@@ -490,7 +534,7 @@ Die Kachel *Passagiere* (Ikone `ic_passengers`, volle Breite, dieselbe Höhe wie
 Höhenstrahlungs-Kachel) ist eine reine Besatzungs-Kachel: `DashboardPrefs.isTileAvailable`
 lässt sie nur bei der Rolle *Crew* zu (`role.isCrew`) - im Dashboard und im Bearbeiten-Dialog
 gleichermaßen. Sie zeigt die geschätzte Gesamtzahl der Passagiere über **alle Jahre** (auf volle
-Hunderter gerundet); rechts daneben steht der Durchschnitt pro Flug. Ein Tipp öffnet
+Zehner gerundet); rechts daneben steht der Durchschnitt pro Flug. Ein Tipp öffnet
 `PassengersFragment` mit der Passagierzahl je Kalenderjahr (neuestes Jahr oben, Balken zum
 stärksten Jahr); das Adjust-Symbol oben rechts im Kopf (`ic_adjust`) öffnet einen Dialog, der
 die Auslastung zwischen 50 und 100 % in 5er-Schritten einstellt (Standard 80 %, pro Nutzer
@@ -513,8 +557,10 @@ bilden auf Familie bzw. Variante ab („A350-900“, „Boeing 737-800“, „B7
 unbekannter oder fehlender Typ bekommt den Durchschnitt des Datensatzes (≈ 255 Sitze).
 
 Weil die Schätzung (Vollbesetzung × Auslastung) eine echte Ungenauigkeit trägt, werden
-Summen auf volle Hunderter gerundet (`PassengersCalculator.roundToHundreds`) - Kachel und
-Jahreswerte; der Durchschnitt pro Flug bleibt eine ganze Zahl. Grundlage ist dieselbe Auswahl
+Summen gerundet, damit sie keine Scheingenauigkeit vortäuschen: Die Kachel rundet auf volle
+Zehner (`PassengersCalculator.roundToTens`), die Jahreswerte der Detailseite auf volle
+Hunderter (`PassengersCalculator.roundToHundreds`); der Durchschnitt pro Flug bleibt eine
+ganze Zahl. Grundlage ist dieselbe Auswahl
 wie die Höhenstrahlung: der **Flugart-Filter** gilt (`DashboardStats.flightTypeEntries`), der
 **Zeitraum-Filter des Dashboards nicht**; innerhalb der gewählten Flugart zählen nur die
 On-Duty-Flüge, die Infozeile der Detailseite nennt beides („Flugart: … · nur On Duty").
@@ -665,6 +711,29 @@ gefilterten Ausschnitt (Fallback: `EntryDayOrder.busiestAirports`); die Vortag-R
 schauen auf den tatsächlich angezeigten Ausschnitt. Geprüft wird das von `EntryDayOrderTest`
 (u. a. die Beispiele der Aufgabe).
 
+Der Aufbau der Zeilen (Monatsüberschriften, die „Upcoming"-Überschrift über den geplanten Flügen)
+liegt rein ohne Android in `EntryRows` (geprüft von `EntryRowsTest`); `EntryListAdapter` baut nur
+noch die Ansichten. Die geplanten Flüge stehen ganz oben in der Liste, werden aber erst sichtbar,
+wenn man selbst hochscrollt: Beim ersten Öffnen startet die Liste direkt bei den ersten geflogenen
+Einträgen (`EntryRows.firstPastPosition`, in `EntriesFragment.renderEntries` angesprungen, sobald
+die Daten geladen sind und keine Wiederherstellung der Scroll-Position aussteht –
+`LogbookFragment.hasPendingScrollRestore`).
+
+## Filter-Signal – Dashboard und Kachelseiten
+
+Ist oben im Dashboard-Kopf ein Filter gesetzt (Flugart oder Zeitraum), pulsiert das Filterwort in
+der Akzentfarbe um die Buchstaben herum (`MainActivity.updateFilterGlow`: `setShadowLayer` mit
+pulsierendem Radius 10 dp und einer vollen Welle in `FILTER_GLOW_PERIOD_MS` = 1500 ms, also
+auffällig, aber langsam; statischer Glow, wenn Systemanimationen abgeschaltet sind; pausiert mit
+`onPause` und wenn der Kopf ausgeblendet ist). Auf den Kachelseiten mit Filter im Kopf färbt
+`FilterHighlight.accent` den Wert des aktiven Filters in der Akzentfarbe ein (CO₂, Höhenstrahlung
+und Passagiere: die Flugart-Zeile; Distanz und Zeit: Zeitraum und Flugart in der Unterzeile; die
+`TileDetailFragment`-Seiten Layover, Hangar, Flughäfen, Flugrouten, Reiseklasse, Reiseart und
+Funktion: Zeitraum und Flugart in der Kopf-Unterzeile `tv_detail_subtitle`, jeweils nur der Wert,
+ dessen Schlüssel nicht `PeriodOptions.KEY_ALL` bzw. `FlightTypeOptions.KEY_ALL` ist –
+ `FilterHighlight.accent` kopiert die vorhandenen Spans, daher lassen sich die beiden Aufrufe
+ ketten), damit dort ebenso sichtbar ist, dass ein Filter wirkt.
+
 ## Seite „Achievements"
 
 Die Dashboard-Kachel *Achievements* (Pokal `ic_achievement`, Standardreihe mit *Reiseart* und
@@ -795,7 +864,12 @@ Jede Einstellung ist eine Zeile in `fragment_settings_section.xml`: **links** st
 Einstellung, **rechts** ihre Auswahl. Dafür gibt es Styles in `values/styles.xml`; neue Zeilen
 entstehen mit `SettingsRow` + `SettingsRowLabel` + `SettingsRowValue`, Aktionen (Export, Crash-Log)
 mit `SettingsActionButton`. Für Felder mit eigener Beschriftung (Fluggesellschaft, Zeiträume)
-gehört `android:labelFor` der Zeilenbeschriftung auf das Feld.
+gehört `android:labelFor` der Zeilenbeschriftung auf das Feld. **Eine Ausnahme** ist die Gruppe
+*Daten*: Der JSON-Export/Import aller App-Daten steht als eine grosse Kachel oben in der Gruppe
+(`card_full_data`, im Stil der Reiseart-Kachel auf der Flüge-Seite: `colorSecondaryContainer`,
+16 dp Ecken, Strich aus `colorOutlineVariant`) mit Titel, Beschreibungstext und zwei Knöpfen
+unten (links Export mit `ic_export`, rechts Import mit `ic_import`; die Knopf-IDs `btn_full_export`/
+`btn_full_import` bleiben, damit die Verknüpfung in `SettingsSectionFragment` steht).
 
 **Auswahlen mit mehreren Werten** (Rolle, Funktion, bevorzugte Arbeitsposition, Erscheinungsbild,
 Akzentfarbe, Sprache) sind keine Kacheln mehr, sondern ein **Regler** (`SegmentedOptionView`, wie

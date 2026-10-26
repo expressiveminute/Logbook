@@ -16,7 +16,6 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.color.MaterialColors
 import com.highfly.logbook.databinding.ItemEntryBinding
 import com.highfly.logbook.databinding.ItemEntryMonthBinding
-import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.TextStyle
 import java.util.Locale
@@ -41,20 +40,10 @@ class EntryListAdapter(
     private val onClickDelete: (LogbookEntry) -> Unit,
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
-    /**
-     * Eine Zeile der Liste: entweder eine Monatsüberschrift, die
-     * "Upcoming"-Überschrift über den geplanten Flügen oder eine Kachel.
-     */
-    private sealed interface Row {
-        data class MonthHeader(val month: YearMonth) : Row
-        object UpcomingHeader : Row
-        data class Item(val entry: LogbookEntry, val upcoming: Boolean, val dayStart: Boolean) : Row
-    }
-
     var entries: List<LogbookEntry> = emptyList()
     var schemeColors: List<Int> = emptyList()
 
-    private var rows: List<Row> = emptyList()
+    private var rows: List<EntryRow> = emptyList()
 
     private val touchSlop by lazy { ViewConfiguration.get(context).scaledTouchSlop.toFloat() }
     private val revealWidth by lazy {
@@ -116,57 +105,23 @@ class EntryListAdapter(
 
     fun submit(list: List<LogbookEntry>) {
         entries = list
-        rows = buildRows(list)
+        rows = EntryRows.build(list)
         notifyDataSetChanged()
     }
 
     /**
-     * Baut die Zeilen der Liste: Ein Flug mit Datum in der Zukunft ist ein
-     * geplanter Flug und steht ganz oben unter der "Upcoming"-Überschrift,
-     * ohne eigene Monatsüberschrift. Alles bis einschliesslich heute wird wie
-     * bisher nach Monaten gruppiert: vor der ersten Kachel eines Monats steht
-     * eine Überschrift, alle Kacheln desselben Monats folgen direkt darunter.
-     * Die Einträge kommen bereits absteigend nach Datum, deshalb genügt es,
-     * die Monate in dieser Reihenfolge der Reihe nach zu durchlaufen.
-     *
-     * [Row.Item.dayStart] markiert die erste Kachel eines neuen Tages, aber
-     * nur wenn direkt davor schon eine Kachel steht - nach einer Überschrift
-     * (Monat oder "Upcoming") steht der Abstand der Überschrift allein.
+     * Position der ersten Zeile der geflogenen Einträge (die Monatsüberschrift
+     * über der ersten Kachel, die nicht "Upcoming" ist), oder -1, wenn es
+     * keine geflogenen Einträge gibt. Die Seite startet beim ersten Öffnen
+     * dort, damit die geplanten Flüge oben in der Liste erst sichtbar werden,
+     * wenn man selbst hochscrollt.
      */
-    private fun buildRows(list: List<LogbookEntry>): List<Row> {
-        val result = mutableListOf<Row>()
-        var lastMonth: YearMonth? = null
-        var upcomingStarted = false
-        var previousItemDate: LocalDate? = null
-        val today = LocalDate.now()
-        for (entry in list) {
-            val upcoming = UpcomingEntries.isUpcoming(entry, today)
-            when {
-                upcoming && !upcomingStarted -> {
-                    result += Row.UpcomingHeader
-                    upcomingStarted = true
-                    previousItemDate = null
-                }
-                !upcoming -> {
-                    val month = YearMonth.from(entry.date)
-                    if (month != lastMonth) {
-                        result += Row.MonthHeader(month)
-                        lastMonth = month
-                        previousItemDate = null
-                    }
-                }
-            }
-            val dayStart = previousItemDate != null && entry.date != previousItemDate
-            previousItemDate = entry.date
-            result += Row.Item(entry, upcoming, dayStart)
-        }
-        return result
-    }
+    fun firstPastRowPosition(): Int = EntryRows.firstPastPosition(rows)
 
     /** Position der Kachel mit dieser Id, oder -1 wenn nicht in der Liste. */
     fun positionOfEntry(entryId: Long?): Int {
         if (entryId == null) return -1
-        return rows.indexOfFirst { it is Row.Item && it.entry.id == entryId }
+        return rows.indexOfFirst { it is EntryRow.Item && it.entry.id == entryId }
     }
 
     /**
@@ -176,7 +131,7 @@ class EntryListAdapter(
      */
     fun nextItemPositionAfter(position: Int): Int {
         for (index in position + 1 until rows.size) {
-            if (rows[index] is Row.Item) return index
+            if (rows[index] is EntryRow.Item) return index
         }
         return -1
     }
@@ -185,8 +140,8 @@ class EntryListAdapter(
         get() = openEntryId.get().takeIf { it != Long.MIN_VALUE }
 
     override fun getItemViewType(position: Int): Int = when (rows[position]) {
-        is Row.MonthHeader, is Row.UpcomingHeader -> TYPE_MONTH
-        is Row.Item -> TYPE_ENTRY
+        is EntryRow.MonthHeader, is EntryRow.UpcomingHeader -> TYPE_MONTH
+        is EntryRow.Item -> TYPE_ENTRY
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
@@ -200,9 +155,9 @@ class EntryListAdapter(
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (val row = rows[position]) {
-            is Row.MonthHeader -> (holder as MonthViewHolder).bind(row.month)
-            is Row.UpcomingHeader -> (holder as MonthViewHolder).bindUpcoming()
-            is Row.Item -> (holder as ViewHolder).bind(row.entry, row.upcoming, row.dayStart)
+            is EntryRow.MonthHeader -> (holder as MonthViewHolder).bind(row.month)
+            is EntryRow.UpcomingHeader -> (holder as MonthViewHolder).bindUpcoming()
+            is EntryRow.Item -> (holder as ViewHolder).bind(row.entry, row.upcoming, row.dayStart)
         }
     }
 
@@ -340,10 +295,12 @@ class EntryListAdapter(
             binding.itemCard.translationX = if (isOpen) revealWidth else 0f
             // Erste Kachel eines neuen Tages: mehr Abstand zur Kachel darüber,
             // damit die Flüge desselben Tages deutlicher beieinander liegen.
+            // Geplante Flüge ("Upcoming") stehen dagegen direkt untereinander,
+            // ohne Tagesabstand - sie sind kompakter und dichter gruppiert.
             // Beim Recycling wird der Rand hier immer neu gesetzt.
             val params = binding.root.layoutParams as? ViewGroup.MarginLayoutParams
             if (params != null) {
-                val gapDp = if (dayStart) DAY_GAP_DP else ITEM_GAP_DP
+                val gapDp = if (!upcoming && dayStart) DAY_GAP_DP else ITEM_GAP_DP
                 params.topMargin = (gapDp * context.resources.displayMetrics.density).toInt()
                 binding.root.layoutParams = params
             }

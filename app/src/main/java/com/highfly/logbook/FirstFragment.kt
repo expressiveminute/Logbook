@@ -1,5 +1,6 @@
 package com.highfly.logbook
 
+import android.content.Context
 import android.os.Bundle
 import android.text.Layout
 import android.text.SpannableStringBuilder
@@ -103,7 +104,13 @@ class FirstFragment : LogbookFragment() {
 
     override fun onResume() {
         super.onResume()
+        // Aenderungen am Filter (Flugart, Zeitraum) kommen über die Kopfzeile
+        // der Activity; der Zwischenspeicher erkennt am Schlüssel selbst, ob
+        // sich etwas geändert hat.
         DashboardEvents.onFilterChanged = { refresh() }
+        // Wird bei jedem Zurückwechseln aufgerufen - auch über die
+        // Navigationszeile, wo das Fragment samt Ansicht neu aufgebaut wird.
+        // refresh() rendert bei einem Cache-Treffer sofort ohne Lag.
         refresh()
     }
 
@@ -118,11 +125,52 @@ class FirstFragment : LogbookFragment() {
         _binding = null
     }
 
-    private fun refresh() {
-        val generation = ++loadGeneration
-        binding.dashboardProgress.visibility = View.VISIBLE
+    /**
+     * Schlüssel für den Dashboard-Zwischenspeicher: Neben der Datenversion
+     * ([LogbookRepository.dataVersion]) gehen die Filter und die
+     * Einstellungen ein, die in die Kachelwerte eingehen - sonst erschiene
+     * nach einem Wechsel (z. B. Auslastung, Sprache, Rolle, Nutzer) der
+     * veraltete Stand aus dem Speicher.
+     */
+    private fun snapshotKey(context: Context): String =
+        listOf(
+            LogbookRepository.dataVersion,
+            Settings.getFlightTypeFilterKey(context),
+            Settings.getDefaultPeriodKey(context),
+            Settings.getPassengerLoadFactor(context),
+            Settings.getClassTravelType(context),
+            Settings.getRole(context),
+            Settings.language(context)
+        ).joinToString("|")
 
-        val appContext = requireContext().applicationContext
+    private fun refresh() {
+        val currentBinding = _binding ?: return
+        val appContext = currentBinding.root.context.applicationContext
+        val key = snapshotKey(appContext)
+        val cached = snapshot
+        if (cached != null && cached.key == key) {
+            // Cache-Treffer (z. B. Zurückwechseln über die Navigationszeile):
+            // Sofort rendern ohne Warteanzeige und ohne Hochzähl-Animation,
+            // damit das Dashboard ohne Lag erscheint.
+            currentBinding.dashboardProgress.visibility = View.GONE
+            timeMinutes = cached.timeMinutes
+            renderGrid(
+                DashboardPrefs.readRows(currentBinding.root.context),
+                currentBinding.gridTiles,
+                cached.values,
+                cached.distance,
+                cached.co2,
+                cached.radiation,
+                cached.passengers,
+                cached.entries,
+                cached.hasSeatData,
+                animate = false
+            )
+            return
+        }
+        val generation = ++loadGeneration
+        currentBinding.dashboardProgress.visibility = View.VISIBLE
+
         Thread {
             // Beide Filter der Zeile oben wirken auf jede Kachel und auf jede
             // Seite dahinter: Flugart und Zeitraum zusammen, siehe
@@ -178,6 +226,20 @@ class FirstFragment : LogbookFragment() {
                 if (generation != loadGeneration || _binding == null) return@post
                 binding.dashboardProgress.visibility = View.GONE
                 timeMinutes = time
+                // Die berechneten Werte überleben als Companion den Wechsel
+                // des Fragments; beim nächsten Aufruf mit gleichem Schlüssel
+                // rendert refresh() sofort daraus.
+                snapshot = DashboardSnapshot(
+                    key,
+                    entries,
+                    values,
+                    distance,
+                    co2,
+                    radiation,
+                    passengers,
+                    time,
+                    hasSeatData
+                )
                 renderGrid(
                     DashboardPrefs.readRows(binding.root.context),
                     binding.gridTiles,
@@ -187,7 +249,8 @@ class FirstFragment : LogbookFragment() {
                     radiation,
                     passengers,
                     entries,
-                    hasSeatData
+                    hasSeatData,
+                    animate = true
                 )
             }
         }.start()
@@ -211,7 +274,8 @@ class FirstFragment : LogbookFragment() {
         radiation: RadiationStats.Summary,
         passengers: PassengersCalculator.Summary,
         entries: List<LogbookEntry>,
-        hasSeatData: Boolean = true
+        hasSeatData: Boolean = true,
+        animate: Boolean = true
     ) {
         TileValueAnimator.cancelAll()
         container.removeAllViews()
@@ -302,15 +366,15 @@ class FirstFragment : LogbookFragment() {
                 val pieView = tileContainer.findViewById<PieChartView>(R.id.tile_pie_chart)
                 val worldmapPreview = tileContainer.findViewById<WorldMapPreviewView>(R.id.tile_worldmap_preview)
                 if (isDistance) {
-                    populateDistanceTile(tileContainer, distance)
+                    populateDistanceTile(tileContainer, distance, animate)
                 } else if (isCo2) {
-                    populateCo2Tile(tileContainer, co2)
+                    populateCo2Tile(tileContainer, co2, animate)
                 } else if (isRadiation) {
-                    populateRadiationTile(tileContainer, radiation)
+                    populateRadiationTile(tileContainer, radiation, animate)
                 } else if (isPassengers) {
-                    populatePassengersTile(tileContainer, passengers)
+                    populatePassengersTile(tileContainer, passengers, animate)
                 } else if (isTime) {
-                    populateTimeTile(tileContainer, timeMinutes, entries)
+                    populateTimeTile(tileContainer, timeMinutes, entries, animate)
                 } else if (tileId == "worldmap") {
                     iconView.visibility = View.GONE
                     tileContainer.findViewById<View>(R.id.ll_tile_top_right).visibility = View.GONE
@@ -356,7 +420,7 @@ class FirstFragment : LogbookFragment() {
                             text = ""
                             visibility = View.GONE
                         } else {
-                            TileValueAnimator.animate(this, buildValueText(value))
+                            TileValueAnimator.animate(this, buildValueText(value), animate)
                             visibility = View.VISIBLE
                         }
                     }
@@ -613,14 +677,15 @@ class FirstFragment : LogbookFragment() {
 
     private fun populateCo2Tile(
         container: ViewGroup,
-        co2: Co2Calculator.Details
+        co2: Co2Calculator.Details,
+        animate: Boolean = true
     ) {
         val locale = Settings.language(requireContext())
         container.findViewById<TextView>(R.id.tv_co2_value).apply {
-            TileValueAnimator.animate(this, Co2Calculator.tonnesText(co2.tonnes, locale))
+            TileValueAnimator.animate(this, Co2Calculator.tonnesText(co2.tonnes, locale), animate)
         }
         container.findViewById<TextView>(R.id.tv_trees_value).apply {
-            TileValueAnimator.animate(this, String.format(locale, "%,d", co2.treesPerYear))
+            TileValueAnimator.animate(this, String.format(locale, "%,d", co2.treesPerYear), animate)
         }
     }
 
@@ -632,12 +697,17 @@ class FirstFragment : LogbookFragment() {
      */
     private fun populateRadiationTile(
         container: ViewGroup,
-        radiation: RadiationStats.Summary
+        radiation: RadiationStats.Summary,
+        animate: Boolean = true
     ) {
         val context = requireContext()
         val locale = Settings.language(context)
         container.findViewById<TextView>(R.id.tv_radiation_value).apply {
-            TileValueAnimator.animate(this, RadiationCalculator.msvText(radiation.yearUSv, locale))
+            TileValueAnimator.animate(
+                this,
+                RadiationCalculator.msvText(radiation.yearUSv, locale),
+                animate
+            )
         }
         // Ohne Tausendertrennzeichen: ein Jahr gruppiert sich nicht.
         container.findViewById<TextView>(R.id.tv_radiation_year).text =
@@ -645,7 +715,8 @@ class FirstFragment : LogbookFragment() {
         container.findViewById<TextView>(R.id.tv_radiation_total_value).apply {
             TileValueAnimator.animate(
                 this,
-                RadiationCalculator.msvText(radiation.totalUSv, locale)
+                RadiationCalculator.msvText(radiation.totalUSv, locale),
+                animate
             )
         }
         // Balken: Anteil der Jahresdosis am Grenzwert von 20 mSv, die
@@ -673,13 +744,14 @@ class FirstFragment : LogbookFragment() {
 
     /**
      * Passagiere-Kachel: links die geschätzte Gesamtzahl über alle Jahre (auf
-     * volle Hunderter gerundet) samt eingestellter Auslastung, rechts der
+     * volle Zehner gerundet) samt eingestellter Auslastung, rechts der
      * Durchschnitt pro Flug - gerechnet aus der Sitzplatzanzahl des
      * Flugzeugtyps und der Auslastung, siehe [PassengersCalculator].
      */
     private fun populatePassengersTile(
         container: ViewGroup,
-        passengers: PassengersCalculator.Summary
+        passengers: PassengersCalculator.Summary,
+        animate: Boolean = true
     ) {
         val context = requireContext()
         val locale = Settings.language(context)
@@ -687,9 +759,10 @@ class FirstFragment : LogbookFragment() {
             TileValueAnimator.animate(
                 this,
                 PassengersCalculator.passengersText(
-                    PassengersCalculator.roundToHundreds(passengers.totalPassengers),
+                    PassengersCalculator.roundToTens(passengers.totalPassengers),
                     locale
-                )
+                ),
+                animate
             )
         }
         container.findViewById<TextView>(R.id.tv_passengers_load_factor).text = getString(
@@ -699,24 +772,26 @@ class FirstFragment : LogbookFragment() {
         container.findViewById<TextView>(R.id.tv_passengers_avg_value).apply {
             TileValueAnimator.animate(
                 this,
-                PassengersCalculator.passengersText(passengers.averagePerFlight, locale)
+                PassengersCalculator.passengersText(passengers.averagePerFlight, locale),
+                animate
             )
         }
     }
 
     private fun populateDistanceTile(
         container: ViewGroup,
-        distance: DashboardStats.DistanceDetails
+        distance: DashboardStats.DistanceDetails,
+        animate: Boolean = true
     ) {
         val context = requireContext()
         val none = context.getString(R.string.distance_none)
 
         val top = DashboardStats.distanceTopValues(context, distance.totalKm)
         container.findViewById<TextView>(R.id.tv_dist_value).apply {
-            TileValueAnimator.animate(this, buildValueText(top.first))
+            TileValueAnimator.animate(this, buildValueText(top.first), animate)
         }
         container.findViewById<TextView>(R.id.tv_dist_nm).apply {
-            TileValueAnimator.animate(this, buildValueText(top.second))
+            TileValueAnimator.animate(this, buildValueText(top.second), animate)
         }
 
         container.findViewById<TextView>(R.id.tv_dist_furthest_label).text =
@@ -740,20 +815,21 @@ class FirstFragment : LogbookFragment() {
             distance.shortestKm?.let { DashboardStats.kmText(context, it) } ?: none
 
         container.findViewById<TextView>(R.id.tv_orbits_value).apply {
-            TileValueAnimator.animate(this, buildValueText(DashboardStats.Value(DashboardStats.factorText(distance.earthOrbits, Settings.language(context)), "×")))
+            TileValueAnimator.animate(this, buildValueText(DashboardStats.Value(DashboardStats.factorText(distance.earthOrbits, Settings.language(context)), "×")), animate)
         }
         container.findViewById<TextView>(R.id.tv_moon_value).apply {
-            TileValueAnimator.animate(this, buildValueText(DashboardStats.Value(DashboardStats.factorText(distance.moonTrips, Settings.language(context)), "×")))
+            TileValueAnimator.animate(this, buildValueText(DashboardStats.Value(DashboardStats.factorText(distance.moonTrips, Settings.language(context)), "×")), animate)
         }
         container.findViewById<TextView>(R.id.tv_sun_value).apply {
-            TileValueAnimator.animate(this, buildValueText(DashboardStats.Value(DashboardStats.factorText(distance.sunTrips, Settings.language(context)), "×")))
+            TileValueAnimator.animate(this, buildValueText(DashboardStats.Value(DashboardStats.factorText(distance.sunTrips, Settings.language(context)), "×")), animate)
         }
     }
 
     private fun populateTimeTile(
         container: ViewGroup,
         minutes: Int,
-        entries: List<LogbookEntry>
+        entries: List<LogbookEntry>,
+        animate: Boolean = true
     ) {
         val context = requireContext()
         val none = context.getString(R.string.distance_none)
@@ -763,10 +839,10 @@ class FirstFragment : LogbookFragment() {
         // auf der Distanz-Kachel.
         val top = DashboardStats.timeTopValues(context, minutes)
         container.findViewById<TextView>(R.id.tv_time_value).apply {
-            TileValueAnimator.animate(this, buildValueText(top.first))
+            TileValueAnimator.animate(this, buildValueText(top.first), animate)
         }
         container.findViewById<TextView>(R.id.tv_time_days).apply {
-            TileValueAnimator.animate(this, buildValueText(top.second))
+            TileValueAnimator.animate(this, buildValueText(top.second), animate)
         }
 
         // Längster, mittlerer und kürzester Flug wie auf der Detailseite
@@ -814,7 +890,7 @@ class FirstFragment : LogbookFragment() {
         }
         cardValueIds.zip(cardValues).forEach { (valueId, value) ->
             container.findViewById<TextView>(valueId).apply {
-                TileValueAnimator.animate(this, buildValueText(value))
+                TileValueAnimator.animate(this, buildValueText(value), animate)
             }
         }
     }
@@ -898,6 +974,25 @@ class FirstFragment : LogbookFragment() {
         /** Feste Eckenrundung der Kacheln. */
         const val CARD_RADIUS_DP = 16
 
-        /** Platz, den der Hinweis auf geplante Fluege rechts beansprucht. */
+        /**
+         * Zwischenspeicher der berechneten Dashboard-Werte. Beim Wechsel über
+         * die Navigationszeile wird das Fragment samt Ansicht neu aufgebaut;
+         * der Speicher überlebt als Companion den Fragment-Wechsel und liefert
+         * die Werte sofort, solange sich weder Daten noch Filter noch
+         * Einstellungen geändert haben (Schlüssel siehe [snapshotKey]).
+         */
+        private data class DashboardSnapshot(
+            val key: String,
+            val entries: List<LogbookEntry>,
+            val values: Map<String, DashboardStats.Value>,
+            val distance: DashboardStats.DistanceDetails,
+            val co2: Co2Calculator.Details,
+            val radiation: RadiationStats.Summary,
+            val passengers: PassengersCalculator.Summary,
+            val timeMinutes: Int,
+            val hasSeatData: Boolean
+        )
+
+        private var snapshot: DashboardSnapshot? = null
     }
 }

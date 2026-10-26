@@ -183,6 +183,16 @@ abstract class LogbookFragment : Fragment() {
         pendingScrollRestores.clear()
     }
 
+    /**
+     * Ob für den Scroll-Container mit dieser View-ID eine Wiederherstellung
+     * aussteht. Seiten mit eigener Startposition (z. B. die Eintraege-Liste,
+     * die erst bei den geflogenen Eintraegen beginnt) fragen das ab, bevor sie
+     * selbst scrollen - eine Wiederherstellung der gemerkten Position (Rueckkehr
+     * auf die Seite) darf nicht dagegenhalten.
+     */
+    protected fun hasPendingScrollRestore(viewId: Int): Boolean =
+        pendingScrollRestores.containsKey(viewId)
+
     /** Sammelt alle Scroll-Container der Ansicht in Tiefensuche. */
     private fun collectScrollables(view: View, out: MutableList<View>) {
         if (view is RecyclerView || view is ScrollView || view is HorizontalScrollView) {

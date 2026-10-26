@@ -51,7 +51,17 @@ object TileValueAnimator {
      * angehängt stünde er in voller Größe neben der Zahl und schrumpfte erst
      * am Ende auf seine Zielgröße.
      */
-    fun animate(tv: TextView, finalText: CharSequence?) {
+    /**
+     * Setzt den Zieltext. Mit [animate] = false erscheint der Wert sofort
+     * ohne Hochzählen - für das erneute Anzeigen eines bereits berechneten
+     * Werts (z. B. Dashboard-Zwischenspeicher), damit kein Lag entsteht.
+     */
+    fun animate(tv: TextView, finalText: CharSequence?, animate: Boolean = true) {
+        if (!animate) {
+            finalTexts.remove(tv)
+            tv.text = finalText ?: ""
+            return
+        }
         if (finalText.isNullOrEmpty()) {
             tv.text = finalText ?: ""
             return

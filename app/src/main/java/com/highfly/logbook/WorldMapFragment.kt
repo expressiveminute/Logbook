@@ -22,8 +22,10 @@ import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.doOnLayout
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -164,22 +166,19 @@ class WorldMapFragment : LogbookFragment() {
         // Insets selbst anwenden: MainActivity setzt kein contentHost-Padding
         // fuer die Weltkarte (sie hat keine Navigationsleiste), das Fragment
         // positioniert die schwebenden Elemente direkt an den Systemleisten.
+        // Über den Listener kommen die Insets nicht an: MainActivity konsumiert
+        // sie auf der Wurzelansicht (damit die Fragmente den Tastaturzustand
+        // nicht automatisch bekommen), die Auslieferung stoppt dort. Deshalb
+        // werden sie zusätzlich direkt über die Root-Window-Insets gelesen,
+        // sobald das Layout steht und danach bei jeder Änderung (z. B. Drehung).
         ViewCompat.setOnApplyWindowInsetsListener(view) { _, insets ->
-            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            val margin = (8 * resources.displayMetrics.density).toInt()
-            // Obere Buttons unterhalb der Statusleiste.
-            listOf(binding.btnBack, binding.btnFilter, binding.btnFilterReset).forEach { btn ->
-                (btn.layoutParams as? ViewGroup.MarginLayoutParams)?.topMargin = bars.top + margin
-                btn.requestLayout()
-            }
-            // Untere Elemente (Stats-Karte, Zoom-Knöpfe) oberhalb der
-            // Systemleiste; die Weltkarte hat keine schwebende Nav-Leiste.
-            val bottomMargin = (16 * resources.displayMetrics.density).toInt()
-            (binding.statsCard.layoutParams as? ViewGroup.MarginLayoutParams)
-                ?.bottomMargin = bars.bottom + bottomMargin
-            (binding.mapControls.layoutParams as? ViewGroup.MarginLayoutParams)
-                ?.bottomMargin = bars.bottom + (4 * resources.displayMetrics.density).toInt()
+            applyInsets(insets.getInsets(WindowInsetsCompat.Type.systemBars()))
             insets
+        }
+        view.doOnLayout {
+            ViewCompat.getRootWindowInsets(view)
+                ?.getInsets(WindowInsetsCompat.Type.systemBars())
+                ?.let { applyInsets(it) }
         }
 
         // Filter aus Navigationsargumenten lesen
@@ -230,6 +229,42 @@ class WorldMapFragment : LogbookFragment() {
         // Apply the configured map orientation (default landscape); restore
         // portrait when leaving.
         applyOrientationSetting()
+    }
+
+    /**
+     * Positioniert die schwebenden Elemente an den Systemleisten: die oberen
+     * Buttons unterhalb der Statusleiste (mit zusätzlichem Abstand, damit sie
+     * nicht hinter Uhr/Akkustand kleben), die unteren (Stats-Karte,
+     * Zoom-Knöpfe) oberhalb der Systemleiste - die Weltkarte hat keine
+     * schwebende Nav-Leiste. Wird nur bei tatsächlicher Änderung umgelegt,
+     * damit der Aufruf aus doOnLayout keine Layoutschleife erzeugt.
+     */
+    private fun applyInsets(bars: Insets) {
+        val density = resources.displayMetrics.density
+        // Obere Buttons unterhalb der Statusleiste.
+        val topMargin = bars.top + (20 * density).toInt()
+        listOf(binding.btnBack, binding.btnFilter, binding.btnFilterReset).forEach { btn ->
+            val lp = btn.layoutParams as? ViewGroup.MarginLayoutParams ?: return@forEach
+            if (lp.topMargin != topMargin) {
+                lp.topMargin = topMargin
+                btn.requestLayout()
+            }
+        }
+        // Untere Elemente oberhalb der Systemleiste.
+        val statsBottom = bars.bottom + (16 * density).toInt()
+        (binding.statsCard.layoutParams as? ViewGroup.MarginLayoutParams)?.let { lp ->
+            if (lp.bottomMargin != statsBottom) {
+                lp.bottomMargin = statsBottom
+                binding.statsCard.requestLayout()
+            }
+        }
+        val controlsBottom = bars.bottom + (4 * density).toInt()
+        (binding.mapControls.layoutParams as? ViewGroup.MarginLayoutParams)?.let { lp ->
+            if (lp.bottomMargin != controlsBottom) {
+                lp.bottomMargin = controlsBottom
+                binding.mapControls.requestLayout()
+            }
+        }
     }
 
     private fun applyOrientationSetting() {

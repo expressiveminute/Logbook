@@ -110,6 +110,65 @@ class SettingsSectionFragment : LogbookFragment() {
         }
     }
 
+    /** Voller JSON-Export aller App-Daten (Flüge, Einstellungen, Rubbelkarte). */
+    private val fullExportLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri == null) return@registerForActivityResult
+        val app = requireContext().applicationContext
+        // Vor dem Thread holen: requireActivity() wirft, sobald das Fragment
+        // abgelöst ist, und darf nicht aus dem Hintergrund-Thread laufen.
+        val activity = activity
+        Thread {
+            val ok = try {
+                val json = AppDataTransfer.exportJson(app)
+                app.contentResolver.openOutputStream(uri)?.use { out ->
+                    out.write(json.toByteArray(Charsets.UTF_8))
+                }
+                true
+            } catch (e: Exception) {
+                false
+            }
+            activity?.runOnUiThread {
+                Toast.makeText(
+                    app,
+                    if (ok) R.string.full_export_success else R.string.full_export_error,
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }.start()
+    }
+
+    /** Voller JSON-Import aller App-Daten (überschreibt alles). */
+    private val fullImportLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri == null) return@registerForActivityResult
+        val app = requireContext().applicationContext
+        val activity = activity
+        Thread {
+            // null = Lesefehler, false = ungültige Datei, true = Erfolg
+            val result: Boolean? = try {
+                val content = app.contentResolver.openInputStream(uri)
+                    ?.use { it.readBytes().toString(Charsets.UTF_8) }
+                if (content == null) null else AppDataTransfer.importJson(app, content)
+            } catch (e: Exception) {
+                null
+            }
+            activity?.runOnUiThread {
+                when (result) {
+                    true -> {
+                        Toast.makeText(app, R.string.full_import_success, Toast.LENGTH_SHORT).show()
+                        // Neustart, damit alle Einstellungen sofort greifen
+                        activity.recreate()
+                    }
+                    false -> Toast.makeText(app, R.string.full_import_invalid, Toast.LENGTH_SHORT).show()
+                    null -> Toast.makeText(app, R.string.full_import_error, Toast.LENGTH_SHORT).show()
+                }
+            }
+        }.start()
+    }
+
     private val crashLogLauncher = registerForActivityResult(
         ActivityResultContracts.CreateDocument("text/plain")
     ) { uri ->
@@ -311,10 +370,45 @@ class SettingsSectionFragment : LogbookFragment() {
         binding.btnImport.setOnClickListener {
             findNavController().navigate(R.id.action_settings_section_to_import)
         }
+        binding.btnFullExport.setOnClickListener { confirmFullExport() }
+        binding.btnFullImport.setOnClickListener { confirmFullImport() }
         // Beide Danger-Zone-Aktionen verlangen die Passphrase FLIGHTS; erst
         // die getippte Passphrase gibt den endgültigen Knopf frei.
         binding.btnDeleteUser.setOnClickListener { confirmDeleteUserData() }
         binding.btnFactoryReset.setOnClickListener { confirmFactoryReset() }
+    }
+
+    /**
+     * Voller JSON-Export: alle Daten der App (Flüge aller Nutzer,
+     * Einstellungen, Rubbelkarte, Avatare) werden in eine Datei geschrieben.
+     */
+    private fun confirmFullExport() {
+        val ctx = requireContext()
+        val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy_MM_dd_HH_mm"))
+        val filename = "logbook_full_export_$timestamp.json"
+        MaterialAlertDialogBuilder(ctx)
+            .setTitle(R.string.full_export_title)
+            .setMessage(R.string.full_export_message)
+            .setPositiveButton(R.string.full_export_confirm) { _, _ ->
+                fullExportLauncher.launch(filename)
+            }
+            .setNegativeButton(R.string.discard_cancel, null)
+            .show()
+    }
+
+    /**
+     * Voller JSON-Import: alle Daten der App werden aus einer Datei
+     * wiederhergestellt, bestehende Daten werden überschrieben.
+     */
+    private fun confirmFullImport() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.full_import_title)
+            .setMessage(R.string.full_import_message)
+            .setPositiveButton(R.string.full_import_confirm) { _, _ ->
+                fullImportLauncher.launch(arrayOf("application/json", "text/plain", "*/*"))
+            }
+            .setNegativeButton(R.string.discard_cancel, null)
+            .show()
     }
 
     private fun setupDevelopment() {

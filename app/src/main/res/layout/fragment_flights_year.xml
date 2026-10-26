@@ -65,10 +65,14 @@
                  Enthält die Beschriftung, den gestapelten Balken mit Prozent-Angaben
                  und darunter die Namen der zwei größten Anteile. -->
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_travel_type"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="16dp"
                 android:layout_marginTop="4dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
                 app:cardBackgroundColor="?attr/colorSecondaryContainer"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"

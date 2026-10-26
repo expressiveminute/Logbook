@@ -1,7 +1,9 @@
 package com.highfly.logbook
 
 import android.content.Context
+import android.content.res.Configuration
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
@@ -53,8 +55,24 @@ class BarChartView @JvmOverloads constructor(
     private var countColor = 0
     private var backgroundColor = 0
 
+    /**
+     * Farbe des Balkens im zweizeiligen Layout: die Primärfarbe mit der
+     * Deckkraft der Hintergrundbalken in den Listen (Länder, Airlines,
+     * Reisebuddies - siehe VisitedCountryBarView), damit der Balken dort
+     * genauso dezent wirkt wie die Balken auf diesen Seiten.
+     */
+    private var stackedBarColor = 0
+
+    /**
+     * Textfarbe im Balken (zweizeiliges Layout): im Dark Mode weiß, sonst die
+     * Oberflächen-Textfarbe - auf dem translucenten Balken in beiden Modi
+     * lesbar.
+     */
+    private var inBarTextColor = 0
+
     private var topPadding = 0f
     private var rowHeight = 0f
+    private var stackedRowHeight = 0f
     private var gap = 0f
     private var bottomPadding = 0f
     private var sidePadding = 0f
@@ -72,6 +90,17 @@ class BarChartView @JvmOverloads constructor(
     private var valueInsideBar = false
     private var valueRightAligned = false
 
+    /**
+     * Zweizeiliges Layout im Aufbau der Airlines-Zeilen: ein Balken über die
+     * volle Zeilenhöhe in der translucenten Primärfarbe der Listenbalken (wie
+     * auf der Länder-Seite), dessen Länge sich rein nach dem Wert richtet.
+     * Die Beschriftung mit zwei Zeilen - oben der fette Dreilettercode,
+     * darunter die Unterbeschriftung ("Zuletzt: …") - liegt an fester Position
+     * links im Balken und läuft bei kurzem Balken über dessen rechten Rand
+     * hinaus; direkt dahinter steht die Zahl. Gedacht für die Layover-Kachel.
+     */
+    private var stackedLabel = false
+
     init {
         barColor = MaterialColors.getColor(this, com.google.android.material.R.attr.colorPrimary)
         labelColor = MaterialColors.getColor(
@@ -83,9 +112,24 @@ class BarChartView @JvmOverloads constructor(
         backgroundColor = MaterialColors.getColor(
             this, android.R.attr.colorBackground
         )
+        // Balken im zweizeiligen Layout: Primärfarbe translucent wie die
+        // Hintergrundbalken der Listen (Länder, Airlines, Reisebuddies).
+        stackedBarColor = Color.argb(
+            STACKED_BAR_ALPHA,
+            Color.red(barColor), Color.green(barColor), Color.blue(barColor)
+        )
+        // Text im Balken: im Dark Mode weiß, sonst die Textfarbe der
+        // Oberfläche (auf dem translucenten Balken in beiden Modi lesbar).
+        inBarTextColor =
+            if (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK ==
+                Configuration.UI_MODE_NIGHT_YES
+            ) Color.WHITE else labelColor
 
         topPadding = dp(8)
         rowHeight = dp(44)
+        // Zwei Textzeilen brauchen etwas mehr Höhe als die 44dp der
+        // Standardzeile (Flüge), aber weniger als die früheren 56dp.
+        stackedRowHeight = dp(48)
         gap = dp(10)
         bottomPadding = dp(8)
         sidePadding = dp(16)
@@ -180,6 +224,9 @@ class BarChartView @JvmOverloads constructor(
      * Balken und wandert mit dessen Laenge mit (siehe die Flugrouten-Kachel, wo
      * die Zahl sonst an jeder Balkenspitze haengt). Der Wert bleibt je Zeile
      * senkrecht mittig. Im Balken liegende Werte sind davon nicht betroffen.
+     * Im zweizeiligen Layout (Layover) stehen die Zahlen so rechtsbündig am
+     * Diagramm-Rand, der zugleich der rechte Rand der Kachel darüber ist
+     * ("Ältestes Layover") - die Zahlen buendeln damit mit der Kachel.
      */
     fun setValueRightAligned(rightAligned: Boolean) {
         if (valueRightAligned == rightAligned) return
@@ -195,6 +242,23 @@ class BarChartView @JvmOverloads constructor(
     fun setLabelReferences(labels: List<String>) {
         if (labelReferences == labels) return
         labelReferences = labels.toList()
+        invalidate()
+    }
+
+    /**
+     * Zweizeiliges Layout für die Layover-Kachel, aufgebaut wie die Zeilen
+     * der Airlines-Liste: Der Balken über die volle Zeilenhöhe (Primärfarbe
+     * mit der Deckkraft der Listenbalken, wie auf der Länder-Seite) skaliert
+     * rein über den Wert; die Beschriftung mit zwei Zeilen - oben der fette
+     * Dreilettercode, darunter die Unterbeschriftung ("Zuletzt: …") - liegt
+     * an fester Position innen links und läuft bei kurzem Balken über dessen
+     * rechten Rand hinaus; direkt dahinter steht die Zahl. Die Zeile wird
+     * dafür etwas höher als die Standardzeile.
+     */
+    fun setStackedLabel(stacked: Boolean) {
+        if (stackedLabel == stacked) return
+        stackedLabel = stacked
+        requestLayout()
         invalidate()
     }
 
@@ -225,12 +289,15 @@ class BarChartView @JvmOverloads constructor(
     }
 
     private fun indexAt(y: Float): Int? {
+        val rh = currentRowHeight()
         for (index in items.indices) {
-            val top = topPadding + index * (rowHeight + gap)
-            if (y >= top && y <= top + rowHeight) return index
+            val top = topPadding + index * (rh + gap)
+            if (y >= top && y <= top + rh) return index
         }
         return null
     }
+
+    private fun currentRowHeight(): Float = if (stackedLabel) stackedRowHeight else rowHeight
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val width = if (MeasureSpec.getMode(widthMeasureSpec) == MeasureSpec.UNSPECIFIED) {
@@ -238,11 +305,12 @@ class BarChartView @JvmOverloads constructor(
         } else {
             MeasureSpec.getSize(widthMeasureSpec)
         }
+        val rh = currentRowHeight()
         val height = if (items.isEmpty()) {
             topPadding.toInt()
         } else {
             (topPadding +
-                items.size * rowHeight +
+                items.size * rh +
                 (items.size - 1) * gap +
                 bottomPadding).toInt()
         }
@@ -251,6 +319,11 @@ class BarChartView @JvmOverloads constructor(
 
     override fun onDraw(canvas: Canvas) {
         if (items.isEmpty()) return
+
+        if (stackedLabel) {
+            drawStacked(canvas)
+            return
+        }
 
         val width = width.toFloat()
         // mindestens 1: bei null (z. B. "0 h" als größter Wert) würde die
@@ -367,6 +440,108 @@ class BarChartView @JvmOverloads constructor(
                     canvas.drawText(subLabel, width - sidePadding, subBaseline, subPaint)
                     subPaint.isFakeBoldText = false
                 }
+            }
+        }
+    }
+
+    /**
+     * Zweizeiliges Layout für die Layover-Kachel, aufgebaut wie die Zeilen
+     * der Airlines-Liste: ein Balken über die volle Zeilenhöhe in der
+     * Primärfarbe mit der Deckkraft der Listenbalken (wie die
+     * Hintergrundbalken der Länder-, Airlines- und Reisebuddy-Listen), dessen
+     * Länge sich rein nach dem Wert richtet - ohne Mindestbreite, damit die
+     * Abstufung zwischen den Balken sichtbar bleibt. Die Beschriftung liegt
+     * an fester Position links im Balken - oben der fette Dreilettercode,
+     * darunter die Unterbeschriftung ("Zuletzt: …"), beide zusammen zentriert
+     * und in [inBarTextColor] (im Dark Mode weiß). Ist der Balken kürzer als
+     * die Beschriftung, läuft sie über seinen rechten Rand hinaus, wie der
+     * Name in den Airlines-Zeilen über dem Balken; die Zahl steht dann hinter
+     * der Beschriftung, sonst direkt hinter dem Balken. Mit
+     * [setValueRightAligned] steht die Zahl dagegen rechtsbündig am rechten
+     * Rand des Diagramms, alle Zeilen auf einer Linie - dort endet auch die
+     * Kachel darüber ("Ältestes Layover"), mit der die Zahlen bündig stehen.
+     * Rangzeichen stehen wie üblich links daneben.
+     */
+    private fun drawStacked(canvas: Canvas) {
+        val width = width.toFloat()
+        val maxCount = items.maxOf { it.count }.coerceAtLeast(1)
+        val rh = stackedRowHeight
+        val maxCountWidth = items.maxOf { countPaint.measureText(countText(it)) }
+
+        val rankOffset = if (showRanks) items.indices.maxOf { rankWidth(it) } + rankGap else 0f
+        val barLeft = sidePadding + rankOffset
+
+        // Rechte Grenze: Platz für die Zahl. Bei rechtsbündigen Zahlen rücken
+        // die Balken bis kurz vor die Zahlenspalte am rechten Rand vor.
+        val barLimit = if (valueRightAligned) {
+            width - maxCountWidth - countGap
+        } else {
+            width - sidePadding - maxCountWidth - countGap
+        }
+        val usableBarWidth = (barLimit - barLeft).coerceAtLeast(0f)
+
+        val pill = rh / 2f
+        val lineGap = dp(2)
+
+        val barRect = RectF()
+
+        items.forEachIndexed { index, item ->
+            val rowTop = topPadding + index * (rh + gap)
+            val rowBottom = rowTop + rh
+
+            drawRank(canvas, index, rowTop, rowBottom)
+
+            // Balken über die volle Zeilenhöhe, in der Primärfarbe mit der
+            // Deckkraft der Listenbalken (Länder, Airlines, Reisebuddies).
+            // Wie in den Airlines-Zeilen skaliert er rein über den Wert.
+            val barWidth =
+                usableBarWidth * barFraction * item.count / maxCount.toFloat()
+            val barRight = barLeft + barWidth
+            barRect.set(barLeft, rowTop, barRight, rowBottom)
+            barPaint.color = stackedBarColor
+            canvas.drawRoundRect(barRect, pill, pill, barPaint)
+
+            // Beschriftung an fester Position links im Balken: Dreilettercode
+            // fett oben, darunter die Unterbeschriftung; beide Zeilen zusammen
+            // zentriert, in der Balken-Textfarbe (im Dark Mode weiß). Reicht
+            // der Balken nicht, läuft die Beschriftung über seinen rechten Rand
+            // hinaus.
+            val (text, _) = splitLabelFlag(item.label)
+            val subLabel = item.subLabel?.takeIf { it.isNotEmpty() }
+            val labelLine = labelPaint.descent() - labelPaint.ascent()
+            val subLine = subPaint.descent() - subPaint.ascent()
+            val blockHeight =
+                if (subLabel != null) labelLine + lineGap + subLine else labelLine
+            val blockTop = rowTop + (rh - blockHeight) / 2f
+            val textLeft = barLeft + barInset
+            labelPaint.color = inBarTextColor
+            canvas.drawText(text, textLeft, blockTop - labelPaint.ascent(), labelPaint)
+            var textRight = textLeft + labelPaint.measureText(text)
+            if (subLabel != null) {
+                subPaint.color = inBarTextColor
+                subPaint.isFakeBoldText = false
+                canvas.drawText(
+                    subLabel, textLeft,
+                    blockTop + labelLine + lineGap - subPaint.ascent(), subPaint
+                )
+                textRight = maxOf(textRight, textLeft + subPaint.measureText(subLabel))
+            }
+
+            // Zahl: rechtsbündig am rechten Rand des Diagramms, alle Zeilen auf
+            // einer Linie und gebündelt mit der Kachel darüber - sonst direkt
+            // hinter dem Balken bzw. hinter der Beschriftung, wenn der Balken
+            // kürzer ist als sie, damit sie sich nicht decken.
+            val valueText = countText(item)
+            countPaint.color = countColor
+            val valueBaseline = centeredBaseline(rowTop, rowBottom, countPaint)
+            if (valueRightAligned) {
+                countPaint.textAlign = Paint.Align.RIGHT
+                canvas.drawText(valueText, width, valueBaseline, countPaint)
+                countPaint.textAlign = Paint.Align.LEFT
+            } else {
+                canvas.drawText(
+                    valueText, maxOf(barRight, textRight) + countGap, valueBaseline, countPaint
+                )
             }
         }
     }
@@ -541,6 +716,13 @@ class BarChartView @JvmOverloads constructor(
 
         /** Mindestanteil der Balkenbreite, damit sehr kurze Werte sichtbar bleiben. */
         const val MIN_BAR_FRACTION = 0.06f
+
+        /**
+         * Deckkraft des Balkens im zweizeiligen Layout (Layover): dieselbe wie
+         * die Hintergrundbalken der Länder-/Airlines-/Reisebuddy-Listen
+         * (VisitedCountryBarView malt colorPrimary mit dieser Deckkraft).
+         */
+        const val STACKED_BAR_ALPHA = 45
 
         const val REGIONAL_INDICATOR_START = 0x1F1E6
         const val REGIONAL_INDICATOR_END = 0x1F1FF

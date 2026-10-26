@@ -14,9 +14,10 @@ import kotlin.math.roundToLong
  * Die Zahlen sind Schätzungen: Die Sitzplätze sind realistische
  * Vollbesetzungen je Typ (zertifiziertes Maximum als obere Schranke, wo
  * kein Typ bekannt ist), die reale Bestuhlung der Airline liegt meist
- * darunter, und die Auslastung ist ein Mittelwert. Deshalb werden Summen auf
- * volle Hunderter gerundet ([roundToHundreds]) - sie sollen keine
- * Genauigkeit auf Zehner oder Einer vortäuschen.
+ * darunter, und die Auslastung ist ein Mittelwert. Deshalb werden Summen
+ * gerundet, damit sie keine Scheingenauigkeit vortäuschen: Die Kachel auf
+ * dem Dashboard auf volle Zehner ([roundToTens]), die Jahreswerte der
+ * Detailseite auf volle Hunderter ([roundToHundreds]).
  *
  * Grundlage ist dieselbe Auswahl wie die Kachel "Höhenstrahlung": der
  * Flugart-Filter gilt, der Zeitraum-Filter des Dashboards nicht - die Kachel
@@ -137,6 +138,14 @@ object PassengersCalculator {
      */
     fun roundToHundreds(value: Long): Long =
         (value / 100.0).roundToLong() * 100
+
+    /**
+     * Rundet auf volle Zehner. Die Dashboard-Kachel zeigt die Gesamtsumme auf
+     * Zehner gerundet - genauer als Hunderter, damit der Wert nicht zu grob
+     * wirkt, aber ohne Scheingenauigkeit auf die Einerstelle.
+     */
+    fun roundToTens(value: Long): Long =
+        (value / 10.0).roundToLong() * 10
 
     /** Passagierzahl mit Tausendertrennzeichen der App-Sprache. */
     fun passengersText(value: Long, locale: Locale = Locale.GERMANY): String =

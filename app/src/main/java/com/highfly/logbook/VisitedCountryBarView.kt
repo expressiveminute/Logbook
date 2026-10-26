@@ -31,12 +31,17 @@ class VisitedCountryBarView @JvmOverloads constructor(
     }
     private val bounds = RectF()
 
-    /** Anteil der Zeilenbreite, den die Füllung einnimmt, 0 bis 1. */
+    /**
+     * Anteil der Zeilenbreite, den die Füllung einnimmt, 0 bis 1. Werte über
+     * 1 sind erlaubt: Der Balken ragt dann über den rechten Rand hinaus (bei
+     * der Airlines-Liste, wenn die Spitzen-Airline mehr als dreimal so viele
+     * Flüge hat wie die zweithäufigste).
+     */
     private var fraction = 0f
 
-    /** Setzt den Anteil an der Zeilenbreite; Werte außerhalb werden begrenzt. */
+    /** Setzt den Anteil an der Zeilenbreite; negative Werte werden auf 0 begrenzt. */
     fun setFraction(value: Float) {
-        val next = value.coerceIn(0f, 1f)
+        val next = value.coerceAtLeast(0f)
         if (fraction == next) return
         fraction = next
         invalidate()

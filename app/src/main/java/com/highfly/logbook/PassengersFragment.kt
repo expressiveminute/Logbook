@@ -45,9 +45,14 @@ class PassengersFragment : LogbookFragment() {
         binding.btnPassengersBack.setOnClickListener { findNavController().navigateUp() }
         binding.btnPassengersAdjust.setOnClickListener { showLoadFactorDialog() }
         val context = requireContext()
-        binding.tvPassengersFilterInfo.text = getString(
-            R.string.passengers_filter_flight_type,
-            FlightTypeOptions.label(context, Settings.getFlightTypeFilterKey(context))
+        // Aktiver Flugart-Filter: Der Wert leuchtet in der Akzentfarbe.
+        val typeKey = Settings.getFlightTypeFilterKey(context)
+        val typeLabel = FlightTypeOptions.label(context, typeKey)
+        binding.tvPassengersFilterInfo.text = FilterHighlight.accent(
+            binding.tvPassengersFilterInfo,
+            getString(R.string.passengers_filter_flight_type, typeLabel),
+            typeLabel,
+            typeKey != FlightTypeOptions.KEY_ALL
         )
     }
 

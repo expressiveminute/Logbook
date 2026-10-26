@@ -28,6 +28,22 @@ class AirlineAdapter : RecyclerView.Adapter<AirlineAdapter.ViewHolder>() {
     private var maxFlights: Int = 0
 
     /**
+     * Zweithöchste Flugzahl der Gesamtliste (kommt vom Aufrufer, der die
+     * ungefilterte Liste kennt). Hat die häufigste Airline mehr als dreimal
+     * so viele Flüge wie die zweithäufigste, würde ihr Balken die ganze
+     * Breite füllen und die Abstufung darunter wäre nicht mehr erkennbar.
+     * Dann reicht der Balken der Spitzen-Airline über den rechten Rand
+     * hinaus und die übrigen Balken messen sich an der zweithöchsten Zahl.
+     */
+    private var secondMaxFlights: Int = 0
+
+    /**
+     * Ob die Spitzen-Airline den Bildschirmrand überragt. Dann bekommt ihr
+     * Balken einen Anteil über 1 und die übrigen messen sich am zweiten Wert.
+     */
+    private var topOverhang = false
+
+    /**
      * Rang je Airline-Code aus der ungefilterten Liste. In der Suche bleibt
      * dieser Rang stehen, statt der Position im Suchergebnis; eine Airline
      * ohne Flug (nicht in der Liste) trägt keinen Rang (0).
@@ -43,11 +59,18 @@ class AirlineAdapter : RecyclerView.Adapter<AirlineAdapter.ViewHolder>() {
     fun submit(
         list: List<AirlineStats.Airline>,
         maxFlights: Int = list.maxOfOrNull { it.flights } ?: 0,
+        secondMaxFlights: Int = 0,
         ranks: Map<String, Int> = emptyMap()
     ) {
         items = list
         this.maxFlights = maxFlights
+        this.secondMaxFlights = secondMaxFlights
         this.ranks = ranks
+        // Hat die Spitzen-Airline mehr als dreimal so viele Flüge wie die
+        // zweithäufigste, überragt ihr Balken den rechten Rand und die
+        // übrigen Balken messen sich am zweiten Wert.
+        topOverhang = maxFlights > 0 && secondMaxFlights > 0 &&
+            maxFlights > 3 * secondMaxFlights
         notifyDataSetChanged()
     }
 
@@ -75,9 +98,17 @@ class AirlineAdapter : RecyclerView.Adapter<AirlineAdapter.ViewHolder>() {
 
         fun bind(item: AirlineStats.Airline, rank: Int) {
             binding.badgeAirlineRank.setRank(rank, showMedals)
-            binding.airlineBar.setFraction(
-                if (maxFlights > 0) item.flights.toFloat() / maxFlights else 0f
-            )
+            // Bei Überhang messen sich alle Balken an der zweithöchsten
+            // Flugzahl: Die Spitzen-Airline bekommt einen Anteil über 1
+            // (Balken über den rechten Rand hinaus), die übrigen zeigen ihre
+            // Abstufung untereinander.
+            val fraction = when {
+                topOverhang && secondMaxFlights > 0 ->
+                    item.flights.toFloat() / secondMaxFlights
+                maxFlights > 0 -> item.flights.toFloat() / maxFlights
+                else -> 0f
+            }
+            binding.airlineBar.setFraction(fraction)
             binding.tvAirlineName.text = item.name
             binding.tvAirlineCodes.text = codesText(item)
             val countText = binding.root.context.resources.getQuantityString(

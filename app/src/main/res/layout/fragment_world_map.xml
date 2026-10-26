@@ -58,7 +58,9 @@
     </FrameLayout>
 
     <!-- Setzt den Kartenfilter zurück; steht links neben dem Filterbutton und
-         ist nur zu sehen, solange ein Filter aktiv ist. -->
+         ist nur zu sehen, solange ein Filter aktiv ist. Das kreisende Pfeil-
+         Symbol macht klar, dass hier der Filter zurückgesetzt wird, nicht
+         nur zurücknavigiert. -->
     <FrameLayout
         android:id="@+id/btn_filter_reset"
         android:layout_width="48dp"
@@ -76,7 +78,7 @@
             android:layout_height="24dp"
             android:layout_gravity="center"
             android:contentDescription="@string/world_map_filter_reset"
-            app:srcCompat="@drawable/ic_arrow_back"
+            app:srcCompat="@drawable/ic_reset"
             app:tint="?attr/colorOnSurface" />
     </FrameLayout>
 
@@ -141,6 +143,7 @@
             android:focusable="true">
 
             <ImageView
+                android:id="@+id/btn_zoom_in_icon"
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:layout_gravity="center"
@@ -149,6 +152,8 @@
                 app:tint="?attr/colorOnSurface" />
         </FrameLayout>
 
+        <!-- Herauszoomen: wieder ein schlichtes Minus wie beim Hineinzoomen
+             das Plus. -->
         <FrameLayout
             android:id="@+id/btn_zoom_out"
             android:layout_width="48dp"
@@ -167,6 +172,9 @@
                 app:tint="?attr/colorOnSurface" />
         </FrameLayout>
 
+        <!-- Setzt die Karte auf die Standardansicht zurück (herauszoomen auf
+             die Übersicht): Doppelpfeil nach außen, die zeigen, dass hier
+             herausgezoomt wird. -->
         <FrameLayout
             android:id="@+id/btn_reset"
             android:layout_width="48dp"
@@ -181,7 +189,7 @@
                 android:layout_height="24dp"
                 android:layout_gravity="center"
                 android:contentDescription="@string/world_map_reset"
-                app:srcCompat="@drawable/ic_reset"
+                app:srcCompat="@drawable/ic_zoom_out_expand"
                 app:tint="?attr/colorOnSurface" />
         </FrameLayout>
 

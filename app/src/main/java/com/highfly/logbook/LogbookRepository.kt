@@ -14,6 +14,16 @@ object LogbookRepository {
     /** Nutzerplatz, für den [db] gerade geöffnet ist. */
     private var openUserId: Int = 1
 
+    /**
+     * Versionszähler: wird bei jeder Änderung (Einfügen, Aktualisieren,
+     * Löschen, Massenimport) erhöht. Das Dashboard merkt sich die zuletzt
+     * gesehene Version und lädt nur neu, wenn sich etwas geändert hat -
+     * so entfällt der Lag beim Zurückwechseln über die Navigationszeile.
+     */
+    @Volatile
+    var dataVersion: Long = 0
+        private set
+
     fun init(context: Context) {
         if (appContext != null) return
         val app = context.applicationContext
@@ -57,6 +67,9 @@ object LogbookRepository {
         db = LogbookDatabase(app, LogbookDatabase.databaseNameFor(id))
         openUserId = id
         cache = null
+        // Anderer Nutzer, andere Daten: Verbraucher des Caches (z. B. das
+        // Dashboard) müssen erkennen, dass sich etwas geändert hat.
+        dataVersion++
         // Die Homebase des vorigen Nutzers darf nicht stehen bleiben.
         Homebase.update(emptyList())
     }
@@ -228,6 +241,9 @@ object LogbookRepository {
     @Synchronized
     fun invalidate() {
         cache = null
+        // Jede Änderung erhöht die Version, damit Zwischenspeicher (z. B.
+        // das Dashboard) erkennen, dass ihre Daten veraltet sind.
+        dataVersion++
     }
 
     private fun enrichCountriesAsync(context: Context) {

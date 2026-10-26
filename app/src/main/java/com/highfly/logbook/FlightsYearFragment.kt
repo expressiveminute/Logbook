@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.core.content.ContextCompat
+import androidx.core.view.doOnNextLayout
 import androidx.navigation.fragment.findNavController
 import com.highfly.logbook.databinding.FragmentFlightsYearBinding
 import java.time.Month
@@ -74,6 +75,23 @@ class FlightsYearFragment : LogbookFragment() {
         bindYearLineChart(
             countsByYear.toSortedMap().map { LineChartView.Item(it.key.toString(), it.value) }
         )
+
+        // Startposition des Liniendiagramms: ganz nach rechts scrollen, damit
+        // das aktuelle Jahr am rechten Rand steht. Aeltere Jahre erreicht man
+        // durch Scrollen nach links (der Container ist bereits horizontal
+        // scrollbar). Eine Wiederherstellung der gemerkten Position (Rueckkehr
+        // auf die Seite) hat Vorrang und wird nicht ueberschrieben. Das Scrollen
+        // geschieht erst nach dem ersten Layout, wenn die Breite des Diagramms
+        // feststeht.
+        if (!hasPendingScrollRestore(R.id.year_line_scroll)) {
+            binding.yearLineScroll.doOnNextLayout {
+                val scroll = binding.yearLineScroll
+                val contentWidth =
+                    if (scroll.childCount > 0) scroll.getChildAt(0).width else 0
+                val maxScroll = (contentWidth - scroll.width).coerceAtLeast(0)
+                scroll.scrollTo(maxScroll, 0)
+            }
+        }
     }
 
     /**
@@ -212,8 +230,8 @@ class FlightsYearFragment : LogbookFragment() {
             labelsRow.addView(labelCell)
         }
 
-        // Tipp auf den Balken öffnet das Kreisdiagramm der Reisearten.
-        bar.setOnClickListener {
+        // Tipp auf die Kachel öffnet das Kreisdiagramm der Reisearten.
+        binding.cardTravelType.setOnClickListener {
             val bundle = Bundle().apply { putString("tileId", "traveltype") }
             findNavController().navigate(R.id.action_flights_year_to_tile_detail, bundle)
         }

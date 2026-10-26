@@ -105,9 +105,14 @@ class Co2OffsetFragment : LogbookFragment() {
     private fun renderFilter() {
         val context = requireContext()
         binding.btnCo2Period.text = PeriodOptions.headerLabel(context, periodKey)
-        binding.tvCo2FilterInfo.text = getString(
-            R.string.co2_offset_filter_flight_type,
-            FlightTypeOptions.label(context, Settings.getFlightTypeFilterKey(context))
+        // Aktiver Flugart-Filter: Der Wert leuchtet in der Akzentfarbe.
+        val typeKey = Settings.getFlightTypeFilterKey(context)
+        val typeLabel = FlightTypeOptions.label(context, typeKey)
+        binding.tvCo2FilterInfo.text = FilterHighlight.accent(
+            binding.tvCo2FilterInfo,
+            getString(R.string.co2_offset_filter_flight_type, typeLabel),
+            typeLabel,
+            typeKey != FlightTypeOptions.KEY_ALL
         )
     }
 
