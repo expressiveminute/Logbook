@@ -99,10 +99,12 @@ Kontinent-Kachel** wie in `Continents.ORDER` vorgesehen. Die **EU als eigene Kac
 (`Continents.EU`, 27 Mitgliedstaaten in `EU_MEMBERS`; die EU ist *nicht* in
 `Continents.ORDER`, damit die Erfolge unverändert bleiben) steht **ganz rechts, hinter
 Deutschland und den Vereinigten Staaten** (`StateStats.TILE_COUNTRIES`), auch wenn davor
-ein Kontinent 0 % hat – siehe `RubbelkarteFragment.buildTileUis`. Die EU-Kachel zeigt statt
-des Bogens **zwölf Sterne im Kreis** (`ContinentProgressView.starMode`, der Kreisbogen
-entfällt, nur die Sterne samt Prozentzahl in der Mitte), dazu die EU-Flagge dezent im
-Kachelhintergrund. Länder- und EU-Kacheln tragen ihre
+ein Kontinent 0 % hat – siehe `RubbelkarteFragment.buildTileUis`. Die EU-Kachel zeigt
+**zwölf Sterne auf dem Kreis** (`ContinentProgressView.starMode`: wie bei den anderen Kacheln
+läuft die Spur mit, darauf sitzen die Sterne; beginnend oben füllen sich die ersten Sterne im
+**Uhrzeigersinn** mit der Fortschrittsfarbe, der Rest bleibt in der Spurfarbe – der Kreis
+schließt sich also im Uhrzeigersinn wie der Bogen der anderen Kacheln), dazu die Prozentzahl
+in der Mitte und die EU-Flagge dezent im Kachelhintergrund. Länder- und EU-Kacheln tragen ihre
 Flagge als **kompletten Kachelhintergrund**: `tv_continent_flag` (`TileFlagView`) in
 `item_continent_tile.xml` füllt die Kachel (`match_parent`, `alpha` 0.12); die View
 zeichnet das Emoji selbst, zentriert es über die Tinten-Bounds exakt in der Kachelmitte
@@ -124,14 +126,21 @@ stehen bleibt. Die Zurück-Taste schließt zuerst die
 halbhohe Seite (`RubbelkarteFragment` implementiert `BackPressAware`) und setzt die Kugel auf
 die Weltansicht zurück (`resetToWorld`; nicht beim bloßen Kachelwechsel, dafür sorgt das Flag
 `pageOpening`). Der Zoom läuft über `RubbelkarteView.zoomTo` (Animation 500 ms): Mittelpunkt
-ist das Vektormittel der Beschriftungsanker, die Ausdehnung der Abstand zu allen Ringpunkten
-(inkl. Alaska/Hawaii bzw. Ostrussland), Zoom über `MapFocus.zoomForSpan` mit `FIT = 1.0` –
+ist das Vektormittel der Beschriftungsanker, die Ausdehnung der Abstand zu den Ringpunkten der
+**Hauptlandmassen** (`MapFocus.dominantRings`: Ringe unter 20 % der größten Ringfläche –
+Übersee-Exklaven wie Guayana, Kanaren, Hawaii – fallen heraus, sonst zoomt ein einzelnes Land
+auf Weltansicht; mehrere große Inseln wie in Indonesien bleiben erhalten), Zoom über
+`MapFocus.zoomForSpan` mit `FIT = 1.0` –
 damit liegen die Randpunkte noch innerhalb der sichtbaren Fläche, auch wenn die halbhohe
 Seite die Kartenfläche flach macht. Das **Auge** je Zeile
 steht **rechts von der Flagge, links vom Namen** (`iv_country_zoom`/`iv_state_zoom`,
 `ic_visibility`; nur eingebettet sichtbar, auf der vollen Seite hinter dem Stift nicht) und
-zoomt über `MapZoomHost` auf das Land bzw. den Staat (`MapFocus.forCountry`/`forState`) und
-hebt dessen Grenze hervor (`RubbelkarteView.setHighlight`: Glow + kräftige Linie). Abhaken
+zoomt über `MapZoomHost` auf das Land bzw. den Staat (`MapFocus.forCountry`/`forState`),
+hebt dessen Grenze hervor (`RubbelkarteView.setHighlight`: Glow + kräftige Linie) und zeigt
+dessen **Hauptstadt unterstrichen** auf der Kugel an (`RubbelkarteView.setCapitalMarker`,
+unabhängig von der Zoomstufe; beim Land aus `MapCities` per `MapFocus.pointInRings` im
+Landumriss gesucht, beim Staat aus `state_shapes.bin` `capLat`/`capLon`/`capDe`/`capEn`;
+beim Kachel-Tipp auf eine Region wird der Marker geleert). Abhaken
 auf der eingebetteten Seite schreibt in dieselben Settings wie die volle Seite und lädt über
 `MapZoomHost.onCountriesChanged` Karte und Kacheln neu – bei Ländern in
 `Settings.getManualCountries`/`getHiddenCountries`, bei Staaten (DE/US, Kästchen rechts in
@@ -1064,11 +1073,15 @@ Betreten, ein Flug hinaus das Verlassen – dazwischen liegt die Zeit im Land. D
 haben nur ein Datum (keine Uhrzeit), gerechnet wird also tageweise; ein noch nicht verlassener
 Aufenthalt zählt bis heute. Ein Verlassen ohne bekanntes Betreten (nur ein Flug aus dem Ausland
 im Logbuch, z. B. ALA–FRA bei per Bus erfolgter Einreise) erzeugt einen Aufenthalt mit
-**unbekannter Einreise** (`StayPeriod.start` = null, 0 Tage, bis sie nachtragen wird). **Nur
-Layover- und Privat-Flüge zählen als Aufenthalt**
-(`CountryTimeStats.countsAsStay`: `layover == true` oder Reiseart „Privat“ – dienstliche Flüge
-wie On Duty/Deadhead nur, wenn sie als Layover erfasst wurden; ein Hin- und Rückflug am selben
-Tag zählt deshalb nur als Privat). Gibt es am selben Tag einen Flug in die Gegenrichtung, bekommen
+**unbekannter Einreise** (`StayPeriod.start` = null, 0 Tage, bis sie nachtragen wird).
+**Getrennt nach Reiseart:** Privat-Flüge (`CountryTimeStats.isPrivateFlight`) erzeugen die
+Grenzübertritte (Flug hinein = Betreten, Flug hinaus = Verlassen; ein nur-Hinflug ohne Rückflug
+bleibt offen und bekommt den „Ausreise“-Button, ein nur-Rückflug die unbekannte Einreise mit
+„Einreise“-Button). Dienstliche Flüge (On Duty, Deadhead, Ferry, Dienstreise – nicht Ground
+Transfer) zählen nur als Layover (`CountryTimeStats.layoverHoursOf`): Dann zählt nicht das
+Datumspaar, sondern die **Layover-Stundenzahl** als Zeit im Zielland (`StayPeriod.hours`,
+`StayPeriod.layover = true`; `CountryTime.totalHours` summiert die Stunden, die Balken rechnen
+in Stunden). Gibt es am selben Tag einen Flug in die Gegenrichtung, bekommen
 beide dieselbe Sequenznummer, damit das Betreten vor dem Verlassen einsortiert wird, auch wenn
 der Rückflug die kleinere Datenbank-id hat. Das Land der **Homebase** (`Homebase.current` →
 `AirportData.country`) wird nicht gezählt; der Hinweis darauf steht als **Fusszeile ganz unten**
@@ -1122,13 +1135,17 @@ angezeigt; geprüft von `CountryFactsAssetTest`; Loader `CountryFacts`). Zuletzt
 (`StayPeriod.days`), daneben Einreise (Datum, darunter klein Flugstrecke und Flugnummer/Buddy des
 Hinflugs `StayPeriod.enterEntry`), ein Strich mittig zentriert im Bild, dann Ausreise (Datum,
 darunter klein Flugstrecke und Flugnummer des Rückflugs `StayPeriod.exitEntry`); Klick auf die
-Zeile öffnet den Hinflug zum Bearbeiten (`action_country_time_detail_to_add_entry`). Fehlt ein
-Datum (Einreise per Landweg, Einreise gar nicht im Logbuch – nur Auslandsflug vorhanden – oder
-Ausreise noch offen), steht an der Stelle ein TonalButton im Stil des
-Story-Knopfs („Einreise“/„Ausreise“); darüber öffnet sich ein Popup (`dialog_stay_crossing.xml`)
+Zeile öffnet den Hinflug zum Bearbeiten (`action_country_time_detail_to_add_entry`). Ein manuell
+per Landweg nachtragenes Datum steht wie ein Flugdatum auf Datum-Höhe, darunter das
+Transportmittel **mit Icon und ausgeschrieben** auf Flugstrecken-Höhe (Icon `ic_transport_*`
+über `TimeCountryFormat.transportIconRes`, ohne Transport nur „Landweg“) – der Button
+verschwindet dann. Fehlt ein Datum ganz (Einreise gar nicht im Logbuch – nur Auslandsflug
+vorhanden – oder Ausreise noch offen), steht an der Stelle ein TonalButton im Stil des
+Story-Knopfs („Einreise“/„Ausreise“, zentrierter Text durch symmetrisches Padding); darüber
+öffnet sich ein Popup (`dialog_stay_crossing.xml`)
 mit Datum (DatePicker) und Transportmittel (Auto/Zug/Bus/Fähre/Fahrrad/Zu Fuß mit je einem
 Material-Icon `ic_transport_*`) – gespeichert als manueller `BorderCrossing` mit Transport
-(`ISO2|datum|enter|car`), danach erscheint das Datum und der Button verschwindet.
+(`ISO2|datum|enter|car`), danach erscheint das Datum samt Transport und der Button verschwindet.
 
 ## Tastatur/Insets – nicht regressieren
 

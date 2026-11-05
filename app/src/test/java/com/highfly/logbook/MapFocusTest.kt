@@ -152,4 +152,62 @@ class MapFocusTest {
         capEn = "",
         rings = emptyList()
     )
+
+    @Test
+    fun forCountry_ueberseegebietZiehtDenZoomNichtAufWeltansicht() {
+        // Frankreich: großer Haupt ring um 46N/2E, dazu Französisch-Guayana
+        // als kleiner Exklave bei 4N/-53W. Ohne Exklaven-Filter läge die
+        // Ausdehnung bei ~55 Grad und der Zoom bei ~1 (Weltansicht).
+        val mainland = floatArrayOf(
+            -2f, 43f, 8f, 43f, 8f, 51f, -2f, 51f
+        ) // (lon, lat)
+        val guayana = floatArrayOf(
+            -54f, 3f, -51f, 3f, -51f, 5f, -54f, 5f
+        )
+        val frankreich = country("FR", 46.0, 2.0, ring = listOf(mainland, guayana))
+        val focus = MapFocus.forCountry(frankreich)
+        // Ausdehnung nur des Festlands (~10 Grad): Zoom deutlich über 1.
+        assertTrue("zoom=${focus.zoom}", focus.zoom > 4f)
+        // Zum Vergleich: alle Ringe würden den Zoom auf ~1 drücken.
+        val spanAlle = MapFocus.spanAround(
+            46.0, 2.0,
+            listOf(
+                43.0 to -2.0, 43.0 to 8.0, 51.0 to 8.0, 51.0 to -2.0,
+                3.0 to -54.0, 3.0 to -51.0, 5.0 to -51.0, 5.0 to -54.0
+            )
+        )
+        assertTrue(MapFocus.zoomForSpan(spanAlle) < 2f)
+        assertTrue(focus.zoom > MapFocus.zoomForSpan(spanAlle))
+    }
+
+    @Test
+    fun forCountry_mehrereGrosseInselnBleibenErhalten() {
+        // Indonesien: mehrere große Inseln - alle >= 20 % der größten Fläche
+        // bleiben in der Ausdehnung, der Zoom wird nicht auf eine Insel eng.
+        val borneo = floatArrayOf(109f, -3f, 119f, -3f, 119f, 7f, 109f, 7f)
+        val sumatra = floatArrayOf(95f, -6f, 106f, -6f, 106f, 6f, 95f, 6f)
+        val sulawesi = floatArrayOf(119f, -5f, 122f, -5f, 122f, 1f, 119f, 1f)
+        val indonesien = country("ID", 0.0, 113.0, ring = listOf(borneo, sumatra, sulawesi))
+        val focus = MapFocus.forCountry(indonesien)
+        // Ausdehnung über alle Inseln (~24 Grad) - Zoom deutlich unter dem
+        // einer einzelnen Insel.
+        assertTrue("zoom=${focus.zoom}", focus.zoom < 5f)
+    }
+
+    @Test
+    fun pointInRings_erkenntPunktImRing() {
+        // Quadrat um (10, 10) als (lon, lat)-Paare.
+        val ring = listOf(floatArrayOf(9f, 9f, 11f, 9f, 11f, 11f, 9f, 11f))
+        assertTrue(MapFocus.pointInRings(10.0, 10.0, ring))
+        assertTrue(MapFocus.pointInRings(9.5, 10.5, ring))
+        assertTrue(!MapFocus.pointInRings(20.0, 20.0, ring))
+    }
+
+    @Test
+    fun pointInRings_istDatumslinienfest() {
+        // Ring über die Datumslinie: 179 bis -179 (entfaltet um 180).
+        val ring = listOf(floatArrayOf(179f, -1f, -179f, -1f, -179f, 1f, 179f, 1f))
+        assertTrue(MapFocus.pointInRings(0.0, 180.0, ring))
+        assertTrue(!MapFocus.pointInRings(0.0, 0.0, ring))
+    }
 }

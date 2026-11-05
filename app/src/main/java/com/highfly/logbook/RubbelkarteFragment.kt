@@ -63,6 +63,9 @@ class RubbelkarteFragment : LogbookFragment(), BackPressAware, MapZoomHost {
     private var stateShapes: List<StateShapes.State> = emptyList()
     private var stateSummary = StateStats.Summary(emptySet(), emptySet())
 
+    /** Städte für die Hauptstädte der Länder, siehe [capitalOfCountry]. */
+    private var cities: List<MapCity> = emptyList()
+
     /**
      * Steht, während [openPage] den Child-Backstack poppt, damit der
      * [backStackListener] beim leergefegten Stack nicht die Weltkugel
@@ -161,6 +164,7 @@ class RubbelkarteFragment : LogbookFragment(), BackPressAware, MapZoomHost {
             // deshalb wird der Fehler hier ausgewiesen.
             val shapes = CountryShapes.load(appContext)
             val states = StateShapes.load(appContext)
+            val cities = MapCities.load(appContext)
             // Die Kacheln brauchen dieselbe Länderliste wie die Karte, sonst
             // wäre die Summe ihrer Nenner eine andere als die Zahl der Länder
             // auf der Länderliste. Dasselbe gilt für den Balken darüber.
@@ -173,6 +177,7 @@ class RubbelkarteFragment : LogbookFragment(), BackPressAware, MapZoomHost {
                 } else {
                     this.shapes = shapes
                     this.stateShapes = states
+                    this.cities = cities
                     this.stateSummary = stateSummary
                     render(
                         marked, tiles, world,
@@ -426,6 +431,8 @@ class RubbelkarteFragment : LogbookFragment(), BackPressAware, MapZoomHost {
      */
     private fun openTile(item: TileUi) {
         if (_binding == null) return
+        // Kachel-Tipp zoomt auf die ganze Region: keine einzelne Hauptstadt.
+        binding.rubbelkarte.setCapitalMarker(0.0, 0.0, null)
         when (item.kind) {
             TileUi.Kind.CONTINENT -> {
                 val codes = Continents.countriesOf(item.key).toSet()
@@ -531,6 +538,15 @@ class RubbelkarteFragment : LogbookFragment(), BackPressAware, MapZoomHost {
         val focus = MapFocus.forCountry(shape)
         binding.rubbelkarte.zoomTo(focus.lat, focus.lon, focus.zoom)
         binding.rubbelkarte.setHighlight(setOf(iso2))
+        // Hauptstadt des Landes unterstrichen auf der Kugel anzeigen.
+        val capital = capitalOfCountry(shape)
+        if (capital != null) {
+            binding.rubbelkarte.setCapitalMarker(
+                capital.first.first, capital.first.second, capital.second
+            )
+        } else {
+            binding.rubbelkarte.setCapitalMarker(0.0, 0.0, null)
+        }
     }
 
     override fun zoomToState(code: String) {
@@ -540,6 +556,22 @@ class RubbelkarteFragment : LogbookFragment(), BackPressAware, MapZoomHost {
         val focus = MapFocus.forState(state)
         binding.rubbelkarte.zoomTo(focus.lat, focus.lon, focus.zoom)
         binding.rubbelkarte.setHighlight(setOf(state.code))
+        // Hauptstadt des Bundesstaats/-landes unterstrichen auf der Kugel anzeigen.
+        val name = if (useGermanNames()) state.capDe else state.capEn
+        binding.rubbelkarte.setCapitalMarker(state.capLat, state.capLon, name.ifBlank { null })
+    }
+
+    /**
+     * Hauptstadt eines Landes als ((lat, lon), Anzeigename): die Stadt aus
+     * [MapCities] mit Hauptstadt-Kennzeichen, die im Landumriss liegt.
+     */
+    private fun capitalOfCountry(shape: CountryShapes.Country): Pair<Pair<Double, Double>, String>? {
+        val de = useGermanNames()
+        val city = cities.firstOrNull {
+            it.isCapital && MapFocus.pointInRings(it.lat, it.lon, shape.rings)
+        } ?: return null
+        val name = (if (de) city.deName else city.enName).ifBlank { city.nativeName }
+        return (city.lat to city.lon) to name
     }
 
     override fun onCountriesChanged() {

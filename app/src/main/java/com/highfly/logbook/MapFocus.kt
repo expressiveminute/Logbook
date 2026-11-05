@@ -102,11 +102,103 @@ object MapFocus {
     }
 
     /**
+     * Fläche eines Rings in Quadratgrad (Shoelace), datumslinienfest: Die
+     * Längengrade werden vor dem Weiterrechnen entfaltet, damit ein Ring über
+     * ±180° nicht eine Rieselfläche vortäuscht.
+     */
+    private fun ringArea(ring: FloatArray): Double {
+        val n = ring.size / 2
+        if (n < 3) return 0.0
+        var area = 0.0
+        var prevLon = ring[0].toDouble()
+        var prevLat = ring[1].toDouble()
+        for (i in 1 until n) {
+            var lon = ring[i * 2].toDouble()
+            val lat = ring[i * 2 + 1].toDouble()
+            while (lon - prevLon > 180.0) lon -= 360.0
+            while (lon - prevLon < -180.0) lon += 360.0
+            val x1 = Math.toRadians(prevLon) * cos(Math.toRadians(prevLat))
+            val y1 = Math.toRadians(prevLat)
+            val x2 = Math.toRadians(lon) * cos(Math.toRadians(lat))
+            val y2 = Math.toRadians(lat)
+            area += x1 * y2 - x2 * y1
+            prevLon = lon
+            prevLat = lat
+        }
+        // Schlusskante zurück zum ersten Punkt.
+        var lon = ring[0].toDouble()
+        while (lon - prevLon > 180.0) lon -= 360.0
+        while (lon - prevLon < -180.0) lon += 360.0
+        val x1 = Math.toRadians(prevLon) * cos(Math.toRadians(prevLat))
+        val y1 = Math.toRadians(prevLat)
+        val x2 = Math.toRadians(lon) * cos(Math.toRadians(ring[1].toDouble()))
+        val y2 = Math.toRadians(ring[1].toDouble())
+        area += x1 * y2 - x2 * y1
+        return kotlin.math.abs(area) / 2.0
+    }
+
+    /**
+     * Nur die Ringe der Hauptlandmasse: Ein Ring, der deutlich kleiner ist als
+     * der größte (Überseegebiete wie Französisch-Guayana, die Kanaren oder
+     * Hawaii), darf die Ausdehnung nicht auf die halbe Welt aufblasen - sonst
+     * zoomt ein einzelnes Land auf Weltansicht statt auf sich selbst. Mehrere
+     * große Inseln (Indonesien) bleiben dagegen erhalten.
+     */
+    private fun dominantRings(rings: List<FloatArray>): List<FloatArray> {
+        if (rings.size <= 1) return rings
+        val maxArea = rings.maxOf { ringArea(it) }
+        if (maxArea <= 0.0) return rings
+        return rings.filter { ringArea(it) >= maxArea * 0.2 }
+    }
+
+    /**
+     * Liegt der Punkt (lat, lon) in einem der Ringe (Ray-Casting),
+     * datumslinienfest. Damit lässt sich z. B. die Hauptstadt eines Landes
+     * unter den Städten ([MapCity.isCapital]) dem Land zuordnen.
+     */
+    fun pointInRings(lat: Double, lon: Double, rings: List<FloatArray>): Boolean {
+        for (ring in rings) {
+            val n = ring.size / 2
+            if (n < 3) continue
+            // Ring relativ zu seinem ersten Punkt entfalten (Datumslinie), dann
+            // den Abfragepunkt in die Nähe des Rings schieben.
+            val xs = DoubleArray(n)
+            val ys = DoubleArray(n)
+            val ref = ring[0].toDouble()
+            var prev = ref
+            for (i in 0 until n) {
+                var rlon = ring[i * 2].toDouble()
+                while (rlon - prev > 180.0) rlon -= 360.0
+                while (rlon - prev < -180.0) rlon += 360.0
+                xs[i] = rlon
+                ys[i] = ring[i * 2 + 1].toDouble()
+                prev = rlon
+            }
+            var qlon = lon
+            while (qlon - ref > 180.0) qlon -= 360.0
+            while (qlon - ref < -180.0) qlon += 360.0
+            var inside = false
+            var j = n - 1
+            for (i in 0 until n) {
+                if ((ys[i] > lat) != (ys[j] > lat) &&
+                    qlon < (xs[j] - xs[i]) * (lat - ys[i]) / (ys[j] - ys[i]) + xs[i]
+                ) {
+                    inside = !inside
+                }
+                j = i
+            }
+            if (inside) return true
+        }
+        return false
+    }
+
+    /**
      * Fokus für eine Menge von Ländern (Kontinent oder EU): Mittelpunkt ist
      * das Vektormittel der Beschriftungsanker (bei Ringpunkten zöge z. B. Alaska
      * das Zentrum aus der Mitte der USA), die Ausdehnung der Abstand vom
-     * Mittelpunkt zu allen Ringpunkten - damit auch das östliche Russland bzw.
-     * Alaska/Hawaii in der Ausdehnung liegen und der Zoom weit genug herausgeht.
+     * Mittelpunkt zu den Ringpunkten der Hauptlandmassen - damit auch das
+     * östliche Russland bzw. Alaska in der Ausdehnung liegen, aber kleine
+     * Übersee-Exklaven (Guayana, Kanaren) den Zoom nicht auf Weltansicht ziehen.
      */
     fun forCountries(
         countries: List<CountryShapes.Country>,
@@ -116,14 +208,23 @@ object MapFocus {
         if (selected.isEmpty()) return null
         val anchors = selected.map { it.labelLat to it.labelLon }
         val center = centerOfPoints(anchors) ?: return null
-        val all = selected.flatMap { ringPoints(it.rings) } + anchors
+        // Pro Land nur die Hauptlandmasse: Übersee-Exklaven (Guayana, Kanaren)
+        // dürfen den Kontinent/EU nicht auf Weltansicht aufblasen.
+        val all = selected.flatMap { ringPoints(dominantRings(it.rings)) } + anchors
         val span = spanAround(center.first, center.second, all)
         return Focus(center.first, center.second, zoomForSpan(span))
     }
 
-    /** Fokus für ein einzelnes Land: Ankerpunkt des Landes, Ausdehnung über seine Ringe. */
+    /**
+     * Fokus für ein einzelnes Land: Ankerpunkt des Landes, Ausdehnung über die
+     * Hauptlandmasse ([dominantRings]) - ein Überseegebiet wie Guayana oder
+     * Hawaii darf nicht den ganzen Zoom auf Weltansicht ziehen.
+     */
     fun forCountry(country: CountryShapes.Country): Focus {
-        val span = spanAround(country.labelLat, country.labelLon, ringPoints(country.rings))
+        val span = spanAround(
+            country.labelLat, country.labelLon,
+            ringPoints(dominantRings(country.rings))
+        )
         return Focus(country.labelLat, country.labelLon, zoomForSpan(span))
     }
 
@@ -138,14 +239,17 @@ object MapFocus {
         if (states.isEmpty()) return null
         val anchors = states.map { it.labelLat to it.labelLon }
         val center = centerOfPoints(anchors) ?: return null
-        val all = states.flatMap { ringPoints(it.rings) } + anchors
+        val all = states.flatMap { ringPoints(dominantRings(it.rings)) } + anchors
         val span = spanAround(center.first, center.second, all)
         return Focus(center.first, center.second, zoomForSpan(span))
     }
 
     /** Fokus für einen einzelnen Staat: sein Anker, Ausdehnung über seine Ringe. */
     fun forState(state: StateShapes.State): Focus {
-        val span = spanAround(state.labelLat, state.labelLon, ringPoints(state.rings))
+        val span = spanAround(
+            state.labelLat, state.labelLon,
+            ringPoints(dominantRings(state.rings))
+        )
         return Focus(state.labelLat, state.labelLon, zoomForSpan(span))
     }
 }

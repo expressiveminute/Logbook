@@ -249,11 +249,13 @@ class CountriesFragment : LogbookFragment() {
             checklist.onZoom = { item -> mapHost?.zoomToCountry(item.iso2) }
         }
         checklist.onCheckedCountChanged = ::showCount
-        checklist.submit(items.orEmpty())
+        // Der Adapter muss vor dem submit stehen: submit meldet die Zahl der
+        // abgehakten Länder über showCount, und die liest itemCount am Adapter.
         countryAdapter = checklist
         stateAdapter = null
         adapter = checklist
         binding.countriesList.adapter = checklist
+        checklist.submit(items.orEmpty())
         // Ohne Länder steht unter der Überschrift nichts, "0 von 0 Ländern"
         // wäre nur eine Fehlermeldung in Zahlensprache. Ein Kontinent ganz ohne
         // gelistete Länder ist ebenfalls möglich, dann bleibt die Liste leer.

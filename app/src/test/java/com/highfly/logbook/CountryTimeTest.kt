@@ -27,11 +27,12 @@ class CountryTimeTest {
 
     private fun entry(
         id: Long, y: Int, m: Int, d: Int, from: String, to: String,
-        flightType: String? = "Privat", layover: Boolean = false
+        flightType: String? = "Privat", layover: Boolean = false,
+        layoverHours: Int? = null
     ) = LogbookEntry(
         id = id, date = LocalDate.of(y, m, d),
         fromAirport = from, toAirport = to,
-        flightType = flightType, layover = layover
+        flightType = flightType, layover = layover, layoverHours = layoverHours
     )
 
     @Test
@@ -263,17 +264,64 @@ class CountryTimeTest {
     }
 
     @Test
-    fun onDutyMitLayover_zaehlt() {
-        // FRA -> JFK am 10.03. und JFK -> FRA am 15.03., beide On Duty als Layover:
-        // 5 Tage in den USA.
+    fun onDutyMitLayover_zaehltDieLayoverStunden() {
+        // FRA -> JFK am 10.03. als On Duty mit Layover (36 h): die Stundenzahl
+        // zaehlt als Zeit in den USA, nicht das Datumspaar. Der Rueckflug ohne
+        // Layover erzeugt kein Ereignis.
         val entries = listOf(
-            entry(2, 2026, 3, 15, "JFK", "FRA", flightType = "On Duty", layover = true),
-            entry(1, 2026, 3, 10, "FRA", "JFK", flightType = "On Duty", layover = true)
+            entry(2, 2026, 3, 15, "JFK", "FRA", flightType = "On Duty"),
+            entry(1, 2026, 3, 10, "FRA", "JFK", flightType = "On Duty", layover = true, layoverHours = 36)
         )
         val result = CountryTimeStats.evaluate(entries, countryOf, "DE", emptyList(), LocalDate.of(2026, 3, 20))
         val us = result.single { it.iso2 == "US" }
-        assertEquals(5L, us.totalDays)
+        assertEquals(36L, us.totalHours)
+        assertEquals(1L, us.totalDays)
+        assertEquals(1, us.visits)
         assertFalse(us.open)
+        val p = us.periods.single()
+        assertTrue(p.layover)
+        assertEquals(LocalDate.of(2026, 3, 10), p.start)
+        assertEquals(LocalDate.of(2026, 3, 10), p.end)
+        assertEquals(36L, p.hours)
+        assertEquals("JFK", p.enterEntry?.toAirport)
+    }
+
+    @Test
+    fun onDutyLayoverOhneStundenzahl_zaehltNullStundenAberTauchtAuf() {
+        val entries = listOf(
+            entry(1, 2026, 3, 10, "FRA", "JFK", flightType = "Deadhead", layover = true)
+        )
+        val result = CountryTimeStats.evaluate(entries, countryOf, "DE", emptyList(), LocalDate.of(2026, 3, 20))
+        val us = result.single { it.iso2 == "US" }
+        assertEquals(0L, us.totalHours)
+        assertEquals(1, us.visits)
+        assertTrue(us.periods.single().layover)
+        assertFalse(us.open)
+    }
+
+    @Test
+    fun groundTransferMitLayover_zaehltNicht() {
+        val entries = listOf(
+            entry(1, 2026, 3, 10, "FRA", "JFK", flightType = "Ground Transfer", layover = true, layoverHours = 10)
+        )
+        val result = CountryTimeStats.evaluate(entries, countryOf, "DE", emptyList(), LocalDate.of(2026, 3, 20))
+        assertTrue(result.isEmpty())
+    }
+
+    @Test
+    fun zweiHinfluegeOhneRueckflug_bleibtBeimErstenHinflugOffen() {
+        // Privat: FRA -> JFK am 10.03. (kein Rueckflug), nochmal FRA -> JFK am
+        // 20.03. Der erste Hinflug bleibt offen (Button "Ausreise").
+        val entries = listOf(
+            entry(2, 2026, 3, 20, "FRA", "JFK"),
+            entry(1, 2026, 3, 10, "FRA", "JFK")
+        )
+        val result = CountryTimeStats.evaluate(entries, countryOf, "DE", emptyList(), LocalDate.of(2026, 3, 25))
+        val us = result.single { it.iso2 == "US" }
+        assertTrue(us.open)
+        assertEquals(LocalDate.of(2026, 3, 10), us.openSince)
+        assertEquals(1, us.visits)
+        assertEquals(15L, us.totalDays)
     }
 
     @Test
@@ -381,16 +429,26 @@ class CountryTimeTest {
     }
 
     @Test
-    fun gemischteLayoverKette_zaehltWeiterhinProLand() {
-        // FRA -> LHR (Layover), LHR -> JFK (Privat), JFK -> FRA (Privat):
-        // GB 1 Tag, US 4 Tage.
+    fun gemischteKette_dienstLayoverPlusPrivatFluege() {
+        // FRA -> LHR am 10.03. als On Duty mit Layover (8 h): GB bekommt die
+        // 8 Stunden. LHR -> JFK am 11.03. (Privat) ist die Ausreise aus GB -
+        // ohne passende Einreise ein Aufenthalt mit unbekannter Einreise.
+        // JFK -> FRA am 15.03. (Privat): US 4 Tage.
         val entries = listOf(
             entry(3, 2026, 3, 15, "JFK", "FRA"),
             entry(2, 2026, 3, 11, "LHR", "JFK"),
-            entry(1, 2026, 3, 10, "FRA", "LHR", flightType = "On Duty", layover = true)
+            entry(1, 2026, 3, 10, "FRA", "LHR", flightType = "On Duty", layover = true, layoverHours = 8)
         )
         val result = CountryTimeStats.evaluate(entries, countryOf, "DE", emptyList(), LocalDate.of(2026, 3, 20))
-        assertEquals(1L, result.single { it.iso2 == "GB" }.totalDays)
-        assertEquals(4L, result.single { it.iso2 == "US" }.totalDays)
+        val us = result.single { it.iso2 == "US" }
+        assertEquals(4L, us.totalDays)
+        assertEquals(96L, us.totalHours)
+        assertFalse(us.open)
+        val gb = result.single { it.iso2 == "GB" }
+        assertEquals(8L, gb.totalHours)
+        assertEquals(2, gb.visits)
+        assertTrue(gb.hasOpenPeriods)
+        assertTrue(gb.periods.any { it.layover && it.hours == 8L })
+        assertTrue(gb.periods.any { it.enterUnknown })
     }
 }

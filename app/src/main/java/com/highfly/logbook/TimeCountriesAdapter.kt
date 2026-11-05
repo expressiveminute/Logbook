@@ -44,10 +44,6 @@ object TimeCountryFormat {
     fun dateText(context: Context, date: LocalDate): String =
         date.format(DateTimeFormatter.ofPattern("dd.MM.yyyy", Settings.language(context)))
 
-    /** Tage als Stunden für den Layover-Balken ([LayoverTimeBarView]). */
-    fun barHours(days: Long): Int =
-        (days.coerceAtLeast(0) * LayoverTimeScale.DAY_HOURS).toInt()
-
     /**
      * Beschriftung des Skalenendes der Zeitbalken, wie auf der Layover-Detailseite.
      * Mit [quarters] = false entfaellt die Quartals-Stufe:Dann endet die Skala

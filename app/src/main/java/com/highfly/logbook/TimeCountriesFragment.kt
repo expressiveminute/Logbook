@@ -27,7 +27,7 @@ import java.time.LocalDate
  * pro Land aus den Flugeinträgen - ein Flug ins Land ist das Betreten, ein Flug
  * hinaus das Verlassen, dazwischen liegt die Zeit im Land (tageweise, die
  * Einträge haben nur ein Datum). Nur Layover- und Privat-Flüge zählen
- * ([CountryTimeStats.countsAsStay]). Das Land der Homebase wird nicht gezaehlt;
+ * ([CountryTimeStats.isPrivateFlight]/[CountryTimeStats.layoverHoursOf]). Das Land der Homebase wird nicht gezaehlt;
  * der Hinweis darauf steht als Fusszeile ganz unten auf der Seite. Rechts im
  * Kopf sitzt eine Lupe, die ein Suchfeld nach Land einblendet.
  *
@@ -150,10 +150,10 @@ class TimeCountriesFragment : LogbookFragment(), BackPressAware {
 
         // Balken im Header wie auf der Layover-Detailseite: Zeit im Ausland
         // als Dauer (Tage/Wochen/Monate, ohne Quartale) über einer sich
-        // füllenden Leiste.
+        // füllenden Leiste. Grundlage sind die Stunden (Layover-Stunden
+        // eingeschlossen), nicht nur die vollen Tage.
         val ctx = requireContext()
-        val abroad = result.sumOf { it.totalDays }
-        val abroadHours = TimeCountryFormat.barHours(abroad)
+        val abroadHours = result.sumOf { it.totalHours }.toInt()
         binding.tvAbroadValue.text = TimeCountryFormat.breakdownText(ctx, abroadHours, quarters = false)
         binding.timeAbroadBar.setLayoverHours(
             abroadHours, TimeCountryFormat.stepLabel(ctx, abroadHours, quarters = false)

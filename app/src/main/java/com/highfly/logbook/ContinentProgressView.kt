@@ -177,20 +177,25 @@ class ContinentProgressView @JvmOverloads constructor(
         val cx = width / 2f
         val cy = height / 2f
         arcRect.set(cx - radius, cy - radius, cx + radius, cy + radius)
-        // Im Stern-Modus (EU-Kachel) entfällt der Kreisbogen: die Sterne zeigen
-        // den Anteil allein, nur die Prozentzahl in der Mitte bleibt.
-        if (!starMode) canvas.drawCircle(cx, cy, radius, trackPaint)
+        // Die Spur läuft in beiden Modi mit - wie bei den anderen Kacheln.
+        canvas.drawCircle(cx, cy, radius, trackPaint)
         if (starMode) {
-            // EU-Kachel: zwölf Sterne im Kreis, beginnend oben im Uhrzeigersinn.
-            // Die Sterngrösse richtet sich nach dem Umfang, damit sich die Sterne
-            // auch in einer kleinen Kachel nicht überlappen.
+            // EU-Kachel: zwölf Sterne auf dem Kreis, beginnend oben und im
+            // Uhrzeigersinn gefüllt (wie der Bogen der anderen Kacheln): die
+            // ersten [gefuellt] Sterne in der Fortschrittsfarbe, der Rest in
+            // der Spurfarbe - der Kreis schließt sich also im Uhrzeigersinn.
+            // Die Sterngrösse richtet sich nach dem Umfang, damit sich die
+            // Sterne auch in einer kleinen Kachel nicht überlappen.
             val umfang = 2f * PI.toFloat() * radius
             starPaint.textSize = min(dicke * 3f, umfang / STAR_COUNT * 0.9f)
             val gefuellt = (gezeichnet * STAR_COUNT).roundToInt()
             for (i in 0 until STAR_COUNT) {
                 val winkel = Math.toRadians((START_WINKEL + i * 360f / STAR_COUNT).toDouble())
+                // Bildschirmkoordinaten: y wächst nach unten, bei START_WINKEL
+                // beginnt der Kreis oben und läuft mit wachsendem Winkel im
+                // Uhrzeigersinn (wie drawArc).
                 val x = cx + cos(winkel) * radius
-                val y = cy - sin(winkel) * radius
+                val y = cy + sin(winkel) * radius
                 starPaint.color = if (i < gefuellt) progressPaint.color else trackPaint.color
                 canvas.drawText(
                     STAR,

@@ -150,9 +150,9 @@ class CountryTimeDetailFragment : LogbookFragment() {
         // Balken im Header wie auf der Layover-Detailseite: Zeit in diesem
         // Land als Dauer (Tage/Wochen/Monate, ohne Quartale wie auf der
         // Times-Seite, dafür Jahre ab mehr als einem Jahr) über einer sich
-        // füllenden Leiste.
-        val land = time?.totalDays ?: 0L
-        val landHours = TimeCountryFormat.barHours(land)
+        // füllenden Leiste. Grundlage sind die Stunden (Layover-Stunden
+        // eingeschlossen), nicht nur die vollen Tage.
+        val landHours = time?.totalHours?.toInt() ?: 0
         binding.tvCtdBarValue.text =
             TimeCountryFormat.breakdownText(ctx, landHours, quarters = false)
         binding.ctdTimeBar.setLayoverHours(
@@ -204,12 +204,13 @@ class CountryTimeDetailFragment : LogbookFragment() {
 
     /**
      * Aufenthalte des Landes, neueste oben: links der Kreis mit den Tagen,
-     * daneben Einreise (Datum, darunter klein Flugstrecke und Flugnummer),
-     * ein Strich mittig zentriert im Bild, dann Ausreise (Datum, darunter klein
-     * Flugstrecke und Flugnummer). Fehlt ein Datum (Einreise per Landweg, Einreise
-     * gar nicht im Logbuch bzw. Ausreise noch offen), steht an der Stelle ein
-     * Button im Story-Stil („Einreise“/„Ausreise“) zum händischen Nachtragen
-     * ([showCrossingDialog]).
+     * daneben Einreise (Datum, darunter klein Flugstrecke und Flugnummer bzw.
+     * Transportmittel mit Icon), ein Strich mittig zentriert im Bild, dann
+     * Ausreise ebenso. Fehlt ein Datum ganz (Einreise gar nicht im Logbuch bzw.
+     * Ausreise noch offen), steht an der Stelle ein Button im Story-Stil
+     * („Einreise“/„Ausreise“) zum händischen Nachtragen ([showCrossingDialog]).
+     * Ein manuell nachtragenes Datum (Landweg) steht dagegen wie ein Flugdatum
+     * da, darunter das Transportmittel mit Icon - ohne Button.
      * Klick auf die Zeile öffnet den Hinflug zum Bearbeiten.
      */
     private fun renderStays(time: CountryTime?) {
@@ -229,18 +230,24 @@ class CountryTimeDetailFragment : LogbookFragment() {
             } else {
                 row.root.isClickable = false
             }
-            // Im Kreis links die Aufenthaltslänge in Tagen.
+            // Im Kreis links die Aufenthaltslänge in Tagen (bei Layover die
+            // Stunden als Bruchteil eines Tages, also ggf. "< 1 Tag").
             row.timelineDot.text = if (period.days > 0) {
                 getString(R.string.stay_days_dot, period.days)
             } else {
                 getString(R.string.stay_less_than_day_dot)
             }
-            // Einreise: Datum bzw. Button, darunter Strecke und Flugnummer.
-            if (enter != null && period.start != null) {
+            // Einreise: Datum (auf Flug-Datum-Höhe), darunter Strecke bzw.
+            // Transport mit Icon (auf Flugstrecken-Höhe); nur bei völlig
+            // unbekannter Einreise der Button.
+            val start = period.start
+            if (start != null && enter != null) {
+                // Per Flug eingereist.
                 row.tvStayDateIn.visibility = View.VISIBLE
-                row.tvStayDateIn.text = TimeCountryFormat.dateText(ctx, period.start!!)
+                row.tvStayDateIn.text = TimeCountryFormat.dateText(ctx, start)
                 row.btnStayIn.visibility = View.GONE
                 row.tvStayRouteIn.visibility = View.VISIBLE
+                row.tvStayRouteIn.setCompoundDrawablesRelativeWithIntrinsicBounds(0, 0, 0, 0)
                 row.tvStayRouteIn.text = routeText(enter)
                 val meta = buildList {
                     add(listOfNotNull(enter.airline, enter.flightNumber).joinToString(" "))
@@ -248,45 +255,46 @@ class CountryTimeDetailFragment : LogbookFragment() {
                 }.filter { it.isNotBlank() }.joinToString(" · ")
                 row.tvStayMetaIn.visibility = if (meta.isNotBlank()) View.VISIBLE else View.GONE
                 row.tvStayMetaIn.text = meta
+            } else if (start != null) {
+                // Manuell per Landweg eingereist: Datum steht wie bei einem
+                // Flug, darunter das Transportmittel mit Icon - kein Button.
+                row.tvStayDateIn.visibility = View.VISIBLE
+                row.tvStayDateIn.text = TimeCountryFormat.dateText(ctx, start)
+                row.btnStayIn.visibility = View.GONE
+                val manualEnter = manual.firstOrNull { it.iso2 == iso2 && it.enter && it.date == start }
+                row.tvStayRouteIn.visibility = View.VISIBLE
+                row.tvStayRouteIn.setTransportLine(ctx, manualEnter?.transport)
+                row.tvStayMetaIn.visibility = View.GONE
             } else {
-                // Einreise fehlt (Landweg oder nur Auslandsflug im Logbuch):
-                // dafür der Button "Einreise".
+                // Einreise unbekannt (nur Auslandsflug im Logbuch): Button.
                 row.tvStayDateIn.visibility = View.GONE
                 row.btnStayIn.visibility = View.VISIBLE
                 row.btnStayIn.setOnClickListener { showCrossingDialog(enter = true, period = period) }
-                val start = period.start
-                val manualEnter = start?.let { ps ->
-                    manual.firstOrNull { it.iso2 == iso2 && it.enter && it.date == ps }
-                }
-                val transport = TimeCountryFormat.transportLabel(ctx, manualEnter?.transport)
-                if (start != null) {
-                    row.tvStayRouteIn.visibility = View.VISIBLE
-                    row.tvStayRouteIn.text = if (transport != null) {
-                        getString(R.string.stay_overland) + " · " + transport
-                    } else {
-                        getString(R.string.stay_overland)
-                    }
-                } else {
-                    // Unbekannte Einreise: noch kein Datum und kein Transport.
-                    row.tvStayRouteIn.visibility = View.GONE
-                }
+                row.tvStayRouteIn.visibility = View.GONE
                 row.tvStayMetaIn.visibility = View.GONE
             }
-            // Ausreise: Datum bzw. Button, darunter Strecke und Flugnummer.
-            if (period.end != null) {
+            // Ausreise: Datum bzw. Transport, nur bei offenem Aufenthalt der Button.
+            val end = period.end
+            if (end != null && exit != null) {
+                // Per Flug ausgereist.
                 row.tvStayDateOut.visibility = View.VISIBLE
-                row.tvStayDateOut.text = TimeCountryFormat.dateText(ctx, period.end)
+                row.tvStayDateOut.text = TimeCountryFormat.dateText(ctx, end)
                 row.btnStayOut.visibility = View.GONE
-                if (exit != null) {
-                    row.tvStayRouteOut.text = routeText(exit)
-                    val meta = listOfNotNull(exit.airline, exit.flightNumber).joinToString(" ")
-                    row.tvStayMetaOut.visibility = if (meta.isNotBlank()) View.VISIBLE else View.GONE
-                    row.tvStayMetaOut.text = meta
-                } else {
-                    // Per Landweg verlassen.
-                    row.tvStayRouteOut.text = getString(R.string.stay_overland)
-                    row.tvStayMetaOut.visibility = View.GONE
-                }
+                row.tvStayRouteOut.visibility = View.VISIBLE
+                row.tvStayRouteOut.setCompoundDrawablesRelativeWithIntrinsicBounds(0, 0, 0, 0)
+                row.tvStayRouteOut.text = routeText(exit)
+                val meta = listOfNotNull(exit.airline, exit.flightNumber).joinToString(" ")
+                row.tvStayMetaOut.visibility = if (meta.isNotBlank()) View.VISIBLE else View.GONE
+                row.tvStayMetaOut.text = meta
+            } else if (end != null) {
+                // Manuell per Landweg ausgereist: Datum + Transport mit Icon.
+                row.tvStayDateOut.visibility = View.VISIBLE
+                row.tvStayDateOut.text = TimeCountryFormat.dateText(ctx, end)
+                row.btnStayOut.visibility = View.GONE
+                val manualExit = manual.firstOrNull { it.iso2 == iso2 && !it.enter && it.date == end }
+                row.tvStayRouteOut.visibility = View.VISIBLE
+                row.tvStayRouteOut.setTransportLine(ctx, manualExit?.transport)
+                row.tvStayMetaOut.visibility = View.GONE
             } else {
                 // Noch offen: der Button "Ausreise".
                 row.tvStayDateOut.visibility = View.GONE
@@ -299,6 +307,23 @@ class CountryTimeDetailFragment : LogbookFragment() {
                 (row.root.layoutParams as? ViewGroup.MarginLayoutParams)?.bottomMargin = 0
             }
             binding.llCtdStays.addView(row.root)
+        }
+    }
+
+    /**
+     * Transportmittel-Zeile unter einem manuell nachtragenen Datum: Icon +
+     * ausgeschriebener Name (z. B. "Auto"), ohne Transport nur "Landweg".
+     */
+    private fun TextView.setTransportLine(ctx: android.content.Context, transport: String?) {
+        val label = TimeCountryFormat.transportLabel(ctx, transport)
+        text = label ?: ctx.getString(R.string.stay_overland)
+        if (transport != null) {
+            setCompoundDrawablesRelativeWithIntrinsicBounds(
+                TimeCountryFormat.transportIconRes(transport), 0, 0, 0
+            )
+            compoundDrawablePadding = (4 * resources.displayMetrics.density).toInt()
+        } else {
+            setCompoundDrawablesRelativeWithIntrinsicBounds(0, 0, 0, 0)
         }
     }
 

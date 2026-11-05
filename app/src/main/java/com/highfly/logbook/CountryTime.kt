@@ -67,7 +67,12 @@ data class StayPeriod(
     val start: LocalDate?,
     val end: LocalDate?,
     val days: Long,
+    /** Verbrachte Zeit in Stunden: bei Flug-Aufenthalten Tage*24, bei einem
+     *  Layover-Dienstflug die Layover-Stunden ([LogbookEntry.layoverHours]). */
+    val hours: Long,
     val closedByFlight: Boolean,
+    /** True, wenn dieser Aufenthalt ein Layover-Dienstflug ist (Stunden statt tageweisem Flugpaar). */
+    val layover: Boolean = false,
     /** Flug, mit dem das Land betreten wurde; null bei manuellem Landweg oder unbekannter Einreise. */
     val enterEntry: LogbookEntry? = null,
     /** Flug, mit dem das Land verlassen wurde; null bei manuell/offen. */
@@ -92,6 +97,9 @@ data class CountryTime(
     /** True, wenn der letzte Aufenthalt noch laeuft. */
     val open: Boolean get() = openSince != null
 
+    /** Gesamte Zeit im Land in Stunden (Layover-Stunden eingeschlossen). */
+    val totalHours: Long get() = periods.sumOf { it.hours }
+
     /**
      * True, wenn ein Zeitraum offen ist: der Aufenthalt laeuft noch - oder
      * nur eine Richtung (Hin- bzw. Rueckreise) ist in den Daten.
@@ -109,11 +117,18 @@ data class CountryTime(
  * Rueckflug in den Daten) erzeugt einen Aufenthalt mit unbekannter Einreise
  * ([StayPeriod.start] = null). Das Land der Homebase wird nicht gezaehlt.
  *
- * Nur Fluege, die als Aufenthalt zaehlen ([countsAsStay]), erzeugen
- * Grenzübertritte. Gibt es am selben Tag einen Flug in die Gegenrichtung
- * (Hin- und Rueckflug), bekommen beide dieselbe Sequenznummer, damit das
- * Betreten vor dem Verlassen einsortiert wird - unabhaengig davon, welcher
- * der beiden Fluge die kleinere Datenbank-id hat.
+ * **Privat-Fluege** ([isPrivateFlight]) erzeugen die Grenzübertritte: Ein Flug
+ * ins Land ist das Betreten, einer hinaus das Verlassen. Gibt es am selben Tag
+ * einen Flug in die Gegenrichtung (Hin- und Rueckflug), bekommen beide
+ * dieselbe Sequenznummer, damit das Betreten vor dem Verlassen einsortiert
+ * wird - unabhaengig davon, welcher der beiden Fluge die kleinere
+ * Datenbank-id hat.
+ *
+ * **Dienstliche Fluege** (On Duty, Deadhead, Ferry, Dienstreise) zaehlen nur,
+ * wenn sie als Layover markiert sind ([layoverHoursOf]): Dann zaehlt nicht das
+ * Datumspaar, sondern die Layover-Stundenzahl als Zeit im Zielland
+ * ([StayPeriod.hours]). Ein nicht als Layover markierter Dienstflug erzeugt
+ * kein Ereignis - auch kein offenes.
  *
  * Landweg-Uebertritte ([manual]) werden als zusaetzliche Ereignisse
  * einsortiert. Ohne Android-Abhaengigkeiten: Das Land eines Flughafens kommt
@@ -122,15 +137,23 @@ data class CountryTime(
  */
 object CountryTimeStats {
 
+    /** True, wenn der Flug als Privat gilt und damit Grenzübertritte erzeugt. */
+    fun isPrivateFlight(entry: LogbookEntry): Boolean =
+        ChartData.normalizeFlightType(entry.flightType) == ChartData.PRIVATE_CANONICAL
+
     /**
-     * Ob ein Flug als Aufenthalt im Zielland zaehlt: Nur Layover-Fluege und
-     * Privat-Fluege. Dienstliche Fluege (On Duty, Deadhead, Ferry, Ground
-     * Transfer, Dienstreise) zaehlen nur, wenn sie als Layover erfasst wurden.
-     * Ein Hin- und Rueckflug am selben Tag zaehlt deshalb nur als Privat.
+     * Layover-Stunden eines Dienstflugs (On Duty, Deadhead, Ferry,
+     * Dienstreise - nicht Ground Transfer und nicht Privat), wenn er als
+     * Layover markiert ist; sonst null. Ohne eingetragene Stundenzahl 0.
      */
-    fun countsAsStay(entry: LogbookEntry): Boolean =
-        entry.layover ||
-            ChartData.normalizeFlightType(entry.flightType) == ChartData.PRIVATE_CANONICAL
+    fun layoverHoursOf(entry: LogbookEntry): Int? {
+        if (!entry.layover) return null
+        val type = ChartData.normalizeFlightType(entry.flightType)
+        if (type == ChartData.PRIVATE_CANONICAL ||
+            type == ChartData.GROUND_TRANSFER_CANONICAL
+        ) return null
+        return entry.layoverHours ?: 0
+    }
 
     /** Ein Grenzübertritt als Ereignis: Land, Datum, Richtung, Sortierindex, manuell erfasst, Quelleintrag. */
     private data class Event(
@@ -157,11 +180,11 @@ object CountryTimeStats {
         manual: List<BorderCrossing>,
         today: LocalDate
     ): List<CountryTime> {
-        // Nur Fluge, die als Aufenthalt zaehlen, erzeugen Ereignisse.
+        // Nur Privat-Fluege erzeugen Ereignisse.
         // seq: Datenbank-id (Erfassungsreihenfolge innerhalb eines Tages),
         // ersatzweise der Listenindex.
         val relevant = entries.mapIndexedNotNull { idx, e ->
-            if (countsAsStay(e)) Triple(e, e.id ?: (idx + 1).toLong(), idx) else null
+            if (isPrivateFlight(e)) Triple(e, e.id ?: (idx + 1).toLong(), idx) else null
         }
         // Hin- und Rueckflug am selben Tag (Gegenrichtung auf derselben
         // Strecke) bekommen dieselbe seq, damit das Betreten des Ziellandes
@@ -195,6 +218,26 @@ object CountryTimeStats {
             events += Event(fromC, e.date, enter = false, seq, manual = false, entry = e)
             events += Event(toC, e.date, enter = true, seq, manual = false, entry = e)
         }
+        // Layover-Dienstfluege: die Stundenzahl zaehlt als Aufenthalt im
+        // Zielland (eigener Zeitraum am Flugdatum, kein Grenzübertritt).
+        val layoverPeriods = HashMap<String, MutableList<StayPeriod>>()
+        entries.forEach { e ->
+            val hours = layoverHoursOf(e) ?: return@forEach
+            val toC = countryOf(e.toAirport)?.trim()?.uppercase() ?: return@forEach
+            if (toC.isEmpty()) return@forEach
+            layoverPeriods.getOrPut(toC) { ArrayList() }.add(
+                StayPeriod(
+                    start = e.date,
+                    end = e.date,
+                    days = hours / 24L,
+                    hours = hours.toLong(),
+                    closedByFlight = true,
+                    layover = true,
+                    enterEntry = e,
+                    exitEntry = e
+                )
+            )
+        }
         manual.forEachIndexed { i, c ->
             // Manuelle Uebertritte sortieren sich am selben Tag hinter die
             // Fluege (seq nahe Long.MAX_VALUE).
@@ -224,10 +267,12 @@ object CountryTimeStats {
                 } else {
                     val since = openSince
                     if (since != null) {
+                        val days = ChronoUnit.DAYS.between(since, ev.date).coerceAtLeast(0)
                         periods += StayPeriod(
                             start = since,
                             end = ev.date,
-                            days = ChronoUnit.DAYS.between(since, ev.date).coerceAtLeast(0),
+                            days = days,
+                            hours = days * 24L,
                             closedByFlight = !ev.manual,
                             enterEntry = openEntry,
                             exitEntry = ev.entry
@@ -243,6 +288,7 @@ object CountryTimeStats {
                             start = null,
                             end = ev.date,
                             days = 0L,
+                            hours = 0L,
                             closedByFlight = !ev.manual,
                             enterEntry = null,
                             exitEntry = ev.entry
@@ -252,15 +298,20 @@ object CountryTimeStats {
             }
             val since = openSince
             if (since != null) {
+                val days = ChronoUnit.DAYS.between(since, today).coerceAtLeast(0)
                 periods += StayPeriod(
                     start = since,
                     end = null,
-                    days = ChronoUnit.DAYS.between(since, today).coerceAtLeast(0),
+                    days = days,
+                    hours = days * 24L,
                     closedByFlight = false,
                     enterEntry = openEntry,
                     exitEntry = null
                 )
             }
+            // Layover-Dienstfluege einsortieren und alles chronologisch.
+            layoverPeriods.remove(iso)?.let { periods += it }
+            periods.sortBy { it.start ?: it.end ?: LocalDate.MIN }
             val total = periods.sumOf { it.days }
             result += CountryTime(
                 iso2 = iso,
@@ -270,8 +321,20 @@ object CountryTimeStats {
                 openSince = since
             )
         }
+        // Laender, die nur Layover-Dienstfluege haben (keine Privat-Ereignisse).
+        for ((iso, laps) in layoverPeriods) {
+            if (iso == home) continue
+            laps.sortBy { it.start ?: it.end ?: LocalDate.MIN }
+            result += CountryTime(
+                iso2 = iso,
+                totalDays = laps.sumOf { it.days },
+                visits = laps.size,
+                periods = laps,
+                openSince = null
+            )
+        }
         return result.sortedWith(
-            compareByDescending<CountryTime> { it.totalDays }.thenBy { it.iso2 }
+            compareByDescending<CountryTime> { it.totalHours }.thenByDescending { it.totalDays }.thenBy { it.iso2 }
         )
     }
 }

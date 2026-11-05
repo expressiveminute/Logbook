@@ -11,6 +11,7 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Region
+import android.text.TextPaint
 import android.util.AttributeSet
 import android.util.Log
 import android.util.TypedValue
@@ -623,6 +624,24 @@ class RubbelkarteView @JvmOverloads constructor(
         strokeWidth = 2f * density
     }
 
+    /**
+     * Unterstrichene Beschriftung der Hauptstadt, die beim Zoomen per Auge
+     * ([setCapitalMarker]) auf der Kugel steht - unabhängig von der Zoomstufe.
+     */
+    private val capitalPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+        isFakeBoldText = true
+        isUnderlineText = true
+        textSize = sp(STADT_TEXT_SP)
+    }
+    private val capitalHaloPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeJoin = Paint.Join.ROUND
+        strokeCap = Paint.Cap.ROUND
+        strokeWidth = 2f * density
+        isUnderlineText = true
+        textSize = capitalPaint.textSize
+    }
+
     /** Farbe des Halos hinter den Beschriftungen, siehe [nameHaloPaint]. */
     private var labelHaloColor = Color.TRANSPARENT
 
@@ -679,6 +698,13 @@ class RubbelkarteView @JvmOverloads constructor(
      */
     @Volatile
     private var highlightCodes: Set<String> = emptySet()
+
+    /**
+     * Hauptstadt des per Auge angezoomten Landes/Staats als (lat, lon, Name),
+     * wird unterstrichen auf der Kugel gezeichnet - unabhängig von der
+     * Zoomstufe. null = keine Anzeige, siehe [setCapitalMarker].
+     */
+    private var capitalMarker: Triple<Double, Double, String>? = null
 
     /**
      * Programmatisch gesetztes Zentrum der Kugel als (lat, lon), oder null -
@@ -869,6 +895,8 @@ class RubbelkarteView @JvmOverloads constructor(
         stadtHaloPaint.color = labelHaloColor
         stadtPunktPaint.color = nameColor
         stadtPunktHaloPaint.color = labelHaloColor
+        capitalPaint.color = nameColor
+        capitalHaloPaint.color = labelHaloColor
         touchSlop = ViewConfiguration.get(context).scaledTouchSlop.toFloat()
     }
 
@@ -906,6 +934,17 @@ class RubbelkarteView @JvmOverloads constructor(
     }
 
     /**
+     * Zeigt die Hauptstadt [name] an [lat]/[lon] unterstrichen auf der Kugel an
+     * (unabhängig von der Zoomstufe) - gesetzt, wenn per Auge auf ein Land oder
+     * einen Staat gezoomt wird. [name] null schaltet die Anzeige aus (z. B. beim
+     * Kachel-Tipp auf eine ganze Region).
+     */
+    fun setCapitalMarker(lat: Double, lon: Double, name: String?) {
+        capitalMarker = if (name.isNullOrBlank()) null else Triple(lat, lon, name)
+        invalidate()
+    }
+
+    /**
      * Setzt die Höhe des unten eingeblendeten Bereichs (halbhohe Seite) in
      * Pixeln; 0, wenn die Seite geschlossen ist. Das Fragment ruft das in
      * openPage bzw. hidePage.
@@ -925,6 +964,7 @@ class RubbelkarteView @JvmOverloads constructor(
      * hätte der Nutzer weder gezoomt noch verschoben. Läuft als kurze Animation.
      */
     fun resetToWorld() {
+        capitalMarker = null
         val center = shared?.countries?.let { RubbelkarteStats.centerOf(it, visitedIso2) }
         if (center != null) {
             // centerOf liefert (lon, lat).
@@ -1112,11 +1152,33 @@ class RubbelkarteView @JvmOverloads constructor(
         }
         drawHighlight(canvas, list)
         drawBeschriftung(canvas)
+        drawCapitalMarker(canvas, state)
         drawAirports(canvas)
         drawName(canvas)
         canvas.restore()
         // Der Rand gehört zum Bild, nicht zum Wasser, deshalb ohne Beschneiden.
         canvas.drawCircle(state.cx, state.cy, state.radius, rimPaint)
+    }
+
+    /**
+     * Zeichnet die Hauptstadt des per Auge angezoomten Landes/Staats
+     * ([capitalMarker]): Punkt mit unterstrichenem Namen, unabhängig von der
+     * Zoomstufe - beim Hereinzoomen über [ZOOM_STAEDTE] hinaus stehen die
+     * Städtenamen ohnehin, darunter auch diese Hauptstadt.
+     */
+    private fun drawCapitalMarker(canvas: Canvas, state: GlobeState) {
+        val marker = capitalMarker ?: return
+        val pos = project(marker.first, marker.second) ?: return
+        val dx = pos[0] - state.cx
+        val dy = pos[1] - state.cy
+        if (dx * dx + dy * dy > state.radius * state.radius) return
+        val punkt = max(PUNKT_MIN_DP * density, min(width, height) * PUNKT_ANTEIL) * 1.2f
+        canvas.drawCircle(pos[0], pos[1], punkt * PUNKT_RING, stadtPunktHaloPaint)
+        canvas.drawCircle(pos[0], pos[1], punkt * PUNKT_INNEN, stadtPunktPaint)
+        val x = pos[0] + punkt * PUNKT_RING + STADT_ABSTAND_DP * density
+        val baseline = pos[1] - (capitalPaint.ascent() + capitalPaint.descent()) / 2f
+        canvas.drawText(marker.third, x, baseline, capitalHaloPaint)
+        canvas.drawText(marker.third, x, baseline, capitalPaint)
     }
 
     /**
