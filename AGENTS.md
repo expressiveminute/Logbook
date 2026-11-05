@@ -1062,23 +1062,34 @@ bleibt).
 Die Seite wertet die Aufenthaltsdauer pro Land aus den Flügen aus: Ein Flug ins Land ist das
 Betreten, ein Flug hinaus das Verlassen – dazwischen liegt die Zeit im Land. Die Einträge
 haben nur ein Datum (keine Uhrzeit), gerechnet wird also tageweise; ein noch nicht verlassener
-Aufenthalt zählt bis heute und trägt „läuft seit …". Das Land der **Homebase**
-(`Homebase.current` → `AirportData.country`) wird nicht gezählt und steht im Kopf der Seite.
+Aufenthalt zählt bis heute. Ein Verlassen ohne bekanntes Betreten (nur ein Flug aus dem Ausland
+im Logbuch, z. B. ALA–FRA bei per Bus erfolgter Einreise) erzeugt einen Aufenthalt mit
+**unbekannter Einreise** (`StayPeriod.start` = null, 0 Tage, bis sie nachtragen wird). **Nur
+Layover- und Privat-Flüge zählen als Aufenthalt**
+(`CountryTimeStats.countsAsStay`: `layover == true` oder Reiseart „Privat“ – dienstliche Flüge
+wie On Duty/Deadhead nur, wenn sie als Layover erfasst wurden; ein Hin- und Rückflug am selben
+Tag zählt deshalb nur als Privat). Gibt es am selben Tag einen Flug in die Gegenrichtung, bekommen
+beide dieselbe Sequenznummer, damit das Betreten vor dem Verlassen einsortiert wird, auch wenn
+der Rückflug die kleinere Datenbank-id hat. Das Land der **Homebase** (`Homebase.current` →
+`AirportData.country`) wird nicht gezählt; der Hinweis darauf steht als **Fusszeile ganz unten**
+der Liste (`TimeCountryItem.HomebaseNote`, `item_time_homebase.xml`), der Kopf der Seite zeigt nur
+noch Titel und Balken (keine „xx Länder · yyy Tage“-Zeile mehr). In der Länderliste steht unter
+dem Namen „y Aufenthalte“, bei einem offenen Zeitraum (nur Hin- oder nur Rückflug in den Daten)
+hintenangestellt „· Offene Zeiträume“ (`time_countries_open_periods`).
 
-Landweg-Grenzübertritte (Auto, Bus, Fähre) stehen nicht im Logbuch: Unten auf der Seite kann
-der Nutzer sie manuell erfassen (Dialog `dialog_manual_crossing.xml`: Land per AutoComplete,
-Datum per DatePicker, betreten/verlassen per Radio) und wieder löschen. Gespeichert werden sie
-als eine Zeile pro Übertritt (`ISO2|yyyy-MM-dd|enter|exit`, `BorderCrossing.toLine`/`parse`)
+Landweg-Aufenthalte (Auto, Bus, Fähre) stehen nicht im Logbuch: Der FAB unten rechts erfasst
+einen kompletten Aufenthalt manuell. Gespeichert werden die Übertritte als eine Zeile pro
+Übertritt (`ISO2|yyyy-MM-dd|enter|exit`, `BorderCrossing.toLine`/`parse`)
 unter `Settings.getManualBorderCrossings` (nutzerbezogener Schlüssel); der JSON-Export
 (`AppDataTransfer`) nimmt die Einstellungs-Preferences pauschal mit, `AppReset` räumt sie auf.
 
 Die reine Auswertung steht ohne Android in `CountryTimeStats.evaluate(entries, countryOf,
-homeIso2, manual, today)` (geprüft von `CountryTimeTest`): Ereignisse aus Flügen und manuellen
-Übertritten, chronologisch sortiert (Datum, dann Erfassungs-id, manuelle am selben Tag Dahinter),
-pro Land als Aufenthalte (`StayPeriod`: start, end, days, closedByFlight) und aufsummiert,
-Ergebnis absteigend nach Gesamttagen. Formatierung der Tage/Zeilen in `TimeCountryFormat`, die
-Liste baut `TimeCountriesAdapter` (ViewTypes: Land, Leer-Hinweis, Abschnitt, Übertritt,
-Hinzufügen-Knopf). Unten rechts schwebt ein FAB wie auf dem Dashboard (`fab_add_stay`, `ic_add`):
+homeIso2, manual, today)` (geprüft von `CountryTimeTest`): Ereignisse aus den zählenden Flügen
+und manuellen Übertritten, chronologisch sortiert (Datum, dann Erfassungs-id, manuelle am selben
+Tag Dahinter), pro Land als Aufenthalte (`StayPeriod`: start, end, days, closedByFlight) und
+aufsummiert, Ergebnis absteigend nach Gesamttagen. Formatierung der Tage/Zeilen in
+`TimeCountryFormat`, die Liste baut `TimeCountriesAdapter` (ViewTypes: Land, Leer-Hinweis,
+Homebase-Fusszeile). Unten rechts schwebt ein FAB wie auf dem Dashboard (`fab_add_stay`, `ic_add`):
 Darüber wird ein kompletter Aufenthalt manuell erfasst (`dialog_manual_stay.xml`: Land per
 AutoComplete, darunter zwei Kacheln im Stil der Layover-Dashboard-Kacheln (`colorSecondaryContainer`,
 16 dp Ecken, Strich) mit Titel oben links – je eine für Einreise und Ausreise mit Datum (DatePicker)
@@ -1087,16 +1098,18 @@ wenn Hin- und Rückweg nicht per Flugzeug waren. Gespeichert als zwei manuelle `
 (enter/exit mit Transport), wird als Aufenthalt gezählt (`CountryTimeTest`). Die
 Länderzeilen tragen vorn ein `RankBadgeView` wie die Dashboard-Kacheln:
 Medaillen für Rang 1–3, danach die Platznummer, sichtbar bis Rang 10; ab Rang 11 bleibt der Platz
-mit `INVISIBLE` frei, damit Flaggen und Namen untereinander stehen. Im Kopf der Seite sitzt unter dem
-Homebase-Hinweis ein Balken wie auf der Layover-Detailseite (`LayoverTimeBarView` +
-`TimeCountryFormat.breakdownText`/`stepLabel`): die Zeit im Ausland als Dauer (h/Tage/Wochen/Monate)
-über einer sich füllenden Leiste.
+mit `INVISIBLE` frei, damit Flaggen und Namen untereinander stehen. Im Kopf der Seite sitzt ein
+Balken wie auf der Layover-Detailseite (`LayoverTimeBarView` +
+`TimeCountryFormat.breakdownText`/`stepLabel` mit `quarters = false`): die Zeit im Ausland als
+Dauer (Tage/Wochen/Monate, ohne Quartale, dafür Jahre ab mehr als einem Jahr) über einer sich
+füllenden Leiste.
 
 Ein Tipp auf ein Land öffnet die Detailseite `nav_country_time_detail`
 (`CountryTimeDetailFragment`, `fragment_country_time_detail.xml`): Oben der Kopf wie auf der Seite
 „Flüge“ (Zurück-Pfeil, Land mit Flagge, rechts die Gesamttage), darunter als Teil des fixen Headers
-ein Balken wie auf der Layover-Detailseite (`LayoverTimeBarView`): die Zeit in diesem Land als Dauer
-(h/Tage/Wochen/Monate) über einer sich füllenden Leiste. Alles darunter scrollt
+ein Balken wie auf der Layover-Detailseite (`LayoverTimeBarView`, ebenfalls `quarters = false`:
+Tage/Wochen/Monate, dafür Jahre ab mehr als einem Jahr): die Zeit in diesem Land als Dauer
+über einer sich füllenden Leiste. Alles darunter scrollt
 (`ctd_scroll`): zuerst die Karte des Landes mit den angeflogenen Flughäfen (Höhe = 1/3 Bildschirm,
 `CountryRouteMapView.setData` ohne Verbindungslinien, Flughafenpunkte über
 `CountryDetailModel.analyze`) – beim Scrollen verschwindet sie oben. Dann eine Fakten-Karte
@@ -1110,7 +1123,8 @@ angezeigt; geprüft von `CountryFactsAssetTest`; Loader `CountryFacts`). Zuletzt
 Hinflugs `StayPeriod.enterEntry`), ein Strich mittig zentriert im Bild, dann Ausreise (Datum,
 darunter klein Flugstrecke und Flugnummer des Rückflugs `StayPeriod.exitEntry`); Klick auf die
 Zeile öffnet den Hinflug zum Bearbeiten (`action_country_time_detail_to_add_entry`). Fehlt ein
-Datum (Einreise per Landweg, Ausreise noch offen), steht an der Stelle ein TonalButton im Stil des
+Datum (Einreise per Landweg, Einreise gar nicht im Logbuch – nur Auslandsflug vorhanden – oder
+Ausreise noch offen), steht an der Stelle ein TonalButton im Stil des
 Story-Knopfs („Einreise“/„Ausreise“); darüber öffnet sich ein Popup (`dialog_stay_crossing.xml`)
 mit Datum (DatePicker) und Transportmittel (Auto/Zug/Bus/Fähre/Fahrrad/Zu Fuß mit je einem
 Material-Icon `ic_transport_*`) – gespeichert als manueller `BorderCrossing` mit Transport
@@ -1151,8 +1165,8 @@ einführen.
 
 Die **Zurück-Taste** leitet `MainActivity` über einen `OnBackPressedCallback` zuerst an das
 aktuelle Navigationsziel weiter (`BackPressAware`): Ist auf der Seite ein Suchfeld offen (alle
-fünf Listensuchen: Einträge, Fluggesellschaften, Reisebuddies, Länder, Kacheln samt
-Flughafen-Popup), wird es geschlossen und die Eingabe gelöscht – wie das Schliessen-X – und erst
+sechs Listensuchen: Einträge, Fluggesellschaften, Reisebuddies, Länder, Kacheln samt
+Flughafen-Popup sowie die Länderzeiten (Times)), wird es geschlossen und die Eingabe gelöscht – wie das Schliessen-X – und erst
 ein weiterer Druck navigiert zurück. Nimmt die Seite den Druck nicht, fällt er an den NavController
 durch. Das X im Suchfeld verhält sich wie gehabt: Eingabe löschen und Feld schliessen.
 

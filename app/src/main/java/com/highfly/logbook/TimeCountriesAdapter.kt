@@ -5,11 +5,9 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import com.highfly.logbook.databinding.ItemAddCrossingBinding
-import com.highfly.logbook.databinding.ItemManualCrossingBinding
 import com.highfly.logbook.databinding.ItemTimeCountryBinding
 import com.highfly.logbook.databinding.ItemTimeEmptyBinding
-import com.highfly.logbook.databinding.ItemTimeSectionBinding
+import com.highfly.logbook.databinding.ItemTimeHomebaseBinding
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -23,16 +21,9 @@ sealed class TimeCountryItem {
     ) : TimeCountryItem()
 
     object Empty : TimeCountryItem()
-    object SectionCrossings : TimeCountryItem()
 
-    data class Crossing(
-        val index: Int,
-        val crossing: BorderCrossing,
-        val name: String,
-        val flag: String
-    ) : TimeCountryItem()
-
-    object AddCrossing : TimeCountryItem()
+    /** Fusszeile ganz unten: Hinweis auf die Homebase, deren Land nicht zaehlt. */
+    data class HomebaseNote(val text: String) : TimeCountryItem()
 }
 
 /** Formatierung der Zeitangaben auf der Seite, sprachabhaengig. */
@@ -57,14 +48,25 @@ object TimeCountryFormat {
     fun barHours(days: Long): Int =
         (days.coerceAtLeast(0) * LayoverTimeScale.DAY_HOURS).toInt()
 
-    /** Beschriftung des Skalenendes der Zeitbalken, wie auf der Layover-Detailseite. */
-    fun stepLabel(context: Context, hours: Int): String {
+    /**
+     * Beschriftung des Skalenendes der Zeitbalken, wie auf der Layover-Detailseite.
+     * Mit [quarters] = false entfaellt die Quartals-Stufe:Dann endet die Skala
+     * bei "3 Monate" statt "1 Quartal".
+     */
+    fun stepLabel(context: Context, hours: Int, quarters: Boolean = true): String {
         val units = LayoverTimeScale.scaleUnits(hours)
         return when (LayoverTimeScale.stepIndex(hours)) {
             0 -> context.getString(R.string.layover_time_step_day)
             1 -> context.getString(R.string.layover_time_step_week)
             2 -> context.getString(R.string.layover_time_step_month)
-            3 -> context.getString(R.string.layover_time_step_quarter)
+            3 -> if (quarters) {
+                context.getString(R.string.layover_time_step_quarter)
+            } else {
+                context.resources.getQuantityString(
+                    R.plurals.layover_time_unit_months, 3,
+                    LayoverTimeScale.trimmedDecimal(3.0, Settings.language(context))
+                )
+            }
             else -> context.resources.getQuantityString(R.plurals.layover_time_step_year, units, units)
         }
     }
@@ -73,9 +75,11 @@ object TimeCountryFormat {
      * Dauer über der Zeitbalken: die verbrachte Zeit in Tagen, Wochen, Monaten
      * als Gesamtwert, durch Punkte getrennt (z. B. "83 Tage · 11,9 Wochen ·
      * 2,8 Monate"). Stunden werden nicht angezeigt; unter einem Tag steht
-     * der Bruchteil eines Tages ("0,2 Tage").
+     * der Bruchteil eines Tages ("0,2 Tage"). Mit [quarters] = false entfallen
+     * die Quartale, dafuer erscheinen Jahre, sobald mehr als ein Jahr erreicht
+     * ist.
      */
-    fun breakdownText(context: Context, hours: Int): String {
+    fun breakdownText(context: Context, hours: Int, quarters: Boolean = true): String {
         val totals = LayoverTimeScale.totals(hours)
         val step = LayoverTimeScale.stepIndex(hours)
         val locale = Settings.language(context)
@@ -90,7 +94,11 @@ object TimeCountryFormat {
             add(part(R.plurals.layover_time_unit_days, totals.days))
             if (step >= 2) add(part(R.plurals.layover_time_unit_weeks, totals.weeks))
             if (step >= 3) add(part(R.plurals.layover_time_unit_months, totals.months))
-            if (step >= 4) add(part(R.plurals.layover_time_unit_quarters, totals.quarters))
+            if (quarters) {
+                if (step >= 4) add(part(R.plurals.layover_time_unit_quarters, totals.quarters))
+            } else if (hours > LayoverTimeScale.YEAR_HOURS) {
+                add(part(R.plurals.layover_time_unit_years, totals.years))
+            }
         }
         return parts.joinToString(" · ")
     }
@@ -143,27 +151,47 @@ object TimeCountryFormat {
 
 /**
  * Liste der Seite "Zeit in Ländern": Länder mit Aufenthaltsdauer, darunter
- * die manuell erfassten Landweg-Grenzübertritte und der Knopf zum Hinzufügen.
+ * die Fusszeile mit dem Homebase-Hinweis.
  */
 class TimeCountriesAdapter(
     private val context: Context,
-    private val onCountryClick: (iso2: String) -> Unit,
-    private val onDeleteCrossing: (index: Int) -> Unit,
-    private val onAddCrossing: () -> Unit
+    private val onCountryClick: (iso2: String) -> Unit
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
+    private var allItems: List<TimeCountryItem> = emptyList()
+    private var query = ""
+
     var items: List<TimeCountryItem> = emptyList()
-        set(value) {
-            field = value
-            notifyDataSetChanged()
+        private set
+
+    /** Setzt die komplette Liste und wendet den aktuellen Suchtext an. */
+    fun submit(value: List<TimeCountryItem>) {
+        allItems = value
+        applyQuery()
+    }
+
+    /** Filtert die Länder nach [value] (Landesname); leer zeigt alles. */
+    fun setQuery(value: String) {
+        query = value
+        applyQuery()
+    }
+
+    private fun applyQuery() {
+        items = if (query.isBlank()) {
+            allItems
+        } else {
+            // Beim Suchen nur die passenden Länder, ohne Fusszeile.
+            allItems.filter {
+                it is TimeCountryItem.Country && it.name.contains(query, ignoreCase = true)
+            }
         }
+        notifyDataSetChanged()
+    }
 
     override fun getItemViewType(position: Int): Int = when (items[position]) {
         is TimeCountryItem.Country -> TYPE_COUNTRY
         is TimeCountryItem.Empty -> TYPE_EMPTY
-        is TimeCountryItem.SectionCrossings -> TYPE_SECTION
-        is TimeCountryItem.Crossing -> TYPE_CROSSING
-        is TimeCountryItem.AddCrossing -> TYPE_ADD
+        is TimeCountryItem.HomebaseNote -> TYPE_HOMEBASE
     }
 
     override fun getItemCount(): Int = items.size
@@ -173,17 +201,14 @@ class TimeCountriesAdapter(
         return when (viewType) {
             TYPE_COUNTRY -> CountryVH(ItemTimeCountryBinding.inflate(inflater, parent, false))
             TYPE_EMPTY -> EmptyVH(ItemTimeEmptyBinding.inflate(inflater, parent, false))
-            TYPE_SECTION -> SectionVH(ItemTimeSectionBinding.inflate(inflater, parent, false))
-            TYPE_CROSSING -> CrossingVH(ItemManualCrossingBinding.inflate(inflater, parent, false))
-            else -> AddVH(ItemAddCrossingBinding.inflate(inflater, parent, false))
+            else -> HomebaseVH(ItemTimeHomebaseBinding.inflate(inflater, parent, false))
         }
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (val item = items[position]) {
             is TimeCountryItem.Country -> (holder as CountryVH).bind(item)
-            is TimeCountryItem.Crossing -> (holder as CrossingVH).bind(item)
-            is TimeCountryItem.AddCrossing -> (holder as AddVH).bind()
+            is TimeCountryItem.HomebaseNote -> (holder as HomebaseVH).bind(item)
             else -> {}
         }
     }
@@ -201,13 +226,11 @@ class TimeCountriesAdapter(
             b.tvCountryFlag.text = item.flag
             b.tvCountryName.text = item.name
             b.tvCountryDays.text = TimeCountryFormat.daysText(context, item.time.totalDays)
+            // "y Aufenthalte"; bei einem offenen Zeitraum (nur Hin- oder nur
+            // Rueckflug in den Daten) hintenangestellt "Offene Zeiträume".
             val visits = TimeCountryFormat.visitsText(context, item.time.visits)
-            val since = item.time.openSince
-            b.tvCountryDetail.text = if (since != null) {
-                context.getString(
-                    R.string.time_countries_open_since,
-                    TimeCountryFormat.dateText(context, since)
-                ) + " · " + visits
+            b.tvCountryDetail.text = if (item.time.hasOpenPeriods) {
+                visits + " · " + context.getString(R.string.time_countries_open_periods)
             } else {
                 visits
             }
@@ -218,38 +241,18 @@ class TimeCountriesAdapter(
 
     private class EmptyVH(b: ItemTimeEmptyBinding) : RecyclerView.ViewHolder(b.root)
 
-    private class SectionVH(b: ItemTimeSectionBinding) : RecyclerView.ViewHolder(b.root)
-
-    private inner class CrossingVH(val b: ItemManualCrossingBinding) :
+    private class HomebaseVH(val b: ItemTimeHomebaseBinding) :
         RecyclerView.ViewHolder(b.root) {
 
-        fun bind(item: TimeCountryItem.Crossing) {
-            val c = item.crossing
-            b.tvCrossingFlag.text = item.flag
-            b.tvCrossingCountry.text = item.name
-            val dateText = TimeCountryFormat.dateText(context, c.date)
-            b.tvCrossingDate.text = context.getString(
-                if (c.enter) R.string.time_countries_enter_on else R.string.time_countries_exit_on,
-                dateText
-            )
-            b.btnDeleteCrossing.setOnClickListener { onDeleteCrossing(item.index) }
-        }
-    }
-
-    private inner class AddVH(val b: ItemAddCrossingBinding) :
-        RecyclerView.ViewHolder(b.root) {
-
-        fun bind() {
-            b.btnAddCrossing.setOnClickListener { onAddCrossing() }
+        fun bind(item: TimeCountryItem.HomebaseNote) {
+            b.tvTimeHomebase.text = item.text
         }
     }
 
     private companion object {
         const val TYPE_COUNTRY = 0
         const val TYPE_EMPTY = 1
-        const val TYPE_SECTION = 2
-        const val TYPE_CROSSING = 3
-        const val TYPE_ADD = 4
+        const val TYPE_HOMEBASE = 2
 
         /** Bis zu diesem Rang wird das Badge in der Länderliste gezeigt. */
         const val RANK_MAX_SHOWN = 10

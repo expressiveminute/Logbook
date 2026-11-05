@@ -215,27 +215,19 @@
     <string name="nav_profile">Einstellungen</string>
     <string name="nav_time_countries">Länderzeiten</string>
     <string name="time_countries_title">Zeit in Ländern</string>
-    <string name="time_countries_subtitle">%1$d Länder · %2$s insgesamt</string>
     <string name="time_countries_homebase">Homebase %1$s (%2$s) wird nicht gezählt</string>
     <string name="time_countries_empty">Noch keine Aufenthalte außerhalb der Homebase</string>
-    <string name="time_countries_section_crossings">Landweg-Grenzübertritte</string>
-    <string name="time_countries_crossings_hint">Grenzübertritte mit Auto, Bus oder Fähre stehen nicht im Logbuch – hier manuell erfassen:</string>
-    <string name="time_countries_add_crossing">Grenzübertritt hinzufügen</string>
-    <string name="time_countries_enter_on">betreten am %1$s</string>
-    <string name="time_countries_exit_on">verlassen am %1$s</string>
-    <string name="time_countries_delete_desc">Grenzübertritt löschen</string>
-    <string name="time_countries_dialog_title">Landweg-Grenzübertritt</string>
     <string name="time_countries_country_hint">Land</string>
     <string name="time_countries_date_hint">Datum</string>
-    <string name="time_countries_enter_radio">Land betreten (Auto, Bus, Fähre …)</string>
-    <string name="time_countries_exit_radio">Land verlassen</string>
     <string name="time_countries_pick_country">Bitte ein Land wählen</string>
     <string name="time_countries_one_day">1 Tag</string>
     <string name="time_countries_days">%1$d Tage</string>
     <string name="time_countries_less_than_day">&lt; 1 Tag</string>
     <string name="time_countries_one_visit">1 Aufenthalt</string>
     <string name="time_countries_visits">%1$d Aufenthalte</string>
-    <string name="time_countries_open_since">läuft seit %1$s</string>
+    <string name="time_countries_open_periods">Offene Zeiträume</string>
+    <string name="time_countries_search_hint">Land suchen</string>
+    <string name="time_countries_search_open">Länder durchsuchen</string>
     <string name="time_countries_abroad_label">Zeit im Ausland</string>
     <string name="time_countries_subtitle_percent">%1$s · %2$d %%</string>
     <string name="country_time_bar_label">Zeit in diesem Land</string>
@@ -776,6 +768,10 @@
     <plurals name="layover_time_unit_quarters">
         <item quantity="one">%1$s Quartal</item>
         <item quantity="other">%1$s Quartale</item>
+    </plurals>
+    <plurals name="layover_time_unit_years">
+        <item quantity="one">%1$s Jahr</item>
+        <item quantity="other">%1$s Jahre</item>
     </plurals>
     <!-- Einheit der Layover-Leiste: sie richtet sich nach der verbrachten Zeit,
          unter einem Tag zählt sie in Tagen, danach in Wochen, Monaten, Quartalen

@@ -57,18 +57,26 @@ data class BorderCrossing(
  * heute gerechnet). [closedByFlight] ist false, wenn das Verlassen nicht per
  * Flug, sondern manuell (Landweg) erfasst wurde - oder der Aufenthalt noch
  * offen ist; dann kann der Nutzer das Verlassen händisch nachtragen.
+ *
+ * [start] ist null, wenn nur das Verlassen in den Daten ist (z. B. ein Flug
+ * ALA-FRA, die Einreise per Bus aber nicht im Logbuch): Der Aufenthalt taucht
+ * dann mit unbekannter Einreise auf, [days] ist 0, bis die Einreise händisch
+ * nachtragen wird.
  */
 data class StayPeriod(
-    val start: LocalDate,
+    val start: LocalDate?,
     val end: LocalDate?,
     val days: Long,
     val closedByFlight: Boolean,
-    /** Flug, mit dem das Land betreten wurde; null bei manuellem Landweg. */
+    /** Flug, mit dem das Land betreten wurde; null bei manuellem Landweg oder unbekannter Einreise. */
     val enterEntry: LogbookEntry? = null,
     /** Flug, mit dem das Land verlassen wurde; null bei manuell/offen. */
     val exitEntry: LogbookEntry? = null
 ) {
     val open: Boolean get() = end == null
+
+    /** True, wenn die Einreise fehlt (nur das Verlassen ist in den Daten). */
+    val enterUnknown: Boolean get() = start == null
 }
 
 /** Aufenthaltszeit in einem Land: Gesamttage, Aufenthalte, noch offen. */
@@ -83,6 +91,13 @@ data class CountryTime(
 ) {
     /** True, wenn der letzte Aufenthalt noch laeuft. */
     val open: Boolean get() = openSince != null
+
+    /**
+     * True, wenn ein Zeitraum offen ist: der Aufenthalt laeuft noch - oder
+     * nur eine Richtung (Hin- bzw. Rueckreise) ist in den Daten.
+     */
+    val hasOpenPeriods: Boolean
+        get() = open || periods.any { it.enterUnknown }
 }
 
 /**
@@ -90,7 +105,15 @@ data class CountryTime(
  * Land A nach Land B (A != B) ist ein Grenzübertritt - Verlassen von A und
  * Betreten von B am Flugdatum. Die Zeit in einem Land laeuft vom Betreten bis
  * zum naechsten Verlassen; ein Aufenthalt, der noch nicht verlassen wurde,
- * zaehlt bis [today]. Das Land der Homebase wird nicht gezaehlt.
+ * zaehlt bis [today]. Ein Verlassen ohne bekanntes Betreten (nur Hin- oder nur
+ * Rueckflug in den Daten) erzeugt einen Aufenthalt mit unbekannter Einreise
+ * ([StayPeriod.start] = null). Das Land der Homebase wird nicht gezaehlt.
+ *
+ * Nur Fluege, die als Aufenthalt zaehlen ([countsAsStay]), erzeugen
+ * Grenzübertritte. Gibt es am selben Tag einen Flug in die Gegenrichtung
+ * (Hin- und Rueckflug), bekommen beide dieselbe Sequenznummer, damit das
+ * Betreten vor dem Verlassen einsortiert wird - unabhaengig davon, welcher
+ * der beiden Fluge die kleinere Datenbank-id hat.
  *
  * Landweg-Uebertritte ([manual]) werden als zusaetzliche Ereignisse
  * einsortiert. Ohne Android-Abhaengigkeiten: Das Land eines Flughafens kommt
@@ -98,6 +121,16 @@ data class CountryTime(
  * [CountryTimeTest] die Rechnung pruefen kann.
  */
 object CountryTimeStats {
+
+    /**
+     * Ob ein Flug als Aufenthalt im Zielland zaehlt: Nur Layover-Fluege und
+     * Privat-Fluege. Dienstliche Fluege (On Duty, Deadhead, Ferry, Ground
+     * Transfer, Dienstreise) zaehlen nur, wenn sie als Layover erfasst wurden.
+     * Ein Hin- und Rueckflug am selben Tag zaehlt deshalb nur als Privat.
+     */
+    fun countsAsStay(entry: LogbookEntry): Boolean =
+        entry.layover ||
+            ChartData.normalizeFlightType(entry.flightType) == ChartData.PRIVATE_CANONICAL
 
     /** Ein Grenzübertritt als Ereignis: Land, Datum, Richtung, Sortierindex, manuell erfasst, Quelleintrag. */
     private data class Event(
@@ -124,14 +157,41 @@ object CountryTimeStats {
         manual: List<BorderCrossing>,
         today: LocalDate
     ): List<CountryTime> {
+        // Nur Fluge, die als Aufenthalt zaehlen, erzeugen Ereignisse.
+        // seq: Datenbank-id (Erfassungsreihenfolge innerhalb eines Tages),
+        // ersatzweise der Listenindex.
+        val relevant = entries.mapIndexedNotNull { idx, e ->
+            if (countsAsStay(e)) Triple(e, e.id ?: (idx + 1).toLong(), idx) else null
+        }
+        // Hin- und Rueckflug am selben Tag (Gegenrichtung auf derselben
+        // Strecke) bekommen dieselbe seq, damit das Betreten des Ziellandes
+        // vor dem Verlassen einsortiert wird - auch wenn der Rueckflug die
+        // kleinere id hat und sonst zuerst liefe.
+        val seqByIndex = HashMap<Int, Long>()
+        val routeGroups = relevant.groupBy { (e, _, _) ->
+            val a = e.fromAirport.trim().uppercase()
+            val b = e.toAirport.trim().uppercase()
+            Triple(e.date, minOf(a, b), maxOf(a, b))
+        }
+        for ((_, group) in routeGroups) {
+            val first = group.first().first
+            val a = first.fromAirport.trim().uppercase()
+            val b = first.toAirport.trim().uppercase()
+            val bothDirections = group.any {
+                it.first.fromAirport.trim().uppercase() == b &&
+                    it.first.toAirport.trim().uppercase() == a
+            }
+            val pairedSeq = group.minOf { it.second }
+            for ((_, id, idx) in group) {
+                seqByIndex[idx] = if (bothDirections) pairedSeq else id
+            }
+        }
         val events = ArrayList<Event>()
-        entries.forEachIndexed { idx, e ->
+        relevant.forEach { (e, _, idx) ->
             val fromC = countryOf(e.fromAirport)?.trim()?.uppercase()
             val toC = countryOf(e.toAirport)?.trim()?.uppercase()
-            if (fromC.isNullOrEmpty() || toC.isNullOrEmpty() || fromC == toC) return@forEachIndexed
-            // seq: Datenbank-id (Erfassungsreihenfolge innerhalb eines Tages),
-            // ersatzweise der Listenindex.
-            val seq = e.id ?: (idx + 1).toLong()
+            if (fromC.isNullOrEmpty() || toC.isNullOrEmpty() || fromC == toC) return@forEach
+            val seq = seqByIndex[idx] ?: 0L
             events += Event(fromC, e.date, enter = false, seq, manual = false, entry = e)
             events += Event(toC, e.date, enter = true, seq, manual = false, entry = e)
         }
@@ -174,6 +234,19 @@ object CountryTimeStats {
                         )
                         openSince = null
                         openEntry = null
+                    } else {
+                        // Verlassen ohne bekanntes Betreten (z. B. Flug ALA-FRA,
+                        // Einreise per Bus nicht im Logbuch): Das Land taucht
+                        // mit unbekannter Einreise auf, damit sie händisch
+                        // nachtragen kann.
+                        periods += StayPeriod(
+                            start = null,
+                            end = ev.date,
+                            days = 0L,
+                            closedByFlight = !ev.manual,
+                            enterEntry = null,
+                            exitEntry = ev.entry
+                        )
                     }
                 }
             }

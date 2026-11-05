@@ -148,12 +148,15 @@ class CountryTimeDetailFragment : LogbookFragment() {
             TimeCountryFormat.daysText(ctx, time?.totalDays ?: 0L)
 
         // Balken im Header wie auf der Layover-Detailseite: Zeit in diesem
-        // Land als Dauer (h/Tage/Wochen/Monate) über einer sich füllenden Leiste.
+        // Land als Dauer (Tage/Wochen/Monate, ohne Quartale wie auf der
+        // Times-Seite, dafür Jahre ab mehr als einem Jahr) über einer sich
+        // füllenden Leiste.
         val land = time?.totalDays ?: 0L
         val landHours = TimeCountryFormat.barHours(land)
-        binding.tvCtdBarValue.text = TimeCountryFormat.breakdownText(ctx, landHours)
+        binding.tvCtdBarValue.text =
+            TimeCountryFormat.breakdownText(ctx, landHours, quarters = false)
         binding.ctdTimeBar.setLayoverHours(
-            landHours, TimeCountryFormat.stepLabel(ctx, landHours)
+            landHours, TimeCountryFormat.stepLabel(ctx, landHours, quarters = false)
         )
 
         // Karte des Landes mit den angeflogenen Flughäfen, ohne Verbindungen.
@@ -203,16 +206,19 @@ class CountryTimeDetailFragment : LogbookFragment() {
      * Aufenthalte des Landes, neueste oben: links der Kreis mit den Tagen,
      * daneben Einreise (Datum, darunter klein Flugstrecke und Flugnummer),
      * ein Strich mittig zentriert im Bild, dann Ausreise (Datum, darunter klein
-     * Flugstrecke und Flugnummer). Fehlt ein Datum (Einreise per Landweg bzw.
-     * Ausreise noch offen), steht an der Stelle ein Button im Story-Stil
-     * („Einreise“/„Ausreise“) zum händischen Nachtragen ([showCrossingDialog]).
+     * Flugstrecke und Flugnummer). Fehlt ein Datum (Einreise per Landweg, Einreise
+     * gar nicht im Logbuch bzw. Ausreise noch offen), steht an der Stelle ein
+     * Button im Story-Stil („Einreise“/„Ausreise“) zum händischen Nachtragen
+     * ([showCrossingDialog]).
      * Klick auf die Zeile öffnet den Hinflug zum Bearbeiten.
      */
     private fun renderStays(time: CountryTime?) {
         val ctx = requireContext()
         binding.llCtdStays.removeAllViews()
-        // Neueste Aufenthalte zuerst.
-        val periods = time?.periods.orEmpty().sortedByDescending { it.start }
+        // Neueste Aufenthalte zuerst; bei unbekannter Einreise (start = null)
+        // zählt das Ausreisedatum.
+        val periods = time?.periods.orEmpty()
+            .sortedByDescending { it.start ?: it.end ?: LocalDate.MIN }
         binding.tvCtdEmpty.visibility = if (periods.isEmpty()) View.VISIBLE else View.GONE
         periods.forEachIndexed { index, period ->
             val row = ItemStayBinding.inflate(layoutInflater, binding.llCtdStays, false)
@@ -230,10 +236,11 @@ class CountryTimeDetailFragment : LogbookFragment() {
                 getString(R.string.stay_less_than_day_dot)
             }
             // Einreise: Datum bzw. Button, darunter Strecke und Flugnummer.
-            if (enter != null) {
+            if (enter != null && period.start != null) {
                 row.tvStayDateIn.visibility = View.VISIBLE
-                row.tvStayDateIn.text = TimeCountryFormat.dateText(ctx, period.start)
+                row.tvStayDateIn.text = TimeCountryFormat.dateText(ctx, period.start!!)
                 row.btnStayIn.visibility = View.GONE
+                row.tvStayRouteIn.visibility = View.VISIBLE
                 row.tvStayRouteIn.text = routeText(enter)
                 val meta = buildList {
                     add(listOfNotNull(enter.airline, enter.flightNumber).joinToString(" "))
@@ -242,16 +249,26 @@ class CountryTimeDetailFragment : LogbookFragment() {
                 row.tvStayMetaIn.visibility = if (meta.isNotBlank()) View.VISIBLE else View.GONE
                 row.tvStayMetaIn.text = meta
             } else {
-                // Landweg: kein Flug, dafür der Button "Einreise".
+                // Einreise fehlt (Landweg oder nur Auslandsflug im Logbuch):
+                // dafür der Button "Einreise".
                 row.tvStayDateIn.visibility = View.GONE
                 row.btnStayIn.visibility = View.VISIBLE
                 row.btnStayIn.setOnClickListener { showCrossingDialog(enter = true, period = period) }
-                val manualEnter = manual.firstOrNull { it.iso2 == iso2 && it.enter && it.date == period.start }
+                val start = period.start
+                val manualEnter = start?.let { ps ->
+                    manual.firstOrNull { it.iso2 == iso2 && it.enter && it.date == ps }
+                }
                 val transport = TimeCountryFormat.transportLabel(ctx, manualEnter?.transport)
-                row.tvStayRouteIn.text = if (transport != null) {
-                    getString(R.string.stay_overland) + " · " + transport
+                if (start != null) {
+                    row.tvStayRouteIn.visibility = View.VISIBLE
+                    row.tvStayRouteIn.text = if (transport != null) {
+                        getString(R.string.stay_overland) + " · " + transport
+                    } else {
+                        getString(R.string.stay_overland)
+                    }
                 } else {
-                    getString(R.string.stay_overland)
+                    // Unbekannte Einreise: noch kein Datum und kein Transport.
+                    row.tvStayRouteIn.visibility = View.GONE
                 }
                 row.tvStayMetaIn.visibility = View.GONE
             }
@@ -319,11 +336,13 @@ class CountryTimeDetailFragment : LogbookFragment() {
         )
         // Vorauswahl: zwei Wochen nach dem hinterlegten Einreisedatum bzw. zwei
         // Wochen vor der hinterlegten Ausreise - nur eine Vorauswahl, gespeichert
-        // wird, was der Nutzer einträgt.
+        // wird, was der Nutzer einträgt. Fehlt die Einreise (start = null), wird
+        // zwei Wochen vor der Ausreise vorgeschlagen.
         var date = when {
-            !enter -> period.start.plusDays(14)
+            !enter -> (period.start ?: period.end)?.plusDays(14) ?: LocalDate.now()
             period.end != null -> period.end.minusDays(14)
-            else -> period.start.plusDays(14)
+            period.start != null -> period.start.plusDays(14)
+            else -> LocalDate.now()
         }
         tvDate.text = TimeCountryFormat.dateText(ctx, date)
         tvDate.setOnClickListener {
@@ -345,11 +364,13 @@ class CountryTimeDetailFragment : LogbookFragment() {
         dialog.show()
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
             val transport = TimeCountryFormat.transportKey(rg.checkedRadioButtonId)
-            val updated = if (enter) {
-                manual.filterNot { it.iso2 == iso2 && it.enter && it.date == period.start } +
+            val start = period.start
+            val updated = if (enter && start != null) {
+                // Vorhandenen manuellen Enter an diesem Datum ersetzen.
+                manual.filterNot { it.iso2 == iso2 && it.enter && it.date == start } +
                     BorderCrossing(iso2, date, enter = true, transport = transport)
             } else {
-                manual + BorderCrossing(iso2, date, enter = false, transport = transport)
+                manual + BorderCrossing(iso2, date, enter = enter, transport = transport)
             }
             Settings.setManualBorderCrossings(ctx, updated)
             dialog.dismiss()
