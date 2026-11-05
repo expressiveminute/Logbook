@@ -113,6 +113,7 @@ class DiscoveryAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
         fun bind(route: RouteDiscovery) {
             binding.tvDiscoveryDate.text = dateText(route)
+            bindDirectionArrows(route)
             binding.tvDiscoveryAircraft.apply {
                 text = aircraftText(route)
                 visibility = if (text.isEmpty()) View.GONE else View.VISIBLE
@@ -140,8 +141,39 @@ class DiscoveryAdapter(
                 map.contentDescription = context.getString(
                     R.string.discovery_map_desc, route.from, route.to
                 )
-                map.setRoute(from, to, route.from, route.to)
+                // Bei Hin- und Rückflug zeichnet die Karte zwei Flugzeugsymbole
+                // in beide Richtungen statt eines in der Mitte.
+                map.setRoute(from, to, route.from, route.to, roundTrip = route.isRoundTrip)
                 map.visibility = View.VISIBLE
+            }
+        }
+
+        /**
+         * Richtungspfeile vor dem Datum: Wurde die Strecke an zwei
+         * verschiedenen Tagen zum ersten Mal hin und zurück geflogen, steht
+         * ein Pfeil hin und einer zurück davor; am selben Tag ein einzelnes
+         * Symbol mit zwei Pfeilen in Gegenrichtung. Ohne Rückflug bleibt die
+         * Stelle vor dem Datum frei.
+         */
+        private fun bindDirectionArrows(route: RouteDiscovery) {
+            val arrow = binding.ivDiscoveryArrow
+            val back = binding.ivDiscoveryArrowBack
+            val returnDate = route.returnDate
+            when {
+                returnDate == null -> {
+                    arrow.visibility = View.GONE
+                    back.visibility = View.GONE
+                }
+                route.isSameDayRoundTrip -> {
+                    arrow.setImageResource(R.drawable.ic_arrows_roundtrip)
+                    arrow.visibility = View.VISIBLE
+                    back.visibility = View.GONE
+                }
+                else -> {
+                    arrow.setImageResource(R.drawable.ic_arrow_route)
+                    arrow.visibility = View.VISIBLE
+                    back.visibility = View.VISIBLE
+                }
             }
         }
 

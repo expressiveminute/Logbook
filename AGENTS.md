@@ -69,6 +69,75 @@ Das Skript schreibt zusätzlich `drawable/ic_logo_round.xml`: dasselbe Icon als 
 über der Version (`iv_settings_logo` in `fragment_profile.xml`) und auf dem Begrüßungsbildschirm
 folgt das Logo weiterhin `@mipmap/app_logo` (`values/app_logo.xml`).
 
+## Rubbelkarte – Bundesstaaten/-länder, EU-Kachel und Bottom-Sheet
+
+Auf der Rubbelkarte zeichnen sich in den **USA und Deutschland** die Grenzen der
+Bundesstaaten/-länder als dünne Linien (`STATE_BORDER_ALPHA`, Strich halb so breit wie
+Ländergrenzen). Gab es laut Logbuch einen Flug in das Land (`StateStats.summarize` über
+`AirportData.region`, IATA → ISO-3166-2), wird das Land selbst nur schwach gefüllt
+(`STATE_MUTED_ALPHA` = 50) und die **angeflogenen** Staaten darüber in derselben Farbe wie
+ein besuchtes Land (`VISITED_ALPHA`); die übrigen Staaten bleiben in der schwachen
+Grundfarbe – deutlich weniger stark als angeflogene, aber nicht wie ein unbesuchtes Land.
+Beim Hereinzoomen (`ZOOM_STAEDTE`) erscheinen die Hauptstädte der aktiven Staaten
+(`STATE_CAP_MAX` gleichzeitig).
+
+Daten: `tools/build_states.py` erzeugt aus Natural Earth Admin 1 (Public Domain, nur
+`admin` = USA/Deutschland), GeoNames `cities5000` (Hauptstädte, Feature-Code PPLA/PPLC,
+GeoNames-admin1-Code wird über `gn_a1_code` von Natural Earth auf ISO-3166-2 gemappt),
+Wikidata (deutsche Namen der US-Bundesstaaten, CC0, gecacht in
+`tmp_ne/wikidata_us_states_de.json`) und `tmp_ne/airports.csv` zwei Assets:
+
+- `app/src/main/assets/state_shapes.bin` – Binärformat „STSH“ (siehe `StateShapes.kt`):
+  je Staat char[5] Code („US-CA“), char[2] Land, float32 Hauptstadt-Koords, Anker,
+  Bounding-Box, Namen de/en, Hauptstadtnamen de/en, Ringe als int16 in 1/180°.
+- `app/src/main/assets/airports/airports_regions.json` – IATA → Region („FRA“ → „DE-HE“),
+  nur US/DE. `AirportData.region` lädt sie. Geprüft von `StateShapesTest` (Format +
+  echtes Asset + Abgleich mit den Regionen).
+
+In der Kachelzeile unter der Kugel stehen die Kontinent-Kacheln – **Europa als eigener
+Kontinent-Kachel** wie in `Continents.ORDER` vorgesehen. Die **EU als eigene Kachel**
+(`Continents.EU`, 27 Mitgliedstaaten in `EU_MEMBERS`; die EU ist *nicht* in
+`Continents.ORDER`, damit die Erfolge unverändert bleiben) steht **ganz rechts, hinter
+Deutschland und den Vereinigten Staaten** (`StateStats.TILE_COUNTRIES`), auch wenn davor
+ein Kontinent 0 % hat – siehe `RubbelkarteFragment.buildTileUis`. Die EU-Kachel zeigt statt
+des Bogens **zwölf Sterne im Kreis** (`ContinentProgressView.starMode`, der Kreisbogen
+entfällt, nur die Sterne samt Prozentzahl in der Mitte), dazu die EU-Flagge dezent im
+Kachelhintergrund. Länder- und EU-Kacheln tragen ihre
+Flagge als **kompletten Kachelhintergrund**: `tv_continent_flag` (`TileFlagView`) in
+`item_continent_tile.xml` füllt die Kachel (`match_parent`, `alpha` 0.12); die View
+zeichnet das Emoji selbst, zentriert es über die Tinten-Bounds exakt in der Kachelmitte
+und skaliert es auf Kachelgröße ×
+`TileFlagView.FILL_FACTOR` (1.35), damit das Emoji über den Rand hinausragt und die ganze
+Fläche füllt.
+
+Ein Tipp auf eine Kachel zoomt die Kugel programmgesteuert auf die Region und hebt deren
+Grenzen hervor (`RubbelkarteView.setHighlight` nimmt eine Menge: Kontinent/EU = alle Länder
+der Region, Länder-Kachel = das Land selbst) und öffnet unten im `page_host`
+von `fragment_rubbelkarte.xml` eine **komplette, halbhohe Seite**: `CountriesFragment` als
+Child-Fragment mit `ARG_EMBEDDED` (bei DE/US mit `ARG_STATES` für die Staatenliste,
+`StateRowAdapter` + `item_state_row.xml`). Die Seite nimmt die **Hälfte** des Bildschirms
+bei Listen ab 20 Einträgen, sonst ein **Drittel** (`PAGE_HALF_MIN` in `RubbelkarteFragment`);
+darüber bleibt die Kugel sichtbar und bedienbar; die Kachelzeile wird dabei ausgeblendet
+(`continent_scroll` auf GONE in `openPage`, zurück in `hidePage`), damit die Kugel oben nicht
+auf einen schmalen Streifen schrumpft und kein schwarzer Balken zwischen Kacheln und Liste
+stehen bleibt. Die Zurück-Taste schließt zuerst die
+halbhohe Seite (`RubbelkarteFragment` implementiert `BackPressAware`) und setzt die Kugel auf
+die Weltansicht zurück (`resetToWorld`; nicht beim bloßen Kachelwechsel, dafür sorgt das Flag
+`pageOpening`). Der Zoom läuft über `RubbelkarteView.zoomTo` (Animation 500 ms): Mittelpunkt
+ist das Vektormittel der Beschriftungsanker, die Ausdehnung der Abstand zu allen Ringpunkten
+(inkl. Alaska/Hawaii bzw. Ostrussland), Zoom über `MapFocus.zoomForSpan` mit `FIT = 1.0` –
+damit liegen die Randpunkte noch innerhalb der sichtbaren Fläche, auch wenn die halbhohe
+Seite die Kartenfläche flach macht. Das **Auge** je Zeile
+steht **rechts von der Flagge, links vom Namen** (`iv_country_zoom`/`iv_state_zoom`,
+`ic_visibility`; nur eingebettet sichtbar, auf der vollen Seite hinter dem Stift nicht) und
+zoomt über `MapZoomHost` auf das Land bzw. den Staat (`MapFocus.forCountry`/`forState`) und
+hebt dessen Grenze hervor (`RubbelkarteView.setHighlight`: Glow + kräftige Linie). Abhaken
+auf der eingebetteten Seite schreibt in dieselben Settings wie die volle Seite und lädt über
+`MapZoomHost.onCountriesChanged` Karte und Kacheln neu – bei Ländern in
+`Settings.getManualCountries`/`getHiddenCountries`, bei Staaten (DE/US, Kästchen rechts in
+`item_state_row.xml`) analog in `Settings.getManualStates`/`getHiddenStates`
+(ISO-3166-2; `StateStats.summarize` rechnet sie in die besuchten Staaten ein).
+
 ## Flughäfen und geschlossene Flughäfen
 
 Flughäfen sind reine Assets unter `app/src/main/assets/airports/`: `airports.json`
@@ -267,9 +336,15 @@ Spuren nur noch kurz stehen und blenden sich dann aus - nur die Dreilettercodes 
 bleiben sichtbar. Solange der Animationsplan aktiv ist, werden **keine** statischen Routenlinien
 gezeichnet: Mit Layover = „Ja" bestehen die gefilterten Linien nur aus Layover-Strecken (auch
 Rückflüge und Anschlussflüge, die nicht am Hub starten), und eine statische Linie wäre schon vor
-der Animation sichtbar und ginge nach ihr nicht weg. Ein Knopf über dem Hineinzoomen-Knopf
-(`btn_layover_trails`, `ic_routes`, in der rechten unteren Knopfspalte) blendet die Spuren erneut
-ein. Die reine Planung (Hub-Wahl,
+der Animation sichtbar und ginge nach ihr nicht weg. Ein Knopf linksbündig am linken Rand auf
+Höhe des Hineinzoomen-Knopfes (`btn_layover_trails`, `ic_route_lines`; die Höhe wird nach dem
+Layout per `alignLayoverButtonToZoomIn` auf die Oberkante von `btn_zoom_in` gesetzt) blendet die
+Spuren **dauerhaft** ein, ohne die Animation erneut abzuspielen (`LayoverOverlay.staticTrails`:
+volle Linien, kein Flugzeug, Takt gestoppt). Der Knopf erscheint erst, wenn die Animation
+durchgelaufen ist (der Takt blendet ihn am Ende ein); beim Einblenden zeigt ein kurzes Popup
+rechts neben dem Knopf dessen Funktion – die Blase ist rechts gerundet und läuft an der linken
+Kante (zum Knopf hin) in eine Pfeilspitze aus – und blendet sich nach 3 s wieder aus
+(`LAYOVER_HINT_MS`). Die reine Planung (Hub-Wahl,
 Zielmenge, Flugzeiten, Phasen) steht ohne Android-Abhängigkeiten in `LayoverAnimation.kt` (geprüft
 von `LayoverAnimationTest`), das Zeichnen in der inneren Klasse `LayoverOverlay` des
 `WorldMapFragment`; ein `postDelayed`-Lauf stößt nur rund `LAYOVER_FRAME_MS` (etwa 30 Bilder pro
@@ -786,7 +861,10 @@ Zwei Knöpfe öffnen eine **Story** im Stil von Social Media:
 `btn_layover_overview` (Stern oben rechts auf der Layover-Detailseite, `fragment_tile_detail.xml`).
 Der Story-Knopf und das Nutzericon sitzen in der Dashboard-Kopfzeile bündig mit den sichtbaren
 Kachelkanten (`FirstFragment.alignDashboardHeader` misst die Kanten nach der Kachel-Skalierung und
-setzt das Padding der Kopfzeile über `MainActivity.alignDashboardHeader`).
+setzt das Padding der Kopfzeile über `MainActivity.alignDashboardHeader`). Ein Tipp auf das
+Nutzericon (Avatar) oder den Benutzernamen in derselben Kopfzeile öffnet die Einstellungen
+(`nav_profile` über `MainActivity.openSettingsTab`) – die Einstellungen sind nicht mehr als
+eigener Tab in der Navigationsleiste.
 Beide starten die `StoryActivity` (`StoryActivity.start(context, MODE_PLAY/MODE_INSIGHTS)`,
 Manifest-Eintrag ohne Export): oben segmentierte Fortschrittsbalken, darunter der Inhalt, Tippen
 auf die rechte Zweidrittel-Seite geht weiter, auf die linke Drittelseite zurück, jede Seite läuft
@@ -887,7 +965,11 @@ und bleiben deshalb stehen.
 Die Punkte sind nach **Themen gruppiert**: innerhalb einer Gruppe 12 dp Abstand, zwischen zwei
 Gruppen mit unterschiedlichem Inhalt 28 dp (Profil: Rolle+Funktion | Fluggesellschaft+Arbeitsposition
 | Willkommens-Tour; Anpassung: Darstellung | Voreinstellungen; Daten: Sichern/Wiederherstellen |
-Gefahrenzone mit Strich und rotem Titel).
+Gefahrenzone mit Strich und rotem Titel | **ganz unten** Crash-Log und Demo-Datenbank – früher
+eigener Abschnitt „Development“, der aufgelöst wurde). Ganz unten auf der Profilseite über dem
+Logo (`iv_settings_logo`) sitzt der Reiter **„Disclaimer“** (`header_section_disclaimer`); ein
+Tipp öffnet ein Popup (`disclaimer_message`: privates Fanprojekt einer reisenden Person, kein
+politisches Statement).
 
 Das Erscheinungsbild hat drei Werte (`Settings.THEME_MODE_SYSTEM/LIGHT/DARK`) und wird in
 `MainActivity` über `AppCompatDelegate.setDefaultNightMode` gesetzt. `THEME_MODE_SYSTEM` folgt dem
@@ -968,6 +1050,72 @@ Das Design ist angelehnt an die Bottom-Navigation von Tomato (nsh07/Tomato, **GP
 Leiste, Indikator mit Beschriftung, Crossfade beim Seitenwechsel. Wegen der Copyleft-Lizenz ist das
 eine eigene Umsetzung des Designprinzips, kein übernommener Code.
 
+## Seite „Zeit in Ländern" (letzter Tab der Navigationsleiste)
+
+Der fünfte Tab der Navigationsleiste heißt **Länderzeiten** (`nav_time_countries`, Icon
+`ic_time`, `TimeCountriesFragment` mit `fragment_time_countries.xml`); die Einstellungen
+(`nav_profile`) sind kein Tab mehr, sondern über Avatar/Name in der Dashboard-Kopfzeile
+erreichbar (`nav_profile` bleibt Top-Level-Ziel in `appBarConfiguration`, steht aber nicht
+mehr in `MainActivity.isMenuTab`, damit bei einem Wechsel dorthin der Dashboard-Tab markiert
+bleibt).
+
+Die Seite wertet die Aufenthaltsdauer pro Land aus den Flügen aus: Ein Flug ins Land ist das
+Betreten, ein Flug hinaus das Verlassen – dazwischen liegt die Zeit im Land. Die Einträge
+haben nur ein Datum (keine Uhrzeit), gerechnet wird also tageweise; ein noch nicht verlassener
+Aufenthalt zählt bis heute und trägt „läuft seit …". Das Land der **Homebase**
+(`Homebase.current` → `AirportData.country`) wird nicht gezählt und steht im Kopf der Seite.
+
+Landweg-Grenzübertritte (Auto, Bus, Fähre) stehen nicht im Logbuch: Unten auf der Seite kann
+der Nutzer sie manuell erfassen (Dialog `dialog_manual_crossing.xml`: Land per AutoComplete,
+Datum per DatePicker, betreten/verlassen per Radio) und wieder löschen. Gespeichert werden sie
+als eine Zeile pro Übertritt (`ISO2|yyyy-MM-dd|enter|exit`, `BorderCrossing.toLine`/`parse`)
+unter `Settings.getManualBorderCrossings` (nutzerbezogener Schlüssel); der JSON-Export
+(`AppDataTransfer`) nimmt die Einstellungs-Preferences pauschal mit, `AppReset` räumt sie auf.
+
+Die reine Auswertung steht ohne Android in `CountryTimeStats.evaluate(entries, countryOf,
+homeIso2, manual, today)` (geprüft von `CountryTimeTest`): Ereignisse aus Flügen und manuellen
+Übertritten, chronologisch sortiert (Datum, dann Erfassungs-id, manuelle am selben Tag Dahinter),
+pro Land als Aufenthalte (`StayPeriod`: start, end, days, closedByFlight) und aufsummiert,
+Ergebnis absteigend nach Gesamttagen. Formatierung der Tage/Zeilen in `TimeCountryFormat`, die
+Liste baut `TimeCountriesAdapter` (ViewTypes: Land, Leer-Hinweis, Abschnitt, Übertritt,
+Hinzufügen-Knopf). Unten rechts schwebt ein FAB wie auf dem Dashboard (`fab_add_stay`, `ic_add`):
+Darüber wird ein kompletter Aufenthalt manuell erfasst (`dialog_manual_stay.xml`: Land per
+AutoComplete, darunter zwei Kacheln im Stil der Layover-Dashboard-Kacheln (`colorSecondaryContainer`,
+16 dp Ecken, Strich) mit Titel oben links – je eine für Einreise und Ausreise mit Datum (DatePicker)
+und Transportmittel als Icon-Dropdown (`TimeCountryFormat.TRANSPORT_KEYS`/`transportIconRes`)) – auch
+wenn Hin- und Rückweg nicht per Flugzeug waren. Gespeichert als zwei manuelle `BorderCrossing`
+(enter/exit mit Transport), wird als Aufenthalt gezählt (`CountryTimeTest`). Die
+Länderzeilen tragen vorn ein `RankBadgeView` wie die Dashboard-Kacheln:
+Medaillen für Rang 1–3, danach die Platznummer, sichtbar bis Rang 10; ab Rang 11 bleibt der Platz
+mit `INVISIBLE` frei, damit Flaggen und Namen untereinander stehen. Im Kopf der Seite sitzt unter dem
+Homebase-Hinweis ein Balken wie auf der Layover-Detailseite (`LayoverTimeBarView` +
+`TimeCountryFormat.breakdownText`/`stepLabel`): die Zeit im Ausland als Dauer (h/Tage/Wochen/Monate)
+über einer sich füllenden Leiste.
+
+Ein Tipp auf ein Land öffnet die Detailseite `nav_country_time_detail`
+(`CountryTimeDetailFragment`, `fragment_country_time_detail.xml`): Oben der Kopf wie auf der Seite
+„Flüge“ (Zurück-Pfeil, Land mit Flagge, rechts die Gesamttage), darunter als Teil des fixen Headers
+ein Balken wie auf der Layover-Detailseite (`LayoverTimeBarView`): die Zeit in diesem Land als Dauer
+(h/Tage/Wochen/Monate) über einer sich füllenden Leiste. Alles darunter scrollt
+(`ctd_scroll`): zuerst die Karte des Landes mit den angeflogenen Flughäfen (Höhe = 1/3 Bildschirm,
+`CountryRouteMapView.setData` ohne Verbindungslinien, Flughafenpunkte über
+`CountryDetailModel.analyze`) – beim Scrollen verschwindet sie oben. Dann eine Fakten-Karte
+(`item_country_fact.xml`-Zeilen) mit Amtssprache, Hauptstadt, Bundesstaaten/-länder (bei US/DE die
+echte Anzahl aus `state_shapes.bin`, sonst `adminDivisions`) und Währung aus dem Asset
+`assets/country_facts.json` (`tools/build_country_facts.py`: Wikidata CC0 P37/P36/P38/P150 mit
+de/en-Labels, en-Währung groß geschrieben; Feiertage (P832/P837) liegen im Asset, werden aber nicht
+angezeigt; geprüft von `CountryFactsAssetTest`; Loader `CountryFacts`). Zuletzt die Aufenthalte
+(`item_stay.xml`, neueste oben): links der Kreis (`bg_timeline_dot`) mit den Tagen
+(`StayPeriod.days`), daneben Einreise (Datum, darunter klein Flugstrecke und Flugnummer/Buddy des
+Hinflugs `StayPeriod.enterEntry`), ein Strich mittig zentriert im Bild, dann Ausreise (Datum,
+darunter klein Flugstrecke und Flugnummer des Rückflugs `StayPeriod.exitEntry`); Klick auf die
+Zeile öffnet den Hinflug zum Bearbeiten (`action_country_time_detail_to_add_entry`). Fehlt ein
+Datum (Einreise per Landweg, Ausreise noch offen), steht an der Stelle ein TonalButton im Stil des
+Story-Knopfs („Einreise“/„Ausreise“); darüber öffnet sich ein Popup (`dialog_stay_crossing.xml`)
+mit Datum (DatePicker) und Transportmittel (Auto/Zug/Bus/Fähre/Fahrrad/Zu Fuß mit je einem
+Material-Icon `ic_transport_*`) – gespeichert als manueller `BorderCrossing` mit Transport
+(`ISO2|datum|enter|car`), danach erscheint das Datum und der Button verschwindet.
+
 ## Tastatur/Insets – nicht regressieren
 
 `MainActivity` verwaltet die Tastatur selbst, weil im Edge-to-Edge-Modus die Fenstergröße nicht
@@ -1007,3 +1155,89 @@ fünf Listensuchen: Einträge, Fluggesellschaften, Reisebuddies, Länder, Kachel
 Flughafen-Popup), wird es geschlossen und die Eingabe gelöscht – wie das Schliessen-X – und erst
 ein weiterer Druck navigiert zurück. Nimmt die Seite den Druck nicht, fällt er an den NavController
 durch. Das X im Suchfeld verhält sich wie gehabt: Eingabe löschen und Feld schliessen.
+
+## Reisebuddy-Fotos und Buddy-Podest in der Play-Story
+
+Jeder Reisebuddy kann ein Foto haben: Auf der Detailseite (`TravelBuddyDetailFragment`, Layout
+`fragment_flight_route_detail.xml`) sitzt links vom Namen im Kopf ein runder Avatar
+(`BuddyAvatarView`, `iv_buddy_avatar`, 56 dp – dadurch wird die Kopfzeile höher). Avatar und Name
+stehen als Gruppe mittig im Header (`title_group` mit `gravity="center"`, der Titel hat
+`wrap_content`). Ohne Foto zeigt
+er einen Avatar. **Vorrang hat immer das Foto**: existiert die Foto-Datei, wird das Foto
+gezeigt, der Avatar erst ohne Foto. Ohne eigene Wahl bekommt jeder Buddy automatisch einen
+zufälligen Preset-Avatar – aus dem Namens-Hash abgeleitet, also stabil je Name
+(`BuddyAvatars.defaultPreset`). Dazu gibt es zehn menschenähnliche Avatare im Avatarstil
+(verschiedene Frisuren, männlich/weiblich, Haut-/Haarfarben) als Vektor-Drawables
+`ic_avatar_m1..m5`/`ic_avatar_f1..f5` (`BuddyAvatars.presets`).
+
+Ein Tipp auf den Avatar öffnet den **Auswahl-Dialog** (`dialog_buddy_avatar.xml`, nur auf der
+Reisebuddy-Detailseite): oben die Avatar-Vorschau (120 dp), darunter das Auswahlfeld
+**„Avatar anpassen“**, dann die Standard-Avatare, dann „Aus Galerie hochladen“/„Foto entfernen“
+und unten zwei gleich breite Knöpfe (Abbrechen/Übernehmen). „Avatar anpassen“ öffnet die
+**Editor-Seite** (`dialog_buddy_avatar_editor.xml`): Live-Vorschau (120 dp), darunter Frisur
+(10 Stile), Bart (keiner/Kinnbart/Vollbart/Schnurrbart) und Accessoire (keins/Brille/Ohrringe),
+jeweils nach rechts scrollbar, dann die Farben als Zeile mit Beschriftung links und
+**Farbpalette mit verschiebbarem Knopf rechts** (`ColorPaletteSliderView`, beides nahtlos):
+Hair Color und Skin Tone als Verlauf **zwischen den wenigen Palettenfarben** aus `AvatarConfig`
+(die Palettenfarben sind die Stützstellen, dazwischen wird interpoliert; Balken-Reihenfolge Haare:
+Schwarz, Braun, Blond rechts neben Braun, Grau, Weiss, ganz rechts Gelb und Rot), Shirt Color mit
+dem kompletten Hue-Spektrum (nahtlose Farbauswahl). Der Knopf (`ColorPaletteSliderView`) ist genau
+so gross wie der Balken und läuft in einer eigenen Spur, damit er an den Enden nicht abgeschnitten
+wird; beim Ziehen darf der Knopf nicht zurückschnappen (Farbe nur neu setzen, wenn sie sich von
+aussen geaendert hat). **Jede Änderung malt
+die Vorschau sofort neu** (Vorschau wird immer aus der aktuellen Config gebaut; Rechenfunktionen
+getestet in `ColorPaletteSliderTest`). Knöpfe gleich breit:
+Zurücksetzen (auf den Stand beim Öffnen) / Abbrechen / Übernehmen. Der Dialog arbeitet auf einem
+Entwurf – erst „Übernehmen“ im Haupt-Dialog speichert dauerhaft. Gespeichert wird pro Buddy in der Einstellungsdatei (JSON-Export nimmt
+sie mit): Preset-Wahl als `buddy_avatar_<hash>` oder eigene Config als `buddy_avatar_cfg_<hash>`
+(`AvatarConfig`, Serialisierung als `|`-String mit 6 Feldern inkl. Bart, Legacy-5-Felder werden
+beim Lesen auf Vollbart gemappt, getestet in `AvatarConfigTest`). Die Teile des Editors sind
+einfarbige Vektor-Drawables `avatar_part_*.xml`, die `BuddyAvatars.buildDrawable` pro Ebene
+tintet und als `LayerDrawable` stapelt (Reihenfolge: Shirt, Bart hinten, Haare hinten, Kopf,
+Haare vorne, Bart vorne, Augen fest, Brille/Ohrringe; Bart in Haarfarbe). Anzeige-Reihenfolge: **Foto > eigene Config >
+Preset-Wahl > Hash-Default**. Das gewählte Galerie-Bild läuft durch einen
+Zuschnitt-Dialog (`BuddyPhotoCropView`): fester Kreis in der Mitte als Vorschau des Ausschnitts,
+Zoomen mit zwei Fingern und Verschieben mit einem Finger, außerhalb abgedunkelt; „Übernehmen“
+schneidet den Kreis zu und speichert ihn.
+
+Gespeichert wird das Foto als 512px-JPEG in `filesDir/buddy_photos/` (`BuddyPhotos`), benannt
+nach Nutzer-ID plus SHA-256-Schlüssel des normalisierten Namens (gleiche Normalisierung wie
+`TravelBuddyStats.parse`: trimmen, Leerraum kollabieren, kleinschreiben – „Anna“ und „anna“
+sind dasselbe Foto). Beim Umbenennen eines Buddys wird die Datei mit umbenannt
+(`BuddyPhotos.rename`). Export/Import läuft über `AppDataTransfer` (Array `buddyPhotos` mit
+userId/name/base64), `AppReset` räumt die Dateien mit auf. Geprüft wird der Schlüssel von
+`BuddyPhotosTest`.
+
+In der **Play-Story** (Dashboard-Knopf) erscheint die Seite „Deine Reisebuddies“ als Podest
+(`StoryPage.BuddyPodium`, gebaut in `StoryPages`, gezeichnet in `StoryPageView.buildBuddyPodium`):
+Top 6 Buddies (`StoryStats.TOP_BUDDY_LIMIT`), Rang 1–3 als große Kreise (112/96/80 dp), seitlich
+versetzt (rechts/links/rechts), mit Medaille rechts oben am Kreis (`RankBadgeView`, Gold/Silber/
+Bronze), Name darunter und Flugzahl als Flip-Uhr daneben (Rang 1 und 3 rechts, Rang 2 links);
+Rang 4–6 in einer Reihe darunter (64-dp-Kreise, Rangnummer statt Medaille auf einer runden
+weissen Scheibe oben rechts am Kreis – `RankBadgeView.setNumberColor` malt die Zahl dunkel; das
+Badge hängt mit negativem Margin über den Kreis, deshalb `clipChildren=false` am Avatar-Wrap,
+sonst werden die Scheiben eckig abgeschnitten –, Name und Flip-Zahl darunter). Die Podest-Zeilen
+1–3 sind seitlich versetzt (Platz 1 leicht links, Platz 2 deutlich rechts, Platz 3 deutlich
+links), ebenfalls mit `clipChildren=false`. Die Story lädt im Hintergrund-Thread je Buddy das
+Foto (`BuddyPhotos.load`) und sonst den Avatar (`BuddyAvatars.avatarDrawable`: eigene Config
+oder Preset) – ohne Foto erscheint der farbige Avatar auf `story_row_bg`.
+
+## Live-Vorschläge im Reisebuddy-Feld („Neuer Flug“)
+
+ Beim Eintippen eines Namens in eines der drei Reisebuddy-Felder (`et_travel_buddy`,
+`et_hinflug_travel_buddy`, `et_rueckflug_travel_buddy` in `fragment_add_entry.xml`) prüft
+`AddEntryFragment.updateBuddySuggestions` live, ob der getippte Text (nach dem letzten
+Zeilenumbruch) in der Historie vorkommt: Passende Namen aus `TravelBuddyStats.build` über alle
+Einträge (häufigste zuerst, max. 5) erscheinen als Popup **direkt über** dem Feld
+(`PopupWindow` mit `Gravity.NO_GRAVITY` auf absoluten Bildschirmkoordinaten: Inhalt messen,
+untere Kante auf die Oberkante des Feldes; klappt oben nicht genug Platz, erscheint es unter
+dem Feld; nicht fokussierbar, damit die Tastatur offen bleibt).
+Namen, die in diesem Feld schon als Chip stehen, werden nicht vorgeschlagen. Ein Tipp auf einen
+Vorschlag übernimmt ihn als Chip und leert das Feld – wie Enter. Die Namen werden einmal pro
+Seitenaufbau im Hintergrund geladen (`loadKnownBuddyNames`); bei Fokusverlust oder leerer
+Eingabe klappt das Popup ein.
+
+Auf der Reisebuddy-Detailseite zeigen die Kacheln „Erster/Letzter gemeinsamer Flug" unter dem
+Datum die Flugnummer **mit Airline** (z. B. „12.03.2026 · LH 800“). Die Kachel „Zeit zusammen“
+trägt unten rechts das Standard-Icon `touch_app` (Material Icons, Apache-2.0; `ic_tap` in `item_stat_tile.xml`, `iv_stat_tile_hint`), das
+signalisiert, dass ein Tipp die Einheit wechselt.

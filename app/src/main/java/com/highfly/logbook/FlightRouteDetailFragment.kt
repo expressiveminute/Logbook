@@ -24,7 +24,12 @@ class FlightRouteDetailFragment : LogbookFragment() {
     private var _binding: FragmentFlightRouteDetailBinding? = null
     private val binding get() = _binding!!
 
-    /** Die Strecke als Schlüssel der Balkenliste, z. B. "FRA-JFK". */
+    /**
+     * Die Strecke als Schlüssel der Balkenliste, z. B. "FRA-JFK" - oder als
+     * zusammengefasster Hin- und Rueckflug "MUC-LAX-MUC", wenn die Kachel
+     * Dauer/Distanz beide Richtungen mit gleichen Daten zu einem Balken
+     * zusammenfasst.
+     */
     private var route: String = ""
 
     /** Verwirft das Ergebnis eines bereits verlassenen Ladevorgangs. */
@@ -80,8 +85,11 @@ class FlightRouteDetailFragment : LogbookFragment() {
                 ChartData.flightRouteRank(entries, target, ChartData.FlightRouteSort.DAUER)
             val distanceRank =
                 ChartData.flightRouteRank(entries, target, ChartData.FlightRouteSort.ENTFERNUNG)
-            val fromCode = target.substringBefore('-').uppercase()
-            val toCode = target.substringAfter('-').uppercase()
+            // Zusammengefasster Hin- und Rueckflug ("MUC-LAX-MUC"): drei Teile,
+            // die Karte zeichnet die Strecke des Hinflugs (erster -> zweiter Code).
+            val parts = target.split('-')
+            val fromCode = parts.firstOrNull().orEmpty().uppercase()
+            val toCode = parts.getOrElse(1) { "" }.uppercase()
             val from = AirportData.location(appContext, fromCode)
             val to = AirportData.location(appContext, toCode)
             view?.post {

@@ -88,6 +88,25 @@ object AppDataTransfer {
         }
         root.put("avatars", avatarsArray)
 
+        // Reisebuddy-Fotos (als Base64, je Nutzer und Buddy-Name)
+        val buddyPhotosArray = JSONArray()
+        for (userId in Users.ids(app)) {
+            val names = LogbookRepository.entriesForUser(app, userId)
+                .flatMap { TravelBuddyStats.parse(it.travelBuddy) }
+                .distinctBy { it.lowercase() }
+            for (name in names) {
+                val file = BuddyPhotos.fileFor(app, userId, name)
+                if (file.exists()) {
+                    buddyPhotosArray.put(JSONObject().apply {
+                        put("userId", userId)
+                        put("name", name)
+                        put("data", Base64.encodeToString(file.readBytes(), Base64.NO_WRAP))
+                    })
+                }
+            }
+        }
+        root.put("buddyPhotos", buddyPhotosArray)
+
         return root.toString(2)
     }
 
@@ -213,6 +232,29 @@ object AppDataTransfer {
                     File(app.filesDir, ProfileAvatar.fileNameForUser(userId)).writeBytes(bytes)
                 } catch (e: Exception) {
                     // Avatar konnte nicht wiederhergestellt werden - nicht kritisch
+                }
+            }
+        }
+
+        // Reisebuddy-Fotos wiederherstellen
+        val buddyPhotosArray = root.optJSONArray("buddyPhotos")
+        if (buddyPhotosArray != null) {
+            val seenUsers = mutableSetOf<Int>()
+            for (i in 0 until buddyPhotosArray.length()) {
+                val photoObj = buddyPhotosArray.optJSONObject(i) ?: continue
+                val userId = photoObj.optInt("userId", 0)
+                val name = photoObj.optString("name", "")
+                val data = photoObj.optString("data", "")
+                if (userId <= 0 || name.isEmpty() || data.isEmpty()) continue
+                // Beim ersten Foto eines Nutzers dessen alte Fotos entfernen,
+                // damit umbenannte Buddies keine verwaisten Dateien behalten.
+                if (seenUsers.add(userId)) BuddyPhotos.clearForUser(app, userId)
+                try {
+                    val file = BuddyPhotos.fileFor(app, userId, name)
+                    file.parentFile?.mkdirs()
+                    file.writeBytes(Base64.decode(data, Base64.DEFAULT))
+                } catch (e: Exception) {
+                    // Foto konnte nicht wiederhergestellt werden - nicht kritisch
                 }
             }
         }

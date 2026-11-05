@@ -79,10 +79,12 @@ object CountryChecklist {
     /**
      * Gehört das Land zum gesuchten Kontinent? Ohne [continent] passt jedes
      * Land, ein unbekannter Name ebenso - sonst stünde auf der Seite nichts,
-     * was sich erklären ließe.
+     * was sich erklären ließe. [Continents.EU] wählt die EU-Mitgliedstaaten
+     * aus, auch wenn sie kontinentmäßig zu Europa gehören.
      */
     fun belongsTo(iso2: String, continent: String?): Boolean {
         val wanted = continent?.trim()?.takeIf { it.isNotEmpty() } ?: return true
+        if (wanted == Continents.EU) return iso2 in Continents.EU_MEMBERS
         return Continents.continentOf(iso2) == wanted
     }
 

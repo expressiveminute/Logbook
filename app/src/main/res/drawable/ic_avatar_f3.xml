@@ -1,0 +1,17 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- Langes blondes Haar mit Pony -->
+    <path android:fillColor="#FDD835"
+        android:pathData="M12,21 a12,12 0 0 1 24,0 L36,30 a4,4 0 0 1 -4,4 L16,34 a4,4 0 0 1 -4,-4 Z" />
+    <path android:fillColor="#F1C27D"
+        android:pathData="M20.5,27 L27.5,27 L27.5,37 L20.5,37 Z" />
+    <path android:fillColor="#5C6BC0"
+        android:pathData="M6,48 C6,38.5 14,34.5 24,34.5 C34,34.5 42,38.5 42,48 Z" />
+    <path android:fillColor="#F1C27D"
+        android:pathData="M14.5,20 a9.5,9.5 0 1 1 19,0 a9.5,9.5 0 1 1 -19,0 Z" />
+    <path android:fillColor="#FDD835"
+        android:pathData="M14.5,20 a9.5,9.5 0 0 1 19,0 Z" />
+</vector>

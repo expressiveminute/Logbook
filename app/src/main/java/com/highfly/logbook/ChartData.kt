@@ -412,6 +412,14 @@ object ChartData {
      * Strecke bleibt als Balken mit dem Wert 0 sichtbar, weil sie ja geflogen
      * wurde. Sortiert wird absteigend nach dem dargestellten Wert und bei
      * Gleichstand nach der Beschriftung.
+     *
+     * Bei [FlightRouteSort.ENTFERNUNG] und [FlightRouteSort.DAUER] werden Hin-
+     * und Rueckflug derselben Strecke zusammengefasst, wenn beide Richtungen
+     * dieselben Daten tragen (gleiche Kilometer- und Minutensumme): "MUC-LAX"
+     * und "LAX-MUC" erscheinen dann als ein Balken "MUC-LAX-MUC" mit der Summe
+     * beider Richtungen, siehe [mergeRoundTrips]. Stimmen die Daten nicht
+     * ueberein, bleiben beide Richtungen eigene Balken. Nach [ANZAHL] wird
+     * nicht zusammengefasst.
      */
     fun flightRouteBars(
         entries: List<LogbookEntry>,
@@ -422,8 +430,79 @@ object ChartData {
             FlightRouteSort.ENTFERNUNG -> distanceBy(entries) { routeOf(it) }
             FlightRouteSort.DAUER -> durationBy(entries) { routeOf(it) }
         }
-        return values.map { (label, value) -> Bar(label, value) }
+        val routes = if (sort == FlightRouteSort.ANZAHL) {
+            values.map { (label, value) -> label to value }
+        } else {
+            mergeRoundTrips(entries, values)
+        }
+        return routes.map { (label, value) -> Bar(label, value) }
             .sortedWith(compareByDescending<Bar> { it.count }.thenBy { it.label })
+    }
+
+    /**
+     * Fasst Hin- und Rueckflug derselben Strecke zu einem Balken zusammen,
+     * wenn beide Richtungen dieselben Daten tragen: gleiche Summe Kilometer
+     * und gleiche Summe Minuten (fehlende Werte zaehlen als 0). "MUC-LAX" und
+     * "LAX-MUC" werden dann zu "MUC-LAX-MUC" mit der Summe beider Richtungen.
+     * Stimmen die Daten nicht ueberein, bleibt jede Richtung ein eigener Balken.
+     * Die Ausrichtung des zusammengefassten Balkens ("MUC-LAX-MUC" statt
+     * "LAX-MUC-LAX") folgt dem fruehesten Flug der beiden Richtungen, also in
+     * der Regel dem Hinflug.
+     */
+    private fun mergeRoundTrips(
+        entries: List<LogbookEntry>,
+        values: Map<String, Int>
+    ): List<Pair<String, Int>> {
+        val kmByRoute = distanceBy(entries) { routeOf(it) }
+        val minutesByRoute = durationBy(entries) { routeOf(it) }
+        val result = mutableListOf<Pair<String, Int>>()
+        val done = mutableSetOf<String>()
+        for ((route, value) in values) {
+            if (route in done) continue
+            val reverse = reverseRoute(route)
+            if (reverse != null && reverse != route && reverse in values &&
+                (kmByRoute[route] ?: 0) == (kmByRoute[reverse] ?: 0) &&
+                (minutesByRoute[route] ?: 0) == (minutesByRoute[reverse] ?: 0)
+            ) {
+                val first = entries
+                    .filter { routeOf(it) == route || routeOf(it) == reverse }
+                    .minWithOrNull(compareBy({ it.date }, { it.id ?: Long.MAX_VALUE }))
+                val base = first?.let { routeOf(it) } ?: route
+                val from = base.substringBefore('-')
+                val to = base.substringAfter('-')
+                result += "$from-$to-$from" to (value + values.getValue(reverse))
+                done += route
+                done += reverse
+            } else {
+                result += route to value
+                done += route
+            }
+        }
+        return result
+    }
+
+    /** Umkehrung einer Strecke: "MUC-LAX" -> "LAX-MUC"; null, wenn kein Paar vorliegt. */
+    private fun reverseRoute(route: String): String? {
+        val parts = route.split('-')
+        if (parts.size != 2) return null
+        return "${parts[1]}-${parts[0]}"
+    }
+
+    /**
+     * Ob zwei Streckenschluessel dieselbe Strecke meinen: ein zusammengefasster
+     * Hin- und Rueckflug "MUC-LAX-MUC" trifft beide Richtungen "MUC-LAX" und
+     * "LAX-MUC".
+     */
+    private fun routesMatch(a: String, b: String): Boolean {
+        if (a == b) return true
+        val pa = a.split('-')
+        val pb = b.split('-')
+        if (pa.size == 3 && pa[0] == pa[2] && pb.size == 2) {
+            return (pa[0] == pb[0] && pa[1] == pb[1]) ||
+                (pa[0] == pb[1] && pa[1] == pb[0])
+        }
+        if (pb.size == 3 && pb[0] == pb[2] && pa.size == 2) return routesMatch(b, a)
+        return false
     }
 
     /**
@@ -431,10 +510,11 @@ object ChartData {
      * Minuten und gesamte Entfernung in Kilometern. Gezaehlt werden dieselben
      * Eintraege wie bei den Balken der Kachel; fehlende Dauer oder Entfernung
      * geht mit null ein, nicht erfasste Werte verfaelschen das Ergebnis also
-     * nicht.
+     * nicht. Ein zusammengefasster Hin- und Rueckflug ("MUC-LAX-MUC") zaehlt
+     * beide Richtungen, siehe [routesMatch].
      */
     fun flightRouteStats(entries: List<LogbookEntry>, route: String): FlightRouteStats {
-        val matching = entries.filter { routeOf(it) == route }
+        val matching = entries.filter { routesMatch(routeOf(it), route) }
         return FlightRouteStats(
             flights = matching.size,
             minutes = matching.sumOf { it.flightMinutes ?: 0 },
@@ -447,6 +527,8 @@ object ChartData {
      * [sort] nach Zahl der Fluege, Kilometern oder Flugdauer. Strecken mit
      * gleichem Wert teilen sich einen Platz, wie bei den Balken und den
      * Raengen der uebrigen Kacheln. 0, wenn die Strecke nicht vorkommt.
+     * Ein zusammengefasster Hin- und Rueckflug ("MUC-LAX-MUC") wird ueber
+     * beide Richtungen bewertet, siehe [routesMatch].
      */
     fun flightRouteRank(
         entries: List<LogbookEntry>,
@@ -454,8 +536,10 @@ object ChartData {
         sort: FlightRouteSort
     ): Int {
         val bars = flightRouteBars(entries, sort)
-        val target = bars.firstOrNull { it.label == route } ?: return 0
-        return bars.count { it.count > target.count } + 1
+        val matching = bars.filter { routesMatch(it.label, route) }
+        if (matching.isEmpty()) return 0
+        val target = matching.sumOf { it.count }
+        return bars.count { it.count > target } + 1
     }
 
     /**
@@ -671,6 +755,12 @@ object ChartData {
     fun travelTypeSlices(context: Context): List<Slice> =
         travelTypeSlices(context, DashboardStats.dashboardEntries(context))
 
+    /**
+     * Stücke des Reiseart-Kreisdiagramms. Wie bei Funktion und Kontinenten
+     * nach Häufigkeit absteigend sortiert (bei Gleichstand nach Beschriftung),
+     * damit das Diagramm den größten Anteil zuerst zeichnet. Die Farbe bleibt
+     * am Typ haften und wird vor dem Sortieren vergeben.
+     */
     fun travelTypeSlices(
         context: Context,
         entries: List<LogbookEntry>
@@ -681,6 +771,7 @@ object ChartData {
             val value = entries.count { normalizeFlightType(it.flightType) == type.canonical }
             Slice(label, value, colors[index])
         }.filter { it.value > 0 }
+            .sortedWith(compareByDescending<Slice> { it.value }.thenBy { it.label })
     }
 
     fun travelTypeColors(): List<Int> = listOf(

@@ -51,8 +51,12 @@ class CountryDetailFragment : LogbookFragment() {
 
         // Der Detailtext schwebt als festes Element über der
         // Navigationsleiste; die Karte darüber endet über ihm (und hebt
-        // damit den Fokus-FAB in der Karte mit an).
+        // damit den Fokus-FAB in der Karte mit an). Ist der Text GONE,
+        // greift sein Margin nicht (ConstraintLayout ignoriert Margins von
+        // GONE-Ansichten) – der Gone-Margin der Karte hält sie dann
+        // ebenfalls über der Leiste, damit die gesamte Karte sichtbar ist.
         binding.tvCountryAirportDetail.addBottomNavMargin()
+        binding.countryMapCard.addBottomNavGoneMargin()
 
         binding.btnCountryDetailBack.setOnClickListener { findNavController().navigateUp() }
         binding.fabCountryFocus.setOnClickListener { binding.countryMap.zoomToFocus() }

@@ -21,6 +21,7 @@ object AppReset {
     fun clearActiveUser(context: Context) {
         LogbookRepository.clearActiveUserData(context)
         Settings.clearActiveUserProfile(context)
+        BuddyPhotos.clearForUser(context, Users.activeId(context))
     }
 
     /**
@@ -46,6 +47,7 @@ object AppReset {
         for (id in 1..Users.MAX_USERS) {
             File(app.filesDir, ProfileAvatar.fileNameForUser(id)).delete()
         }
+        BuddyPhotos.clearAll(app)
         CrashLogger.clear()
         LogbookRepository.init(app)
     }
@@ -67,5 +69,6 @@ object AppReset {
         app.deleteDatabase(LogbookDatabase.databaseNameFor(userId))
         Settings.clearProfileForUser(app, userId)
         File(app.filesDir, ProfileAvatar.fileNameForUser(userId)).delete()
+        BuddyPhotos.clearForUser(app, userId)
     }
 }

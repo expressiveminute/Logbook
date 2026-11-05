@@ -11,7 +11,11 @@ import android.view.View
 import android.view.animation.DecelerateInterpolator
 import com.google.android.material.color.MaterialColors
 import java.text.NumberFormat
+import kotlin.math.PI
+import kotlin.math.cos
 import kotlin.math.min
+import kotlin.math.roundToInt
+import kotlin.math.sin
 
 /**
  * Ring in der Kontinent-Kachel: der volle Kreis steht für alle Länder des
@@ -42,6 +46,21 @@ class ContinentProgressView @JvmOverloads constructor(
         textAlign = Paint.Align.CENTER
         isFakeBoldText = true
     }
+
+    /**
+     * Stern-Paint für den EU-Modus: die Sterne liegen wie auf der EU-Flagge im
+     * Kreis, gefüllt nach Anteil der besuchten Länder.
+     */
+    private val starPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+        textAlign = Paint.Align.CENTER
+    }
+
+    /**
+     * Stern-Modus statt Bogen: zwölf Sterne im Kreis (wie die EU-Flagge), so
+     * viele gefüllt wie der Anteil der besuchten Länder. Wird für die
+     * EU-Kachel der Rubbelkarte gesetzt.
+     */
+    var starMode = false
 
     private val arcRect = RectF()
 
@@ -158,11 +177,34 @@ class ContinentProgressView @JvmOverloads constructor(
         val cx = width / 2f
         val cy = height / 2f
         arcRect.set(cx - radius, cy - radius, cx + radius, cy + radius)
-        canvas.drawCircle(cx, cy, radius, trackPaint)
-        val sweep = 360f * gezeichnet
-        // Bei 0 Grad zeichnet ein runder Pinsel je nach Version einen Punkt -
-        // das wäre ein Fortschritt, den es nicht gibt.
-        if (sweep > 0f) canvas.drawArc(arcRect, START_WINKEL, sweep, false, progressPaint)
+        // Im Stern-Modus (EU-Kachel) entfällt der Kreisbogen: die Sterne zeigen
+        // den Anteil allein, nur die Prozentzahl in der Mitte bleibt.
+        if (!starMode) canvas.drawCircle(cx, cy, radius, trackPaint)
+        if (starMode) {
+            // EU-Kachel: zwölf Sterne im Kreis, beginnend oben im Uhrzeigersinn.
+            // Die Sterngrösse richtet sich nach dem Umfang, damit sich die Sterne
+            // auch in einer kleinen Kachel nicht überlappen.
+            val umfang = 2f * PI.toFloat() * radius
+            starPaint.textSize = min(dicke * 3f, umfang / STAR_COUNT * 0.9f)
+            val gefuellt = (gezeichnet * STAR_COUNT).roundToInt()
+            for (i in 0 until STAR_COUNT) {
+                val winkel = Math.toRadians((START_WINKEL + i * 360f / STAR_COUNT).toDouble())
+                val x = cx + cos(winkel) * radius
+                val y = cy - sin(winkel) * radius
+                starPaint.color = if (i < gefuellt) progressPaint.color else trackPaint.color
+                canvas.drawText(
+                    STAR,
+                    x.toFloat(),
+                    y.toFloat() - (starPaint.ascent() + starPaint.descent()) / 2f,
+                    starPaint
+                )
+            }
+        } else {
+            val sweep = 360f * gezeichnet
+            // Bei 0 Grad zeichnet ein runder Pinsel je nach Version einen Punkt -
+            // das wäre ein Fortschritt, den es nicht gibt.
+            if (sweep > 0f) canvas.drawArc(arcRect, START_WINKEL, sweep, false, progressPaint)
+        }
         percentPaint.textSize = passendeSchriftgroesse(radius, dicke)
         canvas.drawText(
             prozentText,
@@ -194,6 +236,12 @@ class ContinentProgressView @JvmOverloads constructor(
     private companion object {
         /** Der Bogen beginnt oben und läuft im Uhrzeigersinn. */
         const val START_WINKEL = -90f
+
+        /** Sternzeichen für den EU-Modus. */
+        const val STAR = "★"
+
+        /** Zahl der Sterne im Kreis, wie auf der EU-Flagge. */
+        const val STAR_COUNT = 12
 
         const val ANIMATION_MS = 450L
     }

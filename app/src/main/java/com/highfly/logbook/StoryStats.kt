@@ -141,6 +141,10 @@ object StoryStats {
     )
 
     private const val TOP_LIMIT = 3
+
+    /** Die Play-Story zeigt die Top-Reisebuddies als Podest mit sechs Plätzen. */
+    private const val TOP_BUDDY_LIMIT = 6
+
     private const val TOP_COUNTRY_LIMIT = 5
 
     /**
@@ -188,7 +192,7 @@ object StoryStats {
             ),
             topBuddies = TravelBuddyStats.build(entries)
                 .map { BuddyRank(it.name, it.flights) }
-                .take(TOP_LIMIT),
+                .take(TOP_BUDDY_LIMIT),
             mostFlownAircraft = aircraftRanks(flying).maxWithOrNull(
                 compareBy({ it.flights }, { it.type })
             ),

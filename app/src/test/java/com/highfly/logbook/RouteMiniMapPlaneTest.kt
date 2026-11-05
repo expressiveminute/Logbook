@@ -54,6 +54,19 @@ class RouteMiniMapPlaneTest {
     }
 
     @Test
+    fun roundTripSymboleLiegenLinksUndRechtsDerMitte() {
+        val (hin, zurueck) = RouteMiniMapView.roundTripPlaneFractions()
+        // Je eines links und rechts der Streckenmitte, nie an den Enden.
+        assertTrue(hin < 0.5f)
+        assertTrue(zurueck > 0.5f)
+        assertTrue(hin > 0f)
+        assertTrue(zurueck < 1f)
+        // Symmetrisch um die Mitte und in der richtigen Reihenfolge.
+        assertEquals(0.5f, (hin + zurueck) / 2f, 0.0001f)
+        assertTrue(hin < zurueck)
+    }
+
+    @Test
     fun fortschrittZeigtImmerAufGueltigenStuetzpunkt() {
         // Am Anfang der erste, am Ende der letzte Punkt, dazwischen linear.
         assertEquals(0, RouteMiniMapView.progressIndex(49, 0f))

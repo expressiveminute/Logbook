@@ -1,0 +1,17 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- Dutt -->
+    <path android:fillColor="#212121"
+        android:pathData="M14,18 a10,10 0 1 1 20,0 a10,10 0 1 1 -20,0 Z M20,7 a4,4 0 1 1 8,0 a4,4 0 1 1 -8,0 Z" />
+    <path android:fillColor="#E0AC69"
+        android:pathData="M20.5,27 L27.5,27 L27.5,37 L20.5,37 Z" />
+    <path android:fillColor="#00796B"
+        android:pathData="M6,48 C6,38.5 14,34.5 24,34.5 C34,34.5 42,38.5 42,48 Z" />
+    <path android:fillColor="#E0AC69"
+        android:pathData="M14.5,20 a9.5,9.5 0 1 1 19,0 a9.5,9.5 0 1 1 -19,0 Z" />
+    <path android:fillColor="#212121"
+        android:pathData="M14.5,20 a9.5,9.5 0 0 1 19,0 Z" />
+</vector>

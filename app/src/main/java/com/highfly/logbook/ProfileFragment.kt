@@ -68,7 +68,17 @@ class ProfileFragment : LogbookFragment() {
         binding.headerSectionUsers.setOnClickListener { openSection("users") }
         binding.headerSectionCustomization.setOnClickListener { openSection("customization") }
         binding.headerSectionData.setOnClickListener { openSection("data") }
-        binding.headerSectionDevelopment.setOnClickListener { openSection("development") }
+        // Ganz unten über dem Logo: öffnet den Disclaimer als Popup.
+        binding.headerSectionDisclaimer.setOnClickListener { showDisclaimerDialog() }
+    }
+
+    /** Popup mit dem Disclaimer-Text der App. */
+    private fun showDisclaimerDialog() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.settings_section_disclaimer)
+            .setMessage(R.string.disclaimer_message)
+            .setPositiveButton(R.string.import_review_close, null)
+            .show()
     }
 
     private fun openSection(sectionKey: String) {

@@ -110,6 +110,7 @@ class MainActivity : AppCompatActivity() {
                 R.id.nav_entries,
                 R.id.nav_discovery,
                 R.id.nav_rubbelkarte,
+                R.id.nav_time_countries,
                 R.id.nav_profile
             )
         )
@@ -133,6 +134,21 @@ class MainActivity : AppCompatActivity() {
         // Der Story-Knopf in der Dashboard-Kopfzeile öffnet die Story.
         binding.btnDashboardStory.setOnClickListener {
             StoryActivity.start(this, StoryActivity.MODE_PLAY)
+        }
+        // Avatar und Name in der Dashboard-Kopfzeile öffnen die Einstellungen.
+        binding.flDashboardAvatar.setOnClickListener { openSettingsTab() }
+        binding.llDashboardAvatarLabels.setOnClickListener { openSettingsTab() }
+    }
+
+    /**
+     * Öffnet den Einstellungs-Tab (Profil): Klick auf Avatar oder Name in der
+     * Dashboard-Kopfzeile. Liegt der Tab schon im Backstack, wird dorthin
+     * gepoppt, sonst neu navigiert - Zurück landet wieder auf dem Dashboard.
+     */
+    private fun openSettingsTab() {
+        if (navController.currentDestination?.id == R.id.nav_profile) return
+        if (!navController.popBackStack(R.id.nav_profile, false)) {
+            navController.navigate(R.id.nav_profile)
         }
     }
 
@@ -378,7 +394,11 @@ class MainActivity : AppCompatActivity() {
                 BottomTabBar.Tab(
                     R.id.nav_rubbelkarte, R.drawable.ic_world_map, R.string.nav_rubbelkarte
                 ),
-                BottomTabBar.Tab(R.id.nav_profile, R.drawable.ic_settings, R.string.nav_profile),
+                // Letzter Tab: "Zeit in Ländern". Die Einstellungen erreicht
+                // man über Avatar/Name in der Dashboard-Kopfzeile ([openSettingsTab]).
+                BottomTabBar.Tab(
+                    R.id.nav_time_countries, R.drawable.ic_time, R.string.nav_time_countries
+                ),
             )
         )
         binding.bottomNav.setOnTabSelectedListener { destId ->
@@ -420,7 +440,7 @@ class MainActivity : AppCompatActivity() {
                 destinationId == R.id.nav_entries ||
                 destinationId == R.id.nav_discovery ||
                 destinationId == R.id.nav_rubbelkarte ||
-                destinationId == R.id.nav_profile
+                destinationId == R.id.nav_time_countries
 
     private fun updateTabSelection(destinationId: Int?) {
         // Die Auswahl wird nicht zurückgesetzt: Solange die Leiste sichtbar

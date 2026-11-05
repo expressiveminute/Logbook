@@ -117,9 +117,16 @@ class WorldProgressTest {
         val besucht = setOf("DE", "FR", "US", "JP", "PN", "IO")
         val balken = WorldProgress.build(laender, besucht)
         val kacheln = ContinentStats.build(laender, besucht)
-        assertEquals(kacheln.sumOf { it.total }, balken.total - laender.count { country ->
-            Continents.continentOf(country.iso2) == null
-        })
+        // Die EU-Kachel zählt dieselben Länder wie Europa doppelt mit, deshalb
+        // wird ihre Summe wieder abgezogen: Balken und Kacheln dürfen sich nicht
+        // widersprechen.
+        val euInListe = Continents.EU_MEMBERS.count { eu -> laender.any { it.iso2 == eu } }
+        assertEquals(
+            kacheln.sumOf { it.total } - euInListe,
+            balken.total - laender.count { country ->
+                Continents.continentOf(country.iso2) == null
+            }
+        )
         assertEquals(balken.visited, besucht.count { code ->
             laender.any { it.iso2 == code }
         })

@@ -74,6 +74,9 @@ object Settings {
     private const val KEY_LANGUAGE = "language"
     private const val KEY_MANUAL_COUNTRIES = "manual_countries"
     private const val KEY_HIDDEN_COUNTRIES = "hidden_countries"
+    private const val KEY_MANUAL_STATES = "manual_states"
+    private const val KEY_HIDDEN_STATES = "hidden_states"
+    private const val KEY_MANUAL_BORDER_CROSSINGS = "manual_border_crossings"
     private const val KEY_WELCOME_SEEN = "welcome_seen"
 
     private fun prefs(context: Context): SharedPreferences =
@@ -448,9 +451,66 @@ object Settings {
     }
 
     /**
+     * Bundesstaaten/-länder (ISO-3166-2 wie "US-CA"), die der Nutzer in der
+     * Staatenliste der Rubbelkarte selbst abgehakt hat. Sie kommen zusätzlich
+     * zu den angeflogenen Staaten auf die Karte.
+     */
+    fun getManualStates(context: Context): Set<String> =
+        prefs(context).getStringSet(KEY_MANUAL_STATES + userSuffix(context), null)
+            ?.mapNotNull { StateStats.normalizeRegion(it) }
+            ?.toSet()
+            .orEmpty()
+
+    fun setManualStates(context: Context, value: Set<String>) {
+        val codes = value.mapNotNull { StateStats.normalizeRegion(it) }.toSet()
+        prefs(context).edit().putStringSet(KEY_MANUAL_STATES + userSuffix(context), codes).apply()
+        notifyManualCountriesChanged()
+    }
+
+    /**
+     * Bundesstaaten/-länder, die der Nutzer in der Staatenliste abgewählt hat.
+     * Sie stammen aus Flugeinträgen, erscheinen aber nicht mehr auf der Karte -
+     * bis sie wieder angehakt oder erneut angeflogen werden.
+     */
+    fun getHiddenStates(context: Context): Set<String> =
+        prefs(context).getStringSet(KEY_HIDDEN_STATES + userSuffix(context), null)
+            ?.mapNotNull { StateStats.normalizeRegion(it) }
+            ?.toSet()
+            .orEmpty()
+
+    fun setHiddenStates(context: Context, value: Set<String>) {
+        val codes = value.mapNotNull { StateStats.normalizeRegion(it) }.toSet()
+        prefs(context).edit().putStringSet(KEY_HIDDEN_STATES + userSuffix(context), codes).apply()
+        notifyManualCountriesChanged()
+    }
+
+    /**
+     * Manuell erfasste Landweg-Grenzübertritte (Auto, Bus, Fähre) für die Seite
+     * "Zeit in Ländern", siehe [CountryTimeStats]. Eine Zeile pro Übertritt
+     * ([BorderCrossing.toLine]), gespeichert als ein String. Der JSON-Export
+     * ([AppDataTransfer]) nimmt die Einstellungen pauschal mit.
+     */
+    fun getManualBorderCrossings(context: Context): List<BorderCrossing> =
+        prefs(context).getString(KEY_MANUAL_BORDER_CROSSINGS + userSuffix(context), null)
+            ?.split('\n')
+            ?.mapNotNull { BorderCrossing.parse(it) }
+            .orEmpty()
+
+    fun setManualBorderCrossings(context: Context, value: List<BorderCrossing>) {
+        val lines = value
+            .map { it.copy(iso2 = it.iso2.trim().uppercase()) }
+            .sortedWith(compareBy({ it.date }, { if (it.enter) 0 else 1 }))
+            .joinToString("\n") { it.toLine() }
+        prefs(context).edit()
+            .putString(KEY_MANUAL_BORDER_CROSSINGS + userSuffix(context), lines)
+            .apply()
+    }
+
+    /**
      * Löscht alle Profileinstellungen eines Nutzers (Name, Avatar, Rolle,
-     * Fluggesellschaft, Arbeitsposition, abgehakte Länder). Der Platz bleibt
-     * bestehen. Siehe [clearActiveUserProfile] für den aktiven Nutzer.
+     * Fluggesellschaft, Arbeitsposition, abgehakte Länder und Staaten). Der
+     * Platz bleibt bestehen. Siehe [clearActiveUserProfile] für den aktiven
+     * Nutzer.
      */
     fun clearProfileForUser(context: Context, userId: Int) {
         val s = suffixFor(userId)
@@ -464,6 +524,8 @@ object Settings {
             .remove(KEY_PASSENGER_LOAD_FACTOR + s)
             .remove(KEY_MANUAL_COUNTRIES + s)
             .remove(KEY_HIDDEN_COUNTRIES + s)
+            .remove(KEY_MANUAL_STATES + s)
+            .remove(KEY_HIDDEN_STATES + s)
             .apply()
         notifyManualCountriesChanged()
     }

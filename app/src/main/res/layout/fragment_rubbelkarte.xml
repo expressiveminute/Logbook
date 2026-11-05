@@ -166,4 +166,13 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal" />
     </HorizontalScrollView>
+
+    <!-- Halbhohe Seite mit der Länder-/Staaten-Liste, die ein Tipp auf eine
+         Kachel unten einblendet; darüber bleibt die Kugel sichtbar. Die Höhe
+         setzt RubbelkarteFragment (Hälfte oder Drittel des Bildschirms). -->
+    <FrameLayout
+        android:id="@+id/page_host"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:visibility="gone" />
 </LinearLayout>

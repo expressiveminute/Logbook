@@ -81,25 +81,30 @@ object StoryPages {
             )
         }
 
-        // 4. Die Top-Reisebuddies.
+        // 4. Die Top-Reisebuddies als Podest: bis zu sechs Kreise mit Avatar
+        //    (Foto, falls hochgeladen, sonst Usericon), Medaille für die ersten
+        //    drei und der Flugzahl als Flip-Uhr daneben bzw. darunter.
         if (stats.topBuddies.isNotEmpty()) {
-            pages += StoryPage.Ranking(
+            pages += StoryPage.BuddyPodium(
                 iconRes = R.drawable.ic_reisebuddy,
                 titleRes = R.string.story_play_buddies_title,
-                groups = listOf(
-                    StoryPage.Ranking.Group(
-                        labelRes = null,
-                        rows = stats.topBuddies.map { buddy ->
-                            StoryPage.Ranking.Row(
-                                label = buddy.name,
-                                value = String.format(locale, "%,d", buddy.flights),
-                                suffix = "×",
-                                valueTarget = buddy.flights.toDouble(),
-                                valueFormat = groupedInt(locale)
-                            )
-                        }
+                buddies = stats.topBuddies.map { buddy ->
+                    // Läuft auf dem Hintergrund-Thread der StoryActivity:
+                    // Foto (hat Vorrang), sonst der Avatar (eigene Config
+                    // aus dem Editor oder Preset).
+                    val photo = BuddyPhotos.load(context, buddy.name)
+                    StoryPage.BuddyPodium.Entry(
+                        name = buddy.name,
+                        value = String.format(locale, "%,d", buddy.flights),
+                        suffix = "×",
+                        valueTarget = buddy.flights.toDouble(),
+                        valueFormat = groupedInt(locale),
+                        photo = photo,
+                        avatar = if (photo == null) {
+                            BuddyAvatars.avatarDrawable(context, buddy.name)
+                        } else null
                     )
-                )
+                }
             )
         }
 

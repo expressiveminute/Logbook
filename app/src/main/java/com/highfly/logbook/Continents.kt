@@ -11,6 +11,21 @@ object Continents {
     const val SOUTH_AMERICA = "south_america"
     const val UNKNOWN = "unknown"
 
+    /**
+     * Die Europäische Union als eigene Kachel neben den Kontinenten. Sie ist
+     * **kein** Kontinent in [ORDER] (die Erfolge zählen weiter nur echte
+     * Kontinente), sondern eine zweite Sicht auf europäische Länder: dieselbe
+     * Länderliste wie [EU_MEMBERS].
+     */
+    const val EU = "eu"
+
+    /** Die 27 EU-Mitgliedstaaten als ISO-2. */
+    val EU_MEMBERS = listOf(
+        "AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR",
+        "DE", "GR", "HU", "IE", "IT", "LV", "LT", "LU", "MT", "NL",
+        "PL", "PT", "RO", "SK", "SI", "ES", "SE"
+    )
+
     val ORDER = listOf(
         EUROPE, ASIA, NORTH_AMERICA, SOUTH_AMERICA, AFRICA, OCEANIA, ANTARCTICA, UNKNOWN
     )
@@ -69,9 +84,13 @@ object Continents {
 
     fun continentOf(iso2: String): String? = byIso2[iso2.uppercase()]
 
-    /** Alle Länder eines Kontinents als ISO-2, leer bei unbekanntem Schlüssel. */
+    /**
+     * Alle Länder eines Kontinents als ISO-2, leer bei unbekanntem Schlüssel.
+     * Für [EU] die EU-Mitgliedstaaten - die EU ist kein Kontinent in
+     * [ORDER], taucht aber als eigene Kachel der Rubbelkarte auf.
+     */
     fun countriesOf(continent: String): List<String> =
-        countriesByContinent[continent].orEmpty()
+        if (continent == EU) EU_MEMBERS else countriesByContinent[continent].orEmpty()
 
     /**
      * String der App-Sprache für den Anzeigenamen eines Kontinents. Steht hier
@@ -79,6 +98,7 @@ object Continents {
      * Namen brauchen - so gibt es nur eine Zuordnung.
      */
     fun nameRes(continent: String): Int = when (continent) {
+        EU -> R.string.continent_eu
         EUROPE -> R.string.continent_europe
         ASIA -> R.string.continent_asia
         NORTH_AMERICA -> R.string.continent_north_america

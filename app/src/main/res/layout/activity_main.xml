@@ -27,6 +27,7 @@
             <!-- Kopfzeile des Dashboards: links der runde Avatar aus den
                  Einstellungen, rechts daneben der Name des Nutzers und
                  darunter Funktion und Arbeitgeber, durch einen Punkt getrennt.
+                 Avatar und Name sind anklickbar und oeffnen die Einstellungen.
                  Ganz rechts sitzt der "Story"-Knopf, der die Flug-Story
                  abspielt. Ein Fluggast hat keine Funktion und keinen
                  Arbeitgeber, dort bleibt die zweite Zeile leer. Die seitlichen
@@ -45,9 +46,14 @@
                 android:paddingBottom="4dp">
 
                 <FrameLayout
+                    android:id="@+id/fl_dashboard_avatar"
                     android:layout_width="72dp"
                     android:layout_height="72dp"
-                    android:background="@drawable/bg_avatar_circle">
+                    android:background="@drawable/bg_avatar_circle"
+                    android:clickable="true"
+                    android:contentDescription="@string/nav_profile"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackgroundBorderless">
 
                     <ImageView
                         android:id="@+id/iv_dashboard_avatar"
@@ -64,6 +70,10 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="16dp"
                     android:layout_weight="1"
+                    android:clickable="true"
+                    android:contentDescription="@string/nav_profile"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
                     android:gravity="center_vertical"
                     android:orientation="vertical">
 
@@ -116,15 +126,19 @@
             sind anklickbar und öffnen ihr Menü - mehr braucht die Zeile nicht,
             sonst würde sie die Kacheln wieder nach unten drängen.
         -->
+        <!-- Symmetrischer Abstand: oben zum Header (4 dp Header-Padding +
+             12 dp hier + 12 dp TextView-Padding = 28 dp) ist genauso gross wie
+             unten zu den ersten Kacheln (12 dp TextView-Padding + 0 dp hier +
+             16 dp Inhalts-Padding = 28 dp). -->
         <LinearLayout
             android:id="@+id/dashboard_filter_bar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:paddingStart="16dp"
-            android:paddingTop="2dp"
+            android:paddingTop="12dp"
             android:paddingEnd="16dp"
-            android:paddingBottom="10dp">
+            android:paddingBottom="0dp">
 
             <!-- Beide Haelften bekommen dasselbe Gewicht, damit der Punkt
                  genau in der Mitte des Bildschirms steht und nicht dort, wo

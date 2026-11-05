@@ -17,46 +17,64 @@
     app:strokeColor="?attr/colorOutlineVariant"
     app:strokeWidth="1dp">
 
-    <LinearLayout
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
         android:padding="12dp">
 
-        <TextView
-            android:id="@+id/tv_stat_tile_label"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            tools:text="Erster gemeinsamer Flug" />
+            android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/tv_stat_tile_value"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:textColor="?attr/colorOnSurface"
-            android:textSize="24sp"
-            android:textStyle="bold"
-            tools:text="FRA – JFK" />
+            <TextView
+                android:id="@+id/tv_stat_tile_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                tools:text="Erster gemeinsamer Flug" />
 
-        <TextView
-            android:id="@+id/tv_stat_tile_caption"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            android:textSize="12sp"
+            <TextView
+                android:id="@+id/tv_stat_tile_value"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                tools:text="FRA – JFK" />
+
+            <TextView
+                android:id="@+id/tv_stat_tile_caption"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="12sp"
+                android:visibility="gone"
+                tools:text="12.03.2026 · LH401"
+                tools:visibility="visible" />
+        </LinearLayout>
+
+        <!-- Finger-Tap-Hinweis unten rechts, nur bei anklickbaren Kacheln
+             (z. B. "Zeit zusammen" auf der Reisebuddy-Seite) sichtbar. -->
+        <ImageView
+            android:id="@+id/iv_stat_tile_hint"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_gravity="bottom|end"
+            android:contentDescription="@string/buddy_stat_time_tap_desc"
+            android:src="@drawable/ic_tap"
             android:visibility="gone"
-            tools:text="12.03.2026 · LH401"
+            app:tint="?attr/colorOnSurfaceVariant"
             tools:visibility="visible" />
-    </LinearLayout>
+    </FrameLayout>
 </com.google.android.material.card.MaterialCardView>

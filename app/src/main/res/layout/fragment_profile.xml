@@ -196,36 +196,6 @@
                 app:srcCompat="@drawable/ic_chevron_right" />
         </LinearLayout>
 
-        <!-- Entwicklung -->
-        <LinearLayout
-            android:id="@+id/header_section_development"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:foreground="?attr/selectableItemBackground"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp">
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/settings_section_development"
-                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
-                android:textStyle="bold" />
-
-            <ImageView
-                android:id="@+id/development_header_arrow"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:contentDescription="@string/settings_open"
-                app:srcCompat="@drawable/ic_chevron_right" />
-        </LinearLayout>
-
         <View
             android:layout_width="match_parent"
             android:layout_height="0dp"
@@ -239,11 +209,42 @@
             android:gravity="center_horizontal"
             android:orientation="vertical">
 
+            <!-- Trennlinie: Der Disclaimer ist visuell abgesetzt von den
+                 Einstellungspunkten darüber. -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginBottom="8dp"
+                android:background="?attr/colorOutlineVariant" />
+
+            <!-- Disclaimer: linksbündig ganz unten über dem Logo, öffnet ein Popup -->
+            <LinearLayout
+                android:id="@+id/header_section_disclaimer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/settings_section_disclaimer"
+                    android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
             <!-- App-Logo rund, gleiche Optik wie das Launcher-Icon -->
             <ImageView
                 android:id="@+id/iv_settings_logo"
                 android:layout_width="72dp"
                 android:layout_height="72dp"
+                android:layout_marginTop="20dp"
                 android:layout_marginBottom="12dp"
                 android:importantForAccessibility="no"
                 android:src="@drawable/ic_logo_round" />

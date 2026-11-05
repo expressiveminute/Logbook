@@ -33,6 +33,13 @@ class TileDetailFragment : LogbookFragment(), BackPressAware {
 
     private var tileId: String = "flights"
 
+    /**
+     * Beschriftung des Reiseart-Stücks, das im Kreisdiagramm vorausgewählt
+     * (explodiert) erscheinen soll - kommt vom Segment des Reiseart-Balkens
+     * auf der Flüge-Seite, auf das getippt wurde.
+     */
+    private var sliceLabel: String = ""
+
     /** Nach was die Layover-Balken geordnet sind, Standard: Anzahl. */
     private var layoverSort: ChartData.LayoverSort = ChartData.LayoverSort.ANZAHL
 
@@ -98,6 +105,7 @@ class TileDetailFragment : LogbookFragment(), BackPressAware {
         binding.scrollView.addBottomNavPadding()
 
         tileId = requireArguments().getString("tileId") ?: "flights"
+        sliceLabel = requireArguments().getString("sliceLabel").orEmpty()
         // Bei einer Neuerstellung der Ansicht bleibt die Fragment-Instanz
         // erhalten, der Zustands-Bundle ist dann null. Der bereits gewählte
         // Wert darf in diesem Fall nicht auf den Standard zurückspringen.
@@ -147,7 +155,7 @@ class TileDetailFragment : LogbookFragment(), BackPressAware {
                 renderClassPie()
             }
             tileId == "traveltype" -> {
-                renderPie(ChartData.travelTypeSlices(requireContext()))
+                renderPie(ChartData.travelTypeSlices(requireContext()), sliceLabel)
             }
             tileId == "function" -> {
                 renderPie(ChartData.functionSlices(requireContext()))
@@ -1164,7 +1172,7 @@ class TileDetailFragment : LogbookFragment(), BackPressAware {
             bar.label.uppercase() to rank
         }
 
-    private fun renderPie(slices: List<ChartData.Slice>) {
+    private fun renderPie(slices: List<ChartData.Slice>, highlightLabel: String = "") {
         binding.barChart.visibility = View.GONE
         binding.pieChart.visibility = View.VISIBLE
         binding.tvEmpty.visibility = if (slices.isEmpty()) View.VISIBLE else View.GONE
@@ -1177,6 +1185,11 @@ class TileDetailFragment : LogbookFragment(), BackPressAware {
                 )
             }
         )
+        // Öffnet die Seite über ein Segment des Reiseart-Balkens, klappt das
+        // entsprechende Stück im Kreisdiagramm gleich auf.
+        if (highlightLabel.isNotBlank()) {
+            binding.pieChart.selectSliceByLabel(highlightLabel)
+        }
     }
 
     /**

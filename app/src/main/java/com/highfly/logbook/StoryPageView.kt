@@ -13,7 +13,9 @@ import android.view.animation.OvershootInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.Space
 import android.widget.TextView
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
 import com.google.android.material.color.MaterialColors
 
@@ -70,6 +72,9 @@ class StoryPageView @JvmOverloads constructor(
             ContextCompat.getColor(context, R.color.story_text)
         )
         val root = LinearLayout(context).apply {
+            // clipChildren aus: die Podest-Zeilen sind seitlich versetzt und
+            // dürfen am Inhaltsrand nicht abgeschnitten werden.
+            clipChildren = false
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
@@ -97,6 +102,7 @@ class StoryPageView @JvmOverloads constructor(
         root.addView(titleView)
 
         contentLayout = LinearLayout(context).apply {
+            clipChildren = false
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
             layoutParams = LinearLayout.LayoutParams(
@@ -134,6 +140,7 @@ class StoryPageView @JvmOverloads constructor(
             is StoryPage.HeroNumber -> buildHeroNumber(page, maxContentWidthPx)
             is StoryPage.HeroText -> buildHeroText(page)
             is StoryPage.Ranking -> buildRanking(page)
+            is StoryPage.BuddyPodium -> buildBuddyPodium(page)
         }
         // Startzustand der Choreografie: alles unsichtbar/versetzt.
         iconView.alpha = 0f
@@ -385,6 +392,286 @@ class StoryPageView @JvmOverloads constructor(
                 // Der Rang zählt innerhalb der Gruppe von 1.
                 contentLayout.addView(buildRow(row, rowIndex + 1))
             }
+        }
+    }
+
+    /**
+     * Baut das Reisebuddy-Podest: Rang 1-3 als große Kreise, seitlich
+     * versetzt (wechselnd rechts/links, damit es unordentlich wirkt), mit
+     * Medaille rechts oben am Kreis, dem Namen darunter und der Flugzahl als
+     * Flip-Uhr daneben (Rang 1 und 3 rechts, Rang 2 links). Die Plätze 4-6
+     * stehen in einer Reihe darunter: kleiner Kreis mit Rangnummer rechts
+     * oben, Name und Flip-Zahl darunter.
+     */
+    private fun buildBuddyPodium(page: StoryPage.BuddyPodium) {
+        val avatarDp = intArrayOf(112, 96, 80)
+        // Seitlicher Versatz für den unordentlichen Podest-Look: Platz 1 leicht
+        // links, Platz 2 deutlich rechts, Platz 3 deutlich links.
+        val shiftDp = intArrayOf(-16, 40, -40)
+        page.buddies.take(PODIUM_TOP).forEachIndexed { index, entry ->
+            contentLayout.addView(
+                buildPodiumRow(
+                    entry = entry,
+                    rank = index + 1,
+                    avatarDp = avatarDp[index],
+                    countOnLeft = index == 1,
+                    shiftDp = shiftDp[index],
+                    first = index == 0
+                )
+            )
+        }
+        val rest = page.buddies.drop(PODIUM_TOP)
+        if (rest.isNotEmpty()) {
+            val row = LinearLayout(context).apply {
+                clipChildren = false
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { topMargin = dp(24) }
+            }
+            rest.forEachIndexed { index, entry ->
+                if (index > 0) {
+                    row.addView(Space(context).apply {
+                        layoutParams = LinearLayout.LayoutParams(dp(12), 1)
+                    })
+                }
+                row.addView(buildSmallBuddy(entry, rank = index + PODIUM_TOP + 1))
+            }
+            contentLayout.addView(row)
+        }
+    }
+
+    /**
+     * Eine Podest-Stufe (Rang 1-3): Kreis mit Avatar und Medaille, Name
+     * darunter, Flip-Zahl links oder rechts daneben ([countOnLeft]) und die
+     * ganze Zeile seitlich verschoben ([shiftDp]).
+     */
+    private fun buildPodiumRow(
+        entry: StoryPage.BuddyPodium.Entry,
+        rank: Int,
+        avatarDp: Int,
+        countOnLeft: Boolean,
+        shiftDp: Int,
+        first: Boolean
+    ): View {
+        val avatarColumn = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+        }
+        avatarColumn.addView(
+            buildAvatarWithBadge(
+                photo = entry.photo,
+                avatar = entry.avatar,
+                badgeRank = rank,
+                showMedals = true,
+                avatarDp = avatarDp,
+                badgeDp = 30
+            )
+        )
+        avatarColumn.addView(
+            TextView(context).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    dp(avatarDp + 32),
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { topMargin = dp(6) }
+                gravity = Gravity.CENTER
+                maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.END
+                setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyMedium)
+                setTextColor(ContextCompat.getColor(context, R.color.story_text))
+                text = entry.name
+            }
+        )
+
+        val valueView = FlipNumberView(context).apply {
+            setDigitHeightPx(dp(24))
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, dp(24)
+            )
+        }
+        rowValues += RowValue(
+            view = valueView,
+            text = entry.value,
+            target = entry.valueTarget,
+            format = entry.valueFormat
+        )
+        val valueRow = LinearLayout(context).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            addView(valueView)
+            entry.suffix?.let { suffix ->
+                addView(suffixView(suffix).apply {
+                    (layoutParams as LinearLayout.LayoutParams).marginStart = dp(4)
+                })
+            }
+        }
+
+        return LinearLayout(context).apply {
+            // clipChildren aus: die Zeile ragt durch den Versatz über den
+            // Inhaltsbereich hinaus und darf nicht abgeschnitten werden.
+            clipChildren = false
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = dp(if (first) 4 else 20) }
+            // Seitlicher Versatz für den unordentlichen Podest-Look; die
+            // Auftritts-Choreografie animiert nur translationY, nicht X.
+            translationX = dp(shiftDp).toFloat()
+            if (countOnLeft) {
+                (valueRow.layoutParams as LinearLayout.LayoutParams).marginEnd = dp(12)
+                addView(valueRow)
+                addView(avatarColumn)
+            } else {
+                (valueRow.layoutParams as LinearLayout.LayoutParams).marginStart = dp(12)
+                addView(avatarColumn)
+                addView(valueRow)
+            }
+        }
+    }
+
+    /**
+     * Ein Platz in der unteren Reihe (Rang 4-6): kleiner Kreis mit Avatar
+     * und Rangnummer rechts oben, darunter Name und Flip-Zahl.
+     */
+    private fun buildSmallBuddy(
+        entry: StoryPage.BuddyPodium.Entry,
+        rank: Int
+    ): View {
+        val column = LinearLayout(context).apply {
+            clipChildren = false
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(dp(96), LinearLayout.LayoutParams.WRAP_CONTENT)
+        }
+        column.addView(
+            buildAvatarWithBadge(
+                photo = entry.photo,
+                avatar = entry.avatar,
+                badgeRank = rank,
+                showMedals = false,
+                avatarDp = 64,
+                badgeDp = 22
+            )
+        )
+        column.addView(
+            TextView(context).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    dp(96), LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { topMargin = dp(4) }
+                gravity = Gravity.CENTER
+                maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.END
+                setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodySmall)
+                setTextColor(ContextCompat.getColor(context, R.color.story_text))
+                text = entry.name
+            }
+        )
+        val valueView = FlipNumberView(context).apply {
+            setDigitHeightPx(dp(18))
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, dp(18)
+            ).apply { topMargin = dp(2) }
+        }
+        rowValues += RowValue(
+            view = valueView,
+            text = entry.value,
+            target = entry.valueTarget,
+            format = entry.valueFormat
+        )
+        val valueRow = LinearLayout(context).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            addView(valueView)
+            entry.suffix?.let { suffix ->
+                addView(suffixView(suffix).apply {
+                    (layoutParams as LinearLayout.LayoutParams).marginStart = dp(2)
+                })
+            }
+        }
+        column.addView(valueRow)
+        return column
+    }
+
+    /**
+     * Runder Avatar mit Rang-Badge rechts oben: Medaille für Rang 1-3
+     * ([showMedals]), sonst die Platznummer auf einer runden weissen Scheibe,
+     * damit der Rang gut lesbar ist - die Scheibe darf nicht abgeschnitten
+     * werden, deshalb clipChildren=false am Wrap. Avatar zeigt das Foto
+     * ([photo]), sonst das Avatar-Drawable ([avatar]: eigene Config aus dem
+     * Editor oder Preset).
+     */
+    private fun buildAvatarWithBadge(
+        photo: android.graphics.Bitmap?,
+        avatar: android.graphics.drawable.Drawable?,
+        badgeRank: Int,
+        showMedals: Boolean,
+        avatarDp: Int,
+        badgeDp: Int
+    ): View {
+        val size = dp(avatarDp)
+        val badgeSize = dp(badgeDp)
+        val avatar = BuddyAvatarView(context).apply {
+            layoutParams = FrameLayout.LayoutParams(size, size)
+            setFallbackColors(
+                ContextCompat.getColor(context, R.color.story_row_bg),
+                ContextCompat.getColor(context, R.color.story_text),
+                ContextCompat.getColor(context, R.color.story_progress_fill)
+            )
+            if (photo != null) {
+                setPhoto(photo)
+            } else {
+                setPreset(
+                    avatar ?: AppCompatResources.getDrawable(context, R.drawable.ic_profile)
+                )
+            }
+        }
+        val badge = RankBadgeView(context).apply {
+            layoutParams = FrameLayout.LayoutParams(badgeSize, badgeSize)
+            setRank(badgeRank, showMedals)
+            if (!showMedals) {
+                // Weisse Scheibe hinter die Platznummer (dunkle Zahl darauf).
+                setNumberColor(ContextCompat.getColor(context, R.color.story_scrim))
+            }
+        }
+        val badgeWrap = FrameLayout(context).apply {
+            layoutParams = FrameLayout.LayoutParams(badgeSize, badgeSize).apply {
+                gravity = Gravity.TOP or Gravity.END
+                marginEnd = -dp(4)
+                topMargin = -dp(4)
+            }
+            if (!showMedals) {
+                addView(View(context).apply {
+                    layoutParams = FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT
+                    )
+                    background = GradientDrawable().apply {
+                        shape = GradientDrawable.OVAL
+                        setColor(android.graphics.Color.WHITE)
+                    }
+                })
+            }
+            addView(badge)
+        }
+        return FrameLayout(context).apply {
+            // clipChildren aus: das Badge hängt mit negativem Margin über den
+            // Kreis hinaus und muss rund bleiben (sonst eckige Kanten).
+            clipChildren = false
+            layoutParams = LinearLayout.LayoutParams(size, size)
+            addView(avatar)
+            addView(badgeWrap)
         }
     }
 
@@ -671,6 +958,9 @@ class StoryPageView @JvmOverloads constructor(
     private fun dp(value: Float): Float = value * resources.displayMetrics.density
 
     companion object {
+        /** Zahl der Podest-Stufen mit Medaille (Rang 1-3) auf der Buddy-Seite. */
+        private const val PODIUM_TOP = 3
+
         /** Choreografie-Zeiten des Auftritts. */
         private const val ICON_MS = 400L
         private const val TITLE_DELAY_MS = 80L

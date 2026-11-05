@@ -269,4 +269,31 @@ class DiscoveryRoutesTest {
         val entries = listOf(entry(LocalDate.of(2026, 2, 2), airline = "   "))
         assertEquals(null, DiscoveryRoutes.firstFlown(entries).single().airline)
     }
+
+    @Test
+    fun isSameDayRoundTrip_onlyWhenReturnDateEqualsOutboundDate() {
+        val sameDay = RouteDiscovery(
+            "MUC", "DEN", LocalDate.of(2026, 3, 12),
+            returnDate = LocalDate.of(2026, 3, 12)
+        )
+        assertTrue(sameDay.isRoundTrip)
+        assertTrue(sameDay.isSameDayRoundTrip)
+
+        val otherDay = sameDay.copy(returnDate = LocalDate.of(2026, 3, 15))
+        assertTrue(otherDay.isRoundTrip)
+        assertTrue(!otherDay.isSameDayRoundTrip)
+
+        val oneWay = RouteDiscovery("MUC", "DEN", LocalDate.of(2026, 3, 12))
+        assertTrue(!oneWay.isRoundTrip)
+        assertTrue(!oneWay.isSameDayRoundTrip)
+    }
+
+    @Test
+    fun firstFlown_sameDayRoundTripIsMarkedAsSameDay() {
+        val entries = listOf(
+            entry(LocalDate.of(2026, 3, 12), id = 7, from = "MUC", to = "DEN"),
+            entry(LocalDate.of(2026, 3, 12), id = 2, from = "DEN", to = "MUC")
+        )
+        assertTrue(DiscoveryRoutes.firstFlown(entries).single().isSameDayRoundTrip)
+    }
 }

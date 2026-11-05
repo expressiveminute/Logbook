@@ -40,10 +40,37 @@ class ContinentStatsTest {
         val progress = build(listOf("CN", "DE", "US"), emptyList())
         assertEquals(
             listOf(
-                Continents.EUROPE, Continents.ASIA, Continents.NORTH_AMERICA
+                Continents.EUROPE, Continents.EU, Continents.ASIA, Continents.NORTH_AMERICA
             ),
             progress.map { it.continent }
         )
+    }
+
+    @Test
+    fun build_euZaehltNurMitgliedstaaten() {
+        // DE und FR sind EU-Mitglieder, JP und US nicht: die EU-Kachel zählt
+        // nur die europäischen Länder, auch wenn mehr besucht sind.
+        val progress = build(listOf("DE", "FR", "JP", "US"), listOf("DE", "JP", "US"))
+        val eu = progress.first { it.continent == Continents.EU }
+        assertEquals(1, eu.visited)
+        assertEquals(2, eu.total)
+    }
+
+    @Test
+    fun build_euSortiertBeiGleichstandHinterEuropa() {
+        // Europa und EU haben gleich viele besuchte Länder: die EU-Kachel steht
+        // direkt dahinter, damit die beiden Kacheln beieinanderliegen.
+        val progress = build(listOf("DE", "FR", "JP"), listOf("DE", "JP"))
+        assertEquals(
+            listOf(Continents.EUROPE, Continents.EU, Continents.ASIA),
+            progress.map { it.continent }
+        )
+    }
+
+    @Test
+    fun build_euEntfaelltOhneMitgliedstaatenInDerListe() {
+        val progress = build(listOf("JP", "US"), listOf("JP"))
+        assertTrue(progress.none { it.continent == Continents.EU })
     }
 
     @Test
@@ -57,11 +84,11 @@ class ContinentStatsTest {
         )
         assertEquals(
             listOf(
-                Continents.EUROPE, Continents.ASIA, Continents.NORTH_AMERICA
+                Continents.EUROPE, Continents.EU, Continents.ASIA, Continents.NORTH_AMERICA
             ),
             progress.map { it.continent }
         )
-        assertEquals(listOf(2, 1, 0), progress.map { it.visited })
+        assertEquals(listOf(2, 2, 1, 0), progress.map { it.visited })
     }
 
     @Test
@@ -75,7 +102,7 @@ class ContinentStatsTest {
         )
         assertEquals(
             listOf(
-                Continents.EUROPE, Continents.ASIA, Continents.NORTH_AMERICA
+                Continents.EUROPE, Continents.EU, Continents.ASIA, Continents.NORTH_AMERICA
             ),
             progress.map { it.continent }
         )
@@ -88,7 +115,7 @@ class ContinentStatsTest {
         // Scrollen.
         val progress = build(listOf("DE", "JP"), listOf("DE"))
         assertEquals(
-            listOf(Continents.EUROPE, Continents.ASIA),
+            listOf(Continents.EUROPE, Continents.EU, Continents.ASIA),
             progress.map { it.continent }
         )
     }
@@ -99,8 +126,10 @@ class ContinentStatsTest {
         // Indischen Ozean gehören zu keinem Kontinent. Die Falklandinseln
         // dagegen zählen zu Südamerika und hätten hier eine Kachel verdient.
         val progress = build(listOf("PN", "AX", "IO", "DE"), listOf("PN", "DE"))
-        assertEquals(1, progress.size)
-        assertEquals(1, progress.first().visited)
+        // Europa und die EU-Kachel (DE ist Mitglied), die Territorien ohne
+        // Kontinent tauchen in keiner Kachel auf.
+        assertEquals(2, progress.size)
+        assertEquals(1, progress.first { it.continent == Continents.EUROPE }.visited)
     }
 
     @Test

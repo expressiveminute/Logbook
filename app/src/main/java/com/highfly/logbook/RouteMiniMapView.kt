@@ -80,6 +80,23 @@ class RouteMiniMapView @JvmOverloads constructor(
         /** Kantenlänge des Flugzeugsymbols auf der Strecke. */
         const val PLANE_SIZE_DP = 16f
 
+        /**
+         * Abstand der beiden Flugzeugsymbole von der Streckenmitte bei einem
+         * Hin- und Rückflug, als Anteil der Strecke: je eines links und rechts
+         * der Mitte (0,5), damit beide Richtungen sichtbar sind.
+         */
+        const val ROUND_TRIP_PLANE_OFFSET = 0.125f
+
+        /**
+         * Positionen der beiden Flugzeugsymbole bei einem Hin- und Rückflug
+         * als Anteile der Strecke (0 = Abflug, 1 = Ziel): das erste links, das
+         * zweite rechts der Mitte. Symmetrisch um 0,5, damit nie eins das
+         * Ende der Strecke verlässt.
+         */
+        @JvmStatic
+        fun roundTripPlaneFractions(): Pair<Float, Float> =
+            (0.5f - ROUND_TRIP_PLANE_OFFSET) to (0.5f + ROUND_TRIP_PLANE_OFFSET)
+
         /** Dauer, in der die Strecke einmal gezeichnet wird. */
         const val ROUTE_ANIM_MS = 1800L
 
@@ -400,6 +417,14 @@ class RouteMiniMapView @JvmOverloads constructor(
     private var drawAnimator: ValueAnimator? = null
     private var cruiseAnimator: ValueAnimator? = null
 
+    /**
+     * Ob die Strecke als Hin- und Rückflug zum ersten Mal geflogen wurde. Dann
+     * zeichnet der Ruhezustand zwei Flugzeugsymbole - je eines links und rechts
+     * der Mitte, beide von der Mitte weg in die jeweilige Richtung - statt
+     * eines einzelnen in der Mitte.
+     */
+    private var roundTrip = false
+
     /** Puffer zum Entrollen der Ringe, wird wiederverwendet. */
     private var ringBuffer = FloatArray(0)
 
@@ -429,18 +454,24 @@ class RouteMiniMapView @JvmOverloads constructor(
      * Setzt die darzustellende Strecke samt Flughafencodes, die auf der Karte
      * an den Endpunkten beschriftet werden. Fehlende Koordinaten bleiben ohne
      * Inhalt, dann wird nur der Kartenhintergrund gezeichnet.
+     *
+     * [roundTrip] zeichnet im Ruhezustand zwei Flugzeugsymbole statt eines:
+     * je eines links und rechts der Mitte, beide von der Mitte weg gerichtet
+     * (Discovery-Seite bei erstmalig geflogenem Hin- und Rückflug).
      */
     fun setRoute(
         from: AirportData.GeoLocation,
         to: AirportData.GeoLocation,
         fromCode: String,
-        toCode: String
+        toCode: String,
+        roundTrip: Boolean = false
     ) {
         arc = buildArc(from, to)
         arcs = null
         arcCodes = null
         fromLabel = fromCode
         toLabel = toCode
+        this.roundTrip = roundTrip
         cityLanguage = Settings.getCityLabelLanguage(context)
         projection = null
         markBildCacheDirty()
@@ -470,6 +501,7 @@ class RouteMiniMapView @JvmOverloads constructor(
         arc = null
         fromLabel = null
         toLabel = null
+        roundTrip = false
         cityLanguage = Settings.getCityLabelLanguage(context)
         projection = null
         markBildCacheDirty()
@@ -663,7 +695,17 @@ class RouteMiniMapView @JvmOverloads constructor(
         when (planePhase) {
             PlanePhase.IDLE -> {
                 drawRoute(canvas, points, projection, 1f)
-                drawPlane(canvas, points, projection, null)
+                if (roundTrip) {
+                    // Hin- und Rückflug: zwei Symbole links und rechts der
+                    // Mitte, beide von der Mitte weg gerichtet - links zum
+                    // Abflug, rechts zum Ziel.
+                    val (links, rechts) = roundTripPlaneFractions()
+                    val count = points.size / 2
+                    drawPlaneAt(canvas, points, projection, (count - 1) * links, true)
+                    drawPlaneAt(canvas, points, projection, (count - 1) * rechts, false)
+                } else {
+                    drawPlane(canvas, points, projection, null)
+                }
             }
             PlanePhase.DRAWING -> {
                 drawRoute(canvas, points, projection, routeProgress)
@@ -944,14 +986,30 @@ class RouteMiniMapView @JvmOverloads constructor(
         projection: Projection,
         fraction: Float?
     ) {
-        val drawable = plane ?: return
         val count = points.size / 2
-        if (count < 3) return
         val pos = if (fraction == null) {
             count / 2f
         } else {
             (count - 1) * fraction.coerceIn(0f, 1f)
         }
+        drawPlaneAt(canvas, points, projection, pos, reverse = false)
+    }
+
+    /**
+     * Setzt das Flugzeugsymbol an die absolute Stützstelle [pos] (0 am Abflug,
+     * count-1 am Ziel), in Fahrtrichtung gedreht. [reverse] dreht es in die
+     * Gegenrichtung - für den Rückflug bei einem Hin- und Rückflug.
+     */
+    private fun drawPlaneAt(
+        canvas: Canvas,
+        points: FloatArray,
+        projection: Projection,
+        pos: Float,
+        reverse: Boolean
+    ) {
+        val drawable = plane ?: return
+        val count = points.size / 2
+        if (count < 3) return
         val index = pos.toInt().coerceIn(0, count - 1)
         val t = pos - index
         val next = (index + 1).coerceAtMost(count - 1)
@@ -973,7 +1031,11 @@ class RouteMiniMapView @JvmOverloads constructor(
         if (dx == 0f && dy == 0f) return
 
         val size = PLANE_SIZE_DP * density
-        val rotation = planeRotation(dx, dy)
+        val rotation = if (reverse) {
+            planeRotation(-dx, -dy)
+        } else {
+            planeRotation(dx, dy)
+        }
         drawSymbol(canvas, drawable, x, y, size, rotation)
     }
 

@@ -19,6 +19,9 @@ data class RouteDiscovery(
     val returnDate: LocalDate? = null
 ) {
     val isRoundTrip: Boolean get() = returnDate != null
+
+    /** Hin- und Rückflug am selben Tag (dann wird das Datum nur einmal angezeigt). */
+    val isSameDayRoundTrip: Boolean get() = returnDate != null && returnDate == date
 }
 
 /** Alle Neuzugänge eines Monats, neuester Eintrag zuerst. */

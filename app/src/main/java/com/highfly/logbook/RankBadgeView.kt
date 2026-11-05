@@ -63,6 +63,18 @@ class RankBadgeView @JvmOverloads constructor(
         invalidate()
     }
 
+    /**
+     * Setzt die Farbe der Platznummer - z. B. dunkel auf einer weissen
+     * Scheibe, wenn das Badge einen eigenen runden Hintergrund traegt (in
+     * der Story sitzen die Ränge 4-6 auf einer weissen Scheibe oben rechts
+     * am Avatar, damit man sie besser erkennt).
+     */
+    fun setNumberColor(color: Int) {
+        if (numberPaint.color == color) return
+        numberPaint.color = color
+        invalidate()
+    }
+
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         when {

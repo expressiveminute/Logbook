@@ -1,5 +1,8 @@
 package com.highfly.logbook
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.ValueAnimator
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Canvas
@@ -16,6 +19,7 @@ import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
 import android.view.ViewConfiguration
+import android.view.animation.DecelerateInterpolator
 import androidx.core.graphics.ColorUtils
 import com.google.android.material.color.MaterialColors
 import java.lang.ref.WeakReference
@@ -58,6 +62,19 @@ class RubbelkarteView @JvmOverloads constructor(
     attrs: AttributeSet? = null
 ) : View(context, attrs) {
 
+    /**
+     * Besuchte Bundesstaaten/-länder samt der Länder, in die es einen Flug
+     * gab ("US"/"DE"). Über [setContent] gesetzt.
+     */
+    data class StateContent(
+        val visitedStates: Set<String> = emptySet(),
+        val activeCountries: Set<String> = emptySet()
+    ) {
+        companion object {
+            val EMPTY = StateContent()
+        }
+    }
+
     companion object {
         private const val TAG = "RubbelkarteView"
 
@@ -97,6 +114,33 @@ class RubbelkarteView @JvmOverloads constructor(
          * Länder fallen mehr auf. Die Konturlinien bleiben ungedimmt.
          */
         private const val VISITED_ALPHA = 140
+
+        /**
+         * Deckkraft der nicht angeflogenen Bundesstaaten/-länder in einem Land,
+         * in das es schon einen Flug gab. Deutlich schwächer als [VISITED_ALPHA]
+         * (angeflogen) - das Land selbst wird in dieser Farbe gezeichnet, die
+         * angeflogenen Staaten liegen als volle Besuchsfarbe darüber. Damit ist
+         * ein unbesuchter Staat klar schwächer als ein besuchter, aber nicht in
+         * der Farbe eines unbesuchten Landes - man war ja schon in dem Land.
+         */
+        private const val STATE_MUTED_ALPHA = 50
+
+        /** Deckkraft der dünnen Staatengrenzen. */
+        private const val STATE_BORDER_ALPHA = 200
+
+        /**
+         * Höchstzahl der beschrifteten Hauptstädte von Bundesstaaten/-ländern,
+         * zusätzlich zu den Ländernamen und Städten.
+         */
+        private const val STATE_CAP_MAX = 16
+
+        /** Dauer der programmatischen Zoom-Animation, siehe [zoomTo]. */
+        private const val ZOOM_ANIM_MS = 500L
+
+        /** Füllarten der Staaten, siehe [StateShape.fill]. */
+        const val FILL_NONE = 0
+        const val FILL_VISITED = 1
+        const val FILL_MUTED = 2
 
         /** Wie lange der Name eines angetippten Landes stehen bleibt. */
         private const val NAME_ANZEIGE_MS = 2600L
@@ -152,6 +196,47 @@ class RubbelkarteView @JvmOverloads constructor(
 
         /** Ziel des Doppeltipps, erneutes Tippen zoomt wieder heraus. */
         const val ZOOM_DOPPELTIPP = 1.8f
+
+        /**
+         * Anteil der View-Höhe, um den die Kugel bei geöffneter halbhoher Seite
+         * nach oben rutscht (siehe [centerShiftFor]). Deckel auf GLOBE_MARGIN/2:
+         * Bei FIT-Zoom (Region = (1-GLOBE_MARGIN)/2 der kleineren Seite um die
+         * Kugelmitte) schneidet mehr oben ab, als unten frei wird.
+         */
+        const val PAGE_OPEN_UP_FRACTION = GLOBE_MARGIN / 2f
+
+        /** Zweiter Deckel des Aufwärtsversatzes als Anteil der Seitenhöhe. */
+        const val PAGE_OPEN_COVER_FRACTION = 0.25f
+
+        /**
+         * Versatz der Kugelmitte ([centerShiftY]) für eine View an [viewTop] mit
+         * der Höhe [viewHeight] auf einem [screenHeight] hohen Bildschirm, unten
+         * verdeckt durch [bottomCoverPx] Pixel (halbhohe Seite, 0 = zu).
+         *
+         * Ohne offene Seite steht die Kugel in der Bildschirmmitte - solange die
+         * innerhalb der View liegt, sonst in der View-Mitte. Mit offener Seite
+         * läge die Bildschirmmitte im verdeckten Bereich: Die Kugel nimmt dann
+         * die Mitte des sichtbaren Streifens und rutscht davon noch bis zu
+         * [PAGE_OPEN_UP_FRACTION] der View-Höhe nach oben, damit sie unten nicht
+         * in die Seite hineinragt.
+         */
+        fun centerShiftFor(
+            viewTop: Float,
+            viewHeight: Float,
+            screenHeight: Float,
+            bottomCoverPx: Int
+        ): Float {
+            if (viewHeight <= 0f) return 0f
+            val screenCenter = screenHeight / 2f
+            val cover = bottomCoverPx.coerceAtLeast(0).toFloat()
+            val want = if (cover <= 0f && screenCenter in viewTop..(viewTop + viewHeight)) {
+                screenCenter
+            } else {
+                val up = minOf(viewHeight * PAGE_OPEN_UP_FRACTION, cover * PAGE_OPEN_COVER_FRACTION)
+                viewTop + viewHeight / 2f - up
+            }
+            return want - viewTop - viewHeight / 2f
+        }
 
         /**
          * Freier Rand zwischen Ländername und Küste in dp. Ohne ihn klebt der
@@ -293,13 +378,19 @@ class RubbelkarteView @JvmOverloads constructor(
         private const val TWO_PI = 2.0 * PI
         private const val HALF_PI = PI / 2.0
 
+        /** Geladene Umrisse: Länder und Staaten gemeinsam, app-weit geteilt. */
+        data class Shared(
+            val countries: List<CountryShapes.Country>,
+            val states: List<StateShapes.State>
+        )
+
         /**
          * Die Umrisse sind app-weit dieselben, deshalb werden sie einmal geladen
          * und von allen Instanzen geteilt. Views, die noch warten, werden schwach
          * gehalten und nach dem Laden zum Neuzeichnen angestoßen.
          */
         @Volatile
-        private var sharedCountries: List<CountryShapes.Country>? = null
+        private var shared: Shared? = null
 
         @Volatile
         private var sharedLoading = false
@@ -308,10 +399,10 @@ class RubbelkarteView @JvmOverloads constructor(
 
         private val waiting = mutableListOf<WeakReference<RubbelkarteView>>()
 
-        private fun requestCountries(context: Context, view: RubbelkarteView) {
-            val ready = sharedCountries
+        private fun requestData(context: Context, view: RubbelkarteView) {
+            val ready = shared
             if (ready != null) {
-                view.onCountriesLoaded(ready)
+                view.onDataLoaded(ready)
                 return
             }
             val appContext = context.applicationContext
@@ -324,23 +415,42 @@ class RubbelkarteView @JvmOverloads constructor(
             }
             Thread {
                 val parsed = try {
-                    CountryShapes.load(appContext)
+                    Shared(
+                        CountryShapes.load(appContext) ?: emptyList(),
+                        StateShapes.load(appContext) ?: emptyList()
+                    )
                 } catch (e: Exception) {
-                    Log.e(TAG, "Länderumrisse konnten nicht geladen werden", e)
+                    Log.e(TAG, "Umrisse konnten nicht geladen werden", e)
                     null
                 }
                 val views = synchronized(sharedLock) {
                     sharedLoading = false
-                    sharedCountries = parsed
+                    if (parsed != null) shared = parsed
                     waiting.toList().also { waiting.clear() }
                 }
                 views.forEach { reference ->
                     val target = reference.get() ?: return@forEach
-                    target.post { target.onCountriesLoaded(parsed ?: emptyList()) }
+                    target.post { target.onDataLoaded(parsed ?: Shared(emptyList(), emptyList())) }
                 }
             }.start()
         }
     }
+
+    /**
+     * Ein Bundesstaat/Bundesland mit dem bereits gezeichneten Pfad.
+     * [fill] entscheidet, ob die Fläche überhaupt gefüllt wird:
+     * [FILL_VISITED] in der Besuchsfarbe, [FILL_MUTED] abgeschwächt (Land
+     * selbst besucht, Staat nicht), [FILL_NONE] nur die dünne Grenzlinie.
+     */
+    private class StateShape(
+        val code: String,
+        val iso2: String,
+        val path: Path,
+        val bounds: RectF,
+        val fill: Int,
+        /** Beschriftete Hauptstadt, siehe [fuelleStateCapitals]. */
+        var staedte: List<Stadt> = emptyList()
+    )
 
     /** Ein Land mit dem bereits gezeichneten Pfad. */
     private class Shape(
@@ -417,6 +527,36 @@ class RubbelkarteView @JvmOverloads constructor(
         color = if (isDarkTheme) Color.rgb(48, 60, 72) else Color.rgb(228, 231, 224)
     }
     private val visitedPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+    /**
+     * Füllung der nicht angeflogenen Staaten in einem besuchten Land:
+     * Akzentfarbe mit [STATE_MUTED_ALPHA], siehe dort.
+     */
+    private val stateMutedPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+    /** Dünne Linien der Staatengrenzen, deutlich feiner als die Ländergrenzen. */
+    private val stateBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeJoin = Paint.Join.ROUND
+        strokeWidth = 0.5f * density
+    }
+
+    /** Kräftige Linie um das hervorgehobene Land/den Staat, siehe [setHighlight]. */
+    private val highlightPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeJoin = Paint.Join.ROUND
+        strokeCap = Paint.Cap.ROUND
+        strokeWidth = 2.2f * density
+    }
+
+    /** Weicher Schein unter der Hervorhebung, damit sie auch auf Farbe auffällt. */
+    private val highlightGlowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeJoin = Paint.Join.ROUND
+        strokeCap = Paint.Cap.ROUND
+        strokeWidth = 5f * density
+    }
+
     private val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeJoin = Paint.Join.ROUND
@@ -525,6 +665,31 @@ class RubbelkarteView @JvmOverloads constructor(
     @Volatile
     private var shapes: List<Shape> = emptyList()
 
+    /** Gezeichnete Bundesstaaten/-länder, siehe [StateShape]. */
+    @Volatile
+    private var stateShapes: List<StateShape> = emptyList()
+
+    /** Besuchte Staaten und Länder mit Flug, siehe [StateContent]. */
+    @Volatile
+    private var stateContent = StateContent.EMPTY
+
+    /**
+     * Code des hervorgehobenen Landes/Staates (Auge in der Liste), oder null.
+     * Wird als kräftige Linie über die Grenze gezeichnet.
+     */
+    @Volatile
+    private var highlightCodes: Set<String> = emptySet()
+
+    /**
+     * Programmatisch gesetztes Zentrum der Kugel als (lat, lon), oder null -
+     * dann zählt die Mitte der besuchten Länder. Siehe [zoomTo].
+     */
+    @Volatile
+    private var focusOverride: Pair<Double, Double>? = null
+
+    /** Laufende Zoom-Animation, siehe [zoomTo]. */
+    private var focusAnim: ValueAnimator? = null
+
     /**
      * Land, dessen Name gerade eingeblendet wird, und wo der erscheint. Ohne
      * Tippen steht auf der Karte keine Schrift.
@@ -562,6 +727,14 @@ class RubbelkarteView @JvmOverloads constructor(
      */
     @Volatile
     private var centerShiftY = 0f
+
+    /**
+     * Höhe des unten eingeblendeten Bereichs (halbhohe Seite im page_host) in
+     * Pixeln; 0, wenn keine Seite offen ist. Setzt das Fragment über
+     * [setBottomCover]. Bei offenem Bereich zentriert [updateCenterShift] die
+     * Kugel auf den sichtbaren Streifen statt auf die Bildschirmmitte.
+     */
+    private var bottomCoverPx = 0
 
     /**
      * Zustand, aus dem das gerade gezeichnete Bild stammt, siehe [GlobeState].
@@ -656,15 +829,20 @@ class RubbelkarteView @JvmOverloads constructor(
     )
 
     init {
-        visitedPaint.color = MaterialColors.getColor(
+        val primary = MaterialColors.getColor(
             this, com.google.android.material.R.attr.colorPrimary
         )
+        visitedPaint.color = primary
         visitedPaint.alpha = VISITED_ALPHA
+        stateMutedPaint.color = ColorUtils.setAlphaComponent(primary, STATE_MUTED_ALPHA)
         val outline = MaterialColors.getColor(
             this, com.google.android.material.R.attr.colorOutlineVariant
         )
         borderPaint.color = outline
         rimPaint.color = outline
+        stateBorderPaint.color = ColorUtils.setAlphaComponent(outline, STATE_BORDER_ALPHA)
+        highlightPaint.color = ColorUtils.setAlphaComponent(primary, 230)
+        highlightGlowPaint.color = ColorUtils.setAlphaComponent(primary, 70)
         val nameColor = MaterialColors.getColor(
             this, com.google.android.material.R.attr.colorOnPrimary
         )
@@ -696,17 +874,121 @@ class RubbelkarteView @JvmOverloads constructor(
 
     /**
      * Setzt den Besuch. [visited] enthält die besuchten Länder als ISO-2,
-     * [airports] die besuchten Flughäfen als IATA.
+     * [airports] die besuchten Flughäfen als IATA. [states] trägt die
+     * Bundesstaaten/-länder: welche angeflogen sind und in welchen Ländern
+     * es überhaupt einen Flug gab - erst dann werden die Staaten gefüllt.
      */
-    fun setContent(visited: Set<String>, airports: List<String>) {
+    fun setContent(
+        visited: Set<String>,
+        airports: List<String>,
+        states: StateContent = StateContent.EMPTY
+    ) {
         visitedIso2 = visited
         visitedAirports = airports
-        requestCountries(context, this)
+        // Codes normalisieren, damit Groß-/Kleinschreibung keine Rolle spielt.
+        stateContent = states.copy(
+            visitedStates = states.visitedStates.map { it.trim().uppercase() }.toSet(),
+            activeCountries = states.activeCountries.map { it.trim().uppercase() }.toSet()
+        )
+        requestData(context, this)
         invalidate()
     }
 
-    private fun onCountriesLoaded(list: List<CountryShapes.Country>) {
-        if (list.isEmpty()) {
+    /**
+     * Hebt Länder (ISO-2) oder Staaten (ISO-3166-2) auf der Kugel hervor,
+     * z. B. alle Länder eines Kontinents nach einem Kachel-Tipp oder ein Land
+     * nach einem Tipp auf das Auge in der Länderliste. Eine leere Menge
+     * schaltet die Hervorhebung aus.
+     */
+    fun setHighlight(codes: Set<String>) {
+        highlightCodes = codes.map { it.trim().uppercase() }.toSet()
+        invalidate()
+    }
+
+    /**
+     * Setzt die Höhe des unten eingeblendeten Bereichs (halbhohe Seite) in
+     * Pixeln; 0, wenn die Seite geschlossen ist. Das Fragment ruft das in
+     * openPage bzw. hidePage.
+     */
+    fun setBottomCover(px: Int) {
+        val value = px.coerceAtLeast(0)
+        if (value != bottomCoverPx) {
+            bottomCoverPx = value
+            built = false
+            invalidate()
+        }
+    }
+
+    /**
+     * Setzt die Kugel auf die Anfangsansicht zurück: Weltkugel bei [ZOOM_MIN],
+     * zentriert auf die besuchten Länder (ohne solche auf die Vorgabe) - als
+     * hätte der Nutzer weder gezoomt noch verschoben. Läuft als kurze Animation.
+     */
+    fun resetToWorld() {
+        val center = shared?.countries?.let { RubbelkarteStats.centerOf(it, visitedIso2) }
+        if (center != null) {
+            // centerOf liefert (lon, lat).
+            zoomTo(center.second, center.first, ZOOM_MIN)
+        } else {
+            focusAnim?.cancel()
+            focusOverride = null
+            zoom = ZOOM_MIN
+            built = false
+            rebuildIfNeeded()
+            invalidate()
+        }
+    }
+
+    /**
+     * Fährt die Kugel programmgesteuert auf den Punkt [lat]/[lon] und zoomt auf
+     * [targetZoom]. Die Bewegung läuft als kurze Animation; ein Wischen des
+     * Nutzers übernimmt wieder die Steuerung (das Zielzentrum wird verworfen).
+     */
+    fun zoomTo(lat: Double, lon: Double, targetZoom: Float) {
+        val toZoom = clampZoom(targetZoom)
+        if (width <= 0 || height <= 0) {
+            focusOverride = lat to lon
+            zoom = toZoom
+            built = false
+            rebuildIfNeeded()
+            invalidate()
+            return
+        }
+        val state = liveState()
+        val fromLat = if (state != null) Math.toDegrees(state.globe.centerLat) else DEFAULT_CENTER_LAT
+        val fromLon =
+            if (state != null) normalizeLon(Math.toDegrees(state.globe.centerLon)) else DEFAULT_CENTER_LON
+        val fromZoom = zoom
+        // Kürzester Weg über die Datumslinie: ein Sprung von 350° wäre derselbe
+        // Blickpunkt wie -10°, darf aber nicht die ganze Kugel herumdrehen.
+        val deltaLon = ((lon - fromLon + 540.0) % 360.0) - 180.0
+        focusAnim?.cancel()
+        val anim = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = ZOOM_ANIM_MS
+            interpolator = DecelerateInterpolator()
+            addUpdateListener { a ->
+                val f = a.animatedValue as Float
+                focusOverride = (fromLat + (lat - fromLat) * f) to (fromLon + deltaLon * f)
+                zoom = clampZoom(fromZoom + (toZoom - fromZoom) * f)
+                built = false
+                rebuildIfNeeded()
+            }
+            addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) {
+                    focusOverride = lat to lon
+                    zoom = toZoom
+                    built = false
+                    rebuildIfNeeded()
+                    invalidate()
+                }
+            })
+            start()
+        }
+        focusAnim = anim
+    }
+
+    private fun onDataLoaded(data: Shared) {
+        if (data.countries.isEmpty()) {
             invalidate()
             return
         }
@@ -771,13 +1053,20 @@ class RubbelkarteView @JvmOverloads constructor(
         built = false
     }
 
+    override fun onDetachedFromWindow() {
+        focusAnim?.cancel()
+        focusAnim = null
+        removeCallbacks(nameAusblenden)
+        super.onDetachedFromWindow()
+    }
+
     override fun onDraw(canvas: Canvas) {
         if (width <= 0 || height <= 0) return
         // Nur das Wasser ist blau, der Kasten um die Kugel verschwindet.
         updateCenterShift()
         if (!built) {
-            if (sharedCountries == null) {
-                requestCountries(context, this)
+            if (shared == null) {
+                requestData(context, this)
                 return
             }
             rebuildIfNeeded()
@@ -793,18 +1082,62 @@ class RubbelkarteView @JvmOverloads constructor(
 
         canvas.save()
         canvas.clipPath(clipPath)
+        // Länder mit eigenen Staaten (USA/Deutschland mit Flug) werden nur
+        // schwach gefüllt - die Staaten zeichnen sich darüber selbst: angeflogene
+        // in voller Besuchsfarbe, nicht angeflogene bleiben in der schwachen
+        // Grundfarbe des Landes sichtbar.
+        val activeCountries = stateContent.activeCountries
         for (shape in list) {
-            canvas.drawPath(shape.path, if (shape.visited) visitedPaint else unvisitedPaint)
+            val paint = when {
+                shape.iso2 in activeCountries -> stateMutedPaint
+                shape.visited -> visitedPaint
+                else -> unvisitedPaint
+            }
+            canvas.drawPath(shape.path, paint)
+        }
+        // AngeFlogene Bundesstaaten/-länder in derselben Farbe wie ein besuchtes
+        // Land. Nicht angeflogene bekommen keine eigene Füllung mehr - das Land
+        // darunter ist schon schwach gefüllt, sie treten dadurch deutlich zurück.
+        for (shape in stateShapes) {
+            if (shape.fill == FILL_VISITED) {
+                canvas.drawPath(shape.path, visitedPaint)
+            }
         }
         for (shape in list) {
             canvas.drawPath(shape.path, borderPaint)
         }
+        // Die Staatengrenzen als dünne Linien obendrauf.
+        for (shape in stateShapes) {
+            canvas.drawPath(shape.path, stateBorderPaint)
+        }
+        drawHighlight(canvas, list)
         drawBeschriftung(canvas)
         drawAirports(canvas)
         drawName(canvas)
         canvas.restore()
         // Der Rand gehört zum Bild, nicht zum Wasser, deshalb ohne Beschneiden.
         canvas.drawCircle(state.cx, state.cy, state.radius, rimPaint)
+    }
+
+    /**
+     * Zeichnet die Hervorhebung aus [setHighlight]: erst den weichen Schein,
+     * dann die kräftige Linie - beim Land wie beim Staat.
+     */
+    private fun drawHighlight(canvas: Canvas, list: List<Shape>) {
+        val codes = highlightCodes
+        if (codes.isEmpty()) return
+        for (shape in list) {
+            if (shape.iso2.uppercase() in codes) {
+                canvas.drawPath(shape.path, highlightGlowPaint)
+                canvas.drawPath(shape.path, highlightPaint)
+            }
+        }
+        for (shape in stateShapes) {
+            if (shape.code.uppercase() in codes) {
+                canvas.drawPath(shape.path, highlightGlowPaint)
+                canvas.drawPath(shape.path, highlightPaint)
+            }
+        }
     }
 
     /**
@@ -818,10 +1151,12 @@ class RubbelkarteView @JvmOverloads constructor(
         val cx = width / 2f
         val cy = height / 2f + centerShiftY
         val radius = globeRadius(width.toFloat(), height.toFloat())
-        val list = sharedCountries
-        // Ohne Länder gibt es keine Mitte der besuchten Länder, dann zählt die
-        // Vorgabe - so fehlt der Aufbau nicht an einer leeren Kugel.
-        val center = list?.let { RubbelkarteStats.centerOf(it, visitedIso2) }
+        val list = shared?.countries
+        // Ein programmatisch gesetztes Zentrum ([zoomTo]) schlägt die Mitte der
+        // besuchten Länder. Ohne Länder gibt es keine solche Mitte, dann zählt
+        // die Vorgabe - so fehlt der Aufbau nicht an einer leeren Kugel.
+        val center = focusOverride?.let { Pair(it.second, it.first) }
+            ?: list?.let { RubbelkarteStats.centerOf(it, visitedIso2) }
         val centerLon = normalizeLon(center?.first ?: DEFAULT_CENTER_LON)
         val centerLat = (center?.second ?: DEFAULT_CENTER_LAT).coerceIn(-60.0, 70.0)
         val lonRad = Math.toRadians(centerLon) + userLonRad
@@ -842,17 +1177,22 @@ class RubbelkarteView @JvmOverloads constructor(
      * des Bildschirms, von der Position der View aus gesehen liegt sie um
      * [centerShiftY] tiefer als die Viewmitte.
      *
-     * Die Mitte der View ist die Mitte des Raums zwischen Fortschrittsbalken und
-     * Kachelzeile, die Bildschirmmitte liegt ein Stück darunter, weil unten noch
-     * die Kacheln und die Navigationsleiste Platz brauchen. Beides liegt dicht
-     * beieinander - wichtig ist nur, dass der Versatz die Kugel nicht aus ihrem
-     * Feld schiebt.
+     * Ist unten die halbhohe Seite offen ([bottomCoverPx] > 0), liegt die
+     * Bildschirmmitte im verdeckten Bereich - die Kugel würde dort zeichnen, wo
+     * die Seite sie verdeckt. Sie nimmt dann die Mitte des sichtbaren Streifens
+     * und rutscht davon noch etwas nach oben. Die reine Rechnung steht in
+     * [centerShiftFor].
      */
     private fun updateCenterShift() {
         val root = rootView
         if (root.height <= 0) return
         getLocationInWindow(windowOffset)
-        val shift = root.height / 2f - windowOffset[1] - height / 2f
+        val shift = centerShiftFor(
+            viewTop = windowOffset[1].toFloat(),
+            viewHeight = height.toFloat(),
+            screenHeight = root.height.toFloat(),
+            bottomCoverPx = bottomCoverPx
+        )
         if (abs(shift - centerShiftY) > 0.5f) {
             centerShiftY = shift
             built = false
@@ -887,6 +1227,11 @@ class RubbelkarteView @JvmOverloads constructor(
                 tapY = touchY
                 draggedPx = 0f
                 scaled = false
+                // Eine laufende programmatische Zoom-Animation ([zoomTo]) hört
+                // auf, sobald der Nutzer selbst greift; das Zielzentrum bleibt
+                // aber stehen, damit die Kugel nicht zurückspringt.
+                focusAnim?.cancel()
+                focusAnim = null
                 // Ab jetzt bis zum Loslassen ohne Beschriftung neu aufbauen.
                 gestureActive = true
                 return true
@@ -995,6 +1340,11 @@ class RubbelkarteView @JvmOverloads constructor(
     private fun rotate(dx: Float, dy: Float) {
         val radius = globeRadius()
         if (radius <= 0f) return
+        // Ab dem ersten Wischen gehört die Kugel wieder dem Nutzer: ein
+        // programmatisch gesetztes Zentrum ([zoomTo]) wird verworfen.
+        focusOverride = null
+        focusAnim?.cancel()
+        focusAnim = null
         val naechste = GeoMath.Globe(userLonRad, userLatRad).drag(dx, dy, radius)
         userLonRad = naechste[0] % TWO_PI
         if (userLonRad < 0.0) userLonRad += TWO_PI
@@ -1048,40 +1398,66 @@ class RubbelkarteView @JvmOverloads constructor(
             belegt.add(label)
         }
         if (zoom < ZOOM_STAEDTE) return
-        val metrics = stadtPaint.fontMetrics
-        val textHoehe = metrics.descent - metrics.ascent
-        val abstand = STADT_ABSTAND_DP * density
-        val punktRadius = STADT_PUNKT_DP * density
         for (shape in shapes) {
             for (stadt in shape.staedte) {
                 // Die Hauptstadt wird fett gesetzt: Sie ist der Anker, an dem
                 // man ein Land auf der Kugel wiedererkennt.
                 val textPaint = if (stadt.hauptstadt) stadtFettPaint else stadtPaint
-                val textBreite = textPaint.measureText(stadt.name)
-                // Der Punkt gehört mit zur Beschriftung: Ein Name, der auf einen
-                // Punkt zeigt, ist ohne den Zusammenhang einem anderen Land
-                // zuzuordnen.
-                for (versatz in STADT_AUSWEICH) {
-                    val y = stadt.y + versatz * textHoehe
-                    val rect = floatArrayOf(
-                        stadt.x - punktRadius - 1f,
-                        y - textHoehe / 2f - abstand / 2f,
-                        stadt.x + abstand + textBreite,
-                        y + textHoehe / 2f + abstand / 2f
-                    )
-                    if (belegt.any { ueberlappt(it, rect) }) continue
-                    belegt.add(rect)
-                    val grundlinie = y - grundlinienVersatz(stadtPaint)
-                    canvas.drawText(stadt.name, stadt.x + abstand, grundlinie, stadtHaloPaint)
-                    canvas.drawText(stadt.name, stadt.x + abstand, grundlinie, textPaint)
-                    // Der Punkt bekommt denselben Halo wie der Text, sonst stünde
-                    // ein winziger Punkt ohne Anschluss an seinem Namen.
-                    canvas.drawCircle(stadt.x, stadt.y, punktRadius, stadtPunktHaloPaint)
-                    canvas.drawCircle(stadt.x, stadt.y, punktRadius, stadtPunktPaint)
-                    break
-                }
+                if (platziereStadt(canvas, belegt, stadt, textPaint)) continue
             }
         }
+        // Hauptstädte der aktiven Bundesstaaten/-länder (USA/Deutschland mit
+        // Flug): eigenes Budget, damit sie die Städtenamen nicht verdrängen.
+        var capBudget = STATE_CAP_MAX
+        for (shape in stateShapes) {
+            if (capBudget <= 0) break
+            if (shape.fill == FILL_NONE) continue
+            for (stadt in shape.staedte) {
+                if (capBudget <= 0) break
+                if (platziereStadt(canvas, belegt, stadt, stadtFettPaint)) capBudget--
+            }
+        }
+    }
+
+    /**
+     * Setzt einen Städtenamen neben seinen Punkt, an einer der Ausweichpositionen
+     * aus [STADT_AUSWEICH]. Gibt true zurück, wenn er gezeichnet wurde - dann
+     * gehört das belegte Rechteck in [belegt], damit der nächste Name ausweicht.
+     *
+     * Der Punkt gehört mit zur Beschriftung: Ein Name, der auf einen Punkt
+     * zeigt, ist ohne den Zusammenhang einem anderen Land zuzuordnen.
+     */
+    private fun platziereStadt(
+        canvas: Canvas,
+        belegt: MutableList<FloatArray>,
+        stadt: Stadt,
+        textPaint: Paint
+    ): Boolean {
+        val metrics = stadtPaint.fontMetrics
+        val textHoehe = metrics.descent - metrics.ascent
+        val abstand = STADT_ABSTAND_DP * density
+        val punktRadius = STADT_PUNKT_DP * density
+        val textBreite = textPaint.measureText(stadt.name)
+        for (versatz in STADT_AUSWEICH) {
+            val y = stadt.y + versatz * textHoehe
+            val rect = floatArrayOf(
+                stadt.x - punktRadius - 1f,
+                y - textHoehe / 2f - abstand / 2f,
+                stadt.x + abstand + textBreite,
+                y + textHoehe / 2f + abstand / 2f
+            )
+            if (belegt.any { ueberlappt(it, rect) }) continue
+            belegt.add(rect)
+            val grundlinie = y - grundlinienVersatz(stadtPaint)
+            canvas.drawText(stadt.name, stadt.x + abstand, grundlinie, stadtHaloPaint)
+            canvas.drawText(stadt.name, stadt.x + abstand, grundlinie, textPaint)
+            // Der Punkt bekommt denselben Halo wie der Text, sonst stünde
+            // ein winziger Punkt ohne Anschluss an seinem Namen.
+            canvas.drawCircle(stadt.x, stadt.y, punktRadius, stadtPunktHaloPaint)
+            canvas.drawCircle(stadt.x, stadt.y, punktRadius, stadtPunktPaint)
+            return true
+        }
+        return false
     }
 
     /** Versatz der Grundlinie zur Mitte des Textes. */
@@ -1163,12 +1539,13 @@ class RubbelkarteView @JvmOverloads constructor(
      */
     private fun rebuildIfNeeded() {
         if (width <= 0 || height <= 0 || built || building) return
-        val list = sharedCountries ?: return
+        val data = shared ?: return
         val state = liveState() ?: return
         built = true
         building = true
         val generation = ++buildGeneration
         val visitedSnapshot = visitedIso2
+        val stateSnapshot = stateContent
         // Während einer Geste ohne Beschriftung aufbauen, siehe [gestureActive].
         // Der Wert wird hier auf dem Hauptthread gelesen und dem Aufbau mitgegeben,
         // der Thread liest selbst nichts aus der View.
@@ -1184,7 +1561,10 @@ class RubbelkarteView @JvmOverloads constructor(
             // - und ohne finally bliebe building dauerhaft true, sodass die
             // Kugel gar nichts mehr neu aufbaut.
             val builtShapes = try {
-                buildGlobe(list, visitedSnapshot, state, generation, zoom, mitNamen, appContext)
+                buildGlobe(
+                    data.countries, visitedSnapshot, data.states, stateSnapshot,
+                    state, generation, zoom, mitNamen, appContext
+                )
             } catch (e: RuntimeException) {
                 Log.e(TAG, "Kugel konnte nicht neu aufgebaut werden", e)
                 null
@@ -1201,11 +1581,12 @@ class RubbelkarteView @JvmOverloads constructor(
                     invalidate()
                     return@post
                 }
-                // Land und Punkte kommen im selben Zug um: [drawnState] ist
-                // genau der Zustand, aus dem [builtShapes] gebaut wurde. Erst
+                // Land, Staaten und Punkte kommen im selben Zug um: [drawnState]
+                // ist genau der Zustand, aus dem [builtShapes] gebaut wurde. Erst
                 // danach darf gezeichnet werden, sonst stehen die Punkte
                 // waehrend des Drehens neben dem Land.
-                shapes = builtShapes
+                shapes = builtShapes.first
+                stateShapes = builtShapes.second
                 drawnState = state
                 drawnHatNamen = mitNamen
                 invalidate()
@@ -1226,7 +1607,7 @@ class RubbelkarteView @JvmOverloads constructor(
      * [liveState].
      */
     private fun needsRebuild(state: GlobeState): Boolean {
-        if (sharedCountries == null || shapes.isEmpty()) return false
+        if (shared == null || shapes.isEmpty()) return false
         val live = liveState() ?: return false
         val pixel = max(abs(live.cx - state.cx), abs(live.cy - state.cy)) +
             abs(live.radius - state.radius)
@@ -1258,12 +1639,14 @@ class RubbelkarteView @JvmOverloads constructor(
     private fun buildGlobe(
         list: List<CountryShapes.Country>,
         visited: Set<String>,
+        states: List<StateShapes.State>,
+        stateContent: StateContent,
         state: GlobeState,
         generation: Int,
         zoom: Float,
         mitNamen: Boolean,
         appContext: Context
-    ): List<Shape> {
+    ): Pair<List<Shape>, List<StateShape>> {
         val globe = state.globe
         val cx = state.cx
         val cy = state.cy
@@ -1279,7 +1662,7 @@ class RubbelkarteView @JvmOverloads constructor(
         val rand = LABEL_RAND_DP * density
         val result = ArrayList<Shape>(list.size)
         for (country in list) {
-            if (generation != buildGeneration) return result
+            if (generation != buildGeneration) return result to emptyList()
             if (country.iso2 == ANTARCTICA) continue
             val path = globeRings(country.unitRings, globe, cx, cy, radius) ?: continue
             val bounds = RectF().apply { path.computeBounds(this, true) }
@@ -1304,7 +1687,84 @@ class RubbelkarteView @JvmOverloads constructor(
         if (mitNamen && zoom >= ZOOM_STAEDTE) {
             fuelleStaedte(geordnet, globe, cx, cy, radius, german, appContext)
         }
-        return geordnet
+        // Bundesstaaten/-länder (USA, Deutschland): Umrisse und Füllung. Die
+        // dünnen Grenzen zeichnen sich immer, die Füllung nur in Ländern, in
+        // die es einen Flug gab.
+        val stateResult = ArrayList<StateShape>(states.size)
+        for (stateEntry in states) {
+            if (generation != buildGeneration) break
+            val path = globeRings(stateEntry.unitRings, globe, cx, cy, radius) ?: continue
+            val bounds = RectF().apply { path.computeBounds(this, true) }
+            val active = stateEntry.iso2 in stateContent.activeCountries
+            val fill = when {
+                !active -> FILL_NONE
+                stateEntry.code.uppercase() in stateContent.visitedStates -> FILL_VISITED
+                else -> FILL_MUTED
+            }
+            stateResult.add(
+                StateShape(
+                    code = stateEntry.code,
+                    iso2 = stateEntry.iso2,
+                    path = path,
+                    bounds = bounds,
+                    fill = fill
+                )
+            )
+        }
+        if (mitNamen && zoom >= ZOOM_STAEDTE) {
+            fuelleStateCapitals(stateResult, states, globe, cx, cy, radius, german)
+        }
+        return geordnet to stateResult
+    }
+
+    /**
+     * Besetzt die Hauptstädte der aktiven Bundesstaaten/-länder: nur in Ländern,
+     * in die es einen Flug gab ([StateShape.fill] ungleich [FILL_NONE]), und nur
+     * wo der Staat groß genug auf dem Bildschirm ist. Die Kollisionsprüfung mit
+     * den übrigen Beschriftungen passiert erst beim Zeichnen, siehe
+     * [platziereStadt].
+     */
+    private fun fuelleStateCapitals(
+        shapes: List<StateShape>,
+        states: List<StateShapes.State>,
+        globe: GeoMath.Globe,
+        cx: Float,
+        cy: Float,
+        radius: Float,
+        german: Boolean
+    ) {
+        val byCode = HashMap<String, StateShapes.State>(states.size)
+        for (state in states) byCode[state.code.uppercase()] = state
+        val kleinsteLaenge = STADT_MIN_LAND_DP * density
+        var budget = STATE_CAP_MAX
+        for (shape in shapes) {
+            if (budget <= 0) break
+            if (shape.fill == FILL_NONE) continue
+            if (shape.bounds.width() < kleinsteLaenge ||
+                shape.bounds.height() < kleinsteLaenge
+            ) {
+                continue
+            }
+            val state = byCode[shape.code.uppercase()] ?: continue
+            if (!projectGlobe(
+                    state.capLat, state.capLon, globe, cx, cy, radius,
+                    buildPoint, buildProjection
+                )
+            ) {
+                continue
+            }
+            val capital = state.capDe.ifBlank { state.capEn }
+            if (capital.isBlank()) continue
+            shape.staedte = listOf(
+                Stadt(
+                    name = if (german) capital else state.capEn.ifBlank { capital },
+                    x = buildProjection[0],
+                    y = buildProjection[1],
+                    hauptstadt = true
+                )
+            )
+            budget--
+        }
     }
 
     /**

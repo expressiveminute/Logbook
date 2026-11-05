@@ -1,0 +1,15 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- Glatze mit Bart -->
+    <path android:fillColor="#8D5524"
+        android:pathData="M20.5,27 L27.5,27 L27.5,37 L20.5,37 Z" />
+    <path android:fillColor="#E64A19"
+        android:pathData="M6,48 C6,38.5 14,34.5 24,34.5 C34,34.5 42,38.5 42,48 Z" />
+    <path android:fillColor="#3E2723"
+        android:pathData="M15.5,23 a8.5,8.5 0 1 1 17,0 a8.5,8.5 0 1 1 -17,0 Z" />
+    <path android:fillColor="#8D5524"
+        android:pathData="M14.5,20 a9.5,9.5 0 1 1 19,0 a9.5,9.5 0 1 1 -19,0 Z" />
+</vector>

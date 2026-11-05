@@ -18,15 +18,34 @@
     app:strokeColor="?attr/colorOutlineVariant"
     app:strokeWidth="1dp">
 
-    <!-- Der Ring füllt den Rest, deshalb hängt die Kachel an der Breite und
-         bleibt quadrätisch. -->
-    <LinearLayout
+    <!-- Länder-Kacheln (Deutschland, USA) tragen ihre Flagge dezent im
+         Hintergrund; bei Kontinent-Kacheln bleibt das Feld leer. -->
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:gravity="center_horizontal"
-        android:orientation="vertical"
-        android:paddingHorizontal="8dp"
-        android:paddingVertical="@dimen/continent_tile_padding">
+        android:layout_height="match_parent">
+
+        <!-- Die Flagge als kompletter Kachelhintergrund, dezent. Die View
+             zentriert das Emoji selbst exakt in der Kachelmitte und skaliert
+             es passend zur Kachelgröße (die Glyphe sitzt in der Emoji-Zeilenbox
+             nicht mittig, deshalb ginge es mit einer TextView nicht reliable). -->
+        <com.highfly.logbook.TileFlagView
+            android:id="@+id/tv_continent_flag"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:alpha="0.12"
+            android:importantForAccessibility="no"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <!-- Der Ring füllt den Rest, deshalb hängt die Kachel an der Breite und
+             bleibt quadrätisch. -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="@dimen/continent_tile_padding">
 
         <TextView
             android:id="@+id/tv_continent_name"
@@ -59,5 +78,6 @@
             android:textSize="@dimen/continent_tile_count"
             android:textStyle="bold"
             tools:text="10/40" />
-    </LinearLayout>
+        </LinearLayout>
+    </FrameLayout>
 </com.google.android.material.card.MaterialCardView>

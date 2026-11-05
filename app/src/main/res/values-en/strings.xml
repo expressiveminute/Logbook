@@ -156,6 +156,7 @@
     <string name="flight_route_stat_distance">Distance</string>
     <string name="flight_route_stat_minutes">%1$s min</string>
     <string name="continent_europe">Europe</string>
+    <string name="continent_eu">EU</string>
     <string name="continent_asia">Asia</string>
     <string name="continent_north_america">North America</string>
     <string name="continent_south_america">South America</string>
@@ -208,6 +209,61 @@
     <string name="nav_dashboard">Dashboard</string>
     <string name="nav_rubbelkarte">Scratch map</string>
     <string name="nav_profile">Settings</string>
+    <string name="nav_time_countries">Times</string>
+    <string name="time_countries_title">Time in countries</string>
+    <string name="time_countries_subtitle">%1$d countries · %2$s total</string>
+    <string name="time_countries_homebase">Homebase %1$s (%2$s) is not counted</string>
+    <string name="time_countries_empty">No stays outside the home base yet</string>
+    <string name="time_countries_section_crossings">Overland border crossings</string>
+    <string name="time_countries_crossings_hint">Border crossings by car, bus or ferry are not in the logbook – add them manually here:</string>
+    <string name="time_countries_add_crossing">Add border crossing</string>
+    <string name="time_countries_enter_on">entered on %1$s</string>
+    <string name="time_countries_exit_on">left on %1$s</string>
+    <string name="time_countries_delete_desc">Delete border crossing</string>
+    <string name="time_countries_dialog_title">Overland border crossing</string>
+    <string name="time_countries_country_hint">Country</string>
+    <string name="time_countries_date_hint">Date</string>
+    <string name="time_countries_enter_radio">Enter country (car, bus, ferry …)</string>
+    <string name="time_countries_exit_radio">Leave country</string>
+    <string name="time_countries_pick_country">Please pick a country</string>
+    <string name="time_countries_one_day">1 day</string>
+    <string name="time_countries_days">%1$d days</string>
+    <string name="time_countries_less_than_day">&lt; 1 day</string>
+    <string name="time_countries_one_visit">1 stay</string>
+    <string name="time_countries_visits">%1$d stays</string>
+    <string name="time_countries_open_since">ongoing since %1$s</string>
+    <string name="time_countries_abroad_label">Time abroad</string>
+    <string name="time_countries_subtitle_percent">%1$s · %2$d%%</string>
+    <string name="country_time_bar_label">Time in this country</string>
+    <string name="country_time_facts_title">Facts</string>
+    <string name="fact_language">Official language</string>
+    <string name="fact_capital">Capital</string>
+    <string name="fact_divisions">States/regions</string>
+    <string name="fact_currency">Currency</string>
+    <string name="stays_title">Stays</string>
+    <string name="stay_since">since %1$s</string>
+    <string name="stay_overland">Overland</string>
+    <string name="stay_days_dot">%1$d d</string>
+    <string name="stay_less_than_day_dot">&lt;1 d</string>
+    <string name="stay_in_button">Entry</string>
+    <string name="stay_out_button">Exit</string>
+    <string name="stay_crossing_dialog_enter">Add entry</string>
+    <string name="stay_crossing_dialog_exit">Add exit</string>
+    <string name="stay_crossing_transport_label">Transport</string>
+    <string name="transport_car">Car</string>
+    <string name="transport_train">Train</string>
+    <string name="transport_bus">Bus</string>
+    <string name="transport_ferry">Ferry</string>
+    <string name="transport_bike">Bicycle</string>
+    <string name="transport_foot">On foot</string>
+    <string name="time_countries_add_stay_desc">Add stay</string>
+    <string name="stay_dialog_title">Add stay</string>
+    <string name="stay_in_date_label">Entry date</string>
+    <string name="stay_out_date_label">Exit date</string>
+    <string name="stay_dates_invalid">The exit date is before the entry date</string>
+    <string name="stay_open_add_exit_desc">Add departure manually</string>
+    <string name="country_time_no_stays">No stays in this country</string>
+    <string name="country_time_dialog_exit_title">Left the country on</string>
     <string name="settings_title">Settings</string>
     <string name="settings_section_profile">Profile</string>
     <string name="profile_avatar_title">Avatar</string>
@@ -257,6 +313,8 @@
     <string name="settings_compact_text">Compact text</string>
     <string name="settings_compact_text_subtitle">Smaller text so more content fits on small screens</string>
     <string name="settings_section_data">Data</string>
+    <string name="settings_section_disclaimer">Disclaimer</string>
+    <string name="disclaimer_message">This app is a private fan project by a single person who loves to travel. It is not a political statement, not an official announcement, and represents neither an organization nor any opinion other than that of the person behind it. All content is solely for personally documenting the flights of that person.</string>
     <string name="data_export">Export</string>
     <string name="data_import">Import</string>
     <string name="data_export_label">Export database as CSV</string>
@@ -287,7 +345,6 @@
     <string name="import_success">Import successful</string>
     <string name="import_error">Import failed</string>
     <string name="import_empty">No valid entries in the file</string>
-    <string name="settings_section_development">Development</string>
     <string name="development_crash_log">Send crash log</string>
     <string name="development_crash_log_subtitle">Create a log file to send to the AI</string>
     <string name="development_crash_log_action">Create log</string>
@@ -367,8 +424,10 @@
     <string name="travel_buddy_hint">Type a name and press Enter</string>
     <string name="buddy_confirm_example">press Enter to confirm</string>
     <string name="buddy_chip_desc">Travel buddy %1$s, tap to remove</string>
-    <string name="layover_hours_label">Layover length</string>
+    <string name="layover_hours_label">Length</string>
     <string name="layover_hours_hint">h</string>
+    <string name="layover_hours_quick_desc">Enter %1$d h layover length</string>
+    <string name="layover_clear_desc">Clear layover</string>
     <string name="comment_label">Comment</string>
     <string name="comment_hint">Comment …</string>
     <string name="airport_departure_icon_desc">Departure</string>
@@ -479,6 +538,7 @@
     <string name="world_map_rotate">Switch portrait/landscape</string>
     <string name="world_map_filter_reset">Reset filter</string>
     <string name="world_map_layover_trails">Show flight trails of the layover flights</string>
+    <string name="world_map_layover_trails_hint">Shows the flight trails of the layover flights permanently – without replaying the animation.</string>
 
     <!-- Discovery page -->
     <string name="discovery_title">Discovery</string>
@@ -500,6 +560,12 @@
     <string name="rubbelkarte_countries">Tick countries by hand</string>
     <string name="rubbelkarte_continent_count">%1$d/%2$d</string>
     <string name="rubbelkarte_continent_desc">%1$s: %2$d of %3$d countries visited, %4$d percent</string>
+    <string name="rubbelkarte_state_tile_desc">%1$s: %2$d of %3$d %4$s visited, %5$d percent</string>
+    <string name="rubbelkarte_state_unit_de">federal states</string>
+    <string name="rubbelkarte_state_unit_us">states</string>
+    <string name="rubbelkarte_zoom_to">Show on map</string>
+    <string name="sheet_visited_count">%1$d of %2$d visited</string>
+    <string name="state_capital_label">Capital: %1$s</string>
     <string name="rubbelkarte_progress_label">%1$d of %2$d countries visited</string>
 
     <!-- Country list of the scratch map -->
@@ -565,11 +631,33 @@
     <string name="buddy_rename_title">Rename travel buddy</string>
     <string name="buddy_rename_confirm">Rename</string>
     <string name="buddy_renamed">Travel buddy renamed</string>
+    <!-- Travel buddy photo: round avatar in the header of the detail page -->
+    <string name="buddy_avatar_title">Choose avatar</string>
+    <string name="buddy_photo_change_desc">Choose avatar for %1$s</string>
+    <!-- Avatar editor on the travel buddy detail page -->
+    <string name="buddy_customize_avatar">Customize Avatar</string>
+    <string name="avatar_editor_hair">Hairstyle</string>
+    <string name="avatar_editor_beard">Beard</string>
+    <string name="avatar_editor_accessory">Accessory</string>
+    <string name="avatar_editor_hair_color">Hair Color</string>
+    <string name="avatar_editor_skin">Skin Tone</string>
+    <string name="avatar_editor_shirt">Shirt Color</string>
+    <string name="avatar_editor_presets">Preset Avatars</string>
+    <string name="buddy_avatar_reset">Reset</string>
+    <string name="buddy_avatar_remove_photo">Remove photo</string>
+    <string name="buddy_avatar_mode_preset">Preset avatar</string>
+    <string name="buddy_avatar_mode_custom">Custom avatar</string>
+    <string name="buddy_avatar_saved">Avatar saved</string>
+    <string name="buddy_photo_crop_title">Crop photo</string>
+    <string name="buddy_photo_apply">Apply</string>
+    <string name="buddy_photo_saved">Photo saved</string>
+    <string name="buddy_photo_error">Could not load photo</string>
     <!-- Tiles of the travel buddy detail page below the map -->
     <string name="buddy_stat_flights">Common flights</string>
     <string name="buddy_stat_time">Time together</string>
     <string name="buddy_stat_distance">Distance together</string>
     <string name="buddy_stat_time_desc">%1$s: %2$s %3$s. Tap to change the unit.</string>
+    <string name="buddy_stat_time_tap_desc">Tap to change the unit</string>
     <plurals name="buddy_stat_flights_unit">
         <item quantity="one">flight</item>
         <item quantity="other">flights</item>

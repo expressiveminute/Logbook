@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hinweis, wenn es noch keine Aufenthalte außerhalb der Homebase gibt. -->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/tv_time_empty"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center"
+    android:paddingHorizontal="32dp"
+    android:paddingVertical="24dp"
+    android:text="@string/time_countries_empty"
+    android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+    android:textColor="?attr/colorOnSurfaceVariant"
+    tools:ignore="HardcodedText" />

@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ein Aufenthalt auf der Land-Detailseite: links der Kreis mit der
+     Aufenthaltsdauer in Tagen, daneben Einreise (Datum, darunter klein
+     Flugstrecke und Flugnummer), ein Strich mittig zentriert im Bild, dann
+     Ausreise (Datum, darunter klein Flugstrecke und Flugnummer). Fehlt ein
+     Datum (Landweg bzw. noch offen), steht an der Stelle ein Button im Stil
+     des "Story"-Knopfs auf dem Dashboard ("Einreise"/"Ausreise"). -->
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="16dp"
+    android:foreground="?attr/selectableItemBackground">
+
+    <!-- Kreis mit der Aufenthaltsdauer in Tagen. -->
+    <TextView
+        android:id="@+id/timeline_dot"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginStart="16dp"
+        android:background="@drawable/bg_timeline_dot"
+        android:gravity="center"
+        android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
+        android:textColor="?attr/colorOnPrimary"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="5 d" />
+
+    <!-- Einreise: Datum bzw. Button, darunter klein Strecke und Flugnummer. -->
+    <LinearLayout
+        android:id="@+id/col_stay_in"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="8dp"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/stay_divider"
+        app:layout_constraintStart_toEndOf="@id/timeline_dot"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:id="@+id/tv_stay_date_in"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+            android:textStyle="bold"
+            tools:text="10.03.2026" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_stay_in"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minWidth="0dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="12dp"
+            android:text="@string/stay_in_button"
+            android:textAppearance="?attr/textAppearanceLabelLarge"
+            android:visibility="gone"
+            app:cornerRadius="12dp"
+            tools:visibility="visible" />
+
+        <TextView
+            android:id="@+id/tv_stay_route_in"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+            android:textColor="?attr/colorPrimary"
+            tools:text="FRA → JFK" />
+
+        <TextView
+            android:id="@+id/tv_stay_meta_in"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            tools:text="LH 400 · Sina" />
+    </LinearLayout>
+
+    <!-- Strich, mittig zentriert im Bild. -->
+    <View
+        android:id="@+id/stay_divider"
+        android:layout_width="1dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:background="?attr/colorOutlineVariant"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Ausreise: Datum bzw. Button, darunter klein Strecke und Flugnummer. -->
+    <LinearLayout
+        android:id="@+id/col_stay_out"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="16dp"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/stay_divider"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:id="@+id/tv_stay_date_out"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+            android:textStyle="bold"
+            tools:text="15.03.2026" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_stay_out"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minWidth="0dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="12dp"
+            android:text="@string/stay_out_button"
+            android:textAppearance="?attr/textAppearanceLabelLarge"
+            android:visibility="gone"
+            app:cornerRadius="12dp"
+            tools:visibility="visible" />
+
+        <TextView
+            android:id="@+id/tv_stay_route_out"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+            android:textColor="?attr/colorPrimary"
+            tools:text="JFK → FRA" />
+
+        <TextView
+            android:id="@+id/tv_stay_meta_out"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            tools:text="LH 401" />
+    </LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

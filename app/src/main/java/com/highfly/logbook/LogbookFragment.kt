@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import android.widget.HorizontalScrollView
 import android.widget.ScrollView
 import androidx.activity.ComponentActivity
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.os.bundleOf
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -99,6 +100,26 @@ abstract class LogbookFragment : Fragment() {
     }
 
     /**
+     * Setzt unten den Platz für die schwebende Navigationsleiste als
+     * Gone-Margin einer ConstraintLayout-Kindansicht. ConstraintLayout
+     * ignoriert die Margins einer GONE-Ansicht: Hängt eine Karte an einer
+     * standardmäßig versteckten Ankeransicht (z. B. dem Flughafendetailtext
+     * unten auf der Länderseite), greift [addBottomNavMargin] an dieser nicht
+     * und die Karte reicht bis zum unteren Bildschirmrand, wo die Leiste
+     * über ihr liegt. Der Gone-Margin der referenzierenden Ansicht lässt sie
+     * auch bei GONE-Ziel über der Leiste enden (normaler Margin + Platz); bei
+     * sichtbarem Ziel gilt unverändert der normale Margin. Wie
+     * [addBottomNavPadding] gepostet angewendet.
+     */
+    protected fun View.addBottomNavGoneMargin() = doOnNextLayout {
+        post {
+            val lp = layoutParams as? ConstraintLayout.LayoutParams ?: return@post
+            lp.goneBottomMargin = lp.bottomMargin + bottomNavSpacePx()
+            layoutParams = lp
+        }
+    }
+
+    /**
      * Platz der Navigationsleiste über dem Seiteninhalt, in px: die echte
      * Leiste (`bottom_nav`) wird gemessen – ihre Höhe enthält bereits das
      * untere Systemleisten-Inset als Padding, der untere Abstand kommt als
@@ -106,7 +127,7 @@ abstract class LogbookFragment : Fragment() {
      * selbst sieht. Rückfall über das Systemleisten-Inset, falls die Leiste
      * noch nicht vermessen wurde.
      */
-    private fun View.bottomNavSpacePx(): Int {
+    protected fun View.bottomNavSpacePx(): Int {
         val bar = (context as? ComponentActivity)?.findViewById<View>(R.id.bottom_nav)
         if (bar != null && bar.height > 0) {
             val margin = (bar.layoutParams as? ViewGroup.MarginLayoutParams)?.bottomMargin ?: 0

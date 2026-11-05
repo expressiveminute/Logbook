@@ -159,6 +159,7 @@
     <string name="flight_route_stat_distance">Distanz</string>
     <string name="flight_route_stat_minutes">%1$s min</string>
     <string name="continent_europe">Europa</string>
+    <string name="continent_eu">EU</string>
     <string name="continent_asia">Asien</string>
     <string name="continent_north_america">Nordamerika</string>
     <string name="continent_south_america">Südamerika</string>
@@ -212,6 +213,61 @@
     <string name="nav_dashboard">Dashboard</string>
     <string name="nav_rubbelkarte">Rubbelkarte</string>
     <string name="nav_profile">Einstellungen</string>
+    <string name="nav_time_countries">Länderzeiten</string>
+    <string name="time_countries_title">Zeit in Ländern</string>
+    <string name="time_countries_subtitle">%1$d Länder · %2$s insgesamt</string>
+    <string name="time_countries_homebase">Homebase %1$s (%2$s) wird nicht gezählt</string>
+    <string name="time_countries_empty">Noch keine Aufenthalte außerhalb der Homebase</string>
+    <string name="time_countries_section_crossings">Landweg-Grenzübertritte</string>
+    <string name="time_countries_crossings_hint">Grenzübertritte mit Auto, Bus oder Fähre stehen nicht im Logbuch – hier manuell erfassen:</string>
+    <string name="time_countries_add_crossing">Grenzübertritt hinzufügen</string>
+    <string name="time_countries_enter_on">betreten am %1$s</string>
+    <string name="time_countries_exit_on">verlassen am %1$s</string>
+    <string name="time_countries_delete_desc">Grenzübertritt löschen</string>
+    <string name="time_countries_dialog_title">Landweg-Grenzübertritt</string>
+    <string name="time_countries_country_hint">Land</string>
+    <string name="time_countries_date_hint">Datum</string>
+    <string name="time_countries_enter_radio">Land betreten (Auto, Bus, Fähre …)</string>
+    <string name="time_countries_exit_radio">Land verlassen</string>
+    <string name="time_countries_pick_country">Bitte ein Land wählen</string>
+    <string name="time_countries_one_day">1 Tag</string>
+    <string name="time_countries_days">%1$d Tage</string>
+    <string name="time_countries_less_than_day">&lt; 1 Tag</string>
+    <string name="time_countries_one_visit">1 Aufenthalt</string>
+    <string name="time_countries_visits">%1$d Aufenthalte</string>
+    <string name="time_countries_open_since">läuft seit %1$s</string>
+    <string name="time_countries_abroad_label">Zeit im Ausland</string>
+    <string name="time_countries_subtitle_percent">%1$s · %2$d %%</string>
+    <string name="country_time_bar_label">Zeit in diesem Land</string>
+    <string name="country_time_facts_title">Fakten</string>
+    <string name="fact_language">Amtssprache</string>
+    <string name="fact_capital">Hauptstadt</string>
+    <string name="fact_divisions">Bundesstaaten/-länder</string>
+    <string name="fact_currency">Währung</string>
+    <string name="stays_title">Aufenthalte</string>
+    <string name="stay_since">seit %1$s</string>
+    <string name="stay_overland">Landweg</string>
+    <string name="stay_days_dot">%1$d d</string>
+    <string name="stay_less_than_day_dot">&lt;1 d</string>
+    <string name="stay_in_button">Einreise</string>
+    <string name="stay_out_button">Ausreise</string>
+    <string name="stay_crossing_dialog_enter">Einreise nachtragen</string>
+    <string name="stay_crossing_dialog_exit">Ausreise nachtragen</string>
+    <string name="stay_crossing_transport_label">Transportmittel</string>
+    <string name="transport_car">Auto</string>
+    <string name="transport_train">Zug</string>
+    <string name="transport_bus">Bus</string>
+    <string name="transport_ferry">Fähre</string>
+    <string name="transport_bike">Fahrrad</string>
+    <string name="transport_foot">Zu Fuß</string>
+    <string name="time_countries_add_stay_desc">Aufenthalt hinzufügen</string>
+    <string name="stay_dialog_title">Aufenthalt hinzufügen</string>
+    <string name="stay_in_date_label">Einreisedatum</string>
+    <string name="stay_out_date_label">Ausreisedatum</string>
+    <string name="stay_dates_invalid">Das Ausreisedatum liegt vor dem Einreisedatum</string>
+    <string name="stay_open_add_exit_desc">Verlassen händisch nachtragen</string>
+    <string name="country_time_no_stays">Keine Aufenthalte in diesem Land</string>
+    <string name="country_time_dialog_exit_title">Land verlassen am</string>
     <string name="settings_title">Einstellungen</string>
     <string name="settings_section_profile">Profil</string>
     <string name="profile_avatar_title">Avatar</string>
@@ -261,6 +317,8 @@
     <string name="settings_compact_text">Kompakte Schrift</string>
     <string name="settings_compact_text_subtitle">Kleinere Schrift, damit auf kleinen Displays mehr Text passt</string>
     <string name="settings_section_data">Daten</string>
+    <string name="settings_section_disclaimer">Disclaimer</string>
+    <string name="disclaimer_message">Diese App ist ein privates Fanprojekt einer einzelnen Person, die gerne reist. Sie ist kein politisches Statement, keine offizielle Verlautbarung und vertritt weder eine Organisation noch eine andere Meinung als die der Person dahinter. Alle Inhalte dienen ausschließlich der persönlichen Dokumentation der eigenen Flüge.</string>
     <string name="data_export">Export</string>
     <string name="data_import">Import</string>
     <string name="data_export_label">Datenbank als CSV exportieren</string>
@@ -291,7 +349,6 @@
     <string name="import_success">Import erfolgreich</string>
     <string name="import_error">Import fehlgeschlagen</string>
     <string name="import_empty">Keine gültigen Einträge in der Datei</string>
-    <string name="settings_section_development">Entwicklung</string>
     <string name="development_crash_log">Crash-Log senden</string>
     <string name="development_crash_log_subtitle">Protokoll erstellen und an die KI schicken</string>
     <string name="development_crash_log_action">Log erstellen</string>
@@ -374,8 +431,10 @@
     <string name="travel_buddy_label">Reisebuddy</string>
     <string name="travel_buddy_hint">Name eingeben, mit Enter bestätigen</string>
     <string name="buddy_chip_desc">Reisebuddy %1$s, tippen zum Entfernen</string>
-    <string name="layover_hours_label">Layoverlänge</string>
+    <string name="layover_hours_label">Länge</string>
     <string name="layover_hours_hint">h</string>
+    <string name="layover_hours_quick_desc">%1$d h Layoverlänge eintragen</string>
+    <string name="layover_clear_desc">Layover entfernen</string>
     <string name="comment_label">Kommentar</string>
     <string name="comment_hint">Kommentar …</string>
     <string name="airport_departure_icon_desc">Abflug</string>
@@ -487,6 +546,7 @@
     <string name="world_map_rotate">Hoch-/Querformat wechseln</string>
     <string name="world_map_filter_reset">Filter zurücksetzen</string>
     <string name="world_map_layover_trails">Flugspuren der Layover-Flüge anzeigen</string>
+    <string name="world_map_layover_trails_hint">Blendet die Flugspuren der Layover-Flüge dauerhaft ein – ohne die Animation erneut abzuspielen.</string>
 
     <!-- Discovery page -->
     <string name="discovery_title">Discovery</string>
@@ -508,6 +568,12 @@
     <string name="rubbelkarte_countries">Länder von Hand abhaken</string>
     <string name="rubbelkarte_continent_count">%1$d/%2$d</string>
     <string name="rubbelkarte_continent_desc">%1$s: %2$d von %3$d Ländern besucht, %4$d Prozent</string>
+    <string name="rubbelkarte_state_tile_desc">%1$s: %2$d von %3$d %4$s besucht, %5$d Prozent</string>
+    <string name="rubbelkarte_state_unit_de">Bundesländern</string>
+    <string name="rubbelkarte_state_unit_us">Bundesstaaten</string>
+    <string name="rubbelkarte_zoom_to">Auf der Karte zeigen</string>
+    <string name="sheet_visited_count">%1$d von %2$d besucht</string>
+    <string name="state_capital_label">Hauptstadt: %1$s</string>
     <string name="rubbelkarte_progress_label">%1$d von %2$d Ländern besucht</string>
 
     <!-- Länderliste der Rubbelkarte -->
@@ -576,11 +642,33 @@
     <string name="buddy_rename_title">Reisebuddy umbenennen</string>
     <string name="buddy_rename_confirm">Umbenennen</string>
     <string name="buddy_renamed">Reisebuddy umbenannt</string>
+    <!-- Reisebuddy-Foto: runder Avatar im Kopf der Detailseite -->
+    <string name="buddy_avatar_title">Avatar wählen</string>
+    <string name="buddy_photo_change_desc">Avatar für %1$s wählen</string>
+    <!-- Avatar-Editor auf der Reisebuddy-Detailseite -->
+    <string name="buddy_customize_avatar">Avatar anpassen</string>
+    <string name="avatar_editor_hair">Frisur</string>
+    <string name="avatar_editor_beard">Bart</string>
+    <string name="avatar_editor_accessory">Accessoire</string>
+    <string name="avatar_editor_hair_color">Haarfarbe</string>
+    <string name="avatar_editor_skin">Hautfarbe</string>
+    <string name="avatar_editor_shirt">Shirtfarbe</string>
+    <string name="avatar_editor_presets">Standard-Avatare</string>
+    <string name="buddy_avatar_reset">Zurücksetzen</string>
+    <string name="buddy_avatar_remove_photo">Foto entfernen</string>
+    <string name="buddy_avatar_mode_preset">Standard-Avatar</string>
+    <string name="buddy_avatar_mode_custom">Eigener Avatar</string>
+    <string name="buddy_avatar_saved">Avatar gespeichert</string>
+    <string name="buddy_photo_crop_title">Foto zuschneiden</string>
+    <string name="buddy_photo_apply">Übernehmen</string>
+    <string name="buddy_photo_saved">Foto gespeichert</string>
+    <string name="buddy_photo_error">Foto konnte nicht geladen werden</string>
     <!-- Kacheln der Reisebuddy-Detailseite unter der Karte -->
     <string name="buddy_stat_flights">Gemeinsame Flüge</string>
     <string name="buddy_stat_time">Zeit zusammen</string>
     <string name="buddy_stat_distance">Distanz zusammen</string>
     <string name="buddy_stat_time_desc">%1$s: %2$s %3$s. Tippen wechselt die Einheit.</string>
+    <string name="buddy_stat_time_tap_desc">Antippen wechselt die Einheit</string>
     <plurals name="buddy_stat_flights_unit">
         <item quantity="one">Flug</item>
         <item quantity="other">Flüge</item>

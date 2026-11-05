@@ -10,17 +10,25 @@ import android.graphics.Path
 import android.graphics.Point
 import android.graphics.Rect
 import android.graphics.Shader
+import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.SystemClock
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
+import android.util.TypedValue
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.PopupWindow
+import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
@@ -67,6 +75,9 @@ class WorldMapFragment : LogbookFragment() {
 
         /** Takt der Layover-Animation: stößt das Neuzeichnen der Karte an. */
         private const val LAYOVER_FRAME_MS = 33L
+
+        /** Wie lange der Hinweis am Spuren-Knopf stehen bleibt. */
+        private const val LAYOVER_HINT_MS = 3000L
     }
 
     private var _binding: FragmentWorldMapBinding? = null
@@ -99,6 +110,12 @@ class WorldMapFragment : LogbookFragment() {
 
     /** Zeitpunkt der Pause, damit die Animation danach nahtlos weiterläuft. */
     private var layoverPausedAtMs: Long? = null
+
+    /** Fenster mit dem Hinweis am Spuren-Knopf, null wenn keines offen ist. */
+    private var layoverHintPopup: PopupWindow? = null
+
+    /** Schliesst das Hinweisfenster am Spuren-Knopf wieder. */
+    private val layoverHintDismiss = Runnable { dismissLayoverHint() }
 
     private class RouteLine(
         val from: String,
@@ -180,6 +197,13 @@ class WorldMapFragment : LogbookFragment() {
                 ?.getInsets(WindowInsetsCompat.Type.systemBars())
                 ?.let { applyInsets(it) }
         }
+        // Die Höhe des Spuren-Knopfes an den +-Knopf koppeln: bei jeder
+        // Layoutänderung der Wurzel neu ausrichten (z. B. nachdem applyInsets
+        // die untere Marge der Knopfspalte setzt). doOnLayout allein würde nur
+        // einmal laufen und die erste, noch unkorrigierte Höhe übernehmen.
+        view.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            alignLayoverButtonToZoomIn()
+        }
 
         // Filter aus Navigationsargumenten lesen
         val filterTravelBuddy = arguments?.getString("filterTravelBuddy")?.trim().orEmpty()
@@ -204,9 +228,9 @@ class WorldMapFragment : LogbookFragment() {
             activeMapFilter = MapFilter()
             applyFilters()
         }
-        // Blendet die Flugspuren der Layover-Animation erneut ein, nachdem
-        // sie ausgeblendet wurden.
-        binding.btnLayoverTrails.setOnClickListener { replayLayoverAnimation() }
+        // Blendet die Flugspuren der Layover-Animation dauerhaft ein, ohne
+        // die Animation erneut abzuspielen.
+        binding.btnLayoverTrails.setOnClickListener { showLayoverTrails() }
         binding.statsCard.setOnClickListener {
             val iata = selectedIata ?: return@setOnClickListener
             findNavController().navigate(
@@ -264,6 +288,24 @@ class WorldMapFragment : LogbookFragment() {
                 lp.bottomMargin = controlsBottom
                 binding.mapControls.requestLayout()
             }
+        }
+    }
+
+    /**
+     * Setzt den Spuren-Knopf linksbündig am linken Rand auf die Höhe des
+     * Hineinzoomen-Knopfes (Plus): seine Oberkante liegt auf der Oberkante des
+     * Plus (mapControls.top + btnZoomIn.top, beide auf die Wurzel bezogen).
+     * Nur bei tatsächlicher Änderung umgelegt, damit aus doOnLayout keine
+     * Layoutschleife entsteht.
+     */
+    private fun alignLayoverButtonToZoomIn() {
+        val binding = _binding ?: return
+        val plusTop = binding.mapControls.top + binding.btnZoomIn.top
+        val lp = binding.btnLayoverTrails.layoutParams as? ViewGroup.MarginLayoutParams
+            ?: return
+        if (lp.topMargin != plusTop) {
+            lp.topMargin = plusTop
+            binding.btnLayoverTrails.requestLayout()
         }
     }
 
@@ -757,7 +799,7 @@ class WorldMapFragment : LogbookFragment() {
             val mv = mapView ?: return
             val overlay = layoverOverlay
             val plan = layoverPlan
-            if (overlay == null || plan == null) {
+            if (overlay == null || plan == null || overlay.staticTrails) {
                 layoverTickerActive = false
                 return
             }
@@ -765,8 +807,10 @@ class WorldMapFragment : LogbookFragment() {
             if (LayoverAnimation.isFinished(SystemClock.uptimeMillis() - overlay.startTimeMs, plan)) {
                 // Ein letztes Bild, dann Schluss: Die Spuren sind zu diesem
                 // Zeitpunkt bereits ausgeblendet, nur die Dreilettercodes
-                // bleiben sichtbar.
+                // bleiben sichtbar. Jetzt erst wird der Knopf eingeblendet,
+                // der die Spuren dauerhaft wieder zeigt.
                 layoverTickerActive = false
+                showLayoverTrailsButton()
                 return
             }
             mv.postDelayed(this, LAYOVER_FRAME_MS)
@@ -776,6 +820,8 @@ class WorldMapFragment : LogbookFragment() {
     private fun startLayoverTicker() {
         val mv = mapView ?: return
         if (layoverTickerActive || layoverPlan == null || layoverPausedAtMs != null) return
+        // Solange die Spuren dauerhaft stehen, braucht es keinen Takt.
+        if (layoverOverlay?.staticTrails == true) return
         layoverTickerActive = true
         mv.postDelayed(layoverTicker, LAYOVER_FRAME_MS)
     }
@@ -801,13 +847,107 @@ class WorldMapFragment : LogbookFragment() {
         startLayoverTicker()
     }
 
-    /** Startet die Animation erneut, wenn der Nutzer die Spuren sehen will. */
-    private fun replayLayoverAnimation() {
+    /**
+     * Zeigt die Flugspuren dauerhaft an, ohne die Animation erneut
+     * abzuspielen: volle Linien mit voller Deckkraft, kein Flugzeug, und
+     * der Takt stoppt - die Spuren bleiben bis zum nächsten Plan stehen.
+     */
+    private fun showLayoverTrails() {
         val overlay = layoverOverlay ?: return
-        overlay.startTimeMs = SystemClock.uptimeMillis()
+        overlay.staticTrails = true
         layoverPausedAtMs = null
-        startLayoverTicker()
+        stopLayoverTicker()
         mapView?.invalidate()
+    }
+
+    /** Schliesst das Hinweisfenster am Spuren-Knopf, falls es offen ist. */
+    private fun dismissLayoverHint() {
+        _binding?.btnLayoverTrails?.removeCallbacks(layoverHintDismiss)
+        layoverHintPopup?.dismiss()
+        layoverHintPopup = null
+    }
+
+    /**
+     * Kurzer Hinweis rechts neben dem Spuren-Knopf (der linksbündig am linken
+     * Rand auf Höhe des Hineinzoomen-Knopfes sitzt): Die Blase ist rechts
+     * gerundet und läuft an der linken Kante - der dem Knopf zugewandten Seite -
+     * in eine Spitze aus, die wie ein Pfeil auf den Knopf zeigt. Blendet sich
+     * nach [LAYOVER_HINT_MS] von selbst wieder aus.
+     */
+    private fun showLayoverTrailsHint() {
+        val btn = _binding?.btnLayoverTrails ?: return
+        if (!isAdded || btn.visibility != View.VISIBLE) return
+        dismissLayoverHint()
+        val context = requireContext()
+        val density = resources.displayMetrics.density
+        fun dp(value: Int): Int = (value * density).toInt()
+
+        val bubbleColor = MaterialColors.getColor(
+            btn, com.google.android.material.R.attr.colorSurfaceContainerHigh
+        )
+        val bubble = TextView(context).apply {
+            setText(R.string.world_map_layover_trails_hint)
+            setTextColor(
+                MaterialColors.getColor(
+                    btn, com.google.android.material.R.attr.colorOnSurface
+                )
+            )
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            maxWidth = dp(230)
+            setPadding(dp(12), dp(10), dp(12), dp(10))
+            background = GradientDrawable().apply {
+                // Rechts gerundet, links eckig: Dort setzt die Pfeilspitze an.
+                // setCornerRadii erwartet 8 Werte: x/y je Ecke (TL, TR, BR, BL).
+                val r = dp(12).toFloat()
+                setCornerRadii(floatArrayOf(0f, 0f, r, r, r, r, 0f, 0f))
+                setColor(bubbleColor)
+            }
+        }
+        // Die Spitze sitzt an der linken Kante der Blase (dem Knopf zugewandt)
+        // und ragt halb in sie hinein, sodass der Rahmen wie ein Pfeil auf den
+        // Knopf zuläuft.
+        val pointer = ImageView(context).apply {
+            setImageResource(R.drawable.ic_hint_pointer)
+            setColorFilter(bubbleColor)
+            val size = dp(12)
+            val lp = LinearLayout.LayoutParams(size, size)
+            lp.marginEnd = -size / 2
+            layoutParams = lp
+        }
+        val row = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            addView(pointer)
+            addView(bubble)
+        }
+        val popup = PopupWindow(
+            row,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            false
+        ).apply {
+            isOutsideTouchable = true
+            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            elevation = dp(4).toFloat()
+        }
+        row.measure(
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+        // Rechts neben dem Knopf, senkrecht auf ihm zentriert; so weit wie
+        // nötig nach links geschoben, dass das Fenster nicht aus dem Bild
+        // läuft. showAsDropDown rechnet yOff ab der Unterkante des Ankers,
+        // deshalb -(btn.height + popupHeight)/2 für die Mittellinie.
+        val location = IntArray(2)
+        btn.getLocationInWindow(location)
+        val margin = dp(8)
+        val maxXOff = (resources.displayMetrics.widthPixels - margin - location[0])
+            .coerceAtLeast(0)
+        val xOff = (btn.width + margin).coerceAtMost(maxXOff)
+        val yOff = -(btn.height + row.measuredHeight) / 2
+        popup.showAsDropDown(btn, xOff, yOff)
+        layoverHintPopup = popup
+        btn.postDelayed(layoverHintDismiss, LAYOVER_HINT_MS)
     }
 
     /** Ob Systemanimationen laufen dürfen (Einstellung „Animationsdauer"). */
@@ -840,17 +980,47 @@ class WorldMapFragment : LogbookFragment() {
         if (plan == null) {
             layoverOverlay = null
             stopLayoverTicker()
-            binding.btnLayoverTrails.visibility = View.GONE
+            hideLayoverTrailsButton()
             return null
         }
         var overlay = layoverOverlay
         if (overlay == null || overlay.plan != plan) {
+            // Ein neuer Plan startet die Animation frisch; die dauerhaft
+            // eingeblendeten Spuren gelten nur für den bisherigen Plan.
             overlay = LayoverOverlay(requireContext(), plan, routeColor)
             layoverOverlay = overlay
         }
-        binding.btnLayoverTrails.visibility = View.VISIBLE
+        // Der Knopf erscheint erst, wenn die Animation durchgelaufen ist - der
+        // Takt blendet ihn am Ende ein. Stehen die Spuren bereits dauerhaft,
+        // ist er sofort sichtbar.
+        if (overlay.staticTrails ||
+            LayoverAnimation.isFinished(SystemClock.uptimeMillis() - overlay.startTimeMs, plan)
+        ) {
+            showLayoverTrailsButton()
+        } else {
+            binding.btnLayoverTrails.visibility = View.GONE
+        }
         startLayoverTicker()
         return plan
+    }
+
+    /**
+     * Blendet den Spuren-Knopf ein; wird er gerade sichtbar (erst nach der
+     * Animation), erklaert dazu ein kurzes Popup seine Funktion.
+     */
+    private fun showLayoverTrailsButton() {
+        val btn = _binding?.btnLayoverTrails ?: return
+        val wasHidden = btn.visibility != View.VISIBLE
+        btn.visibility = View.VISIBLE
+        if (wasHidden) {
+            btn.post { showLayoverTrailsHint() }
+        }
+    }
+
+    /** Blendet den Spuren-Knopf aus und schliesst das Hinweis-Popup. */
+    private fun hideLayoverTrailsButton() {
+        _binding?.btnLayoverTrails?.visibility = View.GONE
+        dismissLayoverHint()
     }
 
     /**
@@ -1239,8 +1409,10 @@ class WorldMapFragment : LogbookFragment() {
      * Zeichnet die Layover-Animation der Weltkarte: Vom Hub starten
      * Flugzeuge in Richtung jedes Layover-Ziels und ziehen eine nach vorn
      * kraeftiger werdende Spur hinter sich her. Nach der Ankunft des letzten
-     * Flugzeugs stehen die Spuren noch zwei Sekunden und blenden dann aus.
-     * Die Dreilettercodes zeichnet weiterhin [AirportOverlay].
+     * Flugzeugs stehen die Spuren noch kurz stehen und blenden dann aus.
+     * Mit [staticTrails] zeichnet es die fertigen Spuren dauerhaft ohne
+     * Flugzeuge (Spuren-Knopf). Die Dreilettercodes zeichnet weiterhin
+     * [AirportOverlay].
      */
     private class LayoverOverlay(
         context: Context,
@@ -1269,8 +1441,15 @@ class WorldMapFragment : LogbookFragment() {
         /** Projektionspuffer des aktuellen Streckenzugs, wächst bei Bedarf. */
         private var scratch = FloatArray(0)
 
-        /** Startzeit der Animation; wird bei Pause und Replay verschoben. */
+        /** Startzeit der Animation; wird bei Pause verschoben. */
         var startTimeMs: Long = SystemClock.uptimeMillis()
+
+        /**
+         * Sollen die Spuren dauerhaft ohne Animation gezeichnet werden? Vom
+         * Spuren-Knopf gesetzt: volle Linie mit voller Deckkraft, kein
+         * Flugzeug. Gilt bis ein neuer Plan die Animation erneut startet.
+         */
+        var staticTrails = false
 
         init {
             plane?.setTint(color)
@@ -1279,7 +1458,7 @@ class WorldMapFragment : LogbookFragment() {
         override fun draw(canvas: Canvas, mapView: MapView, shadow: Boolean) {
             if (shadow) return
             val elapsed = SystemClock.uptimeMillis() - startTimeMs
-            val alpha = LayoverAnimation.trailAlpha(elapsed, plan)
+            val alpha = if (staticTrails) 255 else LayoverAnimation.trailAlpha(elapsed, plan)
             if (alpha <= 0) return
             val projection = mapView.projection
             for (route in plan.routes) {
@@ -1307,7 +1486,8 @@ class WorldMapFragment : LogbookFragment() {
             }
             val total = RouteDeparture.length(projected, count)
             if (total <= 0f) return
-            val fraction = LayoverAnimation.planeFraction(elapsedMs, route)
+            // Ruhende Spuren: die ganze Strecke ohne Flugzeug an der Spitze.
+            val fraction = if (staticTrails) 1f else LayoverAnimation.planeFraction(elapsedMs, route)
             val head = fraction * total
             if (!RouteDeparture.pointAt(projected, count, head, headOut)) return
             drawTrail(canvas, projected, count, head, alpha)
@@ -1397,6 +1577,7 @@ class WorldMapFragment : LogbookFragment() {
 
     override fun onDestroyView() {
         stopLayoverTicker()
+        dismissLayoverHint()
         layoverOverlay = null
         layoverPlan = null
         layoverPausedAtMs = null

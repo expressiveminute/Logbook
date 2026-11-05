@@ -12,6 +12,9 @@ import androidx.annotation.StringRes
  *  - [HeroText]: ein großer Text (z. B. die Stammstrecke) mit Unterzeile.
  *  - [Ranking]: eine Rangliste, optional in Gruppen (z. B. Privat und
  *    On Duty). Jede Zeile zeigt ihren Wert als kleine Flip-Uhr.
+ *  - [BuddyPodium]: die Top-Reisebuddies als Podest - die ersten drei als
+ *    große, seitlich versetzte Kreise mit Medaille, die Plätze 4-6 in einer
+ *    Reihe; jeder Kreis trägt Avatar (Foto oder Usericon) und Flip-Zahl.
  *
  * Die Zahlen sind als Text und Format-Funktion hinterlegt, weil die
  * Flip-Uhr beim Count-up jeden Zwischenwert braucht.
@@ -123,5 +126,37 @@ sealed interface StoryPage {
                 val format: ((Double) -> String)? = null
             )
         }
+    }
+
+    /**
+     * Die Top-Reisebuddies als Podest (in der Play-Story): bis zu sechs
+     * Buddies, Rang 1-3 als große Kreise, Rang 4-6 in einer Reihe.
+     */
+    data class BuddyPodium(
+        override val iconRes: Int,
+        override val titleRes: Int,
+        val buddies: List<Entry>
+    ) : StoryPage {
+
+        /**
+         * Ein Buddy auf dem Podest: Name, Flugzahl als Flip-Uhr und das
+         * Foto (null für das Usericon). [value]/[valueTarget]/[valueFormat]
+         * folgen der Konvention der Ranglisten-Zeilen.
+         */
+        data class Entry(
+            val name: String,
+            val value: String,
+            val suffix: String? = null,
+            val valueTarget: Double,
+            val valueFormat: (Double) -> String,
+            /** Zugeschnittenes Foto des Buddys; null für den Avatar. */
+            val photo: android.graphics.Bitmap? = null,
+            /**
+             * Avatar-Drawable des Buddys ([BuddyAvatars.avatarDrawable]:
+             * eigene Config aus dem Editor oder Preset), das gezeigt wird,
+             * wenn es kein Foto gibt.
+             */
+            val avatar: android.graphics.drawable.Drawable? = null
+        )
     }
 }

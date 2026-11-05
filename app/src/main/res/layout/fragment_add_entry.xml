@@ -456,19 +456,27 @@
 
             <!-- Sitzplatz: nur bei Reiseart Privat mit ausgewählter Reiseklasse.
                  Eingabe wie "1A", "24D" oder "12F". Gleicher Aufbau wie die
-                 übrigen Eingabefelder (InputTile mit schwebender Beschriftung). -->
+                 übrigen Eingabefelder (InputTile mit schwebender Beschriftung),
+                 aber nur halbe Breite und rechts buendig mit den anderen Kacheln
+                 (die linke Haelfte bleibt leer). -->
             <LinearLayout
                 android:id="@+id/seat_section"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                android:orientation="vertical"
+                android:orientation="horizontal"
                 android:visibility="gone"
                 tools:visibility="visible">
 
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="match_parent"
+                <Space
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_weight="1" />
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
                     android:clipChildren="false"
                     android:clipToPadding="false"
                     app:cardCornerRadius="16dp"
@@ -802,6 +810,7 @@
                         android:id="@+id/tile_airport_departure"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_marginEnd="-12dp"
                         android:clipChildren="false"
                         android:clipToPadding="false"
                         app:layout_constraintEnd_toStartOf="@id/airport_arrows"
@@ -878,13 +887,18 @@
                          der Karte genau die Mitte des sichtbaren Kachelrahmens.
                          Ohne Rueckflug steht nur der Hinflug nach rechts, mit
                          Rueckflug rueckt er nach oben und darunter kommt der
-                         Rueckflug nach links. -->
+                         Rueckflug nach links. Die negativen Ränder (-12 dp)
+                         legen die Pfeilspalte (32 dp) auf die Naht zwischen den
+                         beiden Kacheln, sodass auch hier der horizontale Abstand
+                         8 dp bleibt wie bei allen anderen Feldpaaren; der Pfeil
+                         ueberdeckt nur den Polsterbereich der Kacheln (28 dp
+                         Seitenabstand, Code mittig), nie den Code selbst. -->
                     <LinearLayout
                         android:id="@+id/airport_arrows"
                         android:layout_width="32dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
-                        android:layout_marginEnd="8dp"
+                        android:layout_marginStart="-12dp"
+                        android:layout_marginEnd="-12dp"
                         android:gravity="center"
                         android:orientation="vertical"
                         app:layout_constraintBottom_toBottomOf="@id/tile_airport_departure"
@@ -915,6 +929,7 @@
                         android:id="@+id/tile_airport_arrival"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_marginStart="-12dp"
                         android:clipChildren="false"
                         android:clipToPadding="false"
                         app:layout_constraintEnd_toEndOf="parent"
@@ -937,10 +952,11 @@
                              stuenden dann auf unterschiedlicher Hoehe. Die Karte
                              selbst ist durchsichtig und ohne Strich, das sichtbare
                              Rahmenzeichen zeichnet die Kachel, deshalb faellt die
-                             unterschiedliche Kartenhoehe nicht auf. Mittig unter
-                             dem Feld, nicht bündig an seinem Rand: Es gehoert zum
-                             Ankunftsfeld und soll darunter stehen wie das Feld
-                             selbst in der Kachel. clipChildren, weil die Gruppe
+                             unterschiedliche Kartenhoehe nicht auf. Links unter
+                             dem Feld, der Hacken buendig mit seinem linken Rand:
+                             Es gehoert zum Ankunftsfeld und soll in derselben
+                             Spalte stehen wie das Feld selbst in der Kachel.
+                             clipChildren, weil die Gruppe
                              sonst die Beschriftung der Kachel abschneidet: Sie
                              steht in der Kerze zur Hälfte über dem Kachelrand,
                              und nur die Kachel selbst darf ihre Kinder über
@@ -1000,14 +1016,317 @@
 
                         </com.highfly.logbook.InputTile>
 
-                        <com.google.android.material.checkbox.MaterialCheckBox
-                            android:id="@+id/cb_layover"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/layover_label"
-                            android:minWidth="0dp"
-                            android:paddingEnd="4dp"
+                        <!-- Verbindung vom unteren Rand des To-Feldes (Mitte)
+                             zur Layover-Gruppe darunter (Mitte): schmaler Strich,
+                             oben und unten breiter, in der Hintergrundfarbe der
+                             Kacheln. Nur sichtbar, wenn Layover angekreuzt ist.
+                             Der obere Abstand des Panels wird im Code gesetzt
+                             (0 mit Verbindung, sonst 8 dp). -->
+                        <com.highfly.logbook.LayoverConnectorView
+                            android:id="@+id/layover_connector"
+                            android:layout_width="match_parent"
+                            android:layout_height="8dp"
                             android:visibility="gone" />
+
+                        <!-- Layover-Kachel unter dem Ankunftsfeld mit demselben
+                             Hintergrund wie das To-Feld (bg_input_tile_filled).
+                             Innen 8 dp Abstand zum Panel-Rand - wie alle
+                             horizontalen Abstaende zwischen Feldern auf der
+                             Seite, damit die vier Vorschlags-Kacheln unten links
+                             und rechts denselben Randabstand haben. Unangeklickt
+                             steht das Auswahlfeld "Layover" mittig in der Kachel;
+                             angeklickt wandert das Wort animiert nach oben links
+                             in den Rahmen und innen erscheinen das Feld
+                             Layoverlaenge und darunter die vier Kacheln. -->
+                        <LinearLayout
+                            android:id="@+id/layover_panel"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/bg_input_tile_filled"
+                            android:orientation="vertical"
+                            android:paddingStart="8dp"
+                            android:paddingEnd="8dp"
+                            android:paddingTop="8dp"
+                            android:paddingBottom="8dp"
+                            android:visibility="gone">
+
+                        <FrameLayout
+                            android:id="@+id/layover_header"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content">
+
+                            <!-- Auswahlfeld "Layover": steht mittig in der Kachel,
+                                 solange nichts ausgewaehlt ist. Ein Tipp darauf klappt
+                                 das Kaestchen um (Wort per labelFor, die Zeile ueber
+                                 den Listener im Fragment). -->
+                            <LinearLayout
+                                android:id="@+id/layover_center_row"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="center"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center"
+                                android:orientation="horizontal"
+                                android:paddingVertical="4dp">
+
+                                <com.google.android.material.checkbox.MaterialCheckBox
+                                    android:id="@+id/cb_layover"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:minWidth="0dp"
+                                    android:paddingStart="0dp"
+                                    android:paddingEnd="4dp"
+                                    android:text=""
+                                    android:visibility="gone" />
+
+                                <TextView
+                                    android:id="@+id/tv_layover_label"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:labelFor="@id/cb_layover"
+                                    android:text="@string/layover_label"
+                                    android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+
+                            <!-- Titelleiste im angeklickten Zustand: schwebende
+                                 Beschriftung "Layover" oben links und das kleine X
+                                 oben rechts - beide in derselben Zeile und ueber
+                                 center_vertical exakt auf gleicher Hoehe. Die
+                                 Animation des Wortes liegt im Fragment (wie bei
+                                 den uebrigen Feldern, z. B. Flugnummer). -->
+                            <LinearLayout
+                                android:id="@+id/layover_title_row"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="top"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
+
+                                <TextView
+                                    android:id="@+id/tv_layover_notch"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:layout_marginStart="4dp"
+                                    android:text="@string/layover_label"
+                                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                    android:textColor="?attr/colorOnSurfaceVariant"
+                                    android:textStyle="bold"
+                                    android:visibility="gone" />
+
+                                <!-- Kleines X rechts, nur im angeklickten Zustand:
+                                     entfernt das Layover wieder (z. B. bei einem
+                                     Verklicken). -->
+                                <ImageButton
+                                    android:id="@+id/btn_layover_clear"
+                                    style="?attr/materialIconButtonStyle"
+                                    android:layout_width="32dp"
+                                    android:layout_height="32dp"
+                                    android:backgroundTint="@android:color/transparent"
+                                    android:contentDescription="@string/layover_clear_desc"
+                                    android:src="@drawable/ic_close"
+                                    app:iconSize="18dp"
+                                    app:iconTint="?attr/colorOnSurfaceVariant"
+                                    android:visibility="gone" />
+                            </LinearLayout>
+                        </FrameLayout>
+
+                        <!-- Feld Layoverlaenge in voller Breite unter der
+                             Beschriftung; oeffnet sich, sobald das Layover
+                             angeklickt ist. -->
+                        <LinearLayout
+                            android:id="@+id/layover_hours_section"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:visibility="gone">
+
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/tile_layover_hours"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:clipChildren="false"
+                                android:clipToPadding="false"
+                                app:cardCornerRadius="16dp"
+                                app:cardElevation="0dp"
+                                app:cardBackgroundColor="@android:color/transparent"
+                                app:contentPaddingStart="0dp"
+                                app:contentPaddingEnd="0dp"
+                                app:contentPaddingBottom="0dp"
+                                app:contentPaddingTop="12dp"
+                                app:strokeWidth="0dp"
+                                app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full">
+
+                                <com.highfly.logbook.InputTile
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:minHeight="52dp"
+                                    android:paddingStart="20dp"
+                                    android:paddingEnd="4dp">
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="@string/layover_hours_label"
+                                        android:labelFor="@id/et_layover_hours"
+                                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                        android:textColor="?attr/colorOnSurfaceVariant"
+                                        android:textStyle="bold" />
+
+                                    <LinearLayout
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:orientation="horizontal"
+                                        android:gravity="center_vertical">
+
+                                        <EditText
+                                            android:id="@+id/et_layover_hours"
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:background="@null"
+                                            android:hint="@string/layover_hours_hint"
+                                            android:inputType="number"
+                                            android:maxLength="3"
+                                            android:maxLines="1"
+                                            android:minEms="1"
+                                            android:textColor="?attr/colorOnSurface"
+                                            android:textSize="17sp" />
+
+                                        <TextView
+                                            android:id="@+id/tv_layover_hours_unit"
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:gravity="center"
+                                            android:paddingStart="8dp"
+                                            android:text="@string/layover_hours_hint"
+                                            android:textColor="?attr/colorOnSurfaceVariant"
+                                            android:textSize="14sp"
+                                            android:visibility="gone" />
+                                    </LinearLayout>
+                                </com.highfly.logbook.InputTile>
+                            </com.google.android.material.card.MaterialCardView>
+                        </LinearLayout>
+
+                        <!-- Vier eigene Kacheln (14/24/48/72 h) unter der Zeile:
+                             alle gleich breit (weight=1) mit 8 dp Abstand
+                             dazwischen - wie alle horizontalen Abstaende
+                             zwischen Feldern auf der Seite. Ein Tipp traegt die
+                             Zahl in das Feld Layoverlaenge ein; das Feld bleibt
+                             händisch bearbeitbar. -->
+                        <LinearLayout
+                            android:id="@+id/layover_hours_quick_section"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:orientation="horizontal"
+                            android:visibility="gone">
+
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/tile_layover_hours_14"
+                                android:layout_width="0dp"
+                                android:layout_height="40dp"
+                                android:layout_weight="1"
+                                android:clickable="true"
+                                android:focusable="true"
+                                app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
+                                app:cardCornerRadius="16dp"
+                                app:cardElevation="0dp"
+                                app:contentPadding="0dp"
+                                app:strokeColor="?attr/colorOutlineVariant"
+                                app:strokeWidth="1dp">
+
+                                <TextView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:gravity="center"
+                                    android:includeFontPadding="false"
+                                    android:maxLines="1"
+                                    android:text="14"
+                                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                    android:textStyle="bold" />
+                            </com.google.android.material.card.MaterialCardView>
+
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/tile_layover_hours_24"
+                                android:layout_width="0dp"
+                                android:layout_height="40dp"
+                                android:layout_weight="1"
+                                android:layout_marginStart="8dp"
+                                android:clickable="true"
+                                android:focusable="true"
+                                app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
+                                app:cardCornerRadius="16dp"
+                                app:cardElevation="0dp"
+                                app:contentPadding="0dp"
+                                app:strokeColor="?attr/colorOutlineVariant"
+                                app:strokeWidth="1dp">
+
+                                <TextView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:gravity="center"
+                                    android:includeFontPadding="false"
+                                    android:maxLines="1"
+                                    android:text="24"
+                                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                    android:textStyle="bold" />
+                            </com.google.android.material.card.MaterialCardView>
+
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/tile_layover_hours_48"
+                                android:layout_width="0dp"
+                                android:layout_height="40dp"
+                                android:layout_weight="1"
+                                android:layout_marginStart="8dp"
+                                android:clickable="true"
+                                android:focusable="true"
+                                app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
+                                app:cardCornerRadius="16dp"
+                                app:cardElevation="0dp"
+                                app:contentPadding="0dp"
+                                app:strokeColor="?attr/colorOutlineVariant"
+                                app:strokeWidth="1dp">
+
+                                <TextView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:gravity="center"
+                                    android:includeFontPadding="false"
+                                    android:maxLines="1"
+                                    android:text="48"
+                                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                    android:textStyle="bold" />
+                            </com.google.android.material.card.MaterialCardView>
+
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/tile_layover_hours_72"
+                                android:layout_width="0dp"
+                                android:layout_height="40dp"
+                                android:layout_weight="1"
+                                android:layout_marginStart="8dp"
+                                android:clickable="true"
+                                android:focusable="true"
+                                app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
+                                app:cardCornerRadius="16dp"
+                                app:cardElevation="0dp"
+                                app:contentPadding="0dp"
+                                app:strokeColor="?attr/colorOutlineVariant"
+                                app:strokeWidth="1dp">
+
+                                <TextView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:gravity="center"
+                                    android:includeFontPadding="false"
+                                    android:maxLines="1"
+                                    android:text="72"
+                                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                    android:textStyle="bold" />
+                            </com.google.android.material.card.MaterialCardView>
+                        </LinearLayout>
+                        </LinearLayout>
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
                     </androidx.constraintlayout.widget.ConstraintLayout>
@@ -1459,80 +1778,6 @@
                                 android:maxLines="3"
                                 android:textSize="17sp"
                                 android:textColor="?attr/colorOnSurface" />
-                        </LinearLayout>
-                    </com.highfly.logbook.InputTile>
-                </com.google.android.material.card.MaterialCardView>
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/layover_hours_section"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:orientation="vertical"
-                android:visibility="gone">
-
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/tile_layover_hours"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:clipChildren="false"
-                    android:clipToPadding="false"
-                    app:cardCornerRadius="16dp"
-                    app:cardElevation="0dp"
-                    app:cardBackgroundColor="@android:color/transparent"
-                    app:contentPaddingStart="0dp"
-                    app:contentPaddingEnd="0dp"
-                    app:contentPaddingBottom="0dp"
-                    app:contentPaddingTop="12dp"
-                    app:strokeWidth="0dp"
-                    app:shapeAppearanceOverlay="@style/ShapeAppearance.Logbook.Tile.Full">
-
-                    <com.highfly.logbook.InputTile
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:minHeight="52dp"
-                        android:paddingStart="20dp"
-                        android:paddingEnd="4dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/layover_hours_label"
-                            android:labelFor="@id/et_layover_hours"
-                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-                            android:textColor="?attr/colorOnSurfaceVariant"
-                            android:textStyle="bold" />
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical">
-
-                            <EditText
-                                android:id="@+id/et_layover_hours"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:background="@null"
-                                android:hint="@string/layover_hours_hint"
-                                android:inputType="number"
-                                android:maxLength="3"
-                                android:maxLines="1"
-                                android:minEms="1"
-                                android:textColor="?attr/colorOnSurface"
-                                android:textSize="17sp" />
-
-                            <TextView
-                                android:id="@+id/tv_layover_hours_unit"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:gravity="center"
-                                android:paddingStart="8dp"
-                                android:text="@string/layover_hours_hint"
-                                android:textColor="?attr/colorOnSurfaceVariant"
-                                android:textSize="14sp"
-                                android:visibility="gone" />
                         </LinearLayout>
                     </com.highfly.logbook.InputTile>
                 </com.google.android.material.card.MaterialCardView>

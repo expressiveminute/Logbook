@@ -112,28 +112,6 @@
         android:layout_marginBottom="20dp"
         android:orientation="vertical">
 
-        <!-- Blendet die Flugspuren der Layover-Animation wieder ein; nur zu
-             sehen, wenn der Layover-Filter aktiv ist. Sitzt über dem
-             Hineinzoomen-Knopf (Plus). -->
-        <FrameLayout
-            android:id="@+id/btn_layover_trails"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_marginBottom="4dp"
-            android:background="@drawable/bg_icon_button"
-            android:clickable="true"
-            android:focusable="true"
-            android:visibility="gone">
-
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:layout_gravity="center"
-                android:contentDescription="@string/world_map_layover_trails"
-                app:srcCompat="@drawable/ic_routes"
-                app:tint="?attr/colorOnSurface" />
-        </FrameLayout>
-
         <FrameLayout
             android:id="@+id/btn_zoom_in"
             android:layout_width="48dp"
@@ -212,6 +190,34 @@
                 app:tint="?attr/colorOnSurface" />
         </FrameLayout>
     </LinearLayout>
+
+    <!-- Spuren-Knopf der Layover-Animation: linksbündig am linken Rand, auf
+         Höhe des Hineinzoomen-Knopfes (Plus) - die Höhe wird nach dem Layout
+         auf btn_zoom_in gesetzt (alignLayoverButtonToZoomIn). Nur zu sehen,
+         wenn der Layover-Filter aktiv ist und die Animation durchgelaufen
+         ist. Das Linien-Symbol zeigt, dass hier die Flugspuren dauerhaft
+         eingeblendet werden; das Hinweis-Popup öffnet rechts daneben mit
+         Pfeilspitze auf den Knopf. -->
+    <FrameLayout
+        android:id="@+id/btn_layover_trails"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="start|top"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="20dp"
+        android:background="@drawable/bg_icon_button"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="center"
+            android:contentDescription="@string/world_map_layover_trails"
+            app:srcCompat="@drawable/ic_route_lines"
+            app:tint="?attr/colorOnSurface" />
+    </FrameLayout>
 
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/stats_card"

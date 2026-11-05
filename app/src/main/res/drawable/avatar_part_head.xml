@@ -1,0 +1,9 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- Kopf und Hals, Hautfarbe -->
+    <path android:fillColor="#FF000000"
+        android:pathData="M14.5,20 a9.5,9.5 0 1 1 19,0 a9.5,9.5 0 1 1 -19,0 Z M20.5,27 L27.5,27 L27.5,37 L20.5,37 Z" />
+</vector>

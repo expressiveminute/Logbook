@@ -1,0 +1,17 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- Kurzes Haar mit Brille -->
+    <path android:fillColor="#6D4C41"
+        android:pathData="M14,18 a10,10 0 1 1 20,0 a10,10 0 1 1 -20,0 Z" />
+    <path android:fillColor="#F1C27D"
+        android:pathData="M20.5,27 L27.5,27 L27.5,37 L20.5,37 Z" />
+    <path android:fillColor="#7B1FA2"
+        android:pathData="M6,48 C6,38.5 14,34.5 24,34.5 C34,34.5 42,38.5 42,48 Z" />
+    <path android:fillColor="#F1C27D"
+        android:pathData="M14.5,20 a9.5,9.5 0 1 1 19,0 a9.5,9.5 0 1 1 -19,0 Z" />
+    <path android:fillColor="#00000000" android:strokeColor="#263238" android:strokeWidth="1.1"
+        android:pathData="M16.5,20 a3,3 0 1 1 6,0 a3,3 0 1 1 -6,0 Z M25.5,20 a3,3 0 1 1 6,0 a3,3 0 1 1 -6,0 Z M22.5,20 L25.5,20" />
+</vector>

@@ -22,11 +22,25 @@
         android:textSize="22sp"
         tools:text="🇩🇪" />
 
+    <!-- Auge: rechts von der Flagge, links vom Namen; nur in der halbhohen
+         Liste unter der Rubbelkarte sichtbar, zoomt die Kugel auf das Land und
+         hebt seine Grenzen hervor. -->
+    <ImageButton
+        android:id="@+id/iv_country_zoom"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginStart="2dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/rubbelkarte_zoom_to"
+        android:src="@drawable/ic_visibility"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
     <TextView
         android:id="@+id/tv_country_name"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
+        android:layout_marginStart="10dp"
         android:layout_weight="1"
         android:ellipsize="end"
         android:maxLines="1"

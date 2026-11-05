@@ -226,9 +226,8 @@ class SettingsSectionFragment : LogbookFragment() {
             "data" -> {
                 binding.contentData.visibility = View.VISIBLE
                 setupData()
-            }
-            "development" -> {
-                binding.contentDevelopment.visibility = View.VISIBLE
+                // Crash-Log und Demo-Datenbank liegen ganz unten im Abschnitt
+                // "Data" (frueher eigener Abschnitt "Development").
                 setupDevelopment()
             }
         }
@@ -239,7 +238,7 @@ class SettingsSectionFragment : LogbookFragment() {
         "users" -> R.string.settings_section_users
         "customization" -> R.string.settings_section_customization
         "data" -> R.string.settings_section_data
-        else -> R.string.settings_section_development
+        else -> R.string.settings_section_profile
     }
 
     private fun setupProfile() {

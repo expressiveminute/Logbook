@@ -47,6 +47,10 @@ object ContinentStats {
      * [Continents.ORDER] als Reihenfolge, damit die Kachelzeile sich beim
      * Blättern nicht verschiebt.
      *
+     * Die EU ([Continents.EU]) erscheint als eigene Kachel mit, sie ist aber
+     * kein Kontinent in [Continents.ORDER]: Bei Gleichstand sortiert sie direkt
+     * hinter Europa ein. Ohne EU-Länder in [countries] entfällt sie.
+     *
      * @param countries Länder der App, siehe [CountryShapes]
      * @param visited besuchte Länder als ISO-2
      */
@@ -69,14 +73,38 @@ object ContinentStats {
                 besuchtZahl[continent] = (besuchtZahl[continent] ?: 0) + 1
             }
         }
-        return Continents.ORDER.mapNotNull { continent ->
+        val result = Continents.ORDER.mapNotNull { continent ->
             // [Continents.UNKNOWN] steht zwar in der Reihenfolge, ist aber nie
             // ein Ergebnis von [Continents.continentOf] und damit hier ohne
             // Eintrag - es wird deshalb wie ein Kontinent ohne Länder
             // übersprungen.
             val anzahl = gesamt[continent] ?: return@mapNotNull null
             Progress(continent, besuchtZahl[continent] ?: 0, anzahl)
-        }.sortedWith(compareByDescending<Progress> { it.visited }
-            .thenBy { Continents.ORDER.indexOf(it.continent) })
+        }.toMutableList()
+        // EU-Kachel: dieselben Länder wie Europa, aber nur die 27 Mitgliedstaaten.
+        val euTotal = countries.count { it.iso2.trim().uppercase() in Continents.EU_MEMBERS }
+        if (euTotal > 0) {
+            result.add(
+                Progress(
+                    Continents.EU,
+                    besucht.count { it in Continents.EU_MEMBERS },
+                    euTotal
+                )
+            )
+        }
+        return result.sortedWith(compareByDescending<Progress> { it.visited }
+            .thenBy { reihenfolge(it.continent) })
     }
+
+    /**
+     * Sortierschlüssel nach [Continents.ORDER]; die EU rangiert direkt hinter
+     * Europa, damit die beiden Kacheln beieinanderliegen, wenn sie gleich
+     * viele besuchte Länder haben.
+     */
+    private fun reihenfolge(continent: String): Double =
+        if (continent == Continents.EU) {
+            Continents.ORDER.indexOf(Continents.EUROPE) + 0.5
+        } else {
+            Continents.ORDER.indexOf(continent).toDouble()
+        }
 }

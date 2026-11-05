@@ -13,12 +13,13 @@ object AirportData {
 
     private var byIata: Map<String, GeoLocation>? = null
     private var countryByIata: Map<String, String>? = null
+    private var regionByIata: Map<String, String>? = null
     private var elevationByIataM: Map<String, Int>? = null
     private var icaoByIata: Map<String, String>? = null
 
     @Synchronized
     private fun ensureLoaded(context: Context) {
-        if (byIata != null && countryByIata != null &&
+        if (byIata != null && countryByIata != null && regionByIata != null &&
             elevationByIataM != null && icaoByIata != null
         ) {
             return
@@ -77,6 +78,23 @@ object AirportData {
         } catch (e: Exception) {
             Log.e(TAG, "Konnte geschlossene Flughäfen nicht laden", e)
         }
+        // Region (ISO-3166-2, z. B. "US-CA"/"DE-BY") je IATA-Code für die
+        // Bundesstaaten/Bundesländer auf der Rubbelkarte. Nur US und DE
+        // stehen in der Datei, alles andere bleibt null.
+        val regions = mutableMapOf<String, String>()
+        try {
+            val json = context.assets.open("airports/airports_regions.json")
+                .bufferedReader()
+                .use { it.readText() }
+            val rroot = JSONObject(json)
+            val rkeys = rroot.keys()
+            while (rkeys.hasNext()) {
+                val iata = rkeys.next()
+                regions[iata] = rroot.getString(iata)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Konnte Flughafen-Regionen nicht laden", e)
+        }
         // Höhe über N.N. je IATA-Code (in Metern) für die "Flughäfen"-Kachel:
         // sie zeigt den niedrigsten und den höchsten Flughafen des Datensatzes.
         val elevations = mutableMapOf<String, Int>()
@@ -95,6 +113,7 @@ object AirportData {
         }
         byIata = airports
         countryByIata = countries
+        regionByIata = regions
         elevationByIataM = elevations
         icaoByIata = loadIcao(context)
     }
@@ -107,6 +126,15 @@ object AirportData {
     fun country(context: Context, iata: String): String? {
         ensureLoaded(context)
         return countryByIata?.get(iata.uppercase())
+    }
+
+    /**
+     * Region des Flughafens als ISO-3166-2 ("US-CA", "DE-BY"); `null` bei
+     * unbekanntem Flughafen oder wenn das Land keine Regionen führt.
+     */
+    fun region(context: Context, iata: String): String? {
+        ensureLoaded(context)
+        return regionByIata?.get(iata.uppercase())
     }
 
     /** Höhe des Flughafens über N.N. in Metern; `null` bei unbekannter Höhe. */

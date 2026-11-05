@@ -10,9 +10,10 @@ class ChartDataFlightRouteTest {
     private fun entry(
         from: String,
         to: String,
-        distanceKm: Int? = null
+        distanceKm: Int? = null,
+        date: LocalDate = LocalDate.of(2026, 1, 1)
     ) = LogbookEntry(
-        date = LocalDate.of(2026, 1, 1),
+        date = date,
         fromAirport = from,
         toAirport = to,
         distanceKm = distanceKm
@@ -202,12 +203,129 @@ class ChartDataFlightRouteTest {
         from: String,
         to: String,
         minutes: Int,
-        km: Int
+        km: Int,
+        date: LocalDate = LocalDate.of(2026, 1, 1)
     ) = LogbookEntry(
-        date = LocalDate.of(2026, 1, 1),
+        date = date,
         fromAirport = from,
         toAirport = to,
         distanceKm = km,
         flightMinutes = minutes
     )
+
+    @Test
+    fun flightRouteBars_byDistanceMergesEqualRoundTrips() {
+        // Hin- und Rueckflug mit denselben Daten (Distanz und Dauer gleich):
+        // ein Balken "MUC-LAX-MUC" mit der Summe beider Richtungen.
+        val entries = listOf(
+            timed("MUC", "LAX", minutes = 660, km = 8900, date = LocalDate.of(2026, 1, 1)),
+            timed("LAX", "MUC", minutes = 660, km = 8900, date = LocalDate.of(2026, 1, 5))
+        )
+
+        val bars = ChartData.flightRouteBars(entries, ChartData.FlightRouteSort.ENTFERNUNG)
+
+        assertEquals(listOf("MUC-LAX-MUC"), bars.map { it.label })
+        assertEquals(listOf(17800), bars.map { it.count })
+    }
+
+    @Test
+    fun flightRouteBars_byDurationMergesEqualRoundTrips() {
+        // Dieselbe Zusammenfassung im Dauer-Modus.
+        val entries = listOf(
+            timed("MUC", "LAX", minutes = 660, km = 8900, date = LocalDate.of(2026, 1, 1)),
+            timed("LAX", "MUC", minutes = 660, km = 8900, date = LocalDate.of(2026, 1, 5))
+        )
+
+        val bars = ChartData.flightRouteBars(entries, ChartData.FlightRouteSort.DAUER)
+
+        assertEquals(listOf("MUC-LAX-MUC"), bars.map { it.label })
+        assertEquals(listOf(1320), bars.map { it.count })
+    }
+
+    @Test
+    fun flightRouteBars_mergedLabelFollowsTheEarliestFlight() {
+        // Fliegt die Gegenrichtung zuerst, dreht sich die Beschriftung:
+        // "LAX-MUC-LAX" statt "MUC-LAX-MUC".
+        val entries = listOf(
+            timed("LAX", "MUC", minutes = 660, km = 8900, date = LocalDate.of(2026, 1, 1)),
+            timed("MUC", "LAX", minutes = 660, km = 8900, date = LocalDate.of(2026, 1, 5))
+        )
+
+        val bars = ChartData.flightRouteBars(entries, ChartData.FlightRouteSort.ENTFERNUNG)
+
+        assertEquals(listOf("LAX-MUC-LAX"), bars.map { it.label })
+        assertEquals(listOf(17800), bars.map { it.count })
+    }
+
+    @Test
+    fun flightRouteBars_differentDataStaysSeparate() {
+        // Unterscheiden sich Distanz oder Dauer der beiden Richtungen,
+        // bleiben Hin- und Rueckflug eigene Balken.
+        val entries = listOf(
+            timed("MUC", "LAX", minutes = 660, km = 8900),
+            timed("LAX", "MUC", minutes = 700, km = 8900),
+            timed("MUC", "ZRH", minutes = 60, km = 265)
+        )
+
+        val bars = ChartData.flightRouteBars(entries, ChartData.FlightRouteSort.DAUER)
+
+        assertEquals(listOf("LAX-MUC", "MUC-LAX", "MUC-ZRH"), bars.map { it.label })
+        assertEquals(listOf(700, 660, 60), bars.map { it.count })
+    }
+
+    @Test
+    fun flightRouteBars_byCountDoesNotMerge() {
+        // Nach Anzahl zaehlen Hin- und Rueckflug getrennt, auch bei gleichen Daten.
+        val entries = listOf(
+            timed("MUC", "LAX", minutes = 660, km = 8900),
+            timed("LAX", "MUC", minutes = 660, km = 8900)
+        )
+
+        val bars = ChartData.flightRouteBars(entries, ChartData.FlightRouteSort.ANZAHL)
+
+        assertEquals(listOf("LAX-MUC", "MUC-LAX"), bars.map { it.label })
+        assertEquals(listOf(1, 1), bars.map { it.count })
+    }
+
+    @Test
+    fun flightRouteStats_mergedRouteCountsBothDirections() {
+        val entries = listOf(
+            timed("MUC", "LAX", minutes = 660, km = 8900, date = LocalDate.of(2026, 1, 1)),
+            timed("LAX", "MUC", minutes = 660, km = 8900, date = LocalDate.of(2026, 1, 5))
+        )
+
+        val stats = ChartData.flightRouteStats(entries, "MUC-LAX-MUC")
+
+        assertEquals(2, stats.flights)
+        assertEquals(1320, stats.minutes)
+        assertEquals(17800, stats.km)
+    }
+
+    @Test
+    fun flightRouteRank_mergedRouteUsesTheCombinedValue() {
+        // Der zusammengefasste Balken MUC-LAX-MUC (17800 km) steht vor FRA-JFK.
+        val entries = listOf(
+            timed("MUC", "LAX", minutes = 660, km = 8900, date = LocalDate.of(2026, 1, 1)),
+            timed("LAX", "MUC", minutes = 660, km = 8900, date = LocalDate.of(2026, 1, 5)),
+            timed("FRA", "JFK", minutes = 540, km = 6200)
+        )
+
+        assertEquals(
+            1,
+            ChartData.flightRouteRank(entries, "MUC-LAX-MUC", ChartData.FlightRouteSort.ENTFERNUNG)
+        )
+        assertEquals(
+            2,
+            ChartData.flightRouteRank(entries, "FRA-JFK", ChartData.FlightRouteSort.ENTFERNUNG)
+        )
+        // Nach Anzahl zaehlt der Hin- und Rueckflug getrennt: je ein Flug.
+        assertEquals(
+            1,
+            ChartData.flightRouteRank(entries, "MUC-LAX", ChartData.FlightRouteSort.ANZAHL)
+        )
+        assertEquals(
+            1,
+            ChartData.flightRouteRank(entries, "LAX-MUC", ChartData.FlightRouteSort.ANZAHL)
+        )
+    }
 }

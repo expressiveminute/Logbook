@@ -23,6 +23,13 @@ class CountryChecklistAdapter(
     /** Meldet die Zahl der abgehakten Länder, sobald sich die Liste ändert. */
     var onCheckedCountChanged: ((Int) -> Unit)? = null
 
+    /**
+     * Tipp auf das Auge: zoomt die Karte auf das Land. Nur gesetzt, wenn die
+     * Liste unter der Rubbelkarte gezeigt wird - auf der Länder-Seite bleibt
+     * das Auge weg.
+     */
+    var onZoom: ((CountryChecklist.Item) -> Unit)? = null
+
     fun submit(list: List<CountryChecklist.Item>) {
         items = list
         notifyDataSetChanged()
@@ -69,6 +76,10 @@ class CountryChecklistAdapter(
             // Tippen auf den Namen.
             binding.root.setOnClickListener { itemAt(this)?.let(onToggle) }
             binding.cbCountry.setOnClickListener { itemAt(this)?.let(onToggle) }
+            binding.ivCountryZoom.setOnClickListener {
+                val zoom = onZoom ?: return@setOnClickListener
+                itemAt(this)?.let(zoom)
+            }
         }
 
         fun bind(item: CountryChecklist.Item) {
@@ -101,6 +112,8 @@ class CountryChecklistAdapter(
                 if (item.checked) FLAG_ALPHA_CHECKED else FLAG_ALPHA_OPEN
             binding.ivCountryFlight.visibility =
                 if (item.fromFlight) View.VISIBLE else View.GONE
+            binding.ivCountryZoom.visibility =
+                if (onZoom != null) View.VISIBLE else View.GONE
             binding.cbCountry.isChecked = item.checked
         }
     }

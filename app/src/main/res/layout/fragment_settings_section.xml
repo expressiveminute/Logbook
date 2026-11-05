@@ -558,17 +558,12 @@
                         android:text="@string/danger_reset_action" />
                 </LinearLayout>
             </LinearLayout>
-        </LinearLayout>
 
-        <LinearLayout
-            android:id="@+id/content_development"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:orientation="vertical"
-            android:visibility="gone">
-
-            <LinearLayout style="@style/SettingsRow">
+            <!-- Crash-Log und Demo-Datenbank: frueher im Abschnitt
+                 "Development", jetzt ganz unten im Abschnitt "Data". -->
+            <LinearLayout
+                style="@style/SettingsRow"
+                android:layout_marginTop="28dp">
 
                 <TextView
                     style="@style/SettingsRowLabel"

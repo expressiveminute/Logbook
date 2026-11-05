@@ -1,31 +1,43 @@
 package com.highfly.logbook
 
+import android.animation.ValueAnimator
 import android.app.DatePickerDialog
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Rect
+import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.text.Editable
 import android.text.InputFilter
+import android.text.Selection
 import android.text.SpannableString
 import android.text.Spanned
 import android.text.TextWatcher
 import android.text.style.ForegroundColorSpan
+import android.util.TypedValue
 import android.view.Gravity
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.view.animation.DecelerateInterpolator
 import android.view.animation.OvershootInterpolator
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.DatePicker
 import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.PopupWindow
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.core.animation.doOnEnd
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.ColorUtils
 import androidx.core.view.doOnLayout
+import androidx.core.view.doOnPreDraw
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -81,6 +93,38 @@ class AddEntryFragment : LogbookFragment() {
      */
     private var saveButtonRevealHandled = false
 
+    /**
+     * Die zuletzt automatisch vorbefüllte Layoverzeit. Nur dieser Wert darf bei
+     * einer neuen Strecke aktualisiert werden; hat der Nutzer die Zahl selbst
+     * geändert, bleibt seine Eingabe stehen.
+     */
+    private var autoLayoverHours: String? = null
+
+    /**
+     * Ob die Layover-Kachel gerade im angeklickten Zustand gezeigt wird (Wort
+     * oben links in der Kerbe). null bis zum ersten Aufbau.
+     */
+    private var layoverActiveShown: Boolean? = null
+
+    /** Ausgangs-Schriftgroesse und -farbe des mittigen Wortes "Layover". */
+    private var layoverWordSize = 0f
+    private var layoverWordColor = 0
+
+    private var layoverHeaderAnimator: ValueAnimator? = null
+
+    /**
+     * Alle bisher eingetragenen Reisebuddy-Namen (häufigste zuerst), Grundlage
+     * der Live-Vorschläge beim Eintippen im Reisebuddy-Feld. Wird einmalig
+     * pro Seitenaufbau im Hintergrund geladen ([loadKnownBuddyNames]).
+     */
+    private var knownBuddyNames: List<String> = emptyList()
+
+    /** Ob [knownBuddyNames] schon geladen ist. */
+    private var buddyNamesLoaded = false
+
+    /** Das gerade offene Vorschlags-Popup über einem Reisebuddy-Feld. */
+    private var buddySuggestionsPopup: PopupWindow? = null
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -134,6 +178,7 @@ class AddEntryFragment : LogbookFragment() {
         setupTravelBuddyChips()
         setupLayoverHours()
         setupSaveAndDiscard()
+        setupCursorAtEndOnTap()
 
         updateLayoverVisibility()
 
@@ -337,8 +382,11 @@ class AddEntryFragment : LogbookFragment() {
 
     private fun updateLayoverVisibility() {
         val isPrivate = selectedFlightTypeIndex == PRIVATE_INDEX
-        binding.cbLayover.visibility =
-            if (role.showsLayover && !isPrivate) View.VISIBLE else View.GONE
+        val visible = role.showsLayover && !isPrivate
+        // Die Layover-Kachel (graues Panel mit Auswahlfeld) folgt der Rollen-
+        // Sichtbarkeit; ob das Auswahlfeld darin mittig steht oder angeklickt
+        // in der Kerbe oben links, regelt updateLayoverHoursVisibility().
+        binding.layoverPanel.visibility = if (visible) View.VISIBLE else View.GONE
         updateLayoverHoursVisibility()
     }
 
@@ -355,8 +403,35 @@ class AddEntryFragment : LogbookFragment() {
         binding.cbLayover.setOnCheckedChangeListener { _, _ ->
             updateLayoverHoursVisibility()
         }
+        // Tippen auf die Auswahlfeld-Zeile (neben Hacken und Wort) klappt das
+        // Kaestchen um; im angeklickten Zustand (Zeile weg) uebernimmt der
+        // Header den Tipp und klappt zurueck. Das kleine X oben rechts entfernt
+        // das Layover wieder, falls man sich verklickt hat.
+        binding.layoverCenterRow.setOnClickListener { binding.cbLayover.toggle() }
+        binding.layoverHeader.setOnClickListener { binding.cbLayover.toggle() }
+        binding.btnLayoverClear.setOnClickListener { binding.cbLayover.isChecked = false }
         setupLayoverHoursUnit(binding.etLayoverHours, binding.tvLayoverHoursUnit)
         setupLayoverHoursUnit(binding.etHinflugLayoverHours, binding.tvHinflugLayoverHoursUnit)
+        setupLayoverHoursQuickSelect()
+    }
+
+    /**
+     * Die vier Vorschlags-Kacheln (14/24/48/72 h) unter dem Layoverzeit-Feld:
+     * Ein Tipp trägt die Zahl in das Feld ein. Das Feld bleibt danach händisch
+     * bearbeitbar - es wird nicht erneut vorbefüllt, sobald es Text trägt.
+     */
+    private fun setupLayoverHoursQuickSelect() {
+        listOf(
+            binding.tileLayoverHours14 to 14,
+            binding.tileLayoverHours24 to 24,
+            binding.tileLayoverHours48 to 48,
+            binding.tileLayoverHours72 to 72
+        ).forEach { (tile, hours) ->
+            tile.contentDescription = getString(R.string.layover_hours_quick_desc, hours)
+            tile.setOnClickListener {
+                binding.etLayoverHours.setText(hours.toString())
+            }
+        }
     }
 
     private fun setupLayoverHoursUnit(input: EditText, unit: View) {
@@ -375,17 +450,186 @@ class AddEntryFragment : LogbookFragment() {
      * das Kästchen "Layover" steht beim Ankunftsfeld des Hinflugs.
      */
     private fun updateLayoverHoursVisibility() {
-        val layoverVisible = binding.cbLayover.visibility == View.VISIBLE
+        // Ob die Kachel dem Nutzer angeboten wird, haengt an der Panel-Sichtbarkeit
+        // (Rolle), nicht am Kaestchen selbst - das ist im angeklickten Zustand
+        // ja gerade ausgeblendet.
+        val layoverVisible = binding.layoverPanel.visibility == View.VISIBLE
         val active = layoverVisible && binding.cbLayover.isChecked
-        binding.layoverHoursSection.visibility = if (active) View.VISIBLE else View.GONE
-        binding.tileHinflugLayoverHours.visibility = if (active) View.VISIBLE else View.GONE
+        // Ohne Rueckflug steht das Laenge-Feld in der Layover-Kachel unter der
+        // Beschriftung, mit Rueckflug in der Spalte des Hinflugs.
+        binding.layoverHoursSection.visibility =
+            if (active && !returnActive) View.VISIBLE else View.GONE
+        // Die vier Vorschlags-Kacheln (14/24/48/72 h) stehen darunter in der
+        // Kachel und oeffnen sich zusammen mit dem Laenge-Feld.
+        binding.layoverHoursQuickSection.visibility =
+            if (active && !returnActive) View.VISIBLE else View.GONE
+        binding.tileHinflugLayoverHours.visibility =
+            if (active && returnActive) View.VISIBLE else View.GONE
+        // Ist das Layover-Kaestchen an, verbindet ein schmaler Strich (oben und
+        // unten breiter, in der Kachel-Hintergrundfarbe) die Mitte des To-Felds
+        // mit der Mitte des Layover-Panels. Der Strich fuellt den 8-dp-Spalt,
+        // deshalb faellt der obere Panel-Abstand dann weg.
+        binding.layoverConnector.visibility = if (active) View.VISIBLE else View.GONE
+        val panelParams = binding.layoverPanel.layoutParams as? ViewGroup.MarginLayoutParams
+        if (panelParams != null) {
+            val desiredTop = if (active) 0 else (8 * resources.displayMetrics.density).roundToInt()
+            if (panelParams.topMargin != desiredTop) {
+                panelParams.topMargin = desiredTop
+                binding.layoverPanel.layoutParams = panelParams
+            }
+        }
+        if (active) {
+            prefillLayoverHours()
+        }
+        // Das kleine X oben rechts steht nur, wenn das Layover angeklickt ist.
+        binding.btnLayoverClear.visibility = if (active) View.VISIBLE else View.GONE
+        // Wechsel zwischen Auswahlfeld (mittig) und angeklicktem Zustand (Wort
+        // oben links in der Kerbe); beim ersten Aufbau und beim Vorbefuellen
+        // ohne Animation direkt in den Endzustand.
+        if (active != layoverActiveShown) {
+            val first = layoverActiveShown == null
+            layoverActiveShown = active
+            applyLayoverHeaderState(active, animate = !prefilling && !first)
+        }
         // Nur loeschen, wenn das Kaestchen sichtbar und nicht angeklickt ist.
         // Ein ausgeblendetes Feld (Fluggast) bewahrt seinen Wert, damit ein
         // vorhandener Eintrag beim Speichern unveraendert bleibt.
         if (layoverVisible && !binding.cbLayover.isChecked) {
             binding.etLayoverHours.text?.clear()
             binding.etHinflugLayoverHours.text?.clear()
+            autoLayoverHours = null
         }
+    }
+
+    /** Mitte von [view] waagerecht, umgerechnet auf den Vorfahren [ancestor]. */
+    private fun centerXIn(view: View, ancestor: View): Float {
+        var x = view.left + view.width / 2f
+        var v = view.parent as? View
+        while (v != null && v !== ancestor) {
+            x += v.left
+            v = v.parent as? View
+        }
+        return x
+    }
+
+    /** Mitte von [view] senkrecht, umgerechnet auf den Vorfahren [ancestor]. */
+    private fun centerYIn(view: View, ancestor: View): Float {
+        var y = view.top + view.height / 2f
+        var v = view.parent as? View
+        while (v != null && v !== ancestor) {
+            y += v.top
+            v = v.parent as? View
+        }
+        return y
+    }
+
+    /**
+     * Schaltet die Layover-Kachel zwischen Auswahlfeld (mittig in der Kachel)
+     * und angeklicktem Zustand um. Beim Anklicken wandert das Wort "Layover"
+     * animiert von der Mitte nach oben links in den Rahmen der Kachel - Position,
+     * Schriftgroesse und Farbe laufen dabei zusammen wie bei den uebrigen
+     * Feldern (InputTile) - und das Kaestchen blendet parallel aus. Beim
+     * Abwählen klappt alles ohne Animation zurueck in die Mitte.
+     */
+    private fun applyLayoverHeaderState(active: Boolean, animate: Boolean) {
+        val row = binding.layoverCenterRow
+        val word = binding.tvLayoverLabel
+        val notch = binding.tvLayoverNotch
+        val check = binding.cbLayover
+        if (layoverWordSize == 0f) {
+            layoverWordSize = word.paint.textSize
+            layoverWordColor = word.currentTextColor
+        }
+        layoverHeaderAnimator?.cancel()
+        if (!active) {
+            // Zurueck in die Mitte: Kaestchen sichtbar, Wort mittig und gross.
+            notch.visibility = View.GONE
+            notch.alpha = 1f
+            row.visibility = View.VISIBLE
+            check.visibility = View.VISIBLE
+            check.alpha = 1f
+            word.translationX = 0f
+            word.translationY = 0f
+            word.setTextSize(TypedValue.COMPLEX_UNIT_PX, layoverWordSize)
+            word.setTextColor(layoverWordColor)
+            return
+        }
+        if (!animate) {
+            row.visibility = View.GONE
+            check.visibility = View.GONE
+            notch.visibility = View.VISIBLE
+            notch.alpha = 1f
+            return
+        }
+        // Kerbe schon sichtbar, aber transparent, damit sie vermessen wird und
+        // ihre Zielposition bekannt ist.
+        notch.visibility = View.VISIBLE
+        notch.alpha = 0f
+        binding.layoverHeader.doOnPreDraw {
+            val header = binding.layoverHeader
+            val wordCx = centerXIn(word, header)
+            val wordCy = centerYIn(word, header)
+            val targetCx = centerXIn(notch, header)
+            val targetCy = centerYIn(notch, header)
+            val dx = targetCx - wordCx
+            val dy = targetCy - wordCy
+            val fromSize = layoverWordSize
+            val toSize = notch.paint.textSize
+            val fromColor = layoverWordColor
+            val toColor = notch.currentTextColor
+            val animator = ValueAnimator.ofFloat(0f, 1f).apply {
+                duration = 180
+                interpolator = DecelerateInterpolator()
+                addUpdateListener { step ->
+                    val p = step.animatedValue as Float
+                    word.translationX = dx * p
+                    word.translationY = dy * p
+                    word.setTextSize(TypedValue.COMPLEX_UNIT_PX, fromSize + (toSize - fromSize) * p)
+                    word.setTextColor(ColorUtils.blendARGB(fromColor, toColor, p))
+                    check.alpha = 1f - p
+                }
+                doOnEnd {
+                    // Das Wort sitzt jetzt genau auf der Kerbe: nahtloser
+                    // Uebergang auf die Kerbe-Beschriftung, Kaestchen weg.
+                    row.visibility = View.GONE
+                    check.visibility = View.GONE
+                    check.alpha = 1f
+                    notch.alpha = 1f
+                }
+            }
+            layoverHeaderAnimator = animator
+            animator.start()
+        }
+    }
+
+    /**
+     * Fuellt die Layoverzeit passend zur eingetragenen Strecke vor: Sonderziele
+     * zuerst (MIA 24 h, PEK 48 h), sonst nach Entfernung - unter 2000 km 14 h,
+     * bis 8000 km 24 h, darueber 48 h. Nur ein leeres Feld bzw. der zuletzt
+     * automatisch eingetragene Wert wird geschrieben; eine eigene Eingabe des
+     * Nutzers bleibt stehen und wird gespeichert.
+     */
+    private fun prefillLayoverHours() {
+        if (prefilling) return
+        if (!binding.cbLayover.isChecked) return
+        val target = if (returnActive) binding.etHinflugLayoverHours else binding.etLayoverHours
+        val current = target.text?.toString()
+        if (!current.isNullOrEmpty() && current != autoLayoverHours) return
+        val from = binding.etAirportFrom.text?.toString()?.trim().orEmpty()
+        val to = binding.etAirportTo.text?.toString()?.trim().orEmpty()
+        if (from.isEmpty() || to.isEmpty() || from == to) return
+        val a = AirportData.location(requireContext(), from) ?: return
+        val b = AirportData.location(requireContext(), to) ?: return
+        val km = GeoMath.distanceKm(a, b).roundToInt()
+        val hours = when {
+            to.uppercase() == "MIA" -> 24
+            to.uppercase() == "PEK" -> 48
+            km < 2000 -> 14
+            km <= 8000 -> 24
+            else -> 48
+        }
+        target.setText(hours.toString())
+        autoLayoverHours = hours.toString()
     }
 
     /**
@@ -736,10 +980,75 @@ private fun clearSuggestedRoute() {
         setupAircraftTypeField(binding.etRueckflugAircraft, binding.etRueckflugRegistration)
     }
 
+    /**
+     * Registrierung und Sitzplatz werden beim Tippen grossgeschrieben, damit
+     * "13a" im Feld sofort als "13A" steht (das Layout fordert das schon per
+     * inputType, manche Tastaturen ignorieren die Flagge aber).
+     */
     private fun setupRegistrationUppercase() {
         setupUppercaseWatcher(binding.etRegistration)
         setupUppercaseWatcher(binding.etHinflugRegistration)
         setupUppercaseWatcher(binding.etRueckflugRegistration)
+        setupUppercaseWatcher(binding.etSeat)
+    }
+
+    /**
+     * Tippt man in ein Feld des Formulars, steht der Cursor immer hinten
+     * hinter dem bisherigen Text - beim Bearbeiten eines Eintrags stehen die
+     * Felder schon voll, und ein Klick mitten hinein soll nicht mitten im
+     * Text landen.
+     *
+     * Das darf nicht ueber einen OnClickListener am Feld passieren: Die Kachel
+     * prueft an ihrem eigenen Klick `field.performClick()` und bricht frueh ab,
+     * sobald das Feld einen Listener traegt (so oeffnet das Datum seinen
+     * Kalender). Wuerde jedes Feld einen Listener bekommen, kaeme der Fokus
+     * bei leeren Feldern (Flugnummer, Sitzplatz) nie mehr an. Deshalb lauert
+     * hier ein Touch-Listener: Beim Loslassen eines einfachen Tipps (ohne
+     * bestehende Markierung, damit Ziehen zum Markieren von Text erhalten
+     * bleibt) wird der Cursor gepostet ans Feldende gesetzt - nach der
+     * Touch-Behandlung, damit es gegen die Cursorposition an der Tippstelle
+     * gewinnt. Die Datumsfelder sind nicht in der Liste, sie behandelt
+     * [setupDateEditText] selbst (ihr Klick oeffnet den Kalender).
+     */
+    private fun setupCursorAtEndOnTap() {
+        listOf(
+            binding.etSeat,
+            binding.etFlightCombined,
+            binding.etRueckflugFlight,
+            binding.etAirportFrom,
+            binding.etAirportTo,
+            binding.etDistance,
+            binding.etFlightTime,
+            binding.etLayoverHours,
+            binding.etHinflugLayoverHours,
+            binding.etAircraftType,
+            binding.etRegistration,
+            binding.etHinflugAircraft,
+            binding.etHinflugRegistration,
+            binding.etRueckflugAircraft,
+            binding.etRueckflugRegistration,
+            binding.etFunction,
+            binding.etHinflugFunction,
+            binding.etRueckflugFunction,
+            binding.etTravelBuddy,
+            binding.etHinflugTravelBuddy,
+            binding.etRueckflugTravelBuddy,
+            binding.etComment,
+            binding.etHinflugComment,
+            binding.etRueckflugComment
+        ).forEach { field ->
+            field.setOnTouchListener { _, event ->
+                if (event.action == MotionEvent.ACTION_UP) {
+                    val text = field.text
+                    val start = text?.let(Selection::getSelectionStart) ?: -1
+                    val end = text?.let(Selection::getSelectionEnd) ?: -1
+                    if (start == end) {
+                        field.post { field.setSelection(field.text?.length ?: 0) }
+                    }
+                }
+                false
+            }
+        }
     }
 
     private fun setupUppercaseWatcher(editText: EditText) {
@@ -750,6 +1059,8 @@ private fun clearSuggestedRoute() {
                 val upper = s.toString().uppercase()
                 if (upper != s.toString()) {
                     s.replace(0, s.length, upper)
+                    // Der Cursor bleibt hinten im Feld.
+                    editText.setSelection(upper.length)
                 }
             }
         })
@@ -758,22 +1069,32 @@ private fun clearSuggestedRoute() {
     private fun setupAircraftTypeField(aircraft: EditText, registration: EditText) {
         aircraft.addTextChangedListener(object : TextWatcher {
             private var isFormatting = false
-            private var completed = false
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            // Nur beim Tippen (Einfuegen) wird ergaenzt; beim Loeschen kaempft
+            // die Ergaenzung sonst gegen den Nutzer ("A350-900" auf "A350-9"
+            // zurueckloeschen wuerde sofort wieder zu "A350-900" auffuellen).
+            private var deleting = false
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+                deleting = count > after
+            }
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable) {
                 if (isFormatting) return
-                val completion = if (!completed) aircraftCompletion(s.toString()) else null
+                val completion = if (deleting) null else aircraftCompletion(s.toString())
                 if (completion != null) {
-                    completed = true
+                    val (text, isFinal) = completion
                     isFormatting = true
-                    s.replace(0, s.length, completion)
+                    s.replace(0, s.length, text)
                     isFormatting = false
+                    // Der Cursor steht danach immer hinten, bereit fuer die
+                    // naechste Ziffer (z. B. die Variante hinter dem Strich).
+                    aircraft.setSelection(text.length)
                     prefillRegistration(aircraft, registration)
                     // Der Sprung zur Registrierung ist ein Bedienhinweis beim
-                    // Tippen: Beim Vorbefuellen eines gespeicherten Eintrags
-                    // steht der Fokus woanders und die Tastatur bleibt zu.
-                    if (aircraft.hasFocus()) {
+                    // Tippen und gilt nur, wenn der Typ fertig ist - bei
+                    // "A350-" fehlt die Variante noch. Beim Vorbefuellen eines
+                    // gespeicherten Eintrags steht der Fokus woanders und die
+                    // Tastatur bleibt zu.
+                    if (isFinal && aircraft.hasFocus()) {
                         focusAndShowKeyboard(registration)
                     }
                     registration.setSelection(registration.length())
@@ -790,9 +1111,17 @@ private fun clearSuggestedRoute() {
         })
     }
 
-    private fun aircraftCompletion(input: String): String? {
+    /**
+     * Ergaenzung fuer einen getippten Anfang als Paar aus Zieltext und "fertig":
+     * Erst greift die Variante hinter dem Strich ("A350-9" -> "A350-900",
+     * "A350-1" -> "A350-1000"), dann die Familie ("A35" -> "A350-"). Bei "A350-"
+     * ist der Typ noch nicht fertig - die Varianten-Ziffer fehlt noch -, deshalb
+     * darf der Fokus dann noch nicht zur Registrierung springen.
+     */
+    private fun aircraftCompletion(input: String): Pair<String, Boolean>? {
         val prefix = input.trim().uppercase()
         if (prefix.length < 3) return null
+        AIRCRAFT_VARIANT_AUTOCOMPLETE[prefix]?.let { return it to true }
         return AIRCRAFT_AUTOCOMPLETE[prefix]
     }
 
@@ -1074,6 +1403,9 @@ private fun clearSuggestedRoute() {
         val km = GeoMath.distanceKm(a, b)
         binding.etDistance.setText(km.roundToInt().toString())
         binding.etFlightTime.setText(GeoMath.flightMinutes(km).toString())
+        // Die Layoverzeit wird passend zur Strecke vorbefuellt (sofern das
+        // Layover-Kaestchen an ist und das Feld leer bzw. noch automatisch).
+        prefillLayoverHours()
     }
 
     private fun setupProgressiveReveal() {
@@ -1135,6 +1467,7 @@ private fun clearSuggestedRoute() {
         inputTile(binding.etTravelBuddy)?.setExtraContentCheck { binding.buddyChips.childCount > 0 }
         inputTile(binding.etHinflugTravelBuddy)?.setExtraContentCheck { binding.buddyChipsHinflug.childCount > 0 }
         inputTile(binding.etRueckflugTravelBuddy)?.setExtraContentCheck { binding.buddyChipsRueckflug.childCount > 0 }
+        loadKnownBuddyNames()
     }
 
     private fun setupTravelBuddyChips(chips: FlowLayout, input: EditText) {
@@ -1145,16 +1478,177 @@ private fun clearSuggestedRoute() {
             override fun afterTextChanged(s: Editable) {
                 if (isCommitting) return
                 val newline = s.indexOf('\n')
-                if (newline < 0) return
-                isCommitting = true
-                val name = s.substring(0, newline).trim()
-                // Nur der Name vor dem Zeilenumbruch wird übernommen, der Rest
-                // bleibt im Feld stehen (z. B. beim Einfügen mehrerer Namen).
-                s.delete(0, newline + 1)
-                isCommitting = false
-                if (name.isNotEmpty()) addTravelBuddyChip(chips, name)
+                if (newline >= 0) {
+                    isCommitting = true
+                    val name = s.substring(0, newline).trim()
+                    // Nur der Name vor dem Zeilenumbruch wird übernommen, der Rest
+                    // bleibt im Feld stehen (z. B. beim Einfügen mehrerer Namen).
+                    s.delete(0, newline + 1)
+                    isCommitting = false
+                    if (name.isNotEmpty()) addTravelBuddyChip(chips, name)
+                }
+                // Live-Vorschläge: bereits eingetragene Namen, die zum
+                // getippten Text passen, erscheinen als Popup über dem Feld.
+                updateBuddySuggestions(chips, input, s.toString())
             }
         })
+        // Verlässt das Feld den Fokus (z. B. Tipp woandershin), klappt das
+        // Vorschlags-Popup wieder ein.
+        input.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) dismissBuddySuggestions()
+        }
+    }
+
+    /**
+     * Lädt alle bisher eingetragenen Reisebuddy-Namen im Hintergrund
+     * (häufigste zuerst, siehe [TravelBuddyStats.build]). Danach werden die
+     * Vorschläge für das Feld mit Fokus nachgereicht, falls schon getippt
+     * wurde, bevor die Namen da waren.
+     */
+    private fun loadKnownBuddyNames() {
+        val app = requireContext().applicationContext
+        Thread {
+            val names = TravelBuddyStats.build(LogbookRepository.getEntries())
+                .map { it.name }
+            view?.post {
+                if (_binding == null) return@post
+                knownBuddyNames = names
+                buddyNamesLoaded = true
+                val focused = listOf(
+                    binding.etTravelBuddy to binding.buddyChips,
+                    binding.etHinflugTravelBuddy to binding.buddyChipsHinflug,
+                    binding.etRueckflugTravelBuddy to binding.buddyChipsRueckflug
+                ).firstOrNull { (input, _) -> input.hasFocus() }
+                if (focused != null) {
+                    updateBuddySuggestions(
+                        focused.second, focused.first,
+                        focused.first.text?.toString().orEmpty()
+                    )
+                }
+            }
+        }.start()
+    }
+
+    /**
+     * Prüft live, ob der getippte Name bereits in der Historie vorkommt, und
+     * blendet passende Namen als Popup **über** dem Feld ein. Der getippte
+     * Name ist der Text nach dem letzten Zeilenumbruch; Namen, die in diesem
+     * Feld schon als Chip stehen, werden nicht vorgeschlagen.
+     */
+    private fun updateBuddySuggestions(chips: FlowLayout, input: EditText, text: String) {
+        val query = text.substringAfterLast('\n').trim()
+        if (query.isEmpty() || !buddyNamesLoaded || !input.hasFocus()) {
+            dismissBuddySuggestions()
+            return
+        }
+        val already = HashSet<String>()
+        for (i in 0 until chips.childCount) {
+            already += (chips.getChildAt(i) as TextView).text.toString().lowercase()
+        }
+        val matches = knownBuddyNames
+            .filter {
+                it.lowercase().contains(query.lowercase()) &&
+                    !already.contains(it.lowercase())
+            }
+            .take(MAX_BUDDY_SUGGESTIONS)
+        if (matches.isEmpty()) {
+            dismissBuddySuggestions()
+            return
+        }
+        showBuddySuggestions(chips, input, matches)
+    }
+
+    /**
+     * Zeigt die Vorschläge [matches] als Popup über dem Eingabefeld. Ein Tipp
+     * auf einen Namen übernimmt ihn als Chip und leert das Feld - wie Enter.
+     */
+    private fun showBuddySuggestions(chips: FlowLayout, input: EditText, matches: List<String>) {
+        dismissBuddySuggestions()
+        val context = requireContext()
+        val container = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            val pad = dp(4)
+            setPadding(pad, pad, pad, pad)
+        }
+        val popupBg = MaterialColors.getColor(
+            container,
+            com.google.android.material.R.attr.colorSurfaceContainerHighest,
+            Color.WHITE
+        )
+        val popupStroke = MaterialColors.getColor(
+            container,
+            com.google.android.material.R.attr.colorOutlineVariant,
+            Color.GRAY
+        )
+        container.background = GradientDrawable().apply {
+            cornerRadius = dp(12).toFloat()
+            setColor(popupBg)
+            setStroke(dp(1), popupStroke)
+        }
+        matches.forEach { name ->
+            val row = TextView(context).apply {
+                text = name
+                setTextAppearance(
+                    com.google.android.material.R.style.TextAppearance_Material3_BodyLarge
+                )
+                setTextColor(
+                    MaterialColors.getColor(
+                        this, com.google.android.material.R.attr.colorOnSurface, Color.BLACK
+                    )
+                )
+                val padH = dp(16)
+                val padV = dp(10)
+                setPadding(padH, padV, padH, padV)
+                val ripple = TypedValue()
+                context.theme.resolveAttribute(
+                    android.R.attr.selectableItemBackground, ripple, true
+                )
+                background = ContextCompat.getDrawable(context, ripple.resourceId)
+                setOnClickListener {
+                    addTravelBuddyChip(chips, name)
+                    input.text?.clear()
+                    dismissBuddySuggestions()
+                }
+            }
+            container.addView(row)
+        }
+        val width = input.width.coerceAtLeast(dp(200))
+        // Inhalt messen, damit das Popup exakt oberhalb des Feldes endet.
+        container.measure(
+            View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+        val popupHeight = container.measuredHeight
+        val popup = PopupWindow(
+            container, width, ViewGroup.LayoutParams.WRAP_CONTENT, false
+        ).apply {
+            // Nicht fokussierbar: Die Tastatur bleibt offen und das Tippen
+            // läuft weiter, während das Popup offen ist.
+            isFocusable = false
+            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            elevation = dp(8).toFloat()
+            setOnDismissListener { buddySuggestionsPopup = null }
+        }
+        // Popup direkt über dem Feld: untere Kante auf die Oberkante des Feldes
+        // (4 dp Luft), links bündig. Absolute Bildschirm-Koordinaten über
+        // NO_GRAVITY; passt oben kein Platz, klappt es unter das Feld auf.
+        val location = IntArray(2)
+        input.getLocationOnScreen(location)
+        val gap = dp(4)
+        val yAbove = location[1] - popupHeight - gap
+        val y = if (yAbove >= 0) {
+            yAbove
+        } else {
+            location[1] + input.height + gap
+        }
+        popup.showAtLocation(input, Gravity.NO_GRAVITY, location[0], y)
+        buddySuggestionsPopup = popup
+    }
+
+    /** Klappt das Vorschlags-Popup wieder ein, falls es offen ist. */
+    private fun dismissBuddySuggestions() {
+        buddySuggestionsPopup?.dismiss()
+        buddySuggestionsPopup = null
     }
 
     private fun addTravelBuddyChip(chips: FlowLayout, name: String) {
@@ -1308,6 +1802,9 @@ private fun clearSuggestedRoute() {
         )
         binding.optionalSingleBlock.visibility = if (returnActive) View.GONE else View.VISIBLE
         binding.optionalSplitBlock.visibility = if (returnActive) View.VISIBLE else View.GONE
+        // Das Layoverzeit-Feld wechselt zwischen Ankunftskarte (ohne Rueckflug)
+        // und Hinflug-Spalte (mit Rueckflug).
+        updateLayoverHoursVisibility()
         // Die Funktion hat bei einem Rückflug in beiden Spalten ein eigenes
         // Feld, ihre Sichtbarkeit hängt also an beiden Blöcken.
         updateFunctionVisibility()
@@ -1378,9 +1875,24 @@ private fun clearSuggestedRoute() {
         private const val DEADHEAD_INDEX = 2
         private const val DUTY_TRAVEL_INDEX = 3
         private const val CLASS_JUMP_INDEX = 4
-        private val AIRCRAFT_AUTOCOMPLETE = mapOf(
-            "A35" to "A350-900",
-            "A38" to "A380-800",
+
+        /** Maximal so viele Reisebuddy-Vorschläge zeigt das Popup über dem Feld. */
+        private const val MAX_BUDDY_SUGGESTIONS = 5
+        /**
+         * Familie je Anfang: "A35" wird zu "A350-" (offen - die Varianten-Ziffer
+         * wird nachtraglich ergaenzt, siehe [AIRCRAFT_VARIANT_AUTOCOMPLETE]),
+         * "A38" direkt zu "A380-800". Der zweite Wert sagt, ob der Typ damit
+         * fertig ist.
+         */
+        private val AIRCRAFT_AUTOCOMPLETE: Map<String, Pair<String, Boolean>> = mapOf(
+            "A35" to ("A350-" to false),
+            "A38" to ("A380-800" to true),
+        )
+
+        /** Variante hinter dem Strich: "A350-9" -> "A350-900", "A350-1" -> "A350-1000". */
+        private val AIRCRAFT_VARIANT_AUTOCOMPLETE = mapOf(
+            "A350-9" to "A350-900",
+            "A350-1" to "A350-1000",
         )
     }
 
@@ -1634,7 +2146,12 @@ private fun clearSuggestedRoute() {
             }
         })
 
-        editText.setOnClickListener { showDatePicker(editText) }
+        editText.setOnClickListener {
+            // Wie in allen anderen Feldern: Cursor hinten, siehe
+            // [setupCursorAtEndOnTap].
+            editText.setSelection(editText.text?.length ?: 0)
+            showDatePicker(editText)
+        }
         inputTile(editText)?.setOnInputFocusChangeListener { hasFocus ->
             if (hasFocus) showDatePicker(editText)
         }
@@ -1685,8 +2202,12 @@ private fun clearSuggestedRoute() {
         imm.showSoftInput(editText, InputMethodManager.SHOW_IMPLICIT)
     }
 
+    private fun dp(value: Int): Int =
+        (value * resources.displayMetrics.density).roundToInt()
+
     override fun onDestroyView() {
         super.onDestroyView()
+        dismissBuddySuggestions()
         activity?.window?.setSoftInputMode(previousSoftInputMode)
         _binding = null
     }

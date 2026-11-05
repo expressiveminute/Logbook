@@ -35,21 +35,46 @@
             app:iconSize="24dp"
             app:iconTint="?attr/colorOnSurface" />
 
-        <!-- Die Strecke steht mittig in der Kopfzeile. Der leere Platz rechts
-             gleicht die Breite des Zurück-Knopfes aus, damit der Titel auf dem
-             Bildschirm wirklich mittig sitzt. Der Platz in der Rangliste steht
-             jetzt bei jeder Kennzahl, siehe item_route_stat. -->
-        <TextView
-            android:id="@+id/tv_route_title"
+        <!-- Titelgruppe mittig in der Kopfzeile: Avatar und Titel werden als
+             Gruppe zentriert (gravity="center"), sodass beides zusammen mittig
+             oben im Header steht. Der Titel steht allein (bei den übrigen
+             Nutzern dieses Layouts) oder mit einem runden Avatar links daneben
+             (Reisebuddy-Detailseite, iv_buddy_avatar). Der Avatar ist groesser
+             als die Knoepfe, deshalb waechst die Kopfzeile auf der Reisebuddy-
+             Seite in der Hoehe. Zurueck-Knopf und Platzhalter rechts sind
+             gleich breit, die Gruppe sitzt dadurch auf der Bildschirmmitte. -->
+        <LinearLayout
+            android:id="@+id/title_group"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:ellipsize="end"
             android:gravity="center"
-            android:maxLines="1"
-            android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
-            android:textStyle="bold"
-            tools:text="FRA – JFK" />
+            android:orientation="horizontal">
+
+            <com.highfly.logbook.BuddyAvatarView
+                android:id="@+id/iv_buddy_avatar"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_marginEnd="12dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:visibility="gone"
+                tools:visibility="visible" />
+
+            <!-- Die Strecke bzw. der Name steht mittig in der Kopfzeile;
+                 laengere Texte laufen mit Ellipsis im Restplatz der Gruppe. -->
+            <TextView
+                android:id="@+id/tv_route_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:maxLines="1"
+                android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
+                android:textStyle="bold"
+                tools:text="FRA – JFK" />
+        </LinearLayout>
 
         <!-- Platzhalter rechts, so breit wie der Zurück-Knopf. Auf der
              Reisebuddy-Detailseite weicht er einem Stift zum Umbenennen, der

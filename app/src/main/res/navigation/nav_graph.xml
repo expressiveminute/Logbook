@@ -84,8 +84,10 @@
         android:name="com.highfly.logbook.CountriesFragment"
         tools:layout="@layout/fragment_countries">
 
-        <!-- Leer zeigt alle Länder der Welt, gesetzt nur die eines Kontinents:
-             Die Kacheln der Rubbelkarte öffnen dieselbe Seite gefiltert. -->
+        <!-- Leer zeigt alle Länder der Welt, gesetzt nur die eines Kontinents.
+             Die Kacheln der Rubbelkarte betten dieselbe Seite halbhoch ein
+             (ARG_EMBEDDED), diese Navigation hier ist die volle Seite hinter
+             dem Stift. -->
         <argument
             android:name="continent"
             app:argType="string"
@@ -117,6 +119,38 @@
             android:defaultValue="" />
     </fragment>
 
+    <!-- Seite "Zeit in Ländern" (letzter Tab der Navigationsleiste):
+         Aufenthaltsdauer pro Land aus den Flügen plus manuell erfasste
+         Landweg-Grenzübertritte. -->
+    <fragment
+        android:id="@+id/nav_time_countries"
+        android:name="com.highfly.logbook.TimeCountriesFragment"
+        tools:layout="@layout/fragment_time_countries">
+
+        <action
+            android:id="@+id/action_time_countries_to_country_time_detail"
+            app:destination="@id/nav_country_time_detail" />
+    </fragment>
+
+    <!-- Detailseite eines Landes auf der Seite "Zeit in Ländern": Header mit
+         Balken (Zeit im Land), Karte, Fakten und die Aufenthalte. -->
+    <fragment
+        android:id="@+id/nav_country_time_detail"
+        android:name="com.highfly.logbook.CountryTimeDetailFragment"
+        tools:layout="@layout/fragment_country_time_detail">
+
+        <argument
+            android:name="iso2"
+            app:argType="string"
+            android:defaultValue="" />
+
+        <action
+            android:id="@+id/action_country_time_detail_to_add_entry"
+            app:destination="@id/nav_add_entry" />
+    </fragment>
+
+    <!-- Einstellungen: nicht mehr als eigener Tab in der Navigationsleiste,
+         sondern über Avatar/Name in der Dashboard-Kopfzeile erreichbar. -->
     <fragment
         android:id="@+id/nav_profile"
         android:name="com.highfly.logbook.ProfileFragment"
@@ -179,6 +213,13 @@
             android:name="tileId"
             app:argType="string"
             android:defaultValue="flights" />
+        <!-- Optionale Beschriftung des Reiseart-Stücks, das im Kreisdiagramm
+             vorausgewählt (explodiert) auftaucht - kommt vom Reiseart-Balken
+             der Flüge-Seite. -->
+        <argument
+            android:name="sliceLabel"
+            app:argType="string"
+            android:defaultValue="" />
 
         <action
             android:id="@+id/action_tile_detail_to_layover_detail"

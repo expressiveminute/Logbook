@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Eine Zeile der Staaten-Liste im Bottom-Sheet der Rubbelkarte (Deutschland
+     / USA): Auge zum Zoomen auf den Staat, Name des Bundeslands/-staats, darunter
+     die Hauptstadt, Flugzeug bei angeflogenem Staat und das Kästchen zum
+     händischen Abhaken - wie in der Länderliste. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true"
+    android:gravity="center_vertical"
+    android:minHeight="56dp"
+    android:orientation="horizontal"
+    android:paddingHorizontal="20dp"
+    android:paddingVertical="4dp">
+
+    <!-- Auge: links vom Namen, zoomt die Kugel auf den Staat. -->
+    <ImageButton
+        android:id="@+id/iv_state_zoom"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginEnd="6dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/rubbelkarte_zoom_to"
+        android:src="@drawable/ic_visibility" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tv_state_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+            tools:text="Bayern" />
+
+        <TextView
+            android:id="@+id/tv_state_capital"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            tools:text="Hauptstadt: München" />
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/iv_state_flight"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_marginStart="8dp"
+        android:contentDescription="@string/countries_flight"
+        android:src="@drawable/ic_flight"
+        android:visibility="gone"
+        app:tint="?attr/colorPrimary"
+        tools:visibility="visible" />
+
+    <com.google.android.material.checkbox.MaterialCheckBox
+        android:id="@+id/cb_state"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="4dp"
+        android:minWidth="48dp"
+        android:minHeight="48dp" />
+
+</LinearLayout>

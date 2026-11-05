@@ -1,0 +1,9 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- Pferdeschwanz: Haar bis zu den Schultern plus Schwänzchen an der Seite -->
+    <path android:fillColor="#FF000000"
+        android:pathData="M13,21 a11,11 0 0 1 22,0 L35,27 a4,4 0 0 1 -4,4 L17,31 a4,4 0 0 1 -4,-4 Z M33,24 a3.5,3.5 0 1 1 7,0 a3.5,3.5 0 1 1 -7,0 Z" />
+</vector>

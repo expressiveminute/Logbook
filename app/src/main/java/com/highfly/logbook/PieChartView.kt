@@ -109,6 +109,16 @@ class PieChartView @JvmOverloads constructor(
         invalidate()
     }
 
+    /**
+     * Wählt ein Stück über seine Beschriftung aus und lässt es explodieren -
+     * z. B. das Segment des Reiseart-Balkens, auf das getippt wurde. Eine
+     * unbekannte Beschriftung wählt nichts aus.
+     */
+    fun selectSliceByLabel(label: String) {
+        val index = slices.indexOfFirst { it.label == label }
+        if (index >= 0) selectSlice(index)
+    }
+
     private fun reservedPadding(): Float =
         if (showLegend) sidePadding else tilePadding
 
