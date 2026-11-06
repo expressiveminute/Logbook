@@ -115,7 +115,11 @@ data class CountryTime(
  * zum naechsten Verlassen; ein Aufenthalt, der noch nicht verlassen wurde,
  * zaehlt bis [today]. Ein Verlassen ohne bekanntes Betreten (nur Hin- oder nur
  * Rueckflug in den Daten) erzeugt einen Aufenthalt mit unbekannter Einreise
- * ([StayPeriod.start] = null). Das Land der Homebase wird nicht gezaehlt.
+ * ([StayPeriod.start] = null). Liegt am selben Tag noch ein Betreten - etwa
+ * ein manueller Landweg-Uebertritt, der wegen der Sortierung hinter einem
+ * Flug desselben Tages liegt -, werden Verlassen und Betreten zu einem
+ * 0-Tage-Aufenthalt (Tagesausflug) gepaart statt zwei getrennte Zeitraeume zu
+ * erzeugen. Das Land der Homebase wird nicht gezaehlt.
  *
  * **Privat-Fluege** ([isPrivateFlight]) erzeugen die Grenzübertritte: Ein Flug
  * ins Land ist das Betreten, einer hinaus das Verlassen. Gibt es am selben Tag
@@ -258,7 +262,11 @@ object CountryTimeStats {
             val periods = ArrayList<StayPeriod>()
             var openSince: LocalDate? = null
             var openEntry: LogbookEntry? = null
-            for (ev in evs) {
+            // Indizes von Betreten-Ereignissen, die ein Verlassen am selben
+            // Tag per Vorgriff gepaart hat (siehe unten).
+            val consumed = HashSet<Int>()
+            for ((index, ev) in evs.withIndex()) {
+                if (index in consumed) continue
                 if (ev.enter) {
                     if (openSince == null) {
                         openSince = ev.date
@@ -280,19 +288,44 @@ object CountryTimeStats {
                         openSince = null
                         openEntry = null
                     } else {
-                        // Verlassen ohne bekanntes Betreten (z. B. Flug ALA-FRA,
-                        // Einreise per Bus nicht im Logbuch): Das Land taucht
-                        // mit unbekannter Einreise auf, damit sie händisch
-                        // nachtragen kann.
-                        periods += StayPeriod(
-                            start = null,
-                            end = ev.date,
-                            days = 0L,
-                            hours = 0L,
-                            closedByFlight = !ev.manual,
-                            enterEntry = null,
-                            exitEntry = ev.entry
-                        )
+                        // Verlassen ohne offenes Betreten: Liegt am selben Tag
+                        // ein Betreten dahinter (z. B. Landweg FRA->BSL vor dem
+                        // Flug BSL->NAP am selben Tag - manuelle Übertritte
+                        // sortieren hinter die Flüge), wird gepaart: ein
+                        // Tagesausflug mit 0 Tagen statt eines Zeitraums mit
+                        // unbekannter Einreise plus einem offenen danach.
+                        val sameDayEnter = evs.withIndex().firstOrNull { (i, e) ->
+                            i > index && i !in consumed && e.enter && e.date == ev.date
+                        }
+                        if (sameDayEnter != null) {
+                            val (enterIndex, enterEv) = sameDayEnter
+                            consumed += enterIndex
+                            val days = ChronoUnit.DAYS.between(enterEv.date, ev.date)
+                                .coerceAtLeast(0)
+                            periods += StayPeriod(
+                                start = enterEv.date,
+                                end = ev.date,
+                                days = days,
+                                hours = days * 24L,
+                                closedByFlight = !ev.manual,
+                                enterEntry = enterEv.entry,
+                                exitEntry = ev.entry
+                            )
+                        } else {
+                            // Verlassen ohne bekanntes Betreten (z. B. Flug ALA-FRA,
+                            // Einreise per Bus nicht im Logbuch): Das Land taucht
+                            // mit unbekannter Einreise auf, damit sie händisch
+                            // nachtragen kann.
+                            periods += StayPeriod(
+                                start = null,
+                                end = ev.date,
+                                days = 0L,
+                                hours = 0L,
+                                closedByFlight = !ev.manual,
+                                enterEntry = null,
+                                exitEntry = ev.entry
+                            )
+                        }
                     }
                 }
             }

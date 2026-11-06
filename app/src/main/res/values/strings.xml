@@ -252,6 +252,12 @@
     <!-- Dezenter Hinweis unter dem Datumsfeld im Ein-/Ausreise-Dialog: das
          Datum, das für diesen Zeitraum schon existiert. -->
     <string name="stay_crossing_existing">Bereits erfasst: %1$s</string>
+    <!-- Aufenthalt splitten (Long-Press auf den Kreis in der Aufenthaltsliste). -->
+    <string name="stay_split_title">Aufenthalt splitten?</string>
+    <string name="stay_split_message">Dieser Aufenthalt läuft vom %1$s bis %2$s. Beim Splitten entstehen zwei Aufenthalte: Der erste endet am gewählten Datum (Ausreise), der zweite beginnt dort (Einreise). Beides lässt sich danach manuell bearbeiten.</string>
+    <string name="stay_split_confirm">Splitten</string>
+    <string name="stay_split_invalid">Das Datum muss innerhalb des Zeitraums liegen</string>
+    <string name="stay_split_dot_desc">Aufenthalt splitten (lange drücken)</string>
     <string name="stay_crossing_transport_label">Transportmittel</string>
     <string name="transport_car">Auto</string>
     <string name="transport_train">Zug</string>

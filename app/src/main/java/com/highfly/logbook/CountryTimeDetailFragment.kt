@@ -9,6 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.RadioGroup
 import android.widget.TextView
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.view.doOnNextLayout
 import androidx.navigation.fragment.findNavController
@@ -18,6 +19,7 @@ import com.highfly.logbook.databinding.ItemCountryFactBinding
 import com.highfly.logbook.databinding.ItemLayoverTimelineBinding
 import com.highfly.logbook.databinding.ItemStayBinding
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 /**
  * Detailseite eines Landes auf der Seite "Zeit in Ländern" (Klick auf eine
@@ -34,7 +36,9 @@ import java.time.LocalDate
  * Ein Aufenthalt, der nicht per Flug verlassen wurde (noch offen bzw. Einreise
  * unbekannt), trägt an der Stelle einen Button: Darüber kann der Grenzübertritt
  * händisch nachgetragen werden (Landweg, [BorderCrossing]). Manuell erfasste
- * Übertritte sind anklickbar und lassen sich so bearbeiten.
+ * Übertritte sind anklickbar und lassen sich so bearbeiten (inkl. Löschen).
+ * Ein Long-Press auf den Kreis splittet einen Aufenthalt mit zwei Flug-Grenzen
+ * in zwei Aufenthalte ([showSplitDialog]).
  */
 class CountryTimeDetailFragment : LogbookFragment() {
 
@@ -301,6 +305,18 @@ class CountryTimeDetailFragment : LogbookFragment() {
         } else {
             getString(R.string.stay_less_than_day_dot)
         }
+        // Long-Press auf den Kreis: Aufenthalt splitten (nur wenn beide
+        // Grenzen Flüge sind und der Zeitraum mehr als einen Tag dauert).
+        val start0 = period.start
+        val end0 = period.end
+        if (enter != null && exit != null && start0 != null && end0 != null && start0 < end0) {
+            row.timelineDot.isLongClickable = true
+            row.timelineDot.contentDescription = getString(R.string.stay_split_dot_desc)
+            row.timelineDot.setOnLongClickListener {
+                showSplitDialog(period)
+                true
+            }
+        }
         // Einreise: Datum (auf Flug-Datum-Höhe), darunter Strecke bzw.
         // Transport mit Icon (auf Flugstrecken-Höhe); nur bei völlig
         // unbekannter Einreise der Button.
@@ -452,7 +468,9 @@ class CountryTimeDetailFragment : LogbookFragment() {
      * Mit [editDate] wird ein vorhandener manueller Übertritt an diesem Datum
      * bearbeitet: Datum und Transportmittel sind vorausgewählt und beim
      * Speichern wird der alte Eintrag an [editDate] ersetzt. Ohne [editDate]
-     * wird ein neuer Übertritt angehängt.
+     * wird ein neuer Übertritt angehängt. Beim Bearbeiten (editDate != null)
+     * gibt es zusätzlich "Löschen": Der manuelle Übertritt wird entfernt und
+     * der Ursprungszustand (Button an der Stelle des Datums) hergestellt.
      */
     private fun showCrossingDialog(enter: Boolean, period: StayPeriod, editDate: LocalDate?) {
         val ctx = requireContext()
@@ -504,12 +522,28 @@ class CountryTimeDetailFragment : LogbookFragment() {
                 tvDate.text = TimeCountryFormat.dateText(ctx, picked)
             }
         }
-        val dialog = MaterialAlertDialogBuilder(ctx)
+        val builder = MaterialAlertDialogBuilder(ctx)
             .setView(view)
             .setNegativeButton(R.string.role_switch_cancel, null)
             .setPositiveButton(R.string.users_add_action, null)
-            .create()
+        // Beim Bearbeiten eines vorhandenen manuellen Übertritts zusätzlich
+        // "Löschen" anbieten: entfernt den Eintrag und stellt den
+        // Ursprungszustand wieder her.
+        if (editDate != null) {
+            builder.setNeutralButton(R.string.entry_action_delete, null)
+        }
+        val dialog = builder.create()
         dialog.show()
+        if (editDate != null) {
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+                val updated = manual.filterNot {
+                    it.iso2 == iso2 && it.enter == enter && it.date == editDate
+                }
+                Settings.setManualBorderCrossings(ctx, updated)
+                dialog.dismiss()
+                loadData()
+            }
+        }
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
             val transport = TimeCountryFormat.transportKey(rg.checkedRadioButtonId)
             val updated = if (editDate != null) {
@@ -520,6 +554,64 @@ class CountryTimeDetailFragment : LogbookFragment() {
             } else {
                 manual + BorderCrossing(iso2, date, enter = enter, transport = transport)
             }
+            Settings.setManualBorderCrossings(ctx, updated)
+            dialog.dismiss()
+            loadData()
+        }
+    }
+
+    /**
+     * Popup zum Splitten eines Aufenthalts (Long-Press auf den Kreis): fragt
+     * nach dem Split-Datum (Vorauswahl Mitte des Zeitraums; im Kalender sind
+     * Anfang und Ende des Zeitraums markiert). Beim Bestätigen werden zwei
+     * manuelle Grenzübertritte am Datum eingetragen - Betreten und Verlassen.
+     * Dadurch entstehen aus dem einen Aufenthalt zwei: der erste mit dem
+     * Hinflug als Einreise und dem Split-Datum als Ausreise, der zweite mit
+     * dem Split-Datum als Einreise und dem Rückflug als Ausreise; beides ist
+     * danach manuell bearbeitbar. Das Datum muss strikt innerhalb des
+     * Zeitraums liegen.
+     */
+    private fun showSplitDialog(period: StayPeriod) {
+        val start = period.start ?: return
+        val end = period.end ?: return
+        val ctx = requireContext()
+        val view = LayoutInflater.from(ctx).inflate(R.layout.dialog_stay_split, null)
+        val tvMessage = view.findViewById<TextView>(R.id.tv_split_message)
+        val tvDate = view.findViewById<TextView>(R.id.tv_split_date)
+        tvMessage.text = getString(
+            R.string.stay_split_message,
+            TimeCountryFormat.dateText(ctx, start),
+            TimeCountryFormat.dateText(ctx, end)
+        )
+        var date = start.plusDays(ChronoUnit.DAYS.between(start, end) / 2)
+        tvDate.text = TimeCountryFormat.dateText(ctx, date)
+        tvDate.setOnClickListener {
+            val d = date
+            // Anfang und Ende des Zeitraums im Kalender dezent markiert.
+            FlightDatePickerDialog.show(ctx, d, setOf(start, end)) { picked ->
+                date = picked
+                tvDate.text = TimeCountryFormat.dateText(ctx, picked)
+            }
+        }
+        val dialog = MaterialAlertDialogBuilder(ctx)
+            .setTitle(R.string.stay_split_title)
+            .setView(view)
+            .setNegativeButton(R.string.role_switch_cancel, null)
+            .setPositiveButton(R.string.stay_split_confirm, null)
+            .create()
+        dialog.show()
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            if (date <= start || date >= end) {
+                Toast.makeText(ctx, R.string.stay_split_invalid, Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            // Betreten vor dem Verlassen anhängen: Das Verlassen bekommt den
+            // höheren Index, damit die kleinere seq und sortiert am selben Tag
+            // vor dem Betreten - so paaren sich beide zum Split (sonst entstünde
+            // ein Zeitraum mit unbekannter Einreise).
+            val updated = manual +
+                BorderCrossing(iso2, date, enter = true) +
+                BorderCrossing(iso2, date, enter = false)
             Settings.setManualBorderCrossings(ctx, updated)
             dialog.dismiss()
             loadData()

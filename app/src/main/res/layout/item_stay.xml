@@ -31,7 +31,10 @@
         app:layout_constraintTop_toTopOf="parent"
         tools:text="5 d" />
 
-    <!-- Einreise: Datum bzw. Button, darunter klein Strecke und Flugnummer. -->
+    <!-- Einreise: Datum bzw. Button, darunter klein Strecke und Flugnummer.
+         Oben ausgerichtet (bias 0), damit das Datum auf gleicher Höhe steht
+         wie das Datum der anderen Spalte - auch wenn eine Seite manuell
+         erfasst ist und weniger Zeilen hat. -->
     <LinearLayout
         android:id="@+id/col_stay_in"
         android:layout_width="0dp"
@@ -42,7 +45,8 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@id/stay_divider"
         app:layout_constraintStart_toEndOf="@id/timeline_dot"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0">
 
         <TextView
             android:id="@+id/tv_stay_date_in"
@@ -104,7 +108,8 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- Ausreise: Datum bzw. Button, darunter klein Strecke und Flugnummer. -->
+    <!-- Ausreise: Datum bzw. Button, darunter klein Strecke und Flugnummer;
+         ebenso oben ausgerichtet wie die Einreise-Spalte. -->
     <LinearLayout
         android:id="@+id/col_stay_out"
         android:layout_width="0dp"
@@ -115,7 +120,8 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/stay_divider"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0">
 
         <TextView
             android:id="@+id/tv_stay_date_out"

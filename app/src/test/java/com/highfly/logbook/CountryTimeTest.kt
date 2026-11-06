@@ -121,6 +121,89 @@ class CountryTimeTest {
     }
 
     @Test
+    fun landwegAmSelbenTagWieFlug_wirdAlsTagesausflugGepaart() {
+        // Homebase FRA (DE). Am selben Tag: Auto FRA -> BSL (manueller
+        // Grenzübertritt, Betreten FR) und Flug BSL -> NAP (Verlassen FR).
+        // Manuelle Übertritte sortieren hinter die Flüge, deshalb liegt das
+        // Verlassen vor dem Betreten. Beides muss zu EINEM geschlossenen
+        // 0-Tage-Aufenthalt in FR gepaart werden - nicht zu einem Zeitraum
+        // mit unbekannter Einreise plus einem offenen danach.
+        val countryOf2: (String) -> String? = { iata ->
+            when (iata.trim().uppercase()) {
+                "FRA" -> "DE"
+                "BSL" -> "FR"
+                "NAP" -> "IT"
+                else -> null
+            }
+        }
+        val entries = listOf(entry(1, 2026, 3, 10, "BSL", "NAP"))
+        val manual = listOf(
+            BorderCrossing("FR", LocalDate.of(2026, 3, 10), enter = true, transport = "car")
+        )
+        val result = CountryTimeStats.evaluate(
+            entries, countryOf2, "DE", manual, LocalDate.of(2026, 3, 20)
+        )
+        val fr = result.single { it.iso2 == "FR" }
+        assertEquals(1, fr.visits)
+        assertEquals(0L, fr.totalDays)
+        assertFalse(fr.open)
+        assertFalse(fr.hasOpenPeriods)
+        val p = fr.periods.single()
+        assertEquals(LocalDate.of(2026, 3, 10), p.start)
+        assertEquals(LocalDate.of(2026, 3, 10), p.end)
+        assertEquals(0L, p.days)
+        assertTrue(p.closedByFlight) // verlassen per Flug
+        assertNull(p.enterEntry) // betreten manuell (Landweg)
+        assertEquals("BSL", p.exitEntry?.fromAirport)
+        assertFalse(p.enterUnknown)
+        // Italien: Betreten per Flug, offen bis heute.
+        val it = result.single { it.iso2 == "IT" }
+        assertTrue(it.open)
+    }
+
+    @Test
+    fun split_erzeugtZweiAufenthalte() {
+        // 2021 Flug MUC -> CDG (Betreten FR), 2025 Flug MRS -> FRA (Verlassen
+        // FR): ohne weitere Daten ein einziger 4-Jahres-Aufenthalt. Nach einem
+        // Split am 01.06.2023 (manuelles Betreten + Verlassen am selben Tag,
+        // Betreten vor dem Verlassen in der Liste) entstehen zwei Aufenthalte.
+        val countryOf2: (String) -> String? = { iata ->
+            when (iata.trim().uppercase()) {
+                "FRA", "MUC" -> "DE"
+                "CDG", "MRS" -> "FR"
+                else -> null
+            }
+        }
+        val entries = listOf(
+            entry(1, 2021, 6, 16, "MUC", "CDG"),
+            entry(2, 2025, 3, 3, "MRS", "FRA")
+        )
+        val manual = listOf(
+            BorderCrossing("FR", LocalDate.of(2023, 6, 1), enter = true),
+            BorderCrossing("FR", LocalDate.of(2023, 6, 1), enter = false)
+        )
+        val result = CountryTimeStats.evaluate(
+            entries, countryOf2, "DE", manual, LocalDate.of(2026, 3, 20)
+        )
+        val fr = result.single { it.iso2 == "FR" }
+        assertEquals(2, fr.visits)
+        assertFalse(fr.open)
+        assertFalse(fr.hasOpenPeriods)
+        val first = fr.periods[0]
+        assertEquals(LocalDate.of(2021, 6, 16), first.start)
+        assertEquals(LocalDate.of(2023, 6, 1), first.end)
+        assertEquals("CDG", first.enterEntry?.toAirport)
+        assertNull(first.exitEntry)
+        assertFalse(first.closedByFlight)
+        val second = fr.periods[1]
+        assertEquals(LocalDate.of(2023, 6, 1), second.start)
+        assertEquals(LocalDate.of(2025, 3, 3), second.end)
+        assertNull(second.enterEntry)
+        assertEquals("MRS", second.exitEntry?.fromAirport)
+        assertTrue(second.closedByFlight)
+    }
+
+    @Test
     fun manuellerUebertritt_offenBisHeute() {
         val manual = listOf(BorderCrossing("DK", LocalDate.of(2026, 4, 1), enter = true))
         val result = CountryTimeStats.evaluate(emptyList(), countryOf, "DE", manual, LocalDate.of(2026, 4, 10))

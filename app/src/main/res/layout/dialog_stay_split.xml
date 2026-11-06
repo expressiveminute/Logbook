@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Popup zum Splitten eines Aufenthalts (Long-Press auf den Kreis): Erklaerung
+     und das Split-Datum per Kalender waehlbar. Beim Splitten entstehen zwei
+     manuelle Grenzübertritte am Datum (Betreten + Verlassen), sodass aus dem
+     einen Aufenthalt zwei werden. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="24dp"
+    android:paddingTop="20dp">
+
+    <TextView
+        android:id="@+id/tv_split_message"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+        android:textColor="?attr/colorOnSurface"
+        tools:text="Dieser Aufenthalt läuft vom 16.06.2021 bis 03.03.2025." />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/time_countries_date_hint"
+        android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+        android:textColor="?attr/colorOnSurfaceVariant" />
+
+    <TextView
+        android:id="@+id/tv_split_date"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:padding="12dp"
+        android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+        android:textColor="?attr/colorOnSurface"
+        tools:text="30.06.2021" />
+</LinearLayout>
