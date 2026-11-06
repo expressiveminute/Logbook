@@ -1,8 +1,6 @@
 package com.highfly.logbook
 
 import android.app.AlertDialog
-import android.app.DatePickerDialog
-import android.content.Context
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -54,6 +52,17 @@ class TimeCountriesFragment : LogbookFragment(), BackPressAware {
     /** Manuell erfasste Grenzübertritte, wie zuletzt gerendert. */
     private var manual: List<BorderCrossing> = emptyList()
 
+    /** Datumsangaben aller Flüge im Logbuch - markiert die Flugtage im Kalender. */
+    private var flightDates: Set<LocalDate> = emptySet()
+
+    /** Sortierung der Länderliste: [SORT_DURATION] (Standard) oder [SORT_VISITS]. */
+    private var sortKey: String = SORT_DURATION
+
+    /** Zuletzt gerendertes Ergebnis samt Homebase, fuer die Umsortierung ohne Neuladen. */
+    private var lastResult: List<CountryTime> = emptyList()
+    private var lastHomeIata: String? = null
+    private var lastHomeIso: String? = null
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -64,6 +73,10 @@ class TimeCountriesFragment : LogbookFragment(), BackPressAware {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        // Die gewählte Sortierung überlebt eine Neuerstellung der Ansicht.
+        savedInstanceState?.getString(KEY_SORT)?.let { key ->
+            if (key == SORT_DURATION || key == SORT_VISITS) sortKey = key
+        }
         // Die letzte Zeile bleibt über der schwebenden Navigationsleiste sichtbar.
         binding.rvTimeCountries.addBottomNavPadding()
         binding.rvTimeCountries.layoutManager = LinearLayoutManager(requireContext())
@@ -91,9 +104,50 @@ class TimeCountriesFragment : LogbookFragment(), BackPressAware {
                 false
             }
         }
+        // Sortierung unter der Lupe: Dauer (Standard) oder Aufenthalte.
+        renderSortLabel()
+        binding.tvTimeSort.setOnClickListener { anchor ->
+            FilterPopupMenu.showOptions(
+                requireContext(),
+                anchor,
+                listOf(SORT_DURATION, SORT_VISITS),
+                listOf(
+                    getString(R.string.layover_sort_duration),
+                    getString(R.string.time_countries_sort_visits)
+                ),
+                sortKey
+            ) { key ->
+                if (key != sortKey) {
+                    sortKey = key
+                    renderSortLabel()
+                    // Ohne Neuladen umsortieren, das Ergebnis ist noch da.
+                    if (lastResult.isNotEmpty()) {
+                        render(lastResult, lastHomeIata, lastHomeIso)
+                    } else {
+                        loadData()
+                    }
+                }
+            }
+        }
         // FAB wie auf dem Dashboard: manueller Aufenthalt (Land + Ein-/Ausreise).
         binding.fabAddStay.addBottomNavMargin()
         binding.fabAddStay.setOnClickListener { showStayDialog() }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString(KEY_SORT, sortKey)
+    }
+
+    /** Beschriftung des Sortier-Werts rechts unter der Lupe. */
+    private fun renderSortLabel() {
+        binding.tvTimeSort.text = getString(
+            if (sortKey == SORT_VISITS) {
+                R.string.time_countries_sort_visits
+            } else {
+                R.string.layover_sort_duration
+            }
+        )
     }
 
     override fun onResume() {
@@ -130,17 +184,38 @@ class TimeCountriesFragment : LogbookFragment(), BackPressAware {
                 manual = crossings,
                 today = LocalDate.now()
             )
+            val dates = entries.filter { DashboardStats.isFlying(it) }
+                .map { it.date }.toSet()
             view?.post {
                 if (generation != loadGeneration || _binding == null) return@post
                 binding.timeCountriesProgress.visibility = View.GONE
                 countries = shapes
                 manual = crossings
+                flightDates = dates
                 render(result, homeIata, homeIso)
             }
         }.start()
     }
 
     private fun render(result: List<CountryTime>, homeIata: String?, homeIso: String?) {
+        lastResult = result
+        lastHomeIata = homeIata
+        lastHomeIso = homeIso
+        // Sortierung: Standard nach Aufenthaltsdauer (Stunden, dann Tage),
+        // bei "Aufenthalte" nach der Zahl der Aufenthalte.
+        val sorted = if (sortKey == SORT_VISITS) {
+            result.sortedWith(
+                compareByDescending<CountryTime> { it.visits }
+                    .thenByDescending { it.totalHours }
+                    .thenBy { it.iso2 }
+            )
+        } else {
+            result.sortedWith(
+                compareByDescending<CountryTime> { it.totalHours }
+                    .thenByDescending { it.totalDays }
+                    .thenBy { it.iso2 }
+            )
+        }
         val de = useGermanNames()
         val nameOf: (String) -> String = { iso ->
             countries.firstOrNull { it.iso2.equals(iso, ignoreCase = true) }
@@ -160,7 +235,7 @@ class TimeCountriesFragment : LogbookFragment(), BackPressAware {
         )
 
         val items = ArrayList<TimeCountryItem>()
-        result.forEachIndexed { i, time ->
+        sorted.forEachIndexed { i, time ->
             items += TimeCountryItem.Country(
                 rank = i + 1,
                 name = nameOf(time.iso2),
@@ -308,7 +383,8 @@ class TimeCountriesFragment : LogbookFragment(), BackPressAware {
         tvIn.text = TimeCountryFormat.dateText(ctx, inDate)
         tvOut.text = TimeCountryFormat.dateText(ctx, outDate)
         tvIn.setOnClickListener {
-            pickDate(ctx, inDate) { d ->
+            // Kalender mit markierten Flugtagen zur Orientierung.
+            FlightDatePickerDialog.show(ctx, inDate, flightDates) { d ->
                 inDate = d
                 tvIn.text = TimeCountryFormat.dateText(ctx, inDate)
                 if (outDate < inDate) {
@@ -318,7 +394,7 @@ class TimeCountriesFragment : LogbookFragment(), BackPressAware {
             }
         }
         tvOut.setOnClickListener {
-            pickDate(ctx, outDate) { d ->
+            FlightDatePickerDialog.show(ctx, outDate, flightDates) { d ->
                 outDate = d
                 tvOut.text = TimeCountryFormat.dateText(ctx, outDate)
             }
@@ -355,18 +431,19 @@ class TimeCountriesFragment : LogbookFragment(), BackPressAware {
         }
     }
 
-    /** DatePicker im bekannten Format dd.MM.yyyy. */
-    private fun pickDate(ctx: Context, initial: LocalDate, onPick: (LocalDate) -> Unit) {
-        DatePickerDialog(
-            ctx,
-            { _, y, m, d -> onPick(LocalDate.of(y, m + 1, d)) },
-            initial.year, initial.monthValue - 1, initial.dayOfMonth
-        ).show()
-    }
-
     /** Die App ist deutschsprachig, values-en liefert die englischen Namen. */
     private fun useGermanNames(): Boolean {
         val language = resources.configuration.locales[0].language
         return language.isEmpty() || language == Settings.LANG_DE
+    }
+
+    private companion object {
+        /** Sortierung nach Gesamtaufenthaltsdauer (Standard). */
+        const val SORT_DURATION = "duration"
+
+        /** Sortierung nach der Zahl der Aufenthalte. */
+        const val SORT_VISITS = "visits"
+
+        const val KEY_SORT = "time_countries_sort"
     }
 }

@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Ein Aufenthalt auf der Land-Detailseite: links der Kreis mit der
-     Aufenthaltsdauer in Tagen, daneben Einreise (Datum, darunter klein
-     Flugstrecke und Flugnummer), ein Strich mittig zentriert im Bild, dann
-     Ausreise (Datum, darunter klein Flugstrecke und Flugnummer). Fehlt ein
-     Datum (Landweg bzw. noch offen), steht an der Stelle ein Button im Stil
-     des "Story"-Knopfs auf dem Dashboard ("Einreise"/"Ausreise"). -->
+     Aufenthaltsdauer in Tagen (in der Farbe der Reiseart), daneben Einreise
+     (Datum, darunter klein Flugstrecke und Flugnummer), ein Strich mittig
+     zentriert im Bild, dann Ausreise (Datum, darunter klein Flugstrecke und
+     Flugnummer). Fehlt ein Datum ganz (noch offen bzw. unbekannt), steht an
+     der Stelle ein Button im Stil des "Story"-Knopfs auf dem Dashboard
+     ("Einreise"/"Ausreise"); ein manuell per Landweg erfasstes Datum ist
+     anklickbar und öffnet den Übertritt zum Bearbeiten. -->
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -22,7 +24,7 @@
         android:background="@drawable/bg_timeline_dot"
         android:gravity="center"
         android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
-        android:textColor="?attr/colorOnPrimary"
+        android:textColor="@android:color/white"
         android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"

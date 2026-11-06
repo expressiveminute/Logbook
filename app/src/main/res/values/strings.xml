@@ -229,6 +229,8 @@
     <string name="time_countries_search_hint">Land suchen</string>
     <string name="time_countries_search_open">Länder durchsuchen</string>
     <string name="time_countries_abroad_label">Zeit im Ausland</string>
+    <!-- Sortierung der Länderliste auf der Times-Seite. -->
+    <string name="time_countries_sort_visits">Aufenthalte</string>
     <string name="time_countries_subtitle_percent">%1$s · %2$d %%</string>
     <string name="country_time_bar_label">Zeit in diesem Land</string>
     <string name="country_time_facts_title">Fakten</string>
@@ -241,10 +243,15 @@
     <string name="stay_overland">Landweg</string>
     <string name="stay_days_dot">%1$d d</string>
     <string name="stay_less_than_day_dot">&lt;1 d</string>
+    <!-- Layover im Kreis der Aufenthaltsliste: Stunden statt Tagen. -->
+    <string name="stay_hours_dot">%1$d h</string>
     <string name="stay_in_button">Einreise</string>
     <string name="stay_out_button">Ausreise</string>
     <string name="stay_crossing_dialog_enter">Einreise nachtragen</string>
     <string name="stay_crossing_dialog_exit">Ausreise nachtragen</string>
+    <!-- Dezenter Hinweis unter dem Datumsfeld im Ein-/Ausreise-Dialog: das
+         Datum, das für diesen Zeitraum schon existiert. -->
+    <string name="stay_crossing_existing">Bereits erfasst: %1$s</string>
     <string name="stay_crossing_transport_label">Transportmittel</string>
     <string name="transport_car">Auto</string>
     <string name="transport_train">Zug</string>
@@ -370,6 +377,9 @@
     <string name="role_switch_message">Möchtest du wirklich zu %1$s wechseln?</string>
     <string name="role_switch_confirm">Wechseln</string>
     <string name="role_switch_cancel">Abbrechen</string>
+    <!-- Kalender (Ein-/Ausreise nachtragen): Monatsnavigation. -->
+    <string name="cal_prev_month">Vorheriger Monat</string>
+    <string name="cal_next_month">Nächster Monat</string>
     <string name="fab_add">Flug hinzufügen</string>
     <string name="btn_back">Zurück</string>
     <string name="flights_year_title">Flüge nach Jahr</string>

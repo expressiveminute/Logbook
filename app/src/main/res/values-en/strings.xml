@@ -225,6 +225,7 @@
     <string name="time_countries_search_hint">Search country</string>
     <string name="time_countries_search_open">Search countries</string>
     <string name="time_countries_abroad_label">Time abroad</string>
+    <string name="time_countries_sort_visits">Visits</string>
     <string name="time_countries_subtitle_percent">%1$s · %2$d%%</string>
     <string name="country_time_bar_label">Time in this country</string>
     <string name="country_time_facts_title">Facts</string>
@@ -237,10 +238,12 @@
     <string name="stay_overland">Overland</string>
     <string name="stay_days_dot">%1$d d</string>
     <string name="stay_less_than_day_dot">&lt;1 d</string>
+    <string name="stay_hours_dot">%1$d h</string>
     <string name="stay_in_button">Entry</string>
     <string name="stay_out_button">Exit</string>
     <string name="stay_crossing_dialog_enter">Add entry</string>
     <string name="stay_crossing_dialog_exit">Add exit</string>
+    <string name="stay_crossing_existing">Already on record: %1$s</string>
     <string name="stay_crossing_transport_label">Transport</string>
     <string name="transport_car">Car</string>
     <string name="transport_train">Train</string>
@@ -366,6 +369,8 @@
     <string name="role_switch_message">Are you sure you want to switch to %1$s?</string>
     <string name="role_switch_confirm">Switch</string>
     <string name="role_switch_cancel">Cancel</string>
+    <string name="cal_prev_month">Previous month</string>
+    <string name="cal_next_month">Next month</string>
     <string name="fab_add">Add flight</string>
     <string name="btn_back">Back</string>
     <string name="flights_year_title">Flights by year</string>

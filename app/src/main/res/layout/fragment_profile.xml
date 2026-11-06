@@ -209,14 +209,6 @@
             android:gravity="center_horizontal"
             android:orientation="vertical">
 
-            <!-- Trennlinie: Der Disclaimer ist visuell abgesetzt von den
-                 Einstellungspunkten darüber. -->
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginBottom="8dp"
-                android:background="?attr/colorOutlineVariant" />
-
             <!-- Disclaimer: linksbündig ganz unten über dem Logo, öffnet ein Popup -->
             <LinearLayout
                 android:id="@+id/header_section_disclaimer"

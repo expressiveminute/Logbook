@@ -133,6 +133,16 @@ object TimeCountryFormat {
         else -> null
     }
 
+    /** Transport-Kürzel -> RadioButton-ID (zum Vorwählen beim Bearbeiten). */
+    fun transportRadioId(key: String?): Int = when (key) {
+        "train" -> R.id.rb_transport_train
+        "bus" -> R.id.rb_transport_bus
+        "ferry" -> R.id.rb_transport_ferry
+        "bike" -> R.id.rb_transport_bike
+        "foot" -> R.id.rb_transport_foot
+        else -> R.id.rb_transport_car
+    }
+
     /** Label des Transportmittels eines manuellen Grenzübertritts. */
     fun transportLabel(context: Context, transport: String?): String? = when (transport) {
         "car" -> context.getString(R.string.transport_car)

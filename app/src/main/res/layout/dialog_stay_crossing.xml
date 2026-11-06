@@ -3,6 +3,7 @@
      oben das Datum (DatePicker), darunter das Transportmittel mit Icons. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
@@ -26,6 +27,22 @@
         android:text="@string/time_countries_date_hint"
         android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
         android:textColor="?attr/colorOnSurface" />
+
+    <!-- Bereits vorhandenes Datum des Zeitraums (z. B. der Flug, mit dem das
+         Land betreten wurde), dezent unter dem gewählten Datum - Orientierung
+         für den Kalender. -->
+    <TextView
+        android:id="@+id/tv_crossing_hint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:visibility="gone"
+        tools:text="Bereits erfasst: 16.06.2021"
+        tools:visibility="visible" />
 
     <TextView
         android:layout_width="match_parent"

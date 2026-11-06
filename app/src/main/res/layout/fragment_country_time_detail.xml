@@ -7,8 +7,9 @@
     android:background="?android:attr/colorBackground"
     tools:context=".CountryTimeDetailFragment">
 
-    <!-- Kopf wie auf der Seite "Flüge": Zurück-Pfeil, Titel (Land mit Flagge)
-         und rechts die Gesamttage. -->
+    <!-- Kopf wie auf der Seite "Flüge": Zurück-Pfeil und Titel (Land mit
+         Flagge). Die Gesamttage stehen nicht mehr rechts im Kopf, sondern
+         darunter im Balken. -->
     <LinearLayout
         android:id="@+id/header"
         android:layout_width="match_parent"
@@ -57,14 +58,6 @@
                 android:textColor="?attr/colorOnSurfaceVariant"
                 tools:text="US · 5 Aufenthalte" />
         </LinearLayout>
-
-        <TextView
-            android:id="@+id/tv_ctd_count"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            tools:text="12 Tage" />
     </LinearLayout>
 
     <!-- Balken noch im Header: Anteil der Zeit in diesem Land an der gesamten
