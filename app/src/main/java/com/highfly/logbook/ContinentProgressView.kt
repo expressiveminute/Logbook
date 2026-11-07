@@ -58,7 +58,8 @@ class ContinentProgressView @JvmOverloads constructor(
     /**
      * Stern-Modus statt Bogen: zwölf Sterne im Kreis (wie die EU-Flagge), so
      * viele gefüllt wie der Anteil der besuchten Länder. Wird für die
-     * EU-Kachel der Rubbelkarte gesetzt.
+     * EU-Kachel der Rubbelkarte gesetzt. Ohne eigene Spur: Die Sterne sitzen
+     * auf dem Kreis, eine zusätzliche Kreislinie wird nicht gezeichnet.
      */
     var starMode = false
 
@@ -177,8 +178,12 @@ class ContinentProgressView @JvmOverloads constructor(
         val cx = width / 2f
         val cy = height / 2f
         arcRect.set(cx - radius, cy - radius, cx + radius, cy + radius)
-        // Die Spur läuft in beiden Modi mit - wie bei den anderen Kacheln.
-        canvas.drawCircle(cx, cy, radius, trackPaint)
+        // Die Spur (voller Kreis) nur im Bogen-Modus: Im Stern-Modus (EU)
+        // sitzen die ungefüllten Sterne selbst auf dem Kreis - eine Linie
+        // darunter läge doppelt und würde den Sternenkranz verwischen.
+        if (!starMode) {
+            canvas.drawCircle(cx, cy, radius, trackPaint)
+        }
         if (starMode) {
             // EU-Kachel: zwölf Sterne auf dem Kreis, beginnend oben und im
             // Uhrzeigersinn gefüllt (wie der Bogen der anderen Kacheln): die

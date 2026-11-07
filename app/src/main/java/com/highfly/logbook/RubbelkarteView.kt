@@ -972,6 +972,10 @@ class RubbelkarteView @JvmOverloads constructor(
         } else {
             focusAnim?.cancel()
             focusOverride = null
+            // Auch die Nutzerdrehung zurücksetzen - sonst addiert
+            // [liveState] sie auf die Mitte der besuchten Länder drauf.
+            userLonRad = 0.0
+            userLatRad = 0.0
             zoom = ZOOM_MIN
             built = false
             rebuildIfNeeded()
@@ -983,9 +987,25 @@ class RubbelkarteView @JvmOverloads constructor(
      * Fährt die Kugel programmgesteuert auf den Punkt [lat]/[lon] und zoomt auf
      * [targetZoom]. Die Bewegung läuft als kurze Animation; ein Wischen des
      * Nutzers übernimmt wieder die Steuerung (das Zielzentrum wird verworfen).
+     * Eine vorherige Drehung per Finger wird in das Zielzentrum übernommen
+     * ([userLonRad]/[userLatRad] werden 0), denn [liveState] addiert sie sonst
+     * auf das fertige Ziel drauf - das Land läge dann daneben.
      */
     fun zoomTo(lat: Double, lon: Double, targetZoom: Float) {
         val toZoom = clampZoom(targetZoom)
+        val state = liveState()
+        val fromLat = if (state != null) Math.toDegrees(state.globe.centerLat) else DEFAULT_CENTER_LAT
+        val fromLon =
+            if (state != null) normalizeLon(Math.toDegrees(state.globe.centerLon)) else DEFAULT_CENTER_LON
+        // Die Drehung aus Fingerwischen wird in das programmatische Zentrum
+        // übernommen: [liveState] addiert [userLonRad]/[userLatRad] auf jedes
+        // Zentrum - blieben sie stehen, läge das angefahrene Ziel um den
+        // Wischweg daneben (z. B. Auge in der Länderliste nach manuellem
+        // Drehen der Kugel; jede weitere programmatische Fahrt käme ebenso
+        // daneben an).
+        userLonRad = 0.0
+        userLatRad = 0.0
+        focusOverride = fromLat to fromLon
         if (width <= 0 || height <= 0) {
             focusOverride = lat to lon
             zoom = toZoom
@@ -994,10 +1014,6 @@ class RubbelkarteView @JvmOverloads constructor(
             invalidate()
             return
         }
-        val state = liveState()
-        val fromLat = if (state != null) Math.toDegrees(state.globe.centerLat) else DEFAULT_CENTER_LAT
-        val fromLon =
-            if (state != null) normalizeLon(Math.toDegrees(state.globe.centerLon)) else DEFAULT_CENTER_LON
         val fromZoom = zoom
         // Kürzester Weg über die Datumslinie: ein Sprung von 350° wäre derselbe
         // Blickpunkt wie -10°, darf aber nicht die ganze Kugel herumdrehen.

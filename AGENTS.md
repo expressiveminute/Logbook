@@ -100,8 +100,9 @@ Kontinent-Kachel** wie in `Continents.ORDER` vorgesehen. Die **EU als eigene Kac
 `Continents.ORDER`, damit die Erfolge unverändert bleiben) steht **ganz rechts, hinter
 Deutschland und den Vereinigten Staaten** (`StateStats.TILE_COUNTRIES`), auch wenn davor
 ein Kontinent 0 % hat – siehe `RubbelkarteFragment.buildTileUis`. Die EU-Kachel zeigt
-**zwölf Sterne auf dem Kreis** (`ContinentProgressView.starMode`: wie bei den anderen Kacheln
-läuft die Spur mit, darauf sitzen die Sterne; beginnend oben füllen sich die ersten Sterne im
+**zwölf Sterne auf dem Kreis** (`ContinentProgressView.starMode`: die Sterne sitzen auf dem
+Kreis, ohne zusätzliche Kreislinie darunter – nur die Sterne sind zu sehen; beginnend oben
+füllen sich die ersten Sterne im
 **Uhrzeigersinn** mit der Fortschrittsfarbe, der Rest bleibt in der Spurfarbe – der Kreis
 schließt sich also im Uhrzeigersinn wie der Bogen der anderen Kacheln), dazu die Prozentzahl
 in der Mitte und die EU-Flagge dezent im Kachelhintergrund. Länder- und EU-Kacheln tragen ihre
@@ -337,6 +338,15 @@ im Standardbrowser. Geprüft werden beide Assets von `AircraftFactsTest` und
 
 ## Weltkarte – Layover-Animation und Filter-Zurücksetzen
 
+Unten links auf der Weltkarte sitzt ein **Maßstab** (`ScaleBarOverlay` aus `ScaleBar.kt`, in
+`WorldMapFragment.buildOverlays` als letztes Overlay eingehängt, damit es oben liegt): eine Linie
+mit Endstrichen und der Entfernung, die sie abdeckt. Die Länge wird bei jedem Zeichnen aus dem
+aktuellen Zoom neu gewählt und ändert sich so mit dem Zoomen mit. Der linke Rand liegt bei 16 dp
+(wie die Buttons); der untere Rand (`bottomInsetPx`) wird in `updateScaleBarInset` gesetzt und
+liegt **über der Stats-Karte** („x Flüge · y Routen · z Flughäfen"), sobald diese sichtbar ist –
+sonst verdeckt sie den Balken auf schmalen Bildschirmen; ohne Karte genügt der Abstand zur
+Systemleiste (`applyInsets`).
+
 Auf der Weltkarte (`WorldMapFragment`) startet mit dem Filter Layover = „Ja" eine Animation: Vom
 Flughafen mit den meisten Layover-Abflügen (der Hub) starten kleine Flugzeuge (Icon `ic_flight`) in
 Richtung jedes Layover-Ziels und ziehen eine nach vorn kräftiger werdende Spur hinter sich her
@@ -529,7 +539,10 @@ größten davon mit Namen. Orte außerhalb des Bildes erscheinen als Randhinweis
 Blickrichtung und Entfernung am Bildrand (`CityEdgeHints`). Erzeugt wird die Datei von
 `tools/build_cities_near.py` aus GeoNames `cities5000` (Stadtteile, feature code `PPLX`, fallen
 heraus; deutsche/englische Schreibweise kommt aus `cities.json`). Unten links zeigt ein Maßband
-(`ScaleBar`) die abgedeckte Entfernung an – nur diese eine Karte nutzt beides.
+die abgedeckte Entfernung an – nur diese eine Karte nutzt außerdem die Randhinweise. Das Maßband
+ist das gemeinsame `ScaleBarOverlay` in `ScaleBar.kt` (Schritte 1/2,5/5 × 10ⁿ, also z. B.
+500/250/100/50 km; `ScaleBar.distanceText` zeigt gebrochene Kilometer mit einer Nachkommastelle,
+z. B. „2,5 km"); dieselbe View nutzt auch die Weltkarte des Dashboards.
 
 ### Luftbilder (amtliche Orthophotos, umkehrbar)
 

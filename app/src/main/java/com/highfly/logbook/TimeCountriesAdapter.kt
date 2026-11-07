@@ -28,10 +28,23 @@ sealed class TimeCountryItem {
 
 /** Formatierung der Zeitangaben auf der Seite, sprachabhaengig. */
 object TimeCountryFormat {
-    fun daysText(context: Context, days: Long): String = when {
-        days <= 0 -> context.getString(R.string.time_countries_less_than_day)
-        days == 1L -> context.getString(R.string.time_countries_one_day)
-        else -> context.getString(R.string.time_countries_days, days)
+    /**
+     * Gesamtaufenthalt eines Landes als Tage aus den [hours] (Layover-Stunden
+     * eingeschlossen) mit höchstens einer Nachkommastelle - dieselbe Basis und
+     * Schreibweise wie die Dauer oben auf der Detailseite, damit Liste und
+     * Detail dieselbe Zahl anzeigen und die Sortierung (nach Stunden) zur
+     * Anzeige passt. Unter 24 Stunden steht "< 1 Tag".
+     */
+    fun daysText(context: Context, hours: Long): String {
+        if (hours < LayoverTimeScale.DAY_HOURS) {
+            return context.getString(R.string.time_countries_less_than_day)
+        }
+        val h = hours.toInt()
+        return context.resources.getQuantityString(
+            R.plurals.layover_time_unit_days,
+            LayoverTimeScale.daysQuantity(h),
+            LayoverTimeScale.daysText(h, Settings.language(context))
+        )
     }
 
     fun visitsText(context: Context, visits: Int): String =
@@ -231,7 +244,9 @@ class TimeCountriesAdapter(
                 if (item.rank <= RANK_MAX_SHOWN) View.VISIBLE else View.INVISIBLE
             b.tvCountryFlag.text = item.flag
             b.tvCountryName.text = item.name
-            b.tvCountryDays.text = TimeCountryFormat.daysText(context, item.time.totalDays)
+            // Dieselbe stundenbasierte Zahl wie auf der Detailseite (Sortierung
+            // der Liste läuft ebenfalls über die Stunden).
+            b.tvCountryDays.text = TimeCountryFormat.daysText(context, item.time.totalHours)
             // "y Aufenthalte"; bei einem offenen Zeitraum (nur Hin- oder nur
             // Rueckflug in den Daten) hintenangestellt "Offene Zeiträume".
             val visits = TimeCountryFormat.visitsText(context, item.time.visits)

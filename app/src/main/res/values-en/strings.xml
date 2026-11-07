@@ -216,8 +216,6 @@
     <string name="time_countries_country_hint">Country</string>
     <string name="time_countries_date_hint">Date</string>
     <string name="time_countries_pick_country">Please pick a country</string>
-    <string name="time_countries_one_day">1 day</string>
-    <string name="time_countries_days">%1$d days</string>
     <string name="time_countries_less_than_day">&lt; 1 day</string>
     <string name="time_countries_one_visit">1 stay</string>
     <string name="time_countries_visits">%1$d stays</string>
@@ -245,7 +243,7 @@
     <string name="stay_crossing_dialog_exit">Add exit</string>
     <string name="stay_crossing_existing">Already on record: %1$s</string>
     <string name="stay_split_title">Split this stay?</string>
-    <string name="stay_split_message">This stay runs from %1$s to %2$s. Splitting creates two stays: the first ends on the chosen date (exit), the second starts there (entry). Both can be edited manually afterwards.</string>
+    <string name="stay_split_message">This stay runs from %1$s to %2$s. Splitting creates two stays: the first gets an exit, the second an entry to add. You enter the date and transport via the buttons afterwards.</string>
     <string name="stay_split_confirm">Split</string>
     <string name="stay_split_invalid">The date must lie within the period</string>
     <string name="stay_split_dot_desc">Split stay (long press)</string>

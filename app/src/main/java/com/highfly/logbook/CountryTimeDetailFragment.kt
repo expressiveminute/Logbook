@@ -220,9 +220,13 @@ class CountryTimeDetailFragment : LogbookFragment() {
      *
      * Fehlt ein Datum ganz (Einreise gar nicht im Logbuch bzw. Ausreise noch
      * offen), steht an der Stelle ein Button im Story-Stil („Einreise“/„Ausreise“)
-     * zum händischen Nachtragen ([showCrossingDialog]). Ein manuell nachtragenes
-     * Datum (Landweg) steht dagegen wie ein Flugdatum da und ist anklickbar:
-     * Darüber lässt sich der Grenzübertritt bearbeiten (Klick auf das Feld).
+     * zum händischen Nachtragen ([showCrossingDialog]). Dasselbe gilt für
+     * einen Split-Platzhalter (manueller Übertritt ohne Transportmittel, z.
+     * B. nach dem Splitten eines Aufenthalts): Auch der erscheint als Button,
+     * nicht als Landweg-Zeile, damit klar ist, dass hier etwas fehlt. Ein
+     * manuell nachtragenes Datum mit Transportmittel (Landweg) steht dagegen
+     * wie ein Flugdatum da und ist anklickbar: Darüber lässt sich der
+     * Grenzübertritt bearbeiten (Klick auf das Feld).
      * Klick auf eine Flug-Zeile öffnet den Hinflug zum Bearbeiten.
      */
     private fun renderStays(time: CountryTime?) {
@@ -318,9 +322,15 @@ class CountryTimeDetailFragment : LogbookFragment() {
             }
         }
         // Einreise: Datum (auf Flug-Datum-Höhe), darunter Strecke bzw.
-        // Transport mit Icon (auf Flugstrecken-Höhe); nur bei völlig
-        // unbekannter Einreise der Button.
+        // Transport mit Icon (auf Flugstrecken-Höhe). Button, wenn die
+        // Einreise ganz fehlt (nur Auslandsflug im Logbuch) oder nur als
+        // Split-Platzhalter (manueller Übertritt ohne Transportmittel)
+        // vorliegt - dann ist auf einen Blick klar, dass hier etwas
+        // eingetragen werden muss.
         val start = period.start
+        val manualEnter = start?.let { d ->
+            manual.firstOrNull { it.iso2 == iso2 && it.enter && it.date == d }
+        }
         if (start != null && enter != null) {
             // Per Flug eingereist.
             row.tvStayDateIn.visibility = View.VISIBLE
@@ -335,16 +345,15 @@ class CountryTimeDetailFragment : LogbookFragment() {
             }.filter { it.isNotBlank() }.joinToString(" · ")
             row.tvStayMetaIn.visibility = if (meta.isNotBlank()) View.VISIBLE else View.GONE
             row.tvStayMetaIn.text = meta
-        } else if (start != null) {
+        } else if (start != null && manualEnter?.transport != null) {
             // Manuell per Landweg eingereist: Datum steht wie bei einem
             // Flug, darunter das Transportmittel mit Icon - kein Button,
-            // dafür ist das Feld anklickbar und bearbeiten den Übertritt.
+            // dafür ist das Feld anklickbar und bearbeitet den Übertritt.
             row.tvStayDateIn.visibility = View.VISIBLE
             row.tvStayDateIn.text = TimeCountryFormat.dateText(ctx, start)
             row.btnStayIn.visibility = View.GONE
-            val manualEnter = manual.firstOrNull { it.iso2 == iso2 && it.enter && it.date == start }
             row.tvStayRouteIn.visibility = View.VISIBLE
-            row.tvStayRouteIn.setTransportLine(ctx, manualEnter?.transport)
+            row.tvStayRouteIn.setTransportLine(ctx, manualEnter.transport)
             row.tvStayMetaIn.visibility = View.GONE
             row.colStayIn.isClickable = true
             row.colStayIn.contentDescription = getString(R.string.stay_crossing_dialog_enter)
@@ -352,17 +361,24 @@ class CountryTimeDetailFragment : LogbookFragment() {
                 showCrossingDialog(enter = true, period = period, editDate = start)
             }
         } else {
-            // Einreise unbekannt (nur Auslandsflug im Logbuch): Button.
+            // Einreise unbekannt oder nur Split-Platzhalter: Button
+            // "Einreise". Beim Platzhalter (start != null) wird der
+            // vorhandene Übertritt bearbeitet, sonst ein neuer angehängt.
             row.tvStayDateIn.visibility = View.GONE
             row.btnStayIn.visibility = View.VISIBLE
             row.btnStayIn.setOnClickListener {
-                showCrossingDialog(enter = true, period = period, editDate = null)
+                showCrossingDialog(enter = true, period = period, editDate = start)
             }
             row.tvStayRouteIn.visibility = View.GONE
             row.tvStayMetaIn.visibility = View.GONE
         }
-        // Ausreise: Datum bzw. Transport, nur bei offenem Aufenthalt der Button.
+        // Ausreise: Datum bzw. Transport; Button, wenn der Aufenthalt noch
+        // offen ist oder die Ausreise nur als Split-Platzhalter (manueller
+        // Übertritt ohne Transportmittel) vorliegt.
         val end = period.end
+        val manualExit = end?.let { d ->
+            manual.firstOrNull { it.iso2 == iso2 && !it.enter && it.date == d }
+        }
         if (end != null && exit != null) {
             // Per Flug ausgereist.
             row.tvStayDateOut.visibility = View.VISIBLE
@@ -374,15 +390,14 @@ class CountryTimeDetailFragment : LogbookFragment() {
             val meta = listOfNotNull(exit.airline, exit.flightNumber).joinToString(" ")
             row.tvStayMetaOut.visibility = if (meta.isNotBlank()) View.VISIBLE else View.GONE
             row.tvStayMetaOut.text = meta
-        } else if (end != null) {
+        } else if (end != null && manualExit?.transport != null) {
             // Manuell per Landweg ausgereist: Datum + Transport mit Icon;
             // das Feld ist anklickbar und bearbeitet den Übertritt.
             row.tvStayDateOut.visibility = View.VISIBLE
             row.tvStayDateOut.text = TimeCountryFormat.dateText(ctx, end)
             row.btnStayOut.visibility = View.GONE
-            val manualExit = manual.firstOrNull { it.iso2 == iso2 && !it.enter && it.date == end }
             row.tvStayRouteOut.visibility = View.VISIBLE
-            row.tvStayRouteOut.setTransportLine(ctx, manualExit?.transport)
+            row.tvStayRouteOut.setTransportLine(ctx, manualExit.transport)
             row.tvStayMetaOut.visibility = View.GONE
             row.colStayOut.isClickable = true
             row.colStayOut.contentDescription = getString(R.string.stay_crossing_dialog_exit)
@@ -390,11 +405,13 @@ class CountryTimeDetailFragment : LogbookFragment() {
                 showCrossingDialog(enter = false, period = period, editDate = end)
             }
         } else {
-            // Noch offen: der Button "Ausreise".
+            // Noch offen oder nur Split-Platzhalter: Button "Ausreise".
+            // Beim Platzhalter (end != null) wird der vorhandene Übertritt
+            // bearbeitet, sonst ein neuer angehängt.
             row.tvStayDateOut.visibility = View.GONE
             row.btnStayOut.visibility = View.VISIBLE
             row.btnStayOut.setOnClickListener {
-                showCrossingDialog(enter = false, period = period, editDate = null)
+                showCrossingDialog(enter = false, period = period, editDate = end)
             }
             row.tvStayRouteOut.visibility = View.GONE
             row.tvStayMetaOut.visibility = View.GONE
@@ -471,6 +488,13 @@ class CountryTimeDetailFragment : LogbookFragment() {
      * wird ein neuer Übertritt angehängt. Beim Bearbeiten (editDate != null)
      * gibt es zusätzlich "Löschen": Der manuelle Übertritt wird entfernt und
      * der Ursprungszustand (Button an der Stelle des Datums) hergestellt.
+     *
+     * Ist der bearbeitete Übertritt ein Split-Platzhalter (kein
+     * Transportmittel), wird nicht sein Platzhalter-Datum vorausgewählt,
+     * sondern zwei Wochen neben dem Flug des Zeitraums (bei der Ausreise zwei
+     * Wochen nach der Einreise, bei der Einreise zwei Wochen vor der
+     * Ausreise). Beim Speichern bzw. Löschen wird der Gegenpart des Splits am
+     * selben Tag gleich mit entfernt.
      */
     private fun showCrossingDialog(enter: Boolean, period: StayPeriod, editDate: LocalDate?) {
         val ctx = requireContext()
@@ -499,12 +523,16 @@ class CountryTimeDetailFragment : LogbookFragment() {
         val existing = editDate?.let { d ->
             manual.firstOrNull { it.iso2 == iso2 && it.enter == enter && it.date == d }
         }
-        // Vorauswahl: beim Bearbeiten das vorhandene Datum, sonst zwei Wochen
-        // nach dem hinterlegten Einreisedatum bzw. zwei Wochen vor der
-        // hinterlegten Ausreise - nur eine Vorauswahl, gespeichert wird, was
-        // der Nutzer einträgt. Fehlt die Einreise (start = null), wird zwei
-        // Wochen vor der Ausreise vorgeschlagen.
-        var date = existing?.date ?: when {
+        // Vorauswahl: beim Bearbeiten eines echten Landweg-Übertritts
+        // (mit Transportmittel) das vorhandene Datum; sonst zwei Wochen nach
+        // dem hinterlegten Einreisedatum bzw. zwei Wochen vor der
+        // hinterlegten Ausreise. Das gilt auch für einen Split-Platzhalter
+        // (ohne Transportmittel): Wird z. B. nach einem Split die Ausreise
+        // bearbeitet und ist der Hinflug am 10.10. im Logbuch, steht hier
+        // der 24.10. vorausgewählt. Nur eine Vorauswahl, gespeichert wird,
+        // was der Nutzer einträgt. Fehlt die Einreise (start = null), wird
+        // zwei Wochen vor der Ausreise vorgeschlagen.
+        var date = existing?.takeIf { it.transport != null }?.date ?: when {
             !enter -> (period.start ?: period.end)?.plusDays(14) ?: LocalDate.now()
             period.end != null -> period.end.minusDays(14)
             period.start != null -> period.start.plusDays(14)
@@ -534,12 +562,22 @@ class CountryTimeDetailFragment : LogbookFragment() {
         }
         val dialog = builder.create()
         dialog.show()
+        // Entfernt den Übertritt an [at]: War er ein Split-Platzhalter (ohne
+        // Transportmittel), wird der Gegenpart am selben Tag (die andere
+        // Hälfte des Splits) gleich mit entfernt - sonst bliebe eine halbe
+        // Splittung liegen, die spätere Einträge verschluckt.
+        fun removeAt(at: LocalDate): List<BorderCrossing> {
+            val placeholder = manual.any {
+                it.iso2 == iso2 && it.enter == enter && it.date == at && it.transport == null
+            }
+            return manual.filterNot {
+                it.iso2 == iso2 && it.date == at &&
+                    (it.enter == enter || (placeholder && it.enter != enter))
+            }
+        }
         if (editDate != null) {
             dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
-                val updated = manual.filterNot {
-                    it.iso2 == iso2 && it.enter == enter && it.date == editDate
-                }
-                Settings.setManualBorderCrossings(ctx, updated)
+                Settings.setManualBorderCrossings(ctx, removeAt(editDate))
                 dialog.dismiss()
                 loadData()
             }
@@ -549,8 +587,7 @@ class CountryTimeDetailFragment : LogbookFragment() {
             val updated = if (editDate != null) {
                 // Vorhandenen manuellen Übertritt an diesem Datum ersetzen -
                 // auch wenn sich das Datum im Dialog geändert hat.
-                manual.filterNot { it.iso2 == iso2 && it.enter == enter && it.date == editDate } +
-                    BorderCrossing(iso2, date, enter = enter, transport = transport)
+                removeAt(editDate) + BorderCrossing(iso2, date, enter = enter, transport = transport)
             } else {
                 manual + BorderCrossing(iso2, date, enter = enter, transport = transport)
             }
@@ -564,12 +601,14 @@ class CountryTimeDetailFragment : LogbookFragment() {
      * Popup zum Splitten eines Aufenthalts (Long-Press auf den Kreis): fragt
      * nach dem Split-Datum (Vorauswahl Mitte des Zeitraums; im Kalender sind
      * Anfang und Ende des Zeitraums markiert). Beim Bestätigen werden zwei
-     * manuelle Grenzübertritte am Datum eingetragen - Betreten und Verlassen.
-     * Dadurch entstehen aus dem einen Aufenthalt zwei: der erste mit dem
-     * Hinflug als Einreise und dem Split-Datum als Ausreise, der zweite mit
-     * dem Split-Datum als Einreise und dem Rückflug als Ausreise; beides ist
-     * danach manuell bearbeitbar. Das Datum muss strikt innerhalb des
-     * Zeitraums liegen.
+     * manuelle Grenzübertritte ohne Transportmittel am Datum eingetragen -
+     * Betreten und Verlassen (Split-Platzhalter). Dadurch entstehen aus dem
+     * einen Aufenthalt zwei: der erste mit dem Hinflug als Einreise und einer
+     * Ausreise zum Nachtragen, der zweite mit einer Einreise zum Nachtragen
+     * und dem Rückflug als Ausreise. Beide Seiten erscheinen als Button
+     * ("Einreise"/"Ausreise"); Datum und Transportmittel werden darüber
+     * erfasst ([showCrossingDialog], Vorauswahl zwei Wochen neben dem Flug).
+     * Das Datum muss strikt innerhalb des Zeitraums liegen.
      */
     private fun showSplitDialog(period: StayPeriod) {
         val start = period.start ?: return

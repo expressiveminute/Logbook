@@ -280,7 +280,7 @@ class Co2OffsetMapView @JvmOverloads constructor(
     private fun radiusMeters(): Double = sqrt(hectares * SQUARE_METERS_PER_HECTARE / PI)
 
     /** Radius der Waldfläche in Breitengraden (für Bounding-Box und Pixel). */
-    private fun radiusDegreesLat(): Double = radiusMeters() / METERS_PER_DEGREE_LAT
+    private fun radiusDegreesLat(): Double = radiusMeters() / ScaleBarOverlay.METERS_PER_DEGREE_LAT
 
     private fun rebuildOverlays() {
         overlayManager.overlays().clear()
@@ -289,7 +289,9 @@ class Co2OffsetMapView @JvmOverloads constructor(
         // Über Land und Grenzen, aber unter Wald, Orten und Kennzeichen.
         if (orthophotoOverlay.orthophoto != null) overlayManager.overlays().add(orthophotoOverlay)
         overlayManager.overlays().add(ForestOverlay(density = resources.displayMetrics.density))
-        overlayManager.overlays().add(ScaleBarOverlay(density = resources.displayMetrics.density))
+        overlayManager.overlays().add(
+            ScaleBarOverlay(resources.displayMetrics.density, isDark, scaleLocale)
+        )
         invalidate()
     }
 
@@ -763,85 +765,6 @@ class Co2OffsetMapView @JvmOverloads constructor(
     }
 
     /**
-     * Kleines Maßband unten links: eine Linie mit Endstrichen und der
-     * Entfernung, die sie auf der Karte abdeckt (z. B. "10 km"). Die Länge wird
-     * so gewählt, dass sie in rund [MAX_BAR_DP] dp passt und eine runde Zahl
-     * ergibt – so bleibt der Maßstab der Karte ablesbar.
-     */
-    private inner class ScaleBarOverlay(
-        private val density: Float
-    ) : Overlay() {
-
-        private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            textSize = SCALE_TEXT_DP * density
-            color = MaterialColors.getColor(
-                this@Co2OffsetMapView,
-                com.google.android.material.R.attr.colorOnSurface
-            )
-        }
-        private val barPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.STROKE
-            strokeWidth = 1.4f * density
-            strokeCap = Paint.Cap.ROUND
-            color = textPaint.color
-        }
-        private val backgroundPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = if (isDark) Color.argb(170, 18, 22, 26) else Color.argb(190, 255, 255, 255)
-            style = Paint.Style.FILL
-        }
-
-        override fun draw(canvas: Canvas, mapView: MapView, shadow: Boolean) {
-            if (shadow) return
-            val w = mapView.width
-            val h = mapView.height
-            if (w <= 0 || h <= 0) return
-            val metersPerPixel = metersPerPixel(mapView)
-            if (metersPerPixel <= 0.0 || !metersPerPixel.isFinite()) return
-
-            val distance = ScaleBar.niceDistance(MAX_BAR_DP * density * metersPerPixel)
-            if (distance <= 0.0) return
-            val barPx = (distance / metersPerPixel).toFloat()
-            val label = ScaleBar.distanceText(distance, scaleLocale)
-
-            val margin = SCALE_MARGIN_DP * density
-            val pad = 4f * density
-            val tick = 4f * density
-            val labelWidth = textPaint.measureText(label)
-            val fm = textPaint.fontMetrics
-
-            val boxWidth = maxOf(barPx, labelWidth) + 2f * pad
-            val barY = h - margin - pad
-            val baseline = barY - tick - 2f * density - fm.descent
-            val boxTop = baseline + fm.ascent - pad
-            val boxLeft = margin
-
-            canvas.drawRoundRect(
-                boxLeft, boxTop, boxLeft + boxWidth, h - margin,
-                3f * density, 3f * density, backgroundPaint
-            )
-            canvas.drawText(label, boxLeft + (boxWidth - labelWidth) / 2f, baseline, textPaint)
-
-            val barLeft = boxLeft + (boxWidth - barPx) / 2f
-            canvas.drawLine(barLeft, barY, barLeft + barPx, barY, barPaint)
-            canvas.drawLine(barLeft, barY, barLeft, barY - tick, barPaint)
-            canvas.drawLine(barLeft + barPx, barY, barLeft + barPx, barY - tick, barPaint)
-        }
-    }
-
-    /** Bodenmeter je Bildschirmpixel am Kartenmittelpunkt (Web-Mercator). */
-    private fun metersPerPixel(mapView: MapView): Double {
-        val center = mapView.mapCenter ?: return 0.0
-        val projection = mapView.projection
-        val start = Point()
-        val end = Point()
-        projection.toPixels(GeoPoint(center.latitude, center.longitude), start)
-        projection.toPixels(GeoPoint(center.latitude + SCALE_SAMPLE_DEG, center.longitude), end)
-        val dy = abs(end.y - start.y)
-        if (dy <= 0) return 0.0
-        return SCALE_SAMPLE_DEG * METERS_PER_DEGREE_LAT / dy
-    }
-
-    /**
      * Radius der Ausgleichsfläche in Bildschirmpixeln – **maßstabsgetreu**. Der
      * Kreisradius in Metern ([radiusMeters]) wird über die Projektion in Pixel
      * umgerechnet und ist damit an Zoom und Kartenmaßstab gebunden.
@@ -913,17 +836,6 @@ class Co2OffsetMapView @JvmOverloads constructor(
 
         /** Ein Hektar in Quadratmetern. */
         const val SQUARE_METERS_PER_HECTARE = 10_000.0
-
-        /** Mittlerer Abstand zweier Breitengrade in Metern. */
-        const val METERS_PER_DEGREE_LAT = 111_320.0
-
-        /** Schriftgröße, Rand und größte Länge des Maßbands (dp). */
-        const val SCALE_TEXT_DP = 10f
-        const val SCALE_MARGIN_DP = 10f
-        const val MAX_BAR_DP = 96f
-
-        /** Breitengrad-Schritt, mit dem der Maßstab des Maßbands gemessen wird. */
-        const val SCALE_SAMPLE_DEG = 0.01
 
         /** Ankerorte: Schriftgröße, Punkt, Abstand und Höchstzahl je Ansicht. */
         const val CITY_LABEL_DP = 9f

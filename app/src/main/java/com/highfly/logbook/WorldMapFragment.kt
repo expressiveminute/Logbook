@@ -34,6 +34,7 @@ import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.doOnLayout
+import androidx.core.view.doOnNextLayout
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -104,6 +105,12 @@ class WorldMapFragment : LogbookFragment() {
 
     /** Overlay, das Flugzeuge und Spuren der Layover-Animation zeichnet. */
     private var layoverOverlay: LayoverOverlay? = null
+
+    /** Maßband unten links: die Balkenlänge folgt dem Zoom ([ScaleBarOverlay]). */
+    private var scaleBarOverlay: ScaleBarOverlay? = null
+
+    /** Unteres Systemleisten-Inset in px, zuletzt in [applyInsets] gesetzt. */
+    private var systemBarsBottomPx = 0
 
     /** Ob der Takt der Layover-Animation gerade läuft. */
     private var layoverTickerActive = false
@@ -265,6 +272,7 @@ class WorldMapFragment : LogbookFragment() {
      */
     private fun applyInsets(bars: Insets) {
         val density = resources.displayMetrics.density
+        systemBarsBottomPx = bars.bottom
         // Obere Buttons unterhalb der Statusleiste.
         val topMargin = bars.top + (20 * density).toInt()
         listOf(binding.btnBack, binding.btnFilter, binding.btnFilterReset).forEach { btn ->
@@ -288,6 +296,35 @@ class WorldMapFragment : LogbookFragment() {
                 lp.bottomMargin = controlsBottom
                 binding.mapControls.requestLayout()
             }
+        }
+        // Maßband unten links: unterer Rand neu setzen (über Stats-Karte bzw.
+        // Systemleiste, siehe [updateScaleBarInset]).
+        updateScaleBarInset()
+    }
+
+    /**
+     * Setzt den unteren Rand des Maßbands unten links: Ist die Stats-Karte
+     * („x Flüge · y Routen · z Flughäfen") unten in der Mitte sichtbar, liegt
+     * der Balken **über** ihr - auf schmalen Bildschirmen verdeckt sie ihn
+     * sonst. Ohne Karte genügt der Abstand zur Systemleiste. Wird aus
+     * [applyInsets] und nach jedem [buildOverlays] (sichtbare Höhe der Karte
+     * erst nach dem Layout bekannt) aufgerufen.
+     */
+    private fun updateScaleBarInset() {
+        val bar = scaleBarOverlay ?: return
+        val b = _binding ?: return
+        val density = resources.displayMetrics.density
+        val card = b.statsCard
+        val cardSpace = if (card.visibility == View.VISIBLE) {
+            val lp = card.layoutParams as? ViewGroup.MarginLayoutParams
+            card.height + (lp?.bottomMargin ?: 0)
+        } else {
+            0
+        }
+        val inset = systemBarsBottomPx + cardSpace + (8 * density).toInt()
+        if (bar.bottomInsetPx != inset) {
+            bar.bottomInsetPx = inset
+            mapView?.invalidate()
         }
     }
 
@@ -380,6 +417,17 @@ class WorldMapFragment : LogbookFragment() {
         val borderColor = if (isDark) Color.rgb(120, 132, 144) else Color.rgb(128, 140, 130)
         borders.setColor(borderColor)
         borderOverlay = borders
+
+        // Maßband unten links: Die Balkenlänge wird bei jedem Zeichnen aus
+        // dem aktuellen Zoom neu gewählt (runde Entfernung, siehe
+        // [ScaleBarOverlay]) und ändert sich so mit dem Zoomen mit. Der linke
+        // Rand liegt wie bei den Buttons bei 16 dp, der untere folgt in
+        // [applyInsets] der Systemleiste.
+        val bar = ScaleBarOverlay(
+            resources.displayMetrics.density, isDark, Settings.language(requireContext())
+        )
+        bar.leftInsetPx = (6 * resources.displayMetrics.density).toInt()
+        scaleBarOverlay = bar
     }
 
     private fun loadAndRender() {
@@ -556,6 +604,10 @@ class WorldMapFragment : LogbookFragment() {
             )
         )
 
+        // Das Maßband ganz zum Schluss, damit es über allem liegt; bei jedem
+        // Rebuild neu anhängen, weil overlays.clear() es entfernt hat.
+        scaleBarOverlay?.let { mv.overlays.add(it) }
+
         val visibleRoutes = filtered
         val hasActiveFilter = selected != null || activeMapFilter.isActive()
 
@@ -589,6 +641,10 @@ class WorldMapFragment : LogbookFragment() {
                 binding.tvShowEntries.visibility = View.VISIBLE
             }
         }
+
+        // Maßband über der Stats-Karte halten, sobald deren Höhe feststeht
+        // (Sichtbarkeit/Höhe ändern sich oben in diesem Rebuild).
+        binding.statsCard.doOnNextLayout { updateScaleBarInset() }
     }
 
     private fun computeRoutes(

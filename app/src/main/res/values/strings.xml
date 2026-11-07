@@ -220,8 +220,6 @@
     <string name="time_countries_country_hint">Land</string>
     <string name="time_countries_date_hint">Datum</string>
     <string name="time_countries_pick_country">Bitte ein Land wählen</string>
-    <string name="time_countries_one_day">1 Tag</string>
-    <string name="time_countries_days">%1$d Tage</string>
     <string name="time_countries_less_than_day">&lt; 1 Tag</string>
     <string name="time_countries_one_visit">1 Aufenthalt</string>
     <string name="time_countries_visits">%1$d Aufenthalte</string>
@@ -254,7 +252,7 @@
     <string name="stay_crossing_existing">Bereits erfasst: %1$s</string>
     <!-- Aufenthalt splitten (Long-Press auf den Kreis in der Aufenthaltsliste). -->
     <string name="stay_split_title">Aufenthalt splitten?</string>
-    <string name="stay_split_message">Dieser Aufenthalt läuft vom %1$s bis %2$s. Beim Splitten entstehen zwei Aufenthalte: Der erste endet am gewählten Datum (Ausreise), der zweite beginnt dort (Einreise). Beides lässt sich danach manuell bearbeiten.</string>
+    <string name="stay_split_message">Dieser Aufenthalt läuft vom %1$s bis %2$s. Beim Splitten entstehen zwei Aufenthalte: Beim ersten erscheint eine Ausreise, beim zweiten eine Einreise zum Nachtragen. Datum und Transportmittel gibst du danach über die Buttons ein.</string>
     <string name="stay_split_confirm">Splitten</string>
     <string name="stay_split_invalid">Das Datum muss innerhalb des Zeitraums liegen</string>
     <string name="stay_split_dot_desc">Aufenthalt splitten (lange drücken)</string>

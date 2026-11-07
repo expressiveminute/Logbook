@@ -17,12 +17,14 @@
     android:paddingHorizontal="20dp"
     android:paddingVertical="4dp">
 
-    <!-- Auge: links vom Namen, zoomt die Kugel auf den Staat. -->
+    <!-- Auge: links vom Namen, zoomt die Kugel auf den Staat. derselbe
+         Abstand zum Namen wie in der Länderliste (10dp Margin, das Icon sitzt
+         zentriert im 40dp-Button). -->
     <ImageButton
         android:id="@+id/iv_state_zoom"
         android:layout_width="40dp"
         android:layout_height="40dp"
-        android:layout_marginEnd="6dp"
+        android:layout_marginEnd="10dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="@string/rubbelkarte_zoom_to"
         android:src="@drawable/ic_visibility" />

@@ -204,6 +204,51 @@ class CountryTimeTest {
     }
 
     @Test
+    fun split_platzhalterDurchEchtenUebertrittErsetzt_ergibtFlugAufenthaltPlusUnbekannteEinreise() {
+        // Wie split_erzeugtZweiAufenthalte, aber die Ausreise-Hälfte des
+        // Splits wurde nachträglich erfasst (per Auto am 30.06.2021, zwei
+        // Wochen nach dem Hinflug) und der Platzhalter-Gegenpart am
+        // Split-Datum entfernt - so liegt es nach dem Speichern über den
+        // "Ausreise"-Button auf der Detailseite vor. Ergebnis: erster
+        // Aufenthalt Hinflug -> Auto-Ausreise, zweiter Aufenthalt mit
+        // unbekannter Einreise und dem Rückflug als Ausreise.
+        val countryOf2: (String) -> String? = { iata ->
+            when (iata.trim().uppercase()) {
+                "FRA", "MUC" -> "DE"
+                "CDG", "MRS" -> "FR"
+                else -> null
+            }
+        }
+        val entries = listOf(
+            entry(1, 2021, 6, 16, "MUC", "CDG"),
+            entry(2, 2025, 3, 3, "MRS", "FRA")
+        )
+        val manual = listOf(
+            BorderCrossing("FR", LocalDate.of(2021, 6, 30), enter = false, transport = "car")
+        )
+        val result = CountryTimeStats.evaluate(
+            entries, countryOf2, "DE", manual, LocalDate.of(2026, 3, 20)
+        )
+        val fr = result.single { it.iso2 == "FR" }
+        assertEquals(2, fr.visits)
+        assertEquals(14L, fr.totalDays)
+        assertTrue(fr.hasOpenPeriods)
+        val first = fr.periods[0]
+        assertEquals(LocalDate.of(2021, 6, 16), first.start)
+        assertEquals(LocalDate.of(2021, 6, 30), first.end)
+        assertEquals(14L, first.days)
+        assertEquals("CDG", first.enterEntry?.toAirport)
+        assertNull(first.exitEntry)
+        assertFalse(first.closedByFlight)
+        val second = fr.periods[1]
+        assertNull(second.start)
+        assertTrue(second.enterUnknown)
+        assertEquals(LocalDate.of(2025, 3, 3), second.end)
+        assertEquals("MRS", second.exitEntry?.fromAirport)
+        assertTrue(second.closedByFlight)
+    }
+
+    @Test
     fun manuellerUebertritt_offenBisHeute() {
         val manual = listOf(BorderCrossing("DK", LocalDate.of(2026, 4, 1), enter = true))
         val result = CountryTimeStats.evaluate(emptyList(), countryOf, "DE", manual, LocalDate.of(2026, 4, 10))
