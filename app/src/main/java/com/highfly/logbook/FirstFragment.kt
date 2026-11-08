@@ -164,7 +164,8 @@ class FirstFragment : LogbookFragment() {
                 cached.passengers,
                 cached.entries,
                 cached.hasSeatData,
-                animate = false
+                animate = false,
+                globeContent = cached.globe
             )
             return
         }
@@ -222,6 +223,16 @@ class FirstFragment : LogbookFragment() {
             val hasSeatData = DashboardStats.flightTypeEntries(appContext)
                 .any { !it.seat.isNullOrBlank() }
 
+            // Inhalt der Weltkugel-Kachel: Länder und die geflogenen Routen
+            // der gefilterten Einträge (wie die übrigen Kacheln folgt auch die
+            // Kugel dem Dashboard-Filter).
+            val globeResult = GlobeRoutes.compute(entries) { AirportData.location(appContext, it) }
+            val globeContent = GlobeView.Content(
+                countries = CountryShapes.load(appContext).orEmpty(),
+                routes = globeResult.routes,
+                airports = globeResult.airports
+            )
+
             view?.post {
                 if (generation != loadGeneration || _binding == null) return@post
                 binding.dashboardProgress.visibility = View.GONE
@@ -238,7 +249,8 @@ class FirstFragment : LogbookFragment() {
                     radiation,
                     passengers,
                     time,
-                    hasSeatData
+                    hasSeatData,
+                    globeContent
                 )
                 renderGrid(
                     DashboardPrefs.readRows(binding.root.context),
@@ -250,7 +262,8 @@ class FirstFragment : LogbookFragment() {
                     passengers,
                     entries,
                     hasSeatData,
-                    animate = true
+                    animate = true,
+                    globeContent = globeContent
                 )
             }
         }.start()
@@ -275,7 +288,8 @@ class FirstFragment : LogbookFragment() {
         passengers: PassengersCalculator.Summary,
         entries: List<LogbookEntry>,
         hasSeatData: Boolean = true,
-        animate: Boolean = true
+        animate: Boolean = true,
+        globeContent: GlobeView.Content = GlobeView.Content()
     ) {
         TileValueAnimator.cancelAll()
         container.removeAllViews()
@@ -364,7 +378,7 @@ class FirstFragment : LogbookFragment() {
                 }
 
                 val pieView = tileContainer.findViewById<PieChartView>(R.id.tile_pie_chart)
-                val worldmapPreview = tileContainer.findViewById<WorldMapPreviewView>(R.id.tile_worldmap_preview)
+                val globePreview = tileContainer.findViewById<GlobeView>(R.id.tile_globe_preview)
                 if (isDistance) {
                     populateDistanceTile(tileContainer, distance, animate)
                 } else if (isCo2) {
@@ -375,17 +389,23 @@ class FirstFragment : LogbookFragment() {
                     populatePassengersTile(tileContainer, passengers, animate)
                 } else if (isTime) {
                     populateTimeTile(tileContainer, timeMinutes, entries, animate)
-                } else if (tileId == "worldmap") {
+                } else if (tileId == "globe") {
+                    // Die Weltkugel-Kachel zeigt eine kleine, langsam rotierende
+                    // Kugel mit den geflogenen Routen - nicht bedienbar, dafür
+                    // ohne Beschriftung (zu klein in der Kachel).
                     iconView.visibility = View.GONE
                     tileContainer.findViewById<View>(R.id.ll_tile_top_right).visibility = View.GONE
                     pieView.visibility = View.GONE
-                    worldmapPreview.visibility = View.VISIBLE
+                    globePreview.visibility = View.VISIBLE
+                    globePreview.interactive = false
+                    globePreview.autoRotate = true
                     val primaryColor = MaterialColors.getColor(tileContainer, com.google.android.material.R.attr.colorPrimary)
-                    worldmapPreview.setColors(primaryColor, primaryColor)
+                    globePreview.setColors(primaryColor)
+                    globePreview.setContent(globeContent)
                 } else if (ChartData.isPieChart(tileId)) {
                     iconView.visibility = if (tileId == "function") View.VISIBLE else View.GONE
                     tileContainer.findViewById<View>(R.id.ll_tile_top_right).visibility = View.GONE
-                    worldmapPreview.visibility = View.GONE
+                    globePreview.visibility = View.GONE
                     pieView.visibility = View.VISIBLE
                     val slices = when (tileId) {
                         "class" -> ChartData.classSlices(
@@ -413,7 +433,7 @@ class FirstFragment : LogbookFragment() {
                     )
                 } else {
                     pieView.visibility = View.GONE
-                    worldmapPreview.visibility = View.GONE
+                    globePreview.visibility = View.GONE
                     val value = values[tileId]
                     tileContainer.findViewById<TextView>(R.id.tv_tile_value).apply {
                         if (value == null) {
@@ -480,6 +500,9 @@ class FirstFragment : LogbookFragment() {
             override fun onGlobalLayout() {
                 container.viewTreeObserver.removeOnGlobalLayoutListener(this)
                 resizeStatTiles(container, spans)
+                // Senkrechte Abstände an die einheitlichen waagerechten
+                // angleichen (sonst hängen sie von der Kachelhöhe ab).
+                DashboardTileScaling.applyVerticalGaps(container, scale)
                 applyHorizontalScale(container, scale)
                 fitTileTopValues(container)
                 alignDashboardHeader(container, scale)
@@ -540,6 +563,16 @@ class FirstFragment : LogbookFragment() {
                     if (co2Params.height != target) {
                         co2Params.height = target
                         tileContainer.layoutParams = co2Params
+                    }
+                    continue
+                }
+                if (tileId == "globe") {
+                    // Die Weltkugel-Kachel ist quadratisch: so hoch wie breit.
+                    val target = maxOf(tileContainer.width, minHeight)
+                    val params = tileContainer.layoutParams
+                    if (params.height != target) {
+                        params.height = target
+                        tileContainer.layoutParams = params
                     }
                     continue
                 }
@@ -901,8 +934,9 @@ class FirstFragment : LogbookFragment() {
 
     private fun openTile(id: String) {
         when {
-            id == "worldmap" -> {
-                findNavController().navigate(R.id.action_dashboard_to_world_map)
+            id == "globe" -> {
+                // Die Weltkugel-Kachel öffnet die große bedienbare Kugel.
+                findNavController().navigate(R.id.action_dashboard_to_globe)
             }
             id == "co2" -> {
                 // Die CO₂-Kachel öffnet die Ausgleichsseite: Karte des
@@ -990,7 +1024,8 @@ class FirstFragment : LogbookFragment() {
             val radiation: RadiationStats.Summary,
             val passengers: PassengersCalculator.Summary,
             val timeMinutes: Int,
-            val hasSeatData: Boolean
+            val hasSeatData: Boolean,
+            val globe: GlobeView.Content = GlobeView.Content()
         )
 
         private var snapshot: DashboardSnapshot? = null

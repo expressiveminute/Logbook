@@ -26,8 +26,10 @@ import java.time.temporal.ChronoUnit
  * Zeile): Oben der Kopf wie auf der Seite "Flüge" (Zurück-Pfeil, Land mit
  * Flagge), darunter als Teil des Headers ein Balken
  * mit dem Anteil der Land-Zeit an der gesamten Auslandszeit. Darunter etwa
- * das obere Drittel der Seite die Karte des Landes mit den angeflogenen
- * Flughäfen ([CountryRouteMapView]), dann Fakten zum Land
+ * das obere Drittel der Seite die Karte des Landes - genau wie die
+ * Länderseite des Dashboards mit angeflogenen Flughäfen und den Inland- und
+ * Auslandsverbindungen ([CountryRouteMapView], Fokus-Knopf zoomt auf die
+ * Flughäfen) -, dann Fakten zum Land
  * ([CountryFacts], Bundesstaaten/-länder bei US/DE aus [StateShapes]) und die
  * Liste der Aufenthalte ([CountryTime.periods]). Layover-Dienstflüge erscheinen
  * darin als Zeitstrahl-Zeile wie auf der Layover-Detailseite, normale
@@ -64,6 +66,9 @@ class CountryTimeDetailFragment : LogbookFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.btnCtdBack.setOnClickListener { findNavController().navigateUp() }
+        // Der Fokus-Knopf zoomt wie auf der Dashboard-Länderseite auf alle
+        // angeflogenen Flughäfen des Landes.
+        binding.fabCtdFocus.setOnClickListener { binding.ctdMap.zoomToFocus() }
         // Der letzte Inhalt bleibt über der schwebenden Navigationsleiste sichtbar.
         binding.ctdScroll.addBottomNavPadding()
         // Die Karte oben im scrollbaren Bereich bekommt etwa ein Drittel der
@@ -124,13 +129,50 @@ class CountryTimeDetailFragment : LogbookFragment() {
             val fact = CountryFacts.fact(appContext, target)
             val shape = shapes.firstOrNull { it.iso2.equals(target, ignoreCase = true) }
             val stateCount = states.count { it.iso2.equals(target, ignoreCase = true) }
+            // Dieselben Verbindungslinien wie auf der Dashboard-Länderseite:
+            // Inlandrouten und Auslandsflüge als kurze Linien am Flughafen
+            // des Landes.
+            val location = { code: String -> AirportData.location(appContext, code) }
+            val domesticLines = model.domestic.mapNotNull { arcs(it, location) }
+            val internationalLines = model.international.mapNotNull { arcs(it, location) }
+            val focus = CountryDetailModel.focusBounds(model.airports)
             view?.post {
                 if (generation != loadGeneration || _binding == null) return@post
                 binding.ctdProgress.visibility = View.GONE
                 manual = crossings
-                render(time, model, shape, fact, stateCount, shapes)
+                render(time, model, shape, fact, stateCount, shapes, domesticLines, internationalLines, focus)
             }
         }.start()
+    }
+
+    /** Eine Verbindung als Großkreisbogen für die Karte, wie im [CountryDetailFragment]. */
+    private fun arcs(
+        route: CountryDetailModel.Route,
+        location: (String) -> AirportData.GeoLocation?
+    ): CountryRouteMapView.RouteLine? {
+        val from = location(route.from) ?: return null
+        val to = location(route.to) ?: return null
+        return CountryRouteMapView.RouteLine(
+            from = route.from,
+            to = route.to,
+            points = unwrapLongitudes(GeoMath.greatCircleArc(from, to)),
+            count = route.count
+        )
+    }
+
+    /** Hält den Bogen zusammenhängend, damit er nicht über die Weltkarte springt. */
+    private fun unwrapLongitudes(
+        points: List<org.osmdroid.util.GeoPoint>
+    ): List<org.osmdroid.util.GeoPoint> {
+        for (i in 1 until points.size) {
+            val prev = points[i - 1]
+            val cur = points[i]
+            var lon = cur.longitude
+            while (lon - prev.longitude > 180) lon -= 360
+            while (lon - prev.longitude < -180) lon += 360
+            cur.longitude = lon
+        }
+        return points
     }
 
     private fun render(
@@ -139,7 +181,10 @@ class CountryTimeDetailFragment : LogbookFragment() {
         shape: CountryShapes.Country?,
         fact: CountryFacts.Fact?,
         stateCount: Int,
-        shapes: List<CountryShapes.Country>
+        shapes: List<CountryShapes.Country>,
+        domestic: List<CountryRouteMapView.RouteLine>,
+        international: List<CountryRouteMapView.RouteLine>,
+        focus: CountryDetailModel.GeoBox?
     ) {
         val ctx = requireContext()
         val de = useGermanNames()
@@ -165,8 +210,11 @@ class CountryTimeDetailFragment : LogbookFragment() {
             landHours, TimeCountryFormat.stepLabel(ctx, landHours, quarters = false)
         )
 
-        // Karte des Landes mit den angeflogenen Flughäfen, ohne Verbindungen.
-        binding.ctdMap.setData(shape, model.airports, emptyList(), emptyList())
+        // Karte des Landes mit den angeflogenen Flughäfen und allen
+        // Verbindungen - genau wie die Länderseite des Dashboards.
+        binding.ctdMap.setData(shape, model.airports, domestic, international)
+        binding.ctdMap.setFocus(focus)
+        binding.fabCtdFocus.visibility = if (focus != null) View.VISIBLE else View.GONE
 
         renderFacts(fact, stateCount, de)
         renderStays(time)
@@ -303,11 +351,12 @@ class CountryTimeDetailFragment : LogbookFragment() {
         }
         // Kreis in der Farbe der Reiseart des Flugs (Privat, On Duty, ...).
         tintTimelineDot(row.timelineDot, enter ?: exit)
-        // Im Kreis links die Aufenthaltslänge in Tagen.
-        row.timelineDot.text = if (period.days > 0) {
-            getString(R.string.stay_days_dot, period.days)
-        } else {
-            getString(R.string.stay_less_than_day_dot)
+        // Im Kreis links die Aufenthaltslänge in Tagen; Ein- und Ausreise am
+        // selben Tag steht als halber Tag da.
+        row.timelineDot.text = when {
+            period.days >= 1 -> getString(R.string.stay_days_dot, period.days.toLong())
+            period.days > 0 -> getString(R.string.stay_half_day_dot)
+            else -> getString(R.string.stay_less_than_day_dot)
         }
         // Long-Press auf den Kreis: Aufenthalt splitten (nur wenn beide
         // Grenzen Flüge sind und der Zeitraum mehr als einen Tag dauert).

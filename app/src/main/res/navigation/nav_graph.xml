@@ -17,8 +17,8 @@
             android:id="@+id/action_dashboard_to_tile_detail"
             app:destination="@id/nav_tile_detail" />
         <action
-            android:id="@+id/action_dashboard_to_world_map"
-            app:destination="@id/nav_world_map" />
+            android:id="@+id/action_dashboard_to_globe"
+            app:destination="@id/nav_globe" />
         <action
             android:id="@+id/action_dashboard_to_flights_year"
             app:destination="@id/nav_flights_year" />
@@ -332,6 +332,22 @@
         <action
             android:id="@+id/action_world_map_to_entries"
             app:destination="@id/nav_entries" />
+        <action
+            android:id="@+id/action_world_map_to_globe"
+            app:destination="@id/nav_globe" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_globe"
+        android:name="com.highfly.logbook.GlobeFragment"
+        tools:layout="@layout/fragment_globe">
+
+        <action
+            android:id="@+id/action_globe_to_entries"
+            app:destination="@id/nav_entries" />
+        <action
+            android:id="@+id/action_globe_to_world_map"
+            app:destination="@id/nav_world_map" />
     </fragment>
 
     <fragment

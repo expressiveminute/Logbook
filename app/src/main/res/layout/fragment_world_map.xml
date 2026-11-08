@@ -171,8 +171,11 @@
                 app:tint="?attr/colorOnSurface" />
         </FrameLayout>
 
+        <!-- Wechselt zurück zur Weltkugel (3D); wird über die Kugel-Seite
+             im Querformat geöffnet, dann steht hier „3D“. Rückt an die
+             Stelle des früheren Orientierungs-Knopfes. -->
         <FrameLayout
-            android:id="@+id/btn_rotate"
+            android:id="@+id/btn_toggle_3d"
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:layout_marginTop="4dp"
@@ -180,14 +183,14 @@
             android:clickable="true"
             android:focusable="true">
 
-            <ImageView
-                android:id="@+id/btn_rotate_icon"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:contentDescription="@string/world_map_rotate"
-                app:srcCompat="@drawable/ic_phone_portrait"
-                app:tint="?attr/colorOnSurface" />
+                android:text="@string/globe_toggle_3d"
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="14sp"
+                android:textStyle="bold" />
         </FrameLayout>
     </LinearLayout>
 

@@ -149,45 +149,47 @@ class DiscoveryAdapter(
         }
 
         /**
-         * Richtungspfeile vor dem Datum: Wurde die Strecke an zwei
+         * Richtungspfeile mit ihren Daten: Wurde die Strecke an zwei
          * verschiedenen Tagen zum ersten Mal hin und zurück geflogen, steht
-         * ein Pfeil hin und einer zurück davor; am selben Tag ein einzelnes
-         * Symbol mit zwei Pfeilen in Gegenrichtung. Ohne Rückflug bleibt die
-         * Stelle vor dem Datum frei.
+         * der Hin-Pfeil vor dem Hinflug-Datum und der gespiegelte Rück-Pfeil
+         * vor dem Rückflug-Datum ([tv_discovery_date_back]); am selben Tag
+         * ein einzelnes Symbol mit zwei Pfeilen in Gegenrichtung vor dem einen
+         * Datum. Ohne Rückflug bleiben Pfeile und zweites Datum frei.
          */
         private fun bindDirectionArrows(route: RouteDiscovery) {
             val arrow = binding.ivDiscoveryArrow
             val back = binding.ivDiscoveryArrowBack
+            val dateBack = binding.tvDiscoveryDateBack
             val returnDate = route.returnDate
             when {
                 returnDate == null -> {
                     arrow.visibility = View.GONE
                     back.visibility = View.GONE
+                    dateBack.visibility = View.GONE
                 }
                 route.isSameDayRoundTrip -> {
                     arrow.setImageResource(R.drawable.ic_arrows_roundtrip)
                     arrow.visibility = View.VISIBLE
                     back.visibility = View.GONE
+                    dateBack.visibility = View.GONE
                 }
                 else -> {
                     arrow.setImageResource(R.drawable.ic_arrow_route)
                     arrow.visibility = View.VISIBLE
                     back.visibility = View.VISIBLE
+                    dateBack.visibility = View.VISIBLE
+                    dateBack.text = returnDate.format(dateFormatter)
                 }
             }
         }
 
         /**
-         * Bei einem Hin- und Rückflug stehen beide Daten in der Zeile, sonst
-         * nur das Datum des Erstdurchflugs. Fahren Hin- und Rückflug am selben
-         * Tag, wird das Datum nur einmal angezeigt.
+         * Datum des Erstdurchflugs (Hinflug); bei einem Rückflug an einem
+         * anderen Tag steht dessen Datum neben dem Rück-Pfeil in
+         * [bindDirectionArrows].
          */
-        private fun dateText(route: RouteDiscovery): String {
-            val outbound = route.date.format(dateFormatter)
-            val back = route.returnDate?.format(dateFormatter) ?: return outbound
-            if (back == outbound) return outbound
-            return context.getString(R.string.discovery_date_range, outbound, back)
-        }
+        private fun dateText(route: RouteDiscovery): String =
+            route.date.format(dateFormatter)
 
         /**
          * Flugzeugtyp und Registrierung des Erstdurchflugs, jeweils nur wenn im

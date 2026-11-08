@@ -137,7 +137,7 @@ class TimeDetailFragment : LogbookFragment() {
             visibility = View.GONE
         }
         tile.tilePieChart.visibility = View.GONE
-        tile.tileWorldmapPreview.visibility = View.GONE
+        tile.tileGlobePreview.visibility = View.GONE
     }
 
     /**

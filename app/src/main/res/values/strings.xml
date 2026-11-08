@@ -13,7 +13,9 @@
     <string name="tile_time_in_months">in Monaten</string>
     <string name="tile_time_in_years">in Jahren</string>
     <string name="tile_airlines">Fluggesellschaften</string>
-    <string name="tile_world_map">Weltkarte</string>
+    <string name="tile_globe">Weltkugel</string>
+    <string name="globe_toggle_2d">2D</string>
+    <string name="globe_toggle_3d">3D</string>
     <string name="tile_routes">Flughäfen</string>
     <string name="tile_flight_routes">Flugrouten</string>
     <string name="tile_layover">Layover</string>
@@ -240,6 +242,8 @@
     <string name="stay_since">seit %1$s</string>
     <string name="stay_overland">Landweg</string>
     <string name="stay_days_dot">%1$d d</string>
+    <!-- Ein- und Ausreise am selben Tag: halber Tag. -->
+    <string name="stay_half_day_dot">0,5 d</string>
     <string name="stay_less_than_day_dot">&lt;1 d</string>
     <!-- Layover im Kreis der Aufenthaltsliste: Stunden statt Tagen. -->
     <string name="stay_hours_dot">%1$d h</string>
@@ -549,7 +553,6 @@
     <string name="world_map_city_language_en">Englisch</string>
     <string name="world_map_city_language_de">Deutsch</string>
     <string name="world_map_show_entries">Alle Logbucheinträge hierzu anzeigen</string>
-    <string name="world_map_rotate">Hoch-/Querformat wechseln</string>
     <string name="world_map_filter_reset">Filter zurücksetzen</string>
     <string name="world_map_layover_trails">Flugspuren der Layover-Flüge anzeigen</string>
     <string name="world_map_layover_trails_hint">Blendet die Flugspuren der Layover-Flüge dauerhaft ein – ohne die Animation erneut abzuspielen.</string>
@@ -560,7 +563,6 @@
     <string name="discovery_year_title">Jahr auswählen</string>
     <string name="discovery_empty">In diesem Jahr wurde keine neue Strecke entdeckt.</string>
     <string name="discovery_aircraft">%1$s · %2$s</string>
-    <string name="discovery_date_range">%1$s · %2$s</string>
     <string name="discovery_month">%1$s %2$d</string>
     <string name="discovery_map">Karte der Flugstrecke</string>
     <string name="discovery_map_desc">Kartenausschnitt der Flugstrecke %1$s – %2$s</string>

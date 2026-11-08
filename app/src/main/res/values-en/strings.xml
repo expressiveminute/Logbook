@@ -13,7 +13,9 @@
     <string name="tile_time_in_months">in months</string>
     <string name="tile_time_in_years">in years</string>
     <string name="tile_airlines">Airlines</string>
-    <string name="tile_world_map">World Map</string>
+    <string name="tile_globe">Globe</string>
+    <string name="globe_toggle_2d">2D</string>
+    <string name="globe_toggle_3d">3D</string>
     <string name="tile_routes">Airports</string>
     <string name="tile_flight_routes">Flight routes</string>
     <string name="tile_layover">Layover</string>
@@ -235,6 +237,8 @@
     <string name="stay_since">since %1$s</string>
     <string name="stay_overland">Overland</string>
     <string name="stay_days_dot">%1$d d</string>
+    <!-- Entry and exit on the same day: half a day. -->
+    <string name="stay_half_day_dot">0.5 d</string>
     <string name="stay_less_than_day_dot">&lt;1 d</string>
     <string name="stay_hours_dot">%1$d h</string>
     <string name="stay_in_button">Entry</string>
@@ -535,7 +539,6 @@
     <string name="world_map_city_language_en">English</string>
     <string name="world_map_city_language_de">German</string>
     <string name="world_map_show_entries">Show all logbook entries for this airport</string>
-    <string name="world_map_rotate">Switch portrait/landscape</string>
     <string name="world_map_filter_reset">Reset filter</string>
     <string name="world_map_layover_trails">Show flight trails of the layover flights</string>
     <string name="world_map_layover_trails_hint">Shows the flight trails of the layover flights permanently – without replaying the animation.</string>
@@ -546,7 +549,6 @@
     <string name="discovery_year_title">Select year</string>
     <string name="discovery_empty">No new route has been discovered in this year.</string>
     <string name="discovery_aircraft">%1$s · %2$s</string>
-    <string name="discovery_date_range">%1$s · %2$s</string>
     <string name="discovery_month">%1$s %2$d</string>
     <string name="discovery_map">Map of the flight route</string>
     <string name="discovery_map_desc">Map excerpt of the flight route %1$s – %2$s</string>

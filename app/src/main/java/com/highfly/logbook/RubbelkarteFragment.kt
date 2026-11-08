@@ -457,10 +457,10 @@ class RubbelkarteFragment : LogbookFragment(), BackPressAware, MapZoomHost {
     }
 
     /**
-     * Öffnet die halbhohe Seite unten im [R.id.page_host]: eine komplette
-     * Seite (Länder-Checkliste bzw. Staatenliste), deren Höhe ein Anteil des
-     * Bildschirms ist - die Hälfte bei umfangreichen Listen, sonst ein Drittel,
-     * damit oben genug von der Kugel sichtbar bleibt.
+     * Öffnet die Seite unten im [R.id.page_host]: eine komplette Seite
+     * (Länder-Checkliste bzw. Staatenliste), deren Höhe ein Anteil des
+     * Bildschirms ist - [PAGE_HALF] bei umfangreichen Listen, sonst
+     * [PAGE_THIRD], damit oben genug von der Kugel sichtbar bleibt.
      */
     private fun openPage(item: TileUi) {
         if (_binding == null) return
@@ -595,13 +595,16 @@ class RubbelkarteFragment : LogbookFragment(), BackPressAware, MapZoomHost {
         /** [com.google.android.material.progressindicator.BaseProgressIndicator] zählt auf 100. */
         const val PERCENT_MAX = 100
 
-        /** Ab dieser Listengröße nimmt die halbhohe Seite die Hälfte des Bildschirms. */
+        /** Ab dieser Listengröße nimmt die Seite den größeren Anteil des Bildschirms. */
         const val PAGE_HALF_MIN = 20
 
-        /** Seitenhöhe bei großen Listen. */
-        const val PAGE_HALF = 0.5f
+        /** Vergrößerung der Seitenhöhe gegenüber der früheren Hälfte bzw. dem Drittel. */
+        const val PAGE_HEIGHT_SCALE = 1.4f
 
-        /** Seitenhöhe bei kleinen Listen. */
-        const val PAGE_THIRD = 1f / 3f
+        /** Seitenhöhe bei großen Listen (70 % des Bildschirms). */
+        const val PAGE_HALF = 0.5f * PAGE_HEIGHT_SCALE
+
+        /** Seitenhöhe bei kleinen Listen (ca. 47 % des Bildschirms). */
+        const val PAGE_THIRD = 1f / 3f * PAGE_HEIGHT_SCALE
     }
 }

@@ -233,10 +233,12 @@ class DashboardEditFragment : LogbookFragment() {
             grid.addView(row)
         }
 
-        // Nach dem Vermessen: die 1-Spalten-Kacheln werden quadratisch und die
-        // Aussenkanten der Breite werden spaltenweise angeglichen.
+        // Nach dem Vermessen: die 1-Spalten-Kacheln werden quadratisch, die
+        // senkrechten Abstände werden einheitlich und die Aussenkanten der
+        // Breite werden spaltenweise angeglichen.
         grid.doOnLayout {
             squareSmallTiles()
+            DashboardTileScaling.applyVerticalGaps(grid, scale)
             applyHorizontalScale()
         }
 
@@ -254,7 +256,7 @@ class DashboardEditFragment : LogbookFragment() {
         tileBinding.tvTileValue.visibility = View.GONE
         tileBinding.tvTileUnit.visibility = View.GONE
         tileBinding.tilePieChart.visibility = View.GONE
-        tileBinding.tileWorldmapPreview.visibility = View.GONE
+        tileBinding.tileGlobePreview.visibility = View.GONE
         tileBinding.llTileTopRight.visibility = View.GONE
 
         val card = tileBinding.tileCard

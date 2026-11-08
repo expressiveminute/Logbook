@@ -131,43 +131,6 @@ class WorldMapFragment : LogbookFragment() {
         val count: Int
     )
 
-    private data class MapFilter(
-        val flightType: String = "",
-        val classType: String = "",
-        val aircraftType: String = "",
-        val layover: String = "",
-        val travelBuddy: String = "",
-        val airline: String = ""
-    ) {
-        fun isActive(): Boolean =
-            listOf(flightType, classType, aircraftType, layover, travelBuddy, airline)
-                .any { it.isNotBlank() }
-
-        /**
-         * [resolveAirline] löst einen gespeicherten Airline-Text auf den
-         * kanonischen Schlüssel auf (siehe [AirlineStats.keyOf]), damit "LH"
-         * und "DLH" denselben Filter treffen.
-         */
-        fun matches(entry: LogbookEntry, resolveAirline: (String?) -> String?): Boolean {
-            if (flightType.isNotBlank() &&
-                entry.flightType?.lowercase()?.contains(flightType.lowercase()) != true
-            ) return false
-            if (classType.isNotBlank() &&
-                entry.classType?.lowercase()?.contains(classType.lowercase()) != true
-            ) return false
-            if (aircraftType.isNotBlank() &&
-                entry.aircraftType?.lowercase()?.contains(aircraftType.lowercase()) != true
-            ) return false
-            if (layover == "yes" && !entry.layover) return false
-            if (layover == "no" && entry.layover) return false
-            if (!TravelBuddyStats.matches(entry.travelBuddy, travelBuddy)) return false
-            if (airline.isNotBlank() &&
-                resolveAirline(entry.airline) != resolveAirline(airline)
-            ) return false
-            return true
-        }
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val context = requireContext()
@@ -212,7 +175,10 @@ class WorldMapFragment : LogbookFragment() {
             alignLayoverButtonToZoomIn()
         }
 
-        // Filter aus Navigationsargumenten lesen
+        // Filter aus Navigationsargumenten lesen: der 2D/3D-Wechsel von der
+        // Weltkugel übergibt den kompletten Kartenfilter, Deep-Links (z. B.
+        // Airline-Detailseite) die Einzelfelder.
+        activeMapFilter = MapFilter.fromBundle(arguments)
         val filterTravelBuddy = arguments?.getString("filterTravelBuddy")?.trim().orEmpty()
         if (filterTravelBuddy.isNotBlank()) {
             activeMapFilter = activeMapFilter.copy(travelBuddy = filterTravelBuddy)
@@ -227,7 +193,12 @@ class WorldMapFragment : LogbookFragment() {
         binding.btnZoomIn.setOnClickListener { mapView?.controller?.zoomIn() }
         binding.btnZoomOut.setOnClickListener { mapView?.controller?.zoomOut() }
         binding.btnReset.setOnClickListener { mapView?.let { setStandardView(it) } }
-        binding.btnRotate.setOnClickListener { toggleMapOrientation() }
+        // „3D“-Knopf unter dem Orientierungs-Knopf: zurück zur Weltkugel;
+        // der aktive Filter wird mitgenommen.
+        binding.btnToggle3d.setOnClickListener {
+            val bundle = Bundle().apply { activeMapFilter.writeTo(this) }
+            findNavController().navigate(R.id.action_world_map_to_globe, bundle)
+        }
         binding.btnFilter.setOnClickListener { showFilterDialog() }
         // Der Zurueck-Pfeil neben dem Filter setzt den Kartenfilter zurueck;
         // er ist nur sichtbar, solange ein Filter aktiv ist.
@@ -258,8 +229,13 @@ class WorldMapFragment : LogbookFragment() {
         loadAndRender()
 
         // Apply the configured map orientation (default landscape); restore
-        // portrait when leaving.
+        // portrait when leaving. Wird die Karte über die Weltkugel („2D“)
+        // geöffnet, läuft sie immer im Querformat.
         applyOrientationSetting()
+        if (arguments?.getBoolean(MapFilter.ARG_FORCE_LANDSCAPE) == true) {
+            requireActivity().requestedOrientation =
+                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        }
     }
 
     /**
@@ -271,6 +247,10 @@ class WorldMapFragment : LogbookFragment() {
      * damit der Aufruf aus doOnLayout keine Layoutschleife erzeugt.
      */
     private fun applyInsets(bars: Insets) {
+        // Null-sicher: Wird über den Insets-Listener auch während des
+        // Activity-Recreates (Orientierungswechsel) nach onDestroyView
+        // noch aufgerufen - dann darf nicht mehr auf binding zugegriffen werden.
+        val binding = _binding ?: return
         val density = resources.displayMetrics.density
         systemBarsBottomPx = bars.bottom
         // Obere Buttons unterhalb der Statusleiste.
@@ -347,33 +327,13 @@ class WorldMapFragment : LogbookFragment() {
     }
 
     private fun applyOrientationSetting() {
+        // Es gibt keinen Orientierungs-Knopf mehr auf der Karte; die
+        // Einstellung greift nur noch beim Öffnen (z. B. über Detailseiten).
         val portrait =
             Settings.getWorldMapOrientation(requireContext()) == Settings.WORLD_MAP_PORTRAIT
         requireActivity().requestedOrientation =
             if (portrait) android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
             else android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-        updateOrientationIcon()
-    }
-
-    /**
-     * Shows the format the map would switch to on the next tap: a portrait
-     * phone while in landscape, a landscape phone while in portrait.
-     */
-    private fun updateOrientationIcon() {
-        val targetPortrait =
-            Settings.getWorldMapOrientation(requireContext()) == Settings.WORLD_MAP_LANDSCAPE
-        binding.btnRotateIcon.setImageResource(
-            if (targetPortrait) R.drawable.ic_phone_portrait else R.drawable.ic_phone_landscape
-        )
-    }
-
-    private fun toggleMapOrientation() {
-        val current = Settings.getWorldMapOrientation(requireContext())
-        val next =
-            if (current == Settings.WORLD_MAP_PORTRAIT) Settings.WORLD_MAP_LANDSCAPE
-            else Settings.WORLD_MAP_PORTRAIT
-        Settings.setWorldMapOrientation(requireContext(), next)
-        applyOrientationSetting()
     }
 
     private fun configureMap() {

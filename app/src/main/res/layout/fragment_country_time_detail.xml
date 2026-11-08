@@ -132,10 +132,32 @@
                 app:strokeColor="?attr/colorOutlineVariant"
                 app:strokeWidth="1dp">
 
-                <com.highfly.logbook.CountryRouteMapView
-                    android:id="@+id/ctd_map"
+                <FrameLayout
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent" />
+                    android:layout_height="match_parent">
+
+                    <!-- Dieselbe Karte wie auf der Länderseite des Dashboards:
+                         Landumriss, angeflogene Flughäfen und die Verbindungen
+                         (Inland + Ausland als kurze Linien am Flughafen). -->
+                    <com.highfly.logbook.CountryRouteMapView
+                        android:id="@+id/ctd_map"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent" />
+
+                    <!-- Zoomt auf alle angeflogenen Flughäfen, wie der
+                         Fokus-Knopf auf der Dashboard-Länderseite. -->
+                    <com.google.android.material.floatingactionbutton.FloatingActionButton
+                        android:id="@+id/fab_ctd_focus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="bottom|end"
+                        android:layout_margin="12dp"
+                        android:contentDescription="@string/country_detail_focus"
+                        android:visibility="gone"
+                        app:fabCustomSize="44dp"
+                        app:maxImageSize="24dp"
+                        app:srcCompat="@drawable/ic_zoom_in" />
+                </FrameLayout>
             </com.google.android.material.card.MaterialCardView>
 
             <com.google.android.material.card.MaterialCardView

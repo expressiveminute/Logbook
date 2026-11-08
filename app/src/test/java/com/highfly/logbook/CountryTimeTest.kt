@@ -46,7 +46,7 @@ class CountryTimeTest {
         assertEquals(1, result.size)
         val us = result[0]
         assertEquals("US", us.iso2)
-        assertEquals(5L, us.totalDays)
+        assertEquals(5.0, us.totalDays, 0.0001)
         assertEquals(1, us.visits)
         assertFalse(us.open)
     }
@@ -70,9 +70,9 @@ class CountryTimeTest {
         )
         val result = CountryTimeStats.evaluate(entries, countryOf, "DE", emptyList(), LocalDate.of(2026, 3, 20))
         val gb = result.single { it.iso2 == "GB" }
-        assertEquals(1L, gb.totalDays)
+        assertEquals(1.0, gb.totalDays, 0.0001)
         val us = result.single { it.iso2 == "US" }
-        assertEquals(4L, us.totalDays)
+        assertEquals(4.0, us.totalDays, 0.0001)
     }
 
     @Test
@@ -80,20 +80,22 @@ class CountryTimeTest {
         val entries = listOf(entry(1, 2026, 3, 10, "FRA", "JFK"))
         val result = CountryTimeStats.evaluate(entries, countryOf, "DE", emptyList(), LocalDate.of(2026, 3, 20))
         val us = result.single { it.iso2 == "US" }
-        assertEquals(10L, us.totalDays)
+        assertEquals(10.0, us.totalDays, 0.0001)
         assertTrue(us.open)
     }
 
     @Test
-    fun tagesausflug_zaehltNullTageUndBleibtNichtOffen() {
-        // Hin und zurueck am selben Tag (Hinflug zuerst erfasst, kleinere id).
+    fun tagesausflug_zaehltHalbenTagUndBleibtNichtOffen() {
+        // Hin und zurueck am selben Tag (Hinflug zuerst erfasst, kleinere id):
+        // halber Tag statt 0.
         val entries = listOf(
             entry(2, 2026, 3, 10, "LHR", "FRA"),
             entry(1, 2026, 3, 10, "FRA", "LHR")
         )
         val result = CountryTimeStats.evaluate(entries, countryOf, "DE", emptyList(), LocalDate.of(2026, 3, 20))
         val gb = result.single { it.iso2 == "GB" }
-        assertEquals(0L, gb.totalDays)
+        assertEquals(0.5, gb.totalDays, 0.0001)
+        assertEquals(12L, gb.totalHours)
         assertEquals(1, gb.visits)
         assertFalse(gb.open)
     }
@@ -115,7 +117,7 @@ class CountryTimeTest {
         val result = CountryTimeStats.evaluate(emptyList(), countryOf, "DE", manual, LocalDate.of(2026, 4, 10))
         val dk = result.single()
         assertEquals("DK", dk.iso2)
-        assertEquals(4L, dk.totalDays)
+        assertEquals(4.0, dk.totalDays, 0.0001)
         assertEquals(1, dk.visits)
         assertFalse(dk.open)
     }
@@ -123,35 +125,36 @@ class CountryTimeTest {
     @Test
     fun landwegAmSelbenTagWieFlug_wirdAlsTagesausflugGepaart() {
         // Homebase FRA (DE). Am selben Tag: Auto FRA -> BSL (manueller
-        // Grenzübertritt, Betreten FR) und Flug BSL -> NAP (Verlassen FR).
-        // Manuelle Übertritte sortieren hinter die Flüge, deshalb liegt das
-        // Verlassen vor dem Betreten. Beides muss zu EINEM geschlossenen
-        // 0-Tage-Aufenthalt in FR gepaart werden - nicht zu einem Zeitraum
-        // mit unbekannter Einreise plus einem offenen danach.
+        // Grenzübertritt, Betreten CH - BSL zaehlt zur Schweiz) und Flug
+        // BSL -> NAP (Verlassen CH). Manuelle Übertritte sortieren hinter die
+        // Flüge, deshalb liegt das Verlassen vor dem Betreten. Beides muss zu
+        // EINEM geschlossenen Aufenthalt (halber Tag) in CH gepaart werden -
+        // nicht zu einem Zeitraum mit unbekannter Einreise plus einem offenen
+        // danach.
         val countryOf2: (String) -> String? = { iata ->
             when (iata.trim().uppercase()) {
                 "FRA" -> "DE"
-                "BSL" -> "FR"
+                "BSL" -> "CH"
                 "NAP" -> "IT"
                 else -> null
             }
         }
         val entries = listOf(entry(1, 2026, 3, 10, "BSL", "NAP"))
         val manual = listOf(
-            BorderCrossing("FR", LocalDate.of(2026, 3, 10), enter = true, transport = "car")
+            BorderCrossing("CH", LocalDate.of(2026, 3, 10), enter = true, transport = "car")
         )
         val result = CountryTimeStats.evaluate(
             entries, countryOf2, "DE", manual, LocalDate.of(2026, 3, 20)
         )
-        val fr = result.single { it.iso2 == "FR" }
-        assertEquals(1, fr.visits)
-        assertEquals(0L, fr.totalDays)
-        assertFalse(fr.open)
-        assertFalse(fr.hasOpenPeriods)
-        val p = fr.periods.single()
+        val ch = result.single { it.iso2 == "CH" }
+        assertEquals(1, ch.visits)
+        assertEquals(0.5, ch.totalDays, 0.0001)
+        assertFalse(ch.open)
+        assertFalse(ch.hasOpenPeriods)
+        val p = ch.periods.single()
         assertEquals(LocalDate.of(2026, 3, 10), p.start)
         assertEquals(LocalDate.of(2026, 3, 10), p.end)
-        assertEquals(0L, p.days)
+        assertEquals(0.5, p.days, 0.0001)
         assertTrue(p.closedByFlight) // verlassen per Flug
         assertNull(p.enterEntry) // betreten manuell (Landweg)
         assertEquals("BSL", p.exitEntry?.fromAirport)
@@ -231,12 +234,12 @@ class CountryTimeTest {
         )
         val fr = result.single { it.iso2 == "FR" }
         assertEquals(2, fr.visits)
-        assertEquals(14L, fr.totalDays)
+        assertEquals(14.0, fr.totalDays, 0.0001)
         assertTrue(fr.hasOpenPeriods)
         val first = fr.periods[0]
         assertEquals(LocalDate.of(2021, 6, 16), first.start)
         assertEquals(LocalDate.of(2021, 6, 30), first.end)
-        assertEquals(14L, first.days)
+        assertEquals(14.0, first.days, 0.0001)
         assertEquals("CDG", first.enterEntry?.toAirport)
         assertNull(first.exitEntry)
         assertFalse(first.closedByFlight)
@@ -252,7 +255,7 @@ class CountryTimeTest {
     fun manuellerUebertritt_offenBisHeute() {
         val manual = listOf(BorderCrossing("DK", LocalDate.of(2026, 4, 1), enter = true))
         val result = CountryTimeStats.evaluate(emptyList(), countryOf, "DE", manual, LocalDate.of(2026, 4, 10))
-        assertEquals(9L, result.single().totalDays)
+        assertEquals(9.0, result.single().totalDays, 0.0001)
         assertTrue(result.single().open)
     }
 
@@ -273,7 +276,7 @@ class CountryTimeTest {
         )
         val result = CountryTimeStats.evaluate(entries, countryOf, "DE", emptyList(), LocalDate.of(2026, 3, 30))
         assertEquals(listOf("GB", "US"), result.map { it.iso2 })
-        assertEquals(listOf(5L, 2L), result.map { it.totalDays })
+        assertEquals(listOf(5.0, 2.0), result.map { it.totalDays })
     }
 
     @Test
@@ -292,7 +295,7 @@ class CountryTimeTest {
         val p = us.periods[0]
         assertEquals(LocalDate.of(2026, 3, 10), p.start)
         assertEquals(LocalDate.of(2026, 3, 15), p.end)
-        assertEquals(5L, p.days)
+        assertEquals(5.0, p.days, 0.0001)
         assertTrue(p.closedByFlight)
         assertFalse(p.open)
         // Hin- und Rückflug stehen an der Periode (für die Zeitstrahl-Zeile).
@@ -308,7 +311,7 @@ class CountryTimeTest {
         val result = CountryTimeStats.evaluate(entries, countryOf, "DE", emptyList(), LocalDate.of(2026, 3, 20))
         val p = result.single { it.iso2 == "US" }.periods.single()
         assertEquals(null, p.end)
-        assertEquals(10L, p.days)
+        assertEquals(10.0, p.days, 0.0001)
         assertFalse(p.closedByFlight)
         assertTrue(p.open)
     }
@@ -321,7 +324,7 @@ class CountryTimeTest {
         val result = CountryTimeStats.evaluate(entries, countryOf, "DE", manual, LocalDate.of(2026, 3, 20))
         val p = result.single { it.iso2 == "US" }.periods.single()
         assertEquals(LocalDate.of(2026, 3, 14), p.end)
-        assertEquals(4L, p.days)
+        assertEquals(4.0, p.days, 0.0001)
         assertFalse(p.closedByFlight)
         assertFalse(p.open)
         // Betreten per Flug, verlassen manuell (Landweg).
@@ -349,7 +352,7 @@ class CountryTimeTest {
         val result = CountryTimeStats.evaluate(emptyList(), countryOf, "DE", manual, LocalDate.of(2026, 4, 10))
         val dk = result.single()
         assertEquals("DK", dk.iso2)
-        assertEquals(4L, dk.totalDays)
+        assertEquals(4.0, dk.totalDays, 0.0001)
         assertEquals(1, dk.visits)
         assertEquals(1, dk.periods.size)
         assertFalse(dk.periods[0].closedByFlight)
@@ -403,7 +406,8 @@ class CountryTimeTest {
         val result = CountryTimeStats.evaluate(entries, countryOf, "DE", emptyList(), LocalDate.of(2026, 3, 20))
         val us = result.single { it.iso2 == "US" }
         assertEquals(36L, us.totalHours)
-        assertEquals(1L, us.totalDays)
+        // 36 Layover-Stunden sind 1,5 Tage.
+        assertEquals(1.5, us.totalDays, 0.0001)
         assertEquals(1, us.visits)
         assertFalse(us.open)
         val p = us.periods.single()
@@ -449,7 +453,7 @@ class CountryTimeTest {
         assertTrue(us.open)
         assertEquals(LocalDate.of(2026, 3, 10), us.openSince)
         assertEquals(1, us.visits)
-        assertEquals(15L, us.totalDays)
+        assertEquals(15.0, us.totalDays, 0.0001)
     }
 
     @Test
@@ -464,15 +468,15 @@ class CountryTimeTest {
     }
 
     @Test
-    fun tagesausflugPrivat_zaehltAlsNullTage() {
-        // Dasselbe als Privat: Tagesausflug, 0 Tage, bleibt nicht offen.
+    fun tagesausflugPrivat_zaehltAlsHalberTag() {
+        // Dasselbe als Privat: Tagesausflug, halber Tag, bleibt nicht offen.
         val entries = listOf(
             entry(2, 2026, 3, 10, "LHR", "FRA", flightType = "Privat"),
             entry(1, 2026, 3, 10, "FRA", "LHR", flightType = "Privat")
         )
         val result = CountryTimeStats.evaluate(entries, countryOf, "DE", emptyList(), LocalDate.of(2026, 3, 20))
         val gb = result.single { it.iso2 == "GB" }
-        assertEquals(0L, gb.totalDays)
+        assertEquals(0.5, gb.totalDays, 0.0001)
         assertEquals(1, gb.visits)
         assertFalse(gb.open)
     }
@@ -488,7 +492,7 @@ class CountryTimeTest {
         )
         val result = CountryTimeStats.evaluate(entries, countryOf, "DE", emptyList(), LocalDate.of(2026, 10, 30))
         val fr = result.single { it.iso2 == "FR" }
-        assertEquals(0L, fr.totalDays)
+        assertEquals(0.5, fr.totalDays, 0.0001)
         assertEquals(1, fr.visits)
         assertFalse(fr.open)
         assertNull(fr.openSince)
@@ -507,7 +511,7 @@ class CountryTimeTest {
         val fr = result.single { it.iso2 == "FR" }
         assertTrue(fr.open)
         assertEquals(LocalDate.of(2026, 10, 24), fr.openSince)
-        assertEquals(6L, fr.totalDays)
+        assertEquals(6.0, fr.totalDays, 0.0001)
     }
 
     @Test
@@ -520,7 +524,7 @@ class CountryTimeTest {
         val result = CountryTimeStats.evaluate(entries, countryOf, "DE", emptyList(), LocalDate.of(2026, 10, 20))
         val kz = result.single { it.iso2 == "KZ" }
         assertEquals(1, kz.visits)
-        assertEquals(0L, kz.totalDays)
+        assertEquals(0.0, kz.totalDays, 0.0001)
         assertFalse(kz.open)
         assertTrue(kz.hasOpenPeriods)
         val p = kz.periods.single()
@@ -544,13 +548,13 @@ class CountryTimeTest {
         val result = CountryTimeStats.evaluate(entries, countryOf, "DE", manual, LocalDate.of(2026, 10, 20))
         val kz = result.single { it.iso2 == "KZ" }
         assertEquals(1, kz.visits)
-        assertEquals(3L, kz.totalDays)
+        assertEquals(3.0, kz.totalDays, 0.0001)
         assertFalse(kz.open)
         assertFalse(kz.hasOpenPeriods)
         val p = kz.periods.single()
         assertEquals(LocalDate.of(2026, 10, 14), p.start)
         assertEquals(LocalDate.of(2026, 10, 17), p.end)
-        assertEquals(3L, p.days)
+        assertEquals(3.0, p.days, 0.0001)
         assertNull(p.enterEntry)
         assertEquals("ALA", p.exitEntry?.fromAirport)
         assertTrue(p.closedByFlight)
@@ -569,7 +573,7 @@ class CountryTimeTest {
         )
         val result = CountryTimeStats.evaluate(entries, countryOf, "DE", emptyList(), LocalDate.of(2026, 3, 20))
         val us = result.single { it.iso2 == "US" }
-        assertEquals(4L, us.totalDays)
+        assertEquals(4.0, us.totalDays, 0.0001)
         assertEquals(96L, us.totalHours)
         assertFalse(us.open)
         val gb = result.single { it.iso2 == "GB" }

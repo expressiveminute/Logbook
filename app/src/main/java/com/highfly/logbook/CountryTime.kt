@@ -66,7 +66,8 @@ data class BorderCrossing(
 data class StayPeriod(
     val start: LocalDate?,
     val end: LocalDate?,
-    val days: Long,
+    /** Dauer in Tagen; Ein- und Ausreise am selben Tag zählt als halber Tag ([HALF_DAY]). */
+    val days: Double,
     /** Verbrachte Zeit in Stunden: bei Flug-Aufenthalten Tage*24, bei einem
      *  Layover-Dienstflug die Layover-Stunden ([LogbookEntry.layoverHours]). */
     val hours: Long,
@@ -87,7 +88,7 @@ data class StayPeriod(
 /** Aufenthaltszeit in einem Land: Gesamttage, Aufenthalte, noch offen. */
 data class CountryTime(
     val iso2: String,
-    val totalDays: Long,
+    val totalDays: Double,
     val visits: Int,
     /** Alle Aufenthalte, chronologisch. */
     val periods: List<StayPeriod> = emptyList(),
@@ -118,8 +119,9 @@ data class CountryTime(
  * ([StayPeriod.start] = null). Liegt am selben Tag noch ein Betreten - etwa
  * ein manueller Landweg-Uebertritt, der wegen der Sortierung hinter einem
  * Flug desselben Tages liegt -, werden Verlassen und Betreten zu einem
- * 0-Tage-Aufenthalt (Tagesausflug) gepaart statt zwei getrennte Zeitraeume zu
- * erzeugen. Das Land der Homebase wird nicht gezaehlt.
+ * Aufenthalt gepaart statt zwei getrennte Zeitraeume zu erzeugen.
+ * **Ein- und Ausreise am selben Tag zählt als halber Tag** ([HALF_DAY]).
+ * Das Land der Homebase wird nicht gezaehlt.
  *
  * **Privat-Fluege** ([isPrivateFlight]) erzeugen die Grenzübertritte: Ein Flug
  * ins Land ist das Betreten, einer hinaus das Verlassen. Gibt es am selben Tag
@@ -140,6 +142,20 @@ data class CountryTime(
  * [CountryTimeTest] die Rechnung pruefen kann.
  */
 object CountryTimeStats {
+
+    /** Halber Tag für einen Aufenthalt, der am selben Tag begonnen und beendet wurde. */
+    const val HALF_DAY = 0.5
+
+    /**
+     * Dauer von [start] bis [end] in Tagen; derselbe Tag für Ein- und
+     * Ausreise (Tagesausflug) zählt als halber Tag.
+     */
+    private fun daysBetween(start: LocalDate, end: LocalDate): Double =
+        if (start == end) {
+            HALF_DAY
+        } else {
+            ChronoUnit.DAYS.between(start, end).coerceAtLeast(0).toDouble()
+        }
 
     /** True, wenn der Flug als Privat gilt und damit Grenzübertritte erzeugt. */
     fun isPrivateFlight(entry: LogbookEntry): Boolean =
@@ -233,7 +249,7 @@ object CountryTimeStats {
                 StayPeriod(
                     start = e.date,
                     end = e.date,
-                    days = hours / 24L,
+                    days = hours / 24.0,
                     hours = hours.toLong(),
                     closedByFlight = true,
                     layover = true,
@@ -254,7 +270,8 @@ object CountryTimeStats {
         val sorted = events
             .filter { it.iso2 != home }
             // Chronologisch; bei gleichem Datum und gleicher seq das Betreten
-            // vor dem Verlassen (Tagesausflug zaehlt 0 Tage, bleibt nicht offen).
+            // vor dem Verlassen (Tagesausflug zaehlt einen halben Tag, bleibt
+            // nicht offen).
             .sortedWith(compareBy({ it.date }, { it.seq }, { if (it.enter) 0 else 1 }))
 
         val result = ArrayList<CountryTime>()
@@ -275,12 +292,12 @@ object CountryTimeStats {
                 } else {
                     val since = openSince
                     if (since != null) {
-                        val days = ChronoUnit.DAYS.between(since, ev.date).coerceAtLeast(0)
+                        val days = daysBetween(since, ev.date)
                         periods += StayPeriod(
                             start = since,
                             end = ev.date,
                             days = days,
-                            hours = days * 24L,
+                            hours = (days * 24).toLong(),
                             closedByFlight = !ev.manual,
                             enterEntry = openEntry,
                             exitEntry = ev.entry
@@ -300,13 +317,12 @@ object CountryTimeStats {
                         if (sameDayEnter != null) {
                             val (enterIndex, enterEv) = sameDayEnter
                             consumed += enterIndex
-                            val days = ChronoUnit.DAYS.between(enterEv.date, ev.date)
-                                .coerceAtLeast(0)
+                            val days = daysBetween(enterEv.date, ev.date)
                             periods += StayPeriod(
                                 start = enterEv.date,
                                 end = ev.date,
                                 days = days,
-                                hours = days * 24L,
+                                hours = (days * 24).toLong(),
                                 closedByFlight = !ev.manual,
                                 enterEntry = enterEv.entry,
                                 exitEntry = ev.entry
@@ -319,7 +335,7 @@ object CountryTimeStats {
                             periods += StayPeriod(
                                 start = null,
                                 end = ev.date,
-                                days = 0L,
+                                days = 0.0,
                                 hours = 0L,
                                 closedByFlight = !ev.manual,
                                 enterEntry = null,
@@ -331,12 +347,14 @@ object CountryTimeStats {
             }
             val since = openSince
             if (since != null) {
-                val days = ChronoUnit.DAYS.between(since, today).coerceAtLeast(0)
+                // Noch offen: ganze Tage bis heute, kein halber Tag (die
+                // Ausreise steht ja noch aus).
+                val days = ChronoUnit.DAYS.between(since, today).coerceAtLeast(0).toDouble()
                 periods += StayPeriod(
                     start = since,
                     end = null,
                     days = days,
-                    hours = days * 24L,
+                    hours = (days * 24).toLong(),
                     closedByFlight = false,
                     enterEntry = openEntry,
                     exitEntry = null

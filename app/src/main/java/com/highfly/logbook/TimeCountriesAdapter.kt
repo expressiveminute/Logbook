@@ -33,10 +33,11 @@ object TimeCountryFormat {
      * eingeschlossen) mit höchstens einer Nachkommastelle - dieselbe Basis und
      * Schreibweise wie die Dauer oben auf der Detailseite, damit Liste und
      * Detail dieselbe Zahl anzeigen und die Sortierung (nach Stunden) zur
-     * Anzeige passt. Unter 24 Stunden steht "< 1 Tag".
+     * Anzeige passt. Ein halber Tag (Ein- und Ausreise am selben Tag) steht
+     * als "0,5 Tage"; erst ohne jede Stunde steht "< 1 Tag".
      */
     fun daysText(context: Context, hours: Long): String {
-        if (hours < LayoverTimeScale.DAY_HOURS) {
+        if (hours <= 0) {
             return context.getString(R.string.time_countries_less_than_day)
         }
         val h = hours.toInt()

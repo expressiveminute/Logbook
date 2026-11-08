@@ -74,7 +74,11 @@ folgt das Logo weiterhin `@mipmap/app_logo` (`values/app_logo.xml`).
 Auf der Rubbelkarte zeichnen sich in den **USA und Deutschland** die Grenzen der
 Bundesstaaten/-länder als dünne Linien (`STATE_BORDER_ALPHA`, Strich halb so breit wie
 Ländergrenzen). Gab es laut Logbuch einen Flug in das Land (`StateStats.summarize` über
-`AirportData.region`, IATA → ISO-3166-2), wird das Land selbst nur schwach gefüllt
+`AirportData.region`, IATA → ISO-3166-2), wird das Land selbst nur schwach gefüllt.
+Die **Berliner Flughäfen** (`StateStats.BERLIN_AIRPORTS`: BER, TXL, SXF, THF sowie die
+geschlossenen XTXL/XSXF/XTHF) zählen zusätzlich immer zum Bundesland **Berlin (DE-BE)**,
+auch wenn BER geografisch Brandenburg (DE-BB) zugeordnet ist oder die übrigen gar keine
+Region tragen.
 (`STATE_MUTED_ALPHA` = 50) und die **angeflogenen** Staaten darüber in derselben Farbe wie
 ein besuchtes Land (`VISITED_ALPHA`); die übrigen Staaten bleiben in der schwachen
 Grundfarbe – deutlich weniger stark als angeflogene, aber nicht wie ein unbesuchtes Land.
@@ -116,10 +120,12 @@ Fläche füllt.
 Ein Tipp auf eine Kachel zoomt die Kugel programmgesteuert auf die Region und hebt deren
 Grenzen hervor (`RubbelkarteView.setHighlight` nimmt eine Menge: Kontinent/EU = alle Länder
 der Region, Länder-Kachel = das Land selbst) und öffnet unten im `page_host`
-von `fragment_rubbelkarte.xml` eine **komplette, halbhohe Seite**: `CountriesFragment` als
+von `fragment_rubbelkarte.xml` eine **komplette, unten eingeklinkte Seite**: `CountriesFragment` als
 Child-Fragment mit `ARG_EMBEDDED` (bei DE/US mit `ARG_STATES` für die Staatenliste,
-`StateRowAdapter` + `item_state_row.xml`). Die Seite nimmt die **Hälfte** des Bildschirms
-bei Listen ab 20 Einträgen, sonst ein **Drittel** (`PAGE_HALF_MIN` in `RubbelkarteFragment`);
+`StateRowAdapter` + `item_state_row.xml`). Die Seite nimmt **70 %** des Bildschirms
+bei Listen ab 20 Einträgen, sonst ca. **47 %** (`PAGE_HALF`/`PAGE_THIRD` =
+ frühere Hälfte bzw. Drittel × `PAGE_HEIGHT_SCALE` = 1,4; Schwelle `PAGE_HALF_MIN` in
+`RubbelkarteFragment`);
 darüber bleibt die Kugel sichtbar und bedienbar; die Kachelzeile wird dabei ausgeblendet
 (`continent_scroll` auf GONE in `openPage`, zurück in `hidePage`), damit die Kugel oben nicht
 auf einen schmalen Streifen schrumpft und kein schwarzer Balken zwischen Kacheln und Liste
@@ -153,7 +159,10 @@ auf der eingebetteten Seite schreibt in dieselben Settings wie die volle Seite u
 Flughäfen sind reine Assets unter `app/src/main/assets/airports/`: `airports.json`
 (IATA → `[lat,lon]`), `airports_countries.json` (IATA → ISO) und `airport_names.json`
 (IATA → Name/Stadt). `AirportData` und `AirportNames` laden sie zur Laufzeit in Maps; ein
-`LogbookEntry` speichert nur den Code als Text.
+`LogbookEntry` speichert nur den Code als Text. **Basel (BSL) zählt als Schweiz (CH)**, nicht
+als Frankreich: `airports_countries.json` führt BSL als `CH`, und `AirportData.correctedCountry`
+korrigiert ältere Einträge, die BSL noch als `FR` gespeichert haben (`LogbookRepository.getEntries`
+wendet die Korrektur zentral beim Laden an).
 
 Ein **geschlossener** Flughafen bekommt ein `X` vor seinen damaligen Dreilettercode
 (München-Riem → `XMUC`). Ein offener Flughafen behält seinen Code (der neue Flughafen München
@@ -335,6 +344,74 @@ Commons`, die mit der Seite wechselt, ein Tipp darauf öffnet die Commons-Dateis
 Stammdaten-Zeilen entstehen aus `item_airport_fact.xml`, der Wikipedia-Link öffnet den Artikel
 im Standardbrowser. Geprüft werden beide Assets von `AircraftFactsTest` und
 `AircraftPhotosAssetTest`.
+
+## Kachel und Seite „Weltkugel"
+
+Die Dashboard-Kachel **Weltkugel** (`globe`, Icon `ic_globe`) ist die einzige Kartenkachel in
+`DashboardPrefs.DEFAULT_ROWS` (die frühere Weltkarte-Kachel `worldmap` wurde entfernt;
+`KEY_TILES` auf `tiles_standard_v21` erhöht). Sie ist **quadratisch**: in
+`FirstFragment.resizeStatTiles` bekommt sie die Höhe ihrer Breite (`maxOf(width, minHeight)`).
+Die Weltkarte-Kachel zeigte zuletzt eine animierte Vorschau-Kugel – die wurde entfernt
+(`WorldMapPreviewView` gelöscht); die einzige animierte Kugel auf dem Dashboard ist die in
+der Weltkugel-Kachel.
+In der Kachel (`tile_globe_preview` in `item_dashboard_tile.xml`) läuft eine kleine
+**langsam rotierende** Kugel (eine Umdrehung in 60 s, `GlobeView.AUTO_ROTATE_RAD_PER_MS`) mit den geflogenen Routen – nicht
+bedienbar, ohne Beschriftung; Grundlage sind die **gefilterten** Einträge
+(`DashboardStats.dashboardEntries`, wie die übrigen Kacheln), gerechnet über `GlobeRoutes.compute`.
+
+**Eine wiederverwendbare Kugel-Komponente** zeichnet überall dieselbe Weltkugel:
+`GlobeView` (Canvas, orthografische Projektion über `GeoMath.Globe`, Umrisse als
+Einheitsvektoren via `CountryShapes.Country.unitRings`). Der Pfadaufbau läuft auf einem
+Hintergrund-Thread, der Zeichen-Thread malt nur den zuletzt fertigen Zustand – Drehen per
+Finger mit Fling-Nachlauf, Pinch- und Doppeltipp-Zoom, programmatisch `zoomTo`/`resetToWorld`.
+Land + Grenzen immer, Flughafen-**Badges mit Dreilettercodes wie auf der Weltkarte**
+(Pill in Akzentfarbe, weißer Ring, Kontrasttext; stark vernetzte zuletzt oben via
+`connections`). **Beschriftungsstufen je Zoom** (`GlobeView.labelTier`, Zoom-Knopf =
+Faktor 1,6): ab ca. 3× Plus (Maßstab erstmals 500 km, `ZOOM_COUNTRY_LABELS`) Ländernamen
+(`CountryShapes.Country.nameDe/nameEn` am Label-Anker) und Hauptstädte; ab ca. 6× Plus
+(`ZOOM_CITIES`) zusätzlich die größten Städte (Rang 0); ab ca. 8× Plus (Maßstab ~25 km,
+`ZOOM_MORE_CITIES`) noch mehr Städte (Rang bis 2, bis `CITY_LABEL_MAX_MORE`). Kollision
+über `LabelCollision`, getestet in `GlobeViewTest`.
+`GlobeView.metersPerPixel(centerLatRad, radiusPx)` liefert den Maßstab (getestet in
+`GlobeViewTest`). Bisher genutzt von der Kachel und der Seite; die Rubbelkarte
+(`RubbelkarteView`) bleibt vorerst unverändert und kann später auf `GlobeView` migrieren.
+ damit das Drehen in der kleinen Kachel flüssig bleibt, dezimiert `GlobeView` im
+Vorschau-Modus (nicht interaktiv) die Ringe auf `PREVIEW_RING_POINTS` bzw. Routen auf
+`PREVIEW_ROUTE_POINTS` Punkte, merged Land/Routen/Punkte in je einen Path (ein
+`drawPath` statt hunderter Aufrufe) und cached den Schatten-Shader. Zoom-Max
+`ZOOM_MAX` = 280 (kurze Bildschirmseite ≈ 50 km am Äquator); Routenbögen haben 96
+Punkte (`GlobeRoutes.arcUnits`).
+
+Ein Tipp auf die Kachel öffnet die Seite `nav_globe` (`GlobeFragment`, `fragment_globe.xml`,
+Action `action_dashboard_to_globe`; `MainActivity` blendet wie bei der Weltkarte die
+Navigationsleiste aus): große bedienbare Kugel mit allen Flugverbindungen – **wie die
+Weltkarte** mit Dreilettercodes, gleichem Filter-Dialog (`sheet_map_filter.xml`,
+gemeinsames `MapFilter` in `MapFilter.kt`), gleichen Knöpfen (Zurück, Filter, Filter-Reset,
+Zoom +/−/Reset; der **Filter-Reset-Knopf sitzt unter dem Filter-Knopf** (vertikale Spalte
+`filter_buttons`) und trägt das klare X-Symbol `ic_filter_reset`) und der Layover-Animation
+(`LayoverAnimation`, Spuren-Knopf `btn_layover_trails` mit Hinweis-Popup; während der
+Animation sind die statischen Linien ausgeblendet, `GlobeView` zeichnet die Spuren/Flugzeuge
+selbst). Die **Stats-Karte sitzt mittig oben, vertikal zentriert zu den 48-dp-Knöpfen**
+(`alignStatsCardToButtons`), der **Maßstab unten links mit fixierter linker Kante bündig zum
+Zurück-Pfeil (8 dp), wächst nach rechts, ohne Hintergrund-Box**, auf Höhe des untersten
+Zoom-Knopfes rechts (`GlobeScaleBarView`, `scale_bar`, folgt dem Kugel-Zoom über
+`onStateChanged`).
+
+**2D/3D-Wechsel:** Unter dem Reset-Knopf der Kugel-Seite liegt der Text-Knopf **„2D“**
+(`btn_toggle_2d`, `action_globe_to_world_map`): Er öffnet die bekannte 2D-Weltkarte
+(`nav_world_map`) **immer im Querformat** (`MapFilter.ARG_FORCE_LANDSCAPE` →
+`SCREEN_ORIENTATION_SENSOR_LANDSCAPE`) und übergibt den aktiven Filter
+(`MapFilter.writeTo`/`fromBundle`). Auf der 2D-Karte steht unter dem Reset-Knopf der Knopf
+**„3D“** (`btn_toggle_3d`, `action_world_map_to_globe`) und führt zurück zur
+Kugel – ebenfalls mit Filterübergabe. Einen Orientierungs-Knopf gibt es auf der 2D-Karte
+nicht mehr (`btn_rotate` entfernt; die 2D-Karte ist über die Kugel sowieso immer im
+Querformat). Beim 2D/3D-Wechsel dreht die Activity wegen `forceLandscape` ggf. das Display
+(Manifest ohne `configChanges` → Recreate); `GlobeView.scheduleRebuild` fängt die dabei
+mögliche `RejectedExecutionException` ab.
+Laden darf kurz dauern: bis dahin liegt `loading_overlay` über der Kugel. Tippen auf einen
+Flughafen-Punkt wählt ihn aus (`MapSelection.touches`) und zeigt die Stats-Karte mit
+„Einträge anzeigen“ (`action_globe_to_entries` mit `airportFilter`). Routenberechnung
+getestet in `GlobeRoutesTest`.
 
 ## Weltkarte – Layover-Animation und Filter-Zurücksetzen
 
@@ -748,6 +825,16 @@ Angezeigt wird sie in der Mitte des Kompasses auf der Kachel *Flughäfen*: der D
 der Beschriftung „Homebase" darunter (`compass_homebase`). In der Tagesordnung der Seite *Einträge*
 gruppiert sie außerdem Hin- und Rückflüge zu Paaren (siehe dort).
 
+## Discovery – Richtungspfeile
+
+In der Discovery-Liste (`item_discovery_route.xml`) steht vor dem Datum ein Richtungspfeil,
+sobald die Strecke auch zurückgeflogen wurde (`RouteDiscovery.returnDate`): Hin- und Rückflug
+**am selben Tag** zeigen ein Symbol mit zwei Pfeilen in Gegenrichtung (`ic_arrows_roundtrip`)
+vor dem einen Datum; an **verschiedenen Tagen** steht der Hin-Pfeil (`ic_arrow_route`) vor dem
+Hinflug-Datum und der gespiegelte Rück-Pfeil (`iv_discovery_arrow_back`, `scaleX="-1"`) vor dem
+Rückflug-Datum in `tv_discovery_date_back`. Ohne Rückflug bleiben Pfeile und zweites Datum
+frei.
+
 ## Hintergrund-Flugzeuge (Einträge, Discovery, Dashboard)
 
 Die drei Seiten *Einträge*, *Discovery* und *Dashboard* legen als erste Kindansicht eine
@@ -875,6 +962,15 @@ Flugbegleiter). Eine Zahl im Titel wird mit dem Tausendertrennzeichen der App-Sp
 Der Platz der Kachel steht in `DashboardPrefs.DEFAULT_ROWS`; dafür wurde `KEY_TILES` auf
 `tiles_standard_v15` erhöht – das setzt das vom Nutzer umsortierte Raster einmalig zurück, wie es
 die Konvention bei einer neuen Kachel vorsieht.
+
+**Einheitliche Kachel-Abstände auf dem Dashboard:** Waagerecht ist der Abstand zwischen zwei
+Kacheln schon immer `(1 - scale)` mal eine Spalte (`DashboardPrefs.horizontalScale`). Senkrecht
+hing er bisher von der Kachelhöhe ab (die Kacheln schrumpfen per `scaleY` um ihre Mitte) – bei der
+quadratischen Weltkugel-Kachel war die Lücke viel größer als zwischen kleinen Kacheln.
+`DashboardTileScaling.applyVerticalGaps` setzt den Top-Margin jeder Zeile so, dass der sichtbare
+Abstand überall gleich `(1 - scale) · Spalte` ist (Rechnung in `rowTopMargin`, getestet in
+`DashboardTileScalingTest`). Aufgerufen auf dem Dashboard (`FirstFragment`, nach
+`resizeStatTiles`) und in der Bearbeiten-Ansicht (`DashboardEditFragment`, nach `squareSmallTiles`).
 
 ## Story – „Story" (Dashboard) und Insights (Layover-Seite)
 
@@ -1084,7 +1180,9 @@ bleibt).
 Die Seite wertet die Aufenthaltsdauer pro Land aus den Flügen aus: Ein Flug ins Land ist das
 Betreten, ein Flug hinaus das Verlassen – dazwischen liegt die Zeit im Land. Die Einträge
 haben nur ein Datum (keine Uhrzeit), gerechnet wird also tageweise; ein noch nicht verlassener
-Aufenthalt zählt bis heute. Ein Verlassen ohne bekanntes Betreten (nur ein Flug aus dem Ausland
+Aufenthalt zählt bis heute. **Ein- und Ausreise am selben Tag zählt als halber Tag**
+(`CountryTimeStats.HALF_DAY` = 0,5; `StayPeriod.days`/`CountryTime.totalDays` sind `Double`,
+die Stunden `days*24`). Ein Verlassen ohne bekanntes Betreten (nur ein Flug aus dem Ausland
 im Logbuch, z. B. ALA–FRA bei per Bus erfolgter Einreise) erzeugt einen Aufenthalt mit
 **unbekannter Einreise** (`StayPeriod.start` = null, 0 Tage, bis sie nachtragen wird).
 **Getrennt nach Reiseart:** Privat-Flüge (`CountryTimeStats.isPrivateFlight`) erzeugen die
@@ -1115,7 +1213,9 @@ und manuellen Übertritten, chronologisch sortiert (Datum, dann Erfassungs-id, m
 Tag Dahinter), pro Land als Aufenthalte (`StayPeriod`: start, end, days, closedByFlight) und
 aufsummiert, Ergebnis absteigend nach Gesamttagen. Formatierung der Tage/Zeilen in
 `TimeCountryFormat`, die Liste baut `TimeCountriesAdapter` (ViewTypes: Land, Leer-Hinweis,
-Homebase-Fusszeile). Unten rechts schwebt ein FAB wie auf dem Dashboard (`fab_add_stay`, `ic_add`):
+Homebase-Fusszeile). Unten rechts schwebt ein FAB wie auf dem Dashboard (`fab_add_stay`, `ic_add`);
+scrollt man die Liste ganz nach unten, blendet er sich aus wie der Plus-Knopf des Dashboards
+(`TimeCountriesFragment.updateFabVisibility`):
 Darüber wird ein kompletter Aufenthalt manuell erfasst (`dialog_manual_stay.xml`: Land per
 AutoComplete, darunter zwei Kacheln im Stil der Layover-Dashboard-Kacheln (`colorSecondaryContainer`,
 16 dp Ecken, Strich) mit Titel oben links – je eine für Einreise und Ausreise mit Datum (DatePicker)
@@ -1136,9 +1236,11 @@ Ein Tipp auf ein Land öffnet die Detailseite `nav_country_time_detail`
 ein Balken wie auf der Layover-Detailseite (`LayoverTimeBarView`, ebenfalls `quarters = false`:
 Tage/Wochen/Monate, dafür Jahre ab mehr als einem Jahr): die Zeit in diesem Land als Dauer
 über einer sich füllenden Leiste. Alles darunter scrollt
-(`ctd_scroll`): zuerst die Karte des Landes mit den angeflogenen Flughäfen (Höhe = 1/3 Bildschirm,
-`CountryRouteMapView.setData` ohne Verbindungslinien, Flughafenpunkte über
-`CountryDetailModel.analyze`) – beim Scrollen verschwindet sie oben. Dann eine Fakten-Karte
+(`ctd_scroll`): zuerst die Karte des Landes **genau wie die Länderseite des Dashboards**
+(Höhe = 1/3 Bildschirm, `CountryRouteMapView.setData` mit den Inland- und Auslands-Verbindungslinien
+als Großkreisbögen wie in `CountryDetailFragment`, Flughafenpunkte und Fokus-Box über
+`CountryDetailModel.analyze`/`focusBounds`, dazu der Fokus-FAB `fab_ctd_focus`, der auf alle
+angeflogenen Flughäfen zoomt) – beim Scrollen verschwindet sie oben. Dann eine Fakten-Karte
 (`item_country_fact.xml`-Zeilen) mit Amtssprache, Hauptstadt, Bundesstaaten/-länder (bei US/DE die
 echte Anzahl aus `state_shapes.bin`, sonst `adminDivisions`) und Währung aus dem Asset
 `assets/country_facts.json` (`tools/build_country_facts.py`: Wikidata CC0 P37/P36/P38/P150 mit

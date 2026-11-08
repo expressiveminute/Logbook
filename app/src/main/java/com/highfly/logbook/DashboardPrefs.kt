@@ -163,9 +163,9 @@ object DashboardPrefs {
             R.drawable.ic_seat_place
         ),
         Tile(
-            "worldmap",
-            R.string.tile_world_map,
-            R.drawable.ic_world_map,
+            "globe",
+            R.string.tile_globe,
+            R.drawable.ic_globe,
             span = SPAN_FULL,
             heightDp = 184
         ),
@@ -253,7 +253,7 @@ object DashboardPrefs {
         listOf("flights", "layover", "aircraftreg"),
         listOf("airlines", "routes", "flightroutes"),
         listOf("countries", "function", "reisebuddy"),
-        listOf("worldmap"),
+        listOf("globe"),
         listOf("class", "seat", "achievements"),
         listOf("distance"),
         listOf("time"),
@@ -286,7 +286,7 @@ object DashboardPrefs {
     const val DEFAULT_PERCENT = 90
 
     private const val PREF_NAME = "dashboard_layout"
-    private const val KEY_TILES = "tiles_standard_v19"
+    private const val KEY_TILES = "tiles_standard_v21"
     private const val KEY_SPANS = "tile_spans_v1"
     private const val KEY_SCALE = "tile_scale_v1"
     private const val ROW_SEPARATOR = ";"

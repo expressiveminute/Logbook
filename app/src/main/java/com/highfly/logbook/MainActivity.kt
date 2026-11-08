@@ -455,7 +455,8 @@ class MainActivity : AppCompatActivity() {
         val dest = if (::navController.isInitialized) navController.currentDestination?.id else null
         val showHeader = dest == R.id.nav_dashboard
         val isAddEntry = dest == R.id.nav_add_entry
-        val isWorldMap = dest == R.id.nav_world_map
+        // Weltkarte und Weltkugel haben keine schwebende Navigationsleiste.
+        val isWorldMap = dest == R.id.nav_world_map || dest == R.id.nav_globe
         val isImport = dest == R.id.nav_import
 
         binding.appBar.visibility = if (showHeader) View.VISIBLE else View.GONE

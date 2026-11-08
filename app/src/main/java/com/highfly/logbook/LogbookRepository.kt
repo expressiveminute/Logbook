@@ -97,7 +97,16 @@ object LogbookRepository {
     @Synchronized
     fun getEntries(): List<LogbookEntry> {
         cache?.let { return it }
-        val fresh = activeDb()?.getAll()?.sortedByDescending { it.date } ?: emptyList()
+        val fresh = activeDb()?.getAll()?.sortedByDescending { it.date }
+            // Gespeicherte Länder zentral korrigieren (z. B. BSL -> CH statt
+            // FR in älteren Einträgen), damit überall dieselbe Zuordnung gilt.
+            ?.map { e ->
+                val fc = AirportData.correctedCountry(e.fromAirport, e.fromCountry)
+                val tc = AirportData.correctedCountry(e.toAirport, e.toCountry)
+                if (fc == e.fromCountry && tc == e.toCountry) e
+                else e.copy(fromCountry = fc, toCountry = tc)
+            }
+            ?: emptyList()
         cache = fresh
         // Homebase zentral mitführen: meistgenutzter Flughafen des Logbuchs.
         Homebase.update(fresh)

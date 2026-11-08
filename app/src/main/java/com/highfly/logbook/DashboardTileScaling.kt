@@ -4,6 +4,7 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import android.widget.LinearLayout
 import kotlin.math.roundToInt
 
 /**
@@ -53,5 +54,55 @@ object DashboardTileScaling {
             (params as? FrameLayout.LayoutParams)?.gravity = Gravity.CENTER_HORIZONTAL
             content.layoutParams = params
         }
+    }
+
+    /**
+     * Einheitliche senkrechte Abstände zwischen den Kachelzeilen: Wie
+     * waagerecht (dort über [DashboardPrefs.horizontalScale]) beträgt der
+     * Abstand zwischen zwei Kacheln `(1 - scale)` mal eine Spalte. Die Kacheln
+     * schrumpfen per `scaleY` um ihre Mitte - der sichtbare Zeilenabstand
+     * hinge sonst von der Kachelhöhe ab und wäre bei der quadratischen
+     * Weltkugel-Kachel viel größer als zwischen kleinen Kacheln. Der
+     * Top-Margin jeder Zeile wird so gesetzt, dass der sichtbare Abstand
+     * trotz Schrumpfung überall derselbe ist.
+     *
+     * [container] ist das vertikale Zeilen-LinearLayout, seine Kinder die
+     * Zeilen; die Kachelhöhen stehen zu diesem Zeitpunkt bereits in den
+     * LayoutParams (nach dem Quadrat-Setzen der 1-Spalten-Kacheln).
+     */
+    fun applyVerticalGaps(container: LinearLayout, scale: Float) {
+        if (container.width <= 0) return
+        val column = container.width / 3f
+        val gap = (1f - scale) * column
+        var prevH = -1f
+        for (i in 0 until container.childCount) {
+            val row = container.getChildAt(i) as? LinearLayout ?: continue
+            var h = 0
+            for (j in 0 until row.childCount) {
+                val lp = row.getChildAt(j).layoutParams
+                if (lp.height > h) h = lp.height
+            }
+            if (h <= 0) continue
+            val rowLp = row.layoutParams as? ViewGroup.MarginLayoutParams ?: continue
+            val target = rowTopMargin(gap, scale, prevH, h.toFloat())
+            if (rowLp.topMargin != target) {
+                rowLp.topMargin = target
+                row.layoutParams = rowLp
+            }
+            prevH = h.toFloat()
+        }
+    }
+
+    /**
+     * Top-Margin der Zeile mit Höhe [h], wenn die vorige Zeile [prevH] hoch
+     * ist (beide unskaliert): Der sichtbare Abstand beider geschrumpften
+     * Kacheln plus Margin soll überall [gap] sein. [prevH] < 0 für die erste
+     * Zeile (kein Abstand oben, nur der Seitenrand des Containers).
+     * Reine Rechnung, siehe [DashboardTileScalingTest].
+     */
+    fun rowTopMargin(gap: Float, scale: Float, prevH: Float, h: Float): Int {
+        if (prevH < 0f) return 0
+        val shrink = (1f - scale) * (prevH + h) / 2f
+        return (gap - shrink).roundToInt()
     }
 }

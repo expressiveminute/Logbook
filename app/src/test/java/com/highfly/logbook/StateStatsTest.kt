@@ -99,6 +99,41 @@ class StateStatsTest {
         assertEquals(0f, progress.fraction, 1e-6f)
     }
 
+    @Test
+    fun summarize_berlinerFlughaefen_zaehlenAuchBerlin() {
+        // BER traegt die Region Brandenburg (DE-BB) - Berlin (DE-BE) kommt
+        // zusätzlich dazu.
+        val summary = summarize(
+            listOf(entry("FRA", "BER")),
+            mapOf("FRA" to "DE-HE", "BER" to "DE-BB")
+        )
+        assertEquals(setOf("DE-BE", "DE-BB", "DE-HE"), summary.states)
+        assertEquals(setOf("DE"), summary.countries)
+    }
+
+    @Test
+    fun summarize_berlinerFlughaefenOhneRegion_zaehlenBerlinUndLand() {
+        // TXL/SXF/THF haben keinen Regionseintrag; die geschlossenen stehen
+        // als XTHF etc. im Logbuch. Berlin und das Land DE zählen trotzdem.
+        for (code in listOf("TXL", "SXF", "THF", "XTXL", "XSXF", "XTHF")) {
+            val summary = summarize(listOf(entry("FRA", code)), mapOf("FRA" to "DE-HE"))
+            assertEquals("bei $code", setOf("DE-BE", "DE-HE"), summary.states)
+            assertEquals("bei $code", setOf("DE"), summary.countries)
+        }
+    }
+
+    @Test
+    fun summarize_abgewaehltesBerlinFaelltWiederHeraus() {
+        val summary = StateStats.summarize(
+            listOf(entry("FRA", "BER")),
+            { mapOf("FRA" to "DE-HE", "BER" to "DE-BB")[it.uppercase()] },
+            emptyList(),
+            emptySet(),
+            setOf("DE-BE")
+        )
+        assertEquals(setOf("DE-BB", "DE-HE"), summary.states)
+    }
+
     private fun state(code: String, iso2: String) = StateShapes.State(
         code = code,
         iso2 = iso2,

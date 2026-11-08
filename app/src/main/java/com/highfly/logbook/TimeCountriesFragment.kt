@@ -15,6 +15,7 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import com.highfly.logbook.databinding.FragmentTimeCountriesBinding
@@ -132,6 +133,59 @@ class TimeCountriesFragment : LogbookFragment(), BackPressAware {
         // FAB wie auf dem Dashboard: manueller Aufenthalt (Land + Ein-/Ausreise).
         binding.fabAddStay.addBottomNavMargin()
         binding.fabAddStay.setOnClickListener { showStayDialog() }
+        // Wie auf dem Dashboard blendet sich der Plus-Knopf aus, sobald die
+        // Liste ganz nach unten scrollt.
+        binding.rvTimeCountries.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                updateFabVisibility()
+            }
+        })
+        binding.rvTimeCountries.post { updateFabVisibility() }
+    }
+
+    /**
+     * Blendet den FAB aus, wenn die Liste ganz unten angekommen ist, und
+     * wieder ein, sobald weiter nach oben oder unten gescrollt werden kann -
+     * dieselbe Logik wie auf dem Dashboard ([FirstFragment.updateFabVisibility]).
+     */
+    private fun updateFabVisibility() {
+        if (_binding == null) return
+        val list = binding.rvTimeCountries
+        val contentScrolls = list.canScrollVertically(-1) || list.canScrollVertically(1)
+        val showFab = !contentScrolls || list.canScrollVertically(1)
+        val fab = binding.fabAddStay
+        val target = if (showFab) View.VISIBLE else View.GONE
+        if (fab.visibility == target) return
+        fab.animate().cancel()
+
+        if (showFab) {
+            fab.visibility = View.VISIBLE
+            fab.alpha = 0f
+            fab.scaleX = 1.15f
+            fab.scaleY = 1.15f
+            fab.animate()
+                .alpha(1f)
+                .scaleX(1f)
+                .scaleY(1f)
+                .setDuration(200)
+                .start()
+        } else {
+            fab.animate()
+                .scaleX(1.15f)
+                .scaleY(1.15f)
+                .alpha(0.85f)
+                .setDuration(130)
+                .withEndAction {
+                    fab.animate()
+                        .scaleX(0f)
+                        .scaleY(0f)
+                        .alpha(0f)
+                        .setDuration(120)
+                        .withEndAction { fab.visibility = View.GONE }
+                        .start()
+                }
+                .start()
+        }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -255,6 +309,8 @@ class TimeCountriesFragment : LogbookFragment(), BackPressAware {
             )
         }
         adapter.submit(items)
+        // Die Liste kann durch die neuen Zeilen scrollbar geworden sein.
+        binding.rvTimeCountries.post { updateFabVisibility() }
     }
 
     /**

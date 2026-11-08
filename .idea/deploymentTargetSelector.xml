@@ -2,7 +2,7 @@
 <project version="4">
   <component name="deploymentTargetSelector">
     <selectionStates>
-      <SelectionState runConfigName="app">
+      <SelectionState runConfigName="Logbook">
         <option name="selectionMode" value="DROPDOWN" />
         <DropdownSelection timestamp="2026-10-25T13:49:49.372230655Z">
           <Target type="DEFAULT_BOOT">

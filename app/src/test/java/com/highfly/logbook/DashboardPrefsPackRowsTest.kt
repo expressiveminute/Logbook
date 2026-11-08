@@ -23,15 +23,15 @@ class DashboardPrefsPackRowsTest {
 
     @Test
     fun packRows_wrapsTileThatDoesNotFitRemainingColumns() {
-        // Drei Spalten sind voll, "worldmap" (volle Breite) beginnt eine neue Zeile.
+        // Drei Spalten sind voll, "globe" (volle Breite) beginnt eine neue Zeile.
         val packed = DashboardPrefs.packRows(
-            listOf("flights", "layover", "aircraftreg", "worldmap"),
+            listOf("flights", "layover", "aircraftreg", "globe"),
             defaultSpans
         )
         assertEquals(
             listOf(
                 listOf("flights", "layover", "aircraftreg"),
-                listOf("worldmap")
+                listOf("globe")
             ),
             packed
         )

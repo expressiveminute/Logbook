@@ -194,4 +194,19 @@ object AirportData {
         val second = 0x1F1E6 + (letters[1] - 'A')
         return String(intArrayOf(first, second), 0, 2)
     }
+
+    /**
+     * Feste Korrektur für gespeicherte Länder: Der Flughafen Basel (BSL)
+     * liegt geografisch in Frankreich, wird aber überall in der App der
+     * Schweiz (CH) zugerechnet - das Asset führt BSL bereits als CH.
+     */
+    private val COUNTRY_FIXES = mapOf("BSL" to "CH")
+
+    /**
+     * Korrigiert ein im Eintrag gespeichertes Land ([LogbookEntry.fromCountry]/
+     * [LogbookEntry.toCountry]): Ältere Einträge können BSL noch als FR
+     * führen. Ohne Korrektur bleibt [stored] stehen.
+     */
+    fun correctedCountry(iata: String, stored: String?): String? =
+        COUNTRY_FIXES[iata.trim().uppercase()] ?: stored
 }

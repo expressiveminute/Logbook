@@ -7,7 +7,10 @@ package com.highfly.logbook
  *
  * Ein Staat gilt als "erreicht", wenn der Abflug- oder Zielflughafen eines
  * Eintrags in ihm liegt; die Zuordnung Flughafen -> Region ("US-CA") kommt
- * als Funktion herein ([AirportData.region]). Ob das Land selbst angeflogen
+ * als Funktion herein ([AirportData.region]). Die Berliner Flughäfen
+ * ([BERLIN_AIRPORTS]) zählen zusätzlich immer zum Bundesland Berlin
+ * (DE-BE), auch wenn sie geografisch zu Brandenburg gehören oder keine
+ * Region tragen. Ob das Land selbst angeflogen
  * wurde, entscheidet zusätzlich [flownCountries] - ein Flughafen ohne
  * Regionseintrag (z. B. ein geschlossener) darf das Land nicht unsichtbar
  * machen, in das es trotzdem einen Flug gab.
@@ -19,6 +22,17 @@ object StateStats {
 
     /** Länder, die eigene Kacheln in der Kachelzeile der Rubbelkarte bekommen. */
     val TILE_COUNTRIES = listOf("DE", "US")
+
+    /** Bundesland Berlin als ISO-3166-2. */
+    const val BERLIN_REGION = "DE-BE"
+
+    /**
+     * Die Flughäfen Berlins: BER liegt geografisch in Brandenburg (DE-BB) und
+     * trägt diese Region, TXL/SXF/THF haben gar keinen Regionseintrag (die
+     * geschlossenen stehen als "X"+Code im Logbuch). Wird einer davon
+     * angeflogen, gilt zusätzlich das Bundesland Berlin (DE-BE) als besucht.
+     */
+    val BERLIN_AIRPORTS = setOf("BER", "TXL", "SXF", "THF", "XTXL", "XSXF", "XTHF")
 
     /**
      * @param states angeflogene Regionen als ISO-3166-2 ("US-CA"), sortiert
@@ -54,6 +68,12 @@ object StateStats {
             for (code in listOf(entry.fromAirport, entry.toAirport)) {
                 val iata = code.trim().uppercase()
                 if (iata.isEmpty()) continue
+                // Berliner Flughäfen: das Bundesland Berlin gilt als besucht,
+                // egal ob der Flughafen eine Region trägt oder nicht.
+                if (iata in BERLIN_AIRPORTS) {
+                    states.add(BERLIN_REGION)
+                    countries.add(BERLIN_REGION.substringBefore('-'))
+                }
                 val region = normalizeRegion(regionOf(iata)) ?: continue
                 if (region.substringBefore('-') !in TILE_COUNTRIES) continue
                 states.add(region)

@@ -31,9 +31,11 @@
                 android:layout_weight="1"
                 android:orientation="vertical">
 
-                <!-- Richtungspfeile vor dem Datum: bei Hin- und Rueckflug an
-                     zwei Tagen ein Pfeil hin und einer zurueck, am selben Tag
-                     ein Symbol mit zwei Pfeilen in Gegenrichtung. -->
+                <!-- Richtungspfeile mit ihren Daten: bei Hin- und Rueckflug an
+                     zwei Tagen steht der Hin-Pfeil vor dem Hinflug-Datum und der
+                     Rueck-Pfeil (gespiegelt) vor dem Rueckflug-Datum; am selben
+                     Tag ein Symbol mit zwei Pfeilen in Gegenrichtung vor dem
+                     einen Datum. -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -46,18 +48,6 @@
                         android:layout_height="14dp"
                         android:layout_marginEnd="4dp"
                         android:importantForAccessibility="no"
-                        android:src="@drawable/ic_arrow_route"
-                        android:visibility="gone"
-                        app:tint="?attr/colorOnSurfaceVariant"
-                        tools:visibility="visible" />
-
-                    <ImageView
-                        android:id="@+id/iv_discovery_arrow_back"
-                        android:layout_width="14dp"
-                        android:layout_height="14dp"
-                        android:layout_marginEnd="4dp"
-                        android:importantForAccessibility="no"
-                        android:scaleX="-1"
                         android:src="@drawable/ic_arrow_route"
                         android:visibility="gone"
                         app:tint="?attr/colorOnSurfaceVariant"
@@ -76,7 +66,35 @@
                         android:maxLines="1"
                         android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                         android:textColor="?attr/colorOnSurfaceVariant"
-                        tools:text="12.03.2026 · 19.03.2026" />
+                        tools:text="12.03.2026" />
+
+                    <ImageView
+                        android:id="@+id/iv_discovery_arrow_back"
+                        android:layout_width="14dp"
+                        android:layout_height="14dp"
+                        android:layout_marginStart="6dp"
+                        android:layout_marginEnd="4dp"
+                        android:importantForAccessibility="no"
+                        android:scaleX="-1"
+                        android:src="@drawable/ic_arrow_route"
+                        android:visibility="gone"
+                        app:tint="?attr/colorOnSurfaceVariant"
+                        tools:visibility="visible" />
+
+                    <TextView
+                        android:id="@+id/tv_discovery_date_back"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:autoSizeMaxTextSize="12sp"
+                        android:autoSizeMinTextSize="8sp"
+                        android:autoSizeStepGranularity="1sp"
+                        android:autoSizeTextType="uniform"
+                        android:maxLines="1"
+                        android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:visibility="gone"
+                        tools:text="19.03.2026"
+                        tools:visibility="visible" />
                 </LinearLayout>
 
                 <TextView
