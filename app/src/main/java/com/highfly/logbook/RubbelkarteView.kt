@@ -31,6 +31,7 @@ import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
 
@@ -371,12 +372,14 @@ class RubbelkarteView @JvmOverloads constructor(
             return gedreht || pixelAbstand > 0.5f
         }
 
-        private const val ARC_STEP = 0.06
 
         private const val ANTARCTICA = "AQ"
         private const val DEFAULT_CENTER_LON = 10.0
         private const val DEFAULT_CENTER_LAT = 25.0
         private const val TWO_PI = 2.0 * PI
+
+        // Obergrenze Dezimierungs-Cache (Punkte): ca. 400k Punkte ~ 10 MB.
+        private const val DECIMATE_CACHE_MAX_POINTS = 400_000
         private const val HALF_PI = PI / 2.0
 
         /** Geladene Umrisse: Länder und Staaten gemeinsam, app-weit geteilt. */
@@ -654,7 +657,6 @@ class RubbelkarteView @JvmOverloads constructor(
     /** Nur zum Aufspüren des Landes unter dem Finger, siehe [landAt]. */
     private val hitClip = Region()
     private val hitRegion = Region()
-    private val runPath = Path()
 
     /**
      * Zum Prüfen von Namen und Städten gegen den Landumriss, gehören dem
@@ -1505,6 +1507,21 @@ class RubbelkarteView @JvmOverloads constructor(
      * Der Punkt gehört mit zur Beschriftung: Ein Name, der auf einen Punkt
      * zeigt, ist ohne den Zusammenhang einem anderen Land zuzuordnen.
      */
+    // measureText pro Beschriftung pro Bild ist teuer - Breiten werden gecacht
+    // (Schlüssel: fett/normal + Text; Schlüsselraum begrenzt: Länder-/Städtenamen).
+    // Concurrent: bei der Rubbelkarte misst der Aufbau-Thread (Label-Bau) und der
+    // Zeichen-Thread (Stadtplatzierung) - beides darf nicht auf einer HashMap landen.
+    private val textWidthCache = java.util.concurrent.ConcurrentHashMap<String, Float>()
+
+    private fun cachedTextWidth(paint: Paint, bold: Boolean, text: String): Float {
+        val key = (if (bold) 'b' else 'n') + text
+        textWidthCache[key]?.let { return it }
+        val w = paint.measureText(text)
+        if (textWidthCache.size > 8192) textWidthCache.clear()
+        textWidthCache.putIfAbsent(key, w)
+        return w
+    }
+
     private fun platziereStadt(
         canvas: Canvas,
         belegt: MutableList<FloatArray>,
@@ -1515,7 +1532,7 @@ class RubbelkarteView @JvmOverloads constructor(
         val textHoehe = metrics.descent - metrics.ascent
         val abstand = STADT_ABSTAND_DP * density
         val punktRadius = STADT_PUNKT_DP * density
-        val textBreite = textPaint.measureText(stadt.name)
+        val textBreite = cachedTextWidth(textPaint, textPaint.isFakeBoldText, stadt.name)
         for (versatz in STADT_AUSWEICH) {
             val y = stadt.y + versatz * textHoehe
             val rect = floatArrayOf(
@@ -1558,7 +1575,7 @@ class RubbelkarteView @JvmOverloads constructor(
         val rand = NAME_RAND_DP * density
         val metrics = namePaint.fontMetrics
         val textHeight = metrics.descent - metrics.ascent
-        val textWidth = namePaint.measureText(shape.name)
+        val textWidth = cachedTextWidth(namePaint, namePaint.isFakeBoldText, shape.name)
         // Über der Tippmarke, aber ganz auf der Karte. Der Rand gewinnt, wenn
         // der Name breiter ist als die Karte selbst.
         val x = (tapX - textWidth / 2f).coerceIn(rand, max(rand, width - textWidth - rand))
@@ -1742,7 +1759,14 @@ class RubbelkarteView @JvmOverloads constructor(
         for (country in list) {
             if (generation != buildGeneration) return result to emptyList()
             if (country.iso2 == ANTARCTICA) continue
-            val path = globeRings(country.unitRings, globe, cx, cy, radius) ?: continue
+            // Ganz auf der Rückseite liegende Länder werden gar nicht erst
+            // projiziert - bei den feinen Umrissen spart das pro Neuaufbau
+            // zigtausende Punkte.
+            if (ganzHinten(globe, country.minLon, country.minLat, country.maxLon, country.maxLat)) continue
+            val path = globeRings(
+                dezimiereRinge(country.unitRings, country.sharedMasks, radius),
+                globe, cx, cy, radius
+            ) ?: continue
             val bounds = RectF().apply { path.computeBounds(this, true) }
             val name = if (german) country.nameDe else country.nameEn
             val label = if (mitNamen) {
@@ -1771,7 +1795,11 @@ class RubbelkarteView @JvmOverloads constructor(
         val stateResult = ArrayList<StateShape>(states.size)
         for (stateEntry in states) {
             if (generation != buildGeneration) break
-            val path = globeRings(stateEntry.unitRings, globe, cx, cy, radius) ?: continue
+            if (ganzHinten(globe, stateEntry.minLon, stateEntry.minLat, stateEntry.maxLon, stateEntry.maxLat)) continue
+            val path = globeRings(
+                dezimiereRinge(stateEntry.unitRings, stateEntry.sharedMasks, radius),
+                globe, cx, cy, radius
+            ) ?: continue
             val bounds = RectF().apply { path.computeBounds(this, true) }
             val active = stateEntry.iso2 in stateContent.activeCountries
             val fill = when {
@@ -1868,7 +1896,7 @@ class RubbelkarteView @JvmOverloads constructor(
         val cy = state.cy
         val radius = state.radius
         val metrics = messPaint.fontMetrics
-        val breite = messPaint.measureText(name)
+        val breite = cachedTextWidth(messPaint, messPaint.isFakeBoldText, name)
         val hoehe = metrics.descent - metrics.ascent
         if (!projectGlobe(
                 country.labelLat, country.labelLon, state.globe, cx, cy, radius,
@@ -2064,6 +2092,86 @@ class RubbelkarteView @JvmOverloads constructor(
     }
 
     /**
+     * Winkelausdehnung (Diagonale der Bounding-Box) eines Gebiets in Radiant,
+     * begrenzt auf 180° - Länder wie Russland reichen über die Datumslinie und
+     * hätten sonst eine viel zu große "Diagonale".
+     */
+    private fun diagRad(minLon: Double, minLat: Double, maxLon: Double, maxLat: Double): Double {
+        val midLatRad = Math.toRadians((minLat + maxLat) / 2.0)
+        var d = max((maxLon - minLon) * cos(midLatRad), maxLat - minLat)
+        if (d > 180.0) d = 180.0
+        return Math.toRadians(d)
+    }
+
+    /**
+     * Liegt das Gebiet ganz auf der Rückseite der Kugel? Der Winkel zwischen
+     * Blickrichtung und jedem Punkt des Gebiets ist dann größer als 90°.
+     */
+    private fun ganzHinten(
+        globe: GeoMath.Globe,
+        minLon: Double, minLat: Double, maxLon: Double, maxLat: Double
+    ): Boolean {
+        var midLon = (minLon + maxLon) / 2.0
+        if (maxLon - minLon > 180.0) midLon += 180.0
+        midLon = ((midLon + 180.0) % 360.0 + 360.0) % 360.0 - 180.0
+        val midLat = (minLat + maxLat) / 2.0
+        val mlat = Math.toRadians(midLat)
+        val mlon = Math.toRadians(midLon)
+        val dot = cos(globe.centerLat) * cos(globe.centerLon) * cos(mlat) * cos(mlon) +
+            cos(globe.centerLat) * sin(globe.centerLon) * cos(mlat) * sin(mlon) +
+            sin(globe.centerLat) * sin(mlat)
+        return dot < -sin(diagRad(minLon, minLat, maxLon, maxLat)) - 0.02
+    }
+
+    /**
+     * Dezimiert die Ringe eines Gebiets passend zum Zoom per Douglas-Peucker mit
+     * bildschirmbezogener Toleranz (epsRad = spacingPx / radius -> Fehler höchstens
+     * ~2 px, konkave Küsten behalten ihre Form). Selbstschnittfrei, damit die
+     * Füllung keine Löcher bekommt.
+     */
+    private fun dezimiereRinge(
+        unitRings: List<DoubleArray>,
+        sharedMasks: List<BooleanArray>,
+        radius: Float
+    ): List<DoubleArray> {
+        // Während einer Geste doppelte Toleranz (schnellerer Neuaufbau), sonst 2 dp.
+        val epsRad = ((if (gestureActive) 4.0 else 2.0) * density) / radius
+        // Dezimierung cachen (siehe GlobeView.decimateCached): Beim Drehen ändert
+        // sich weder Ring noch Toleranz - ohne Cache würde jeder Frame alle
+        // sichtbaren Länder komplett neu dezimieren und die Karte ruckelte.
+        // Gemeinsame Grenzpunkte (sharedMasks) hält die Dezimierung fest, damit
+        // Grenzen in beiden Nachbarländern identisch bleiben (keine Lücken).
+        val bucket = epsBucket(epsRad)
+        return unitRings.mapIndexed { i, ring ->
+            decimateCached(ring, epsRad, bucket, sharedMasks.getOrNull(i))
+        }
+    }
+
+    // Nur der einzelne Aufbau-Thread liest/schreibt den Cache.
+    private val decimateCache = java.util.IdentityHashMap<DoubleArray, HashMap<Int, DoubleArray>>()
+    private var decimateCachePoints = 0
+
+    private fun epsBucket(eps: Double): Int =
+        (Math.log(eps.coerceAtLeast(1e-9)) / Math.log(1.19)).roundToInt()
+
+    private fun decimateCached(
+        ring: DoubleArray,
+        eps: Double,
+        bucket: Int,
+        forceKeep: BooleanArray? = null
+    ): DoubleArray {
+        decimateCache[ring]?.get(bucket)?.let { return it }
+        val d = GeoMath.decimateUnitsSafe(ring, eps, forceKeep)
+        if (decimateCachePoints > DECIMATE_CACHE_MAX_POINTS) {
+            decimateCache.clear()
+            decimateCachePoints = 0
+        }
+        decimateCache.getOrPut(ring) { HashMap() }[bucket] = d
+        decimateCachePoints += d.size / 3
+        return d
+    }
+
+    /**
      * Wandelt die Ringe eines Landes in einen Pfad auf der Kugel um. Ringe, die
      * vollständig auf der Rückseite liegen, fallen weg; die übrigen werden an
      * den Horizontlinien abgeschnitten, damit die Kugel geschlossen wirkt.
@@ -2101,7 +2209,9 @@ class RubbelkarteView @JvmOverloads constructor(
                 if (ringF[i] > ZERO_EPS) anyVisible = true
             }
             if (!anyVisible) continue
-            runPath.reset()
+            // Direkt in den Zielpfad schreiben (runPath als Zwischenpuffer entfällt -
+            // eine native Kopie pro Punkt pro Bild sparen): moveTo beginnt jeweils
+            // einen neuen Subpfad, close() schließt den Ring.
             val crossings = ArrayList<Crossing>(4)
             for (i in 0 until count) {
                 val j = (i + 1) % count
@@ -2128,28 +2238,32 @@ class RubbelkarteView @JvmOverloads constructor(
             }
 
             if (crossings.isEmpty()) {
+                var firstPt = true
                 for (i in 0 until count) {
                     // Nicht `> ZERO_EPS`: ein NaN ist im Vergleich mit jedem
                     // Wert false und wuerde durchrutschen.
                     if (!(ringF[i] > ZERO_EPS)) continue
                     val x = (cx + ringX[i] * radius).toFloat()
                     val y = (cy - ringY[i] * radius).toFloat()
-                    if (i == 0) {
-                        runPath.moveTo(x, y)
+                    if (firstPt) {
+                        path.moveTo(x, y)
+                        firstPt = false
                     } else {
-                        runPath.lineTo(x, y)
+                        path.lineTo(x, y)
                     }
                 }
-                runPath.close()
+                if (!firstPt) path.close()
             } else {
                 var first = 0
                 while (first < crossings.size && !crossings[first].entering) first++
-                if (first >= crossings.size) continue
+                // Kein "entering" gefunden (nur bei NaN-abgebrochenen Übergängen möglich):
+                // trotzdem ab dem ersten Übergang paaren, sonst fiele der Ring komplett weg.
+                if (first >= crossings.size) first = 0
                 val total = crossings.size
                 for (k in 0 until total / 2) {
                     val enter = crossings[(first + 2 * k) % total]
                     val exit = crossings[(first + 2 * k + 1) % total]
-                    runPath.moveTo(enter.x, enter.y)
+                    path.moveTo(enter.x, enter.y)
                     var steps = exit.segment - enter.segment
                     if (steps <= 0) steps += count
                     if (steps > count) steps = count
@@ -2157,20 +2271,25 @@ class RubbelkarteView @JvmOverloads constructor(
                     for (s in 0 until steps) {
                         val index = (start + s) % count
                         if (!(ringF[index] > ZERO_EPS)) continue
-                        runPath.lineTo(
+                        path.lineTo(
                             (cx + ringX[index] * radius).toFloat(),
                             (cy - ringY[index] * radius).toFloat()
                         )
                     }
-                    runPath.lineTo(exit.x, exit.y)
-                    appendHorizonArc(exit.alpha, enter.alpha, cx, cy, radius, runPath)
-                    runPath.close()
+                    path.lineTo(exit.x, exit.y)
+                    appendHorizonArc(exit.alpha, enter.alpha, cx, cy, radius, path)
+                    path.close()
                 }
             }
-            path.addPath(runPath)
             any = true
         }
-        return if (any) path else null
+        if (!any) return null
+        // WINDING (Default) lassen: Die Enklaven-Lochringe der Quelle sind bis auf
+        // drei Mini-Inseln gegenläufig orientiert (Vatikan, San Marino, Lesotho
+        // bleiben so Löcher), und die Rand-Slivers verschiedener Ringe am Horizont
+        // haben dieselbe Orientierung - bei WINDING addieren sie sich (gefüllt),
+        // bei EVEN_ODD würden sie sich gegenseitig auslöschen (Loch am Kugelrand).
+        return path
     }
 
     /** Übergang eines Ringsegments über den Horizont der Kugel. */
@@ -2244,7 +2363,9 @@ class RubbelkarteView @JvmOverloads constructor(
         var delta = to - from
         delta = ((delta + PI) % (2 * PI) + 2 * PI) % (2 * PI) - PI
         if (abs(delta) < ZERO_EPS) return
-        val steps = min(64, max(2, ceil(abs(delta) / ARC_STEP).toInt()))
+        // Schrittweite in Pixeln (nicht in Radiant): sonst wird der Horizontbogen
+        // bei großer Kugel eckig.
+        val steps = min(512, max(2, ceil(abs(delta) * radius / (2.0 * density)).toInt()))
         for (s in 1..steps) {
             val a = from + delta * s / steps
             out.lineTo((cx + cos(a) * radius).toFloat(), (cy - sin(a) * radius).toFloat())

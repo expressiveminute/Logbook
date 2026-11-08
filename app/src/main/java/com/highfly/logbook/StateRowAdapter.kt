@@ -10,8 +10,8 @@ import com.highfly.logbook.databinding.ItemStateRowBinding
 
 /**
  * Liste der Bundesstaaten/-länder (Deutschland/USA) auf der halbhohen Seite
- * unter der Rubbelkarte: Auge zum Zoomen auf den Staat, Name, darunter die
- * Hauptstadt, Flugzeugsymbol bei angeflogenem Staat und ein Kästchen zum
+ * unter der Rubbelkarte: Flagge, Auge zum Zoomen auf den Staat, Name, darunter
+ * die Hauptstadt, Flugzeugsymbol bei angeflogenem Staat und ein Kästchen zum
  * händischen Abhaken - wie in der Länderliste.
  *
  * Die View-Holder werden wiederverwendet, deshalb liest jeder Klick über
@@ -80,6 +80,16 @@ class StateRowAdapter(
         }
 
         fun bind(item: StateRow) {
+            // Flagge des Bundeslands/-staats aus den Assets (state_flags/<CODE>.png);
+            // bei fehlender Datei bleibt der Platz frei, damit die Zeile nicht springt.
+            val flag = StateFlags.load(binding.root.context, item.code)
+            if (flag != null) {
+                binding.ivStateFlag.setImageBitmap(flag)
+                binding.ivStateFlag.visibility = View.VISIBLE
+            } else {
+                binding.ivStateFlag.setImageDrawable(null)
+                binding.ivStateFlag.visibility = View.INVISIBLE
+            }
             binding.tvStateName.text = item.name
             // Wie in der Länderliste tritt ein „erledigter" Eintrag zurück.
             binding.tvStateName.setTextColor(

@@ -17,7 +17,20 @@
     android:paddingHorizontal="20dp"
     android:paddingVertical="4dp">
 
-    <!-- Auge: links vom Namen, zoomt die Kugel auf den Staat. derselbe
+    <!-- Flagge des Bundeslands/-staats (links außen, wie in der Länderliste);
+         das Auge sitzt rechts davon, links vom Namen. -->
+    <ImageView
+        android:id="@+id/iv_state_flag"
+        android:layout_width="30dp"
+        android:layout_height="22dp"
+        android:layout_marginEnd="10dp"
+        android:background="@drawable/bg_state_flag_outline"
+        android:contentDescription="@null"
+        android:padding="1dp"
+        android:scaleType="fitCenter"
+        tools:src="@drawable/ic_launcher_foreground" />
+
+    <!-- Auge: zoomt die Kugel auf den Staat. derselbe
          Abstand zum Namen wie in der Länderliste (10dp Margin, das Icon sitzt
          zentriert im 40dp-Button). -->
     <ImageButton

@@ -29,13 +29,17 @@ class GlobeViewTest {
     }
 
     @Test
-    fun labelTier_zoomKnopfMal3_6_8_ergibtDieStufen() {
-        // Zoom-Knopf = Faktor 1,6: 3x = 4,096 (500 km), 6x = 16,8, 8x = 43 (25 km).
+    fun labelTier_zoomKnopfMal3_5_7_ergibtDieStufen() {
+        // Zoom-Knopf = Faktor 1,6: Stufe 1 ab 3x (4,096, Maßstab ~500 km),
+        // Stufe 2 ab 5x (10,5, ~1.250 km), Stufe 3 ab 7x (26,9, ~160 km) -
+        // die Städte kommen damit je eine Zoomstufe früher als früher.
         assertEquals(0, GlobeView.labelTier(1f))
         assertEquals(0, GlobeView.labelTier(1.6f * 1.6f))       // 2x Plus
         assertEquals(1, GlobeView.labelTier(1.6f * 1.6f * 1.6f)) // 3x Plus
+        assertEquals(1, GlobeView.labelTier(1.6f * 1.6f * 1.6f * 1.6f)) // 4x Plus
+        assertEquals(2, GlobeView.labelTier(1.6f * 1.6f * 1.6f * 1.6f * 1.6f)) // 5x
         assertEquals(2, GlobeView.labelTier(1.6f * 1.6f * 1.6f * 1.6f * 1.6f * 1.6f)) // 6x
-        assertEquals(3, GlobeView.labelTier(1.6f * 1.6f * 1.6f * 1.6f * 1.6f * 1.6f * 1.6f * 1.6f)) // 8x
+        assertEquals(3, GlobeView.labelTier(1.6f * 1.6f * 1.6f * 1.6f * 1.6f * 1.6f * 1.6f)) // 7x
     }
 
     @Test
@@ -45,6 +49,10 @@ class GlobeViewTest {
         assertEquals(false, GlobeView.tierIncludesCity(1, city(capital = false, rank = 0)))
         assertEquals(true, GlobeView.tierIncludesCity(2, city(capital = false, rank = 0)))
         assertEquals(false, GlobeView.tierIncludesCity(2, city(capital = false, rank = 1)))
+        // Stufe 3: alle Großstädte des Assets, auch Rang 3 (z. B. Flensburg,
+        // Bukhara, Khiva) - die Sichtbarkeit auf dem Bildschirm begrenzt die Zahl.
+        assertEquals(true, GlobeView.tierIncludesCity(3, city(capital = false, rank = 3)))
         assertEquals(true, GlobeView.tierIncludesCity(3, city(capital = false, rank = 2)))
+        assertEquals(true, GlobeView.tierIncludesCity(3, city(capital = true, rank = 3)))
     }
 }

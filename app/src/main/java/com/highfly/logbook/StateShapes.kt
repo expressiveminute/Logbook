@@ -25,13 +25,13 @@ object StateShapes {
 
     private const val TAG = "StateShapes"
     private const val MAGIC = 0x48535453 // Bytes "S","T","S","H" (little-endian int)
-    private const val VERSION = 1
+    private const val VERSION = 2
 
     /**
-     * Koordinaten liegen als signed 16-Bit-Wert in Einheiten von 1/180 Grad im
-     * Asset - dieselbe Auflösung wie bei [CountryShapes].
+     * Koordinaten liegen als signed 32-Bit-Wert in Einheiten von 1/1440 Grad im
+     * Asset - dieselbe Auflösung wie bei [CountryShapes] (~77 m).
      */
-    private const val UNITS_PER_DEGREE = 180f
+    private const val UNITS_PER_DEGREE = 1440f
 
     /**
      * Eine Verwaltungseinheit (Bundesstaat/Bundesland) mit allen Ringen.
@@ -53,7 +53,13 @@ object StateShapes {
         val capDe: String,
         val capEn: String,
         /** Je Ring Längengrad und Breitengrad abwechselnd. */
-        val rings: List<FloatArray>
+        val rings: List<FloatArray>,
+        /**
+         * Pro Ring (parallel zu [rings]) Maske der gemeinsamen Grenzpunkte
+         * (in mindestens zwei Staaten vorkommend) - siehe
+         * [CountryShapes.Country.sharedMasks].
+         */
+        val sharedMasks: List<BooleanArray> = emptyList()
     ) {
         val minLon: Double get() = bbox[0]
         val minLat: Double get() = bbox[1]
@@ -166,9 +172,26 @@ object StateShapes {
         val totalPoints = if (ringCount == 0) 0 else ringOffsets[ringCount - 1] + ringPoints[ringCount - 1]
         val coords = FloatArray(totalPoints * 2)
         for (p in 0 until totalPoints) {
-            coords[p * 2] = buf.short / UNITS_PER_DEGREE
-            coords[p * 2 + 1] = buf.short / UNITS_PER_DEGREE
+            coords[p * 2] = buf.int / UNITS_PER_DEGREE
+            coords[p * 2 + 1] = buf.int / UNITS_PER_DEGREE
         }
+
+        // Gemeinsame Grenzpunkte zwischen Staaten bestimmen (in >=2 Staaten
+        // vorkommende Vertices auf dem 1/1440-Grad-Raster).
+        val keyUsers = HashMap<Long, Int>()
+        for (head in heads) {
+            val local = HashSet<Long>()
+            for (r in head.firstRing until head.firstRing + head.ringCount) {
+                val offset = ringOffsets[r]
+                val count = ringPoints[r]
+                for (p in offset until offset + count) {
+                    local.add(packKey(coords[p * 2], coords[p * 2 + 1]))
+                }
+            }
+            for (key in local) keyUsers[key] = (keyUsers[key] ?: 0) + 1
+        }
+        val sharedKeys = HashSet<Long>()
+        for ((key, users) in keyUsers) if (users >= 2) sharedKeys.add(key)
 
         val states = ArrayList<State>(heads.size)
         for (head in heads) {
@@ -176,6 +199,7 @@ object StateShapes {
                 throw IOException("Ring-Index überschreitet Ringzahl")
             }
             val rings = ArrayList<FloatArray>(head.ringCount)
+            val masks = ArrayList<BooleanArray>(head.ringCount)
             for (r in 0 until head.ringCount) {
                 val index = head.firstRing + r
                 val offset = ringOffsets[index]
@@ -185,6 +209,13 @@ object StateShapes {
                 }
                 if (count < 3) continue
                 rings.add(coords.copyOfRange(offset * 2, (offset + count) * 2))
+                val mask = BooleanArray(count)
+                for (p in 0 until count) {
+                    if (sharedKeys.contains(packKey(coords[(offset + p) * 2], coords[(offset + p) * 2 + 1]))) {
+                        mask[p] = true
+                    }
+                }
+                masks.add(mask)
             }
             states.add(
                 State(
@@ -199,7 +230,8 @@ object StateShapes {
                     nameEn = head.nameEn,
                     capDe = head.capDe,
                     capEn = head.capEn,
-                    rings = rings
+                    rings = rings,
+                    sharedMasks = masks
                 )
             )
         }
@@ -209,6 +241,13 @@ object StateShapes {
             Log.w(TAG, "Staatenumriss-Sentinel nicht gefunden (offset-Bug?)")
         }
         return states
+    }
+
+    /** Packt einen 1/1440-Grad-Vertex (aus float-Koordinaten gerundet) in einen Long-Schlüssel. */
+    private fun packKey(lonDeg: Float, latDeg: Float): Long {
+        val x = Math.round(lonDeg * UNITS_PER_DEGREE)
+        val y = Math.round(latDeg * UNITS_PER_DEGREE)
+        return (x.toLong() shl 32) or (y.toLong() and 0xFFFFFFFFL)
     }
 
     private fun readUInt(buf: ByteBuffer): Int {

@@ -1,8 +1,13 @@
 package com.highfly.logbook
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.ValueAnimator
 import android.content.res.Configuration
 import android.os.Bundle
+import android.os.SystemClock
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
@@ -51,7 +56,7 @@ import kotlin.math.roundToInt
  * wird über den Tab oder die System-Zurück-Taste verlassen; ist die halbhohe
  * Seite offen, schließt die Zurück-Taste zuerst diese ([onBackPressed]).
  */
-class RubbelkarteFragment : LogbookFragment(), BackPressAware, MapZoomHost {
+class RubbelkarteFragment : LogbookFragment(), BackPressAware, MapZoomHost, PageSheetHost {
 
     private var _binding: FragmentRubbelkarteBinding? = null
     private val binding get() = _binding!!
@@ -461,6 +466,8 @@ class RubbelkarteFragment : LogbookFragment(), BackPressAware, MapZoomHost {
      * (Länder-Checkliste bzw. Staatenliste), deren Höhe ein Anteil des
      * Bildschirms ist - [PAGE_HALF] bei umfangreichen Listen, sonst
      * [PAGE_THIRD], damit oben genug von der Kugel sichtbar bleibt.
+     * Die Kacheln Deutschland/Vereinigte Staaten und die EU nehmen die
+     * einheitliche Staaten-Höhe [PAGE_STATES], damit alle drei gleich groß sind.
      */
     private fun openPage(item: TileUi) {
         if (_binding == null) return
@@ -468,7 +475,11 @@ class RubbelkarteFragment : LogbookFragment(), BackPressAware, MapZoomHost {
             TileUi.Kind.CONTINENT -> Continents.countriesOf(item.key).size
             TileUi.Kind.COUNTRY -> stateShapes.count { it.iso2 == item.countryIso2 }
         }
-        val fraction = if (total >= PAGE_HALF_MIN) PAGE_HALF else PAGE_THIRD
+        val fraction = when {
+            item.kind == TileUi.Kind.COUNTRY || item.key == Continents.EU -> PAGE_STATES
+            total >= PAGE_HALF_MIN -> PAGE_HALF
+            else -> PAGE_THIRD
+        }
         // Eine bereits offene Seite wird ersetzt, nicht aufgestapelt: Erst poppen
         // - der Backstack-Listener schaltet das page_host dabei aus ([hidePage]) -
         // und erst danach wird es mit der neuen Höhe wieder sichtbar. Umgekehrt
@@ -477,11 +488,15 @@ class RubbelkarteFragment : LogbookFragment(), BackPressAware, MapZoomHost {
         pageOpening = true
         childFragmentManager.popBackStackImmediate(null, FragmentManager.POP_BACK_STACK_INCLUSIVE)
         pageOpening = false
+        sheetAnimator?.cancel()
+        sheetAnimator = null
         val host = binding.pageHost
         host.visibility = View.VISIBLE
         val lp = host.layoutParams
         lp.height = (fraction * resources.displayMetrics.heightPixels).toInt()
         host.layoutParams = lp
+        // Ausgangshöhe für den Griff-Wisch (Aufziehen/Schnappen/Schließen).
+        pageBaseHeightPx = lp.height
         // Die Kugel zentriert sich auf den sichtbaren Streifen über der Seite
         // und rutscht etwas nach oben, statt in die verdeckte Bildschirmmitte.
         binding.rubbelkarte.setBottomCover(lp.height)
@@ -586,9 +601,127 @@ class RubbelkarteFragment : LogbookFragment(), BackPressAware, MapZoomHost {
     }
 
     override fun onDestroyView() {
+        sheetAnimator?.cancel()
+        sheetAnimator = null
         childFragmentManager.removeOnBackStackChangedListener(backStackListener)
         super.onDestroyView()
         _binding = null
+    }
+
+    // ---------------------------------------------------------------- Wisch am Griff
+
+    /** Ausgangshöhe der Seite beim Öffnen (Ziel des Zurück-Schnappens). */
+    private var pageBaseHeightPx = 0
+
+    /** Zustand der Wischbewegung am Griff, siehe [onSheetTouch]. */
+    private var sheetDragStartY = 0f
+    private var sheetDragStartHeight = 0
+    private var sheetDragLastY = 0f
+    private var sheetDragLastMs = 0L
+    private var sheetVelocityY = 0f
+    private var sheetAnimator: ValueAnimator? = null
+
+    /**
+     * Wisch am Griff oben an der eingebetteten Seite: Die Höhe der Seite folgt
+     * dem Finger (zwischen 0 und volle Bildschirmhöhe). Beim Loslassen schnappt
+     * sie entweder auf die Ausgangshöhe zurück, zieht bis zum Vollbild auf
+     * (Wisch nach oben) oder schließt sich (Wisch nach unten bzw. weit genug
+     * heruntergezogen) - das Schließen verhält sich wie die Zurück-Taste und
+     * setzt auch die Kugel auf die Weltansicht zurück.
+     */
+    override fun onSheetTouch(event: MotionEvent): Boolean {
+        val b = _binding ?: return false
+        val host = b.pageHost
+        if (host.visibility != View.VISIBLE) return false
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                sheetAnimator?.cancel()
+                sheetAnimator = null
+                sheetDragStartY = event.rawY
+                sheetDragLastY = event.rawY
+                sheetDragLastMs = SystemClock.uptimeMillis()
+                sheetVelocityY = 0f
+                sheetDragStartHeight = host.layoutParams.height
+                return true
+            }
+            MotionEvent.ACTION_MOVE -> {
+                val now = SystemClock.uptimeMillis()
+                val dt = (now - sheetDragLastMs).coerceAtLeast(1L)
+                // Gleitende Geschwindigkeit (px pro 16 ms) fürs Loslass-Verhalten.
+                sheetVelocityY = 0.7f * sheetVelocityY + 0.3f * (event.rawY - sheetDragLastY) / dt * 16f
+                sheetDragLastY = event.rawY
+                sheetDragLastMs = now
+                val maxH = b.root.height
+                val newH = (sheetDragStartHeight - (event.rawY - sheetDragStartY))
+                    .toInt().coerceIn(0, maxH)
+                setPageHeight(newH)
+                return true
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                val maxH = b.root.height
+                val curH = host.layoutParams.height
+                val base = pageBaseHeightPx
+                val close = sheetVelocityY > SHEET_FLING_CLOSE_PX || curH < base * 0.5f
+                val expand = sheetVelocityY < -SHEET_FLING_CLOSE_PX || curH > maxH * 0.75f
+                when {
+                    close -> {
+                        // Wie Zurück: Seite zu und Kugel auf Weltansicht - das
+                        // erledigt der Backstack-Listener nach dem Poppen.
+                        animatePageHeight(curH, 0) {
+                            if (childFragmentManager.backStackEntryCount > 0) {
+                                childFragmentManager.popBackStack()
+                            }
+                        }
+                    }
+                    expand -> animatePageHeight(curH, maxH)
+                    else -> animatePageHeight(curH, base)
+                }
+                return true
+            }
+        }
+        return false
+    }
+
+    /** Setzt die Höhe der Seite sofort (während des Wischens). */
+    private fun setPageHeight(heightPx: Int) {
+        val b = _binding ?: return
+        val host = b.pageHost
+        val lp = host.layoutParams
+        if (lp.height != heightPx) {
+            lp.height = heightPx
+            host.layoutParams = lp
+        }
+        // Die Kugel zentriert sich auf den sichtbaren Streifen über der Seite.
+        b.rubbelkarte.setBottomCover(heightPx)
+    }
+
+    /** Animiert die Seitenhöhe; [endAction] läuft einmal am echten Ende (nicht beim Abbrechen). */
+    private fun animatePageHeight(fromPx: Int, toPx: Int, endAction: (() -> Unit)? = null) {
+        sheetAnimator?.cancel()
+        if (_binding == null) return
+        if (fromPx == toPx) {
+            endAction?.invoke()
+            return
+        }
+        val anim = ValueAnimator.ofInt(fromPx, toPx).apply {
+            duration = SHEET_ANIM_MS
+            addUpdateListener { a -> setPageHeight(a.animatedValue as Int) }
+            endAction?.let { action ->
+                addListener(object : AnimatorListenerAdapter() {
+                    private var abgebrochen = false
+                    override fun onAnimationCancel(animation: Animator) {
+                        abgebrochen = true
+                    }
+                    override fun onAnimationEnd(animation: Animator) {
+                        // cancel() ruft ebenfalls onAnimationEnd - nur das echte
+                        // Ende darf die Aktion auslösen.
+                        if (!abgebrochen) action()
+                    }
+                })
+            }
+        }
+        sheetAnimator = anim
+        anim.start()
     }
 
     private companion object {
@@ -606,5 +739,19 @@ class RubbelkarteFragment : LogbookFragment(), BackPressAware, MapZoomHost {
 
         /** Seitenhöhe bei kleinen Listen (ca. 47 % des Bildschirms). */
         const val PAGE_THIRD = 1f / 3f * PAGE_HEIGHT_SCALE
+
+        /**
+         * Einheitliche Höhe der Seite bei den Kacheln Deutschland, Vereinigte
+         * Staaten und EU: rund 10 % mehr als das frühere Drittel, damit die
+         * Bundesländer-Liste etwas höher ist und alle drei Kacheln gleich groß
+         * öffnen (ca. 51 % des Bildschirms).
+         */
+        const val PAGE_STATES = PAGE_THIRD * 1.1f
+
+        /** Dauer der Höhen-Animation beim Loslassen des Griffs. */
+        const val SHEET_ANIM_MS = 200L
+
+        /** Wischgeschwindigkeit (px pro 16 ms), ab der Loslassen schließt/aufzieht. */
+        const val SHEET_FLING_CLOSE_PX = 24f
     }
 }

@@ -37,7 +37,7 @@ Aufruf:
 
 Binärformat von state_shapes.bin (little endian), siehe StateShapes.kt:
     int32   magic "STSH"
-    uint8   version (1)
+    uint8   version (2)
     uint8   reserved
     uint16  stateCount
     je Staat:
@@ -54,8 +54,13 @@ Binärformat von state_shapes.bin (little endian), siehe StateShapes.kt:
         uint32  ringCount
     uint32  ringTableSize
     je Ring: uint32 pointCount, uint32 coordOffset (in Koordinatenpaaren)
-    je Punkt: int16 lon, int16 lat in 1/180 Grad
+    je Punkt: int32 lon, int32 lat in 1/1440 Grad
     float32 sentinel -90.0
+
+Koordinaten liegen wie bei country_shapes.bin als int32 in 1/1440 Grad
+(~77 m); die Vereinfachung arbeitet mit 0.004 Grad (~450 m), damit auch die
+Staatengrenzen (z. B. Sachsen/Tschechien an der deutschen Ostgrenze) glatt
+und nicht doppelt gezeichnet werden.
 """
 
 import argparse
@@ -69,16 +74,22 @@ import sys
 import urllib.request
 import zipfile
 
-MAGIC = 0x48535453  # Bytes "S","T","S","H" als little-endian int
-VERSION = 1
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from build_country_shapes import (
+    simplify_safe, has_self_intersection, cut_loops, quantize, pip_in_rings, ring_area,
+    compute_shared_keys,
+)
 
-UNITS_PER_DEGREE = 180  # 180 * 180 = 32400 passt in int16, wie bei country_shapes.bin
+MAGIC = 0x48535453  # Bytes "S","T","S","H" als little-endian int
+VERSION = 2
+
+UNITS_PER_DEGREE = 1440  # 1440 * 180 = 259200 passt in int32, wie bei country_shapes.bin
 
 LAT_MIN = -85.0
 
 # Ramer-Douglas-Peucker-Toleranzen in Grad, wie in build_country_shapes.py.
-EPS_DEFAULT = 0.08  # etwas grober als die Länder: Staatengrenzen sind dünne Linien
-EPS_SMALL = 0.02
+EPS_DEFAULT = 0.004  # ~450 m: fein genug fuer saubere Grenzlinien auf der Kugel
+EPS_SMALL = 0.001
 SMALL_DEG = 6.0
 
 NE_ADMIN1_URL = (
@@ -294,8 +305,8 @@ def load_regions(airports_csv, valid_codes):
 
 def to_units(degrees):
     value = int(round(degrees * UNITS_PER_DEGREE))
-    if not -32768 <= value <= 32767:
-        raise SystemExit("Koordinate ausserhalb des int16-Bereichs: %s" % degrees)
+    if not -(2 ** 31) <= value < 2 ** 31:
+        raise SystemExit("Koordinate ausserhalb des int32-Bereichs: %s" % degrees)
     return value
 
 
@@ -325,7 +336,9 @@ def main():
     capitals = load_capitals(args.cities, args.populated, geonames_admin1_map(features))
     de_us = wikidata_de_labels_us_states(args.wikidata_de)
 
-    entries = []
+    # Erste Runde: Roh-Ringe je Bundesstaat sammeln, dann gemeinsame Grenz-
+    # Vertices bestimmen (gleiche Begruendung wie bei build_country_shapes).
+    raw_entries = []
     for feature in features:
         props = feature["properties"]
         iso2 = props.get("iso_a2") or ""
@@ -339,8 +352,10 @@ def main():
 
         raw_rings = []
         for raw in iter_rings(feature["geometry"]):
+            # Keine Rundung auf 3 Dezimalstellen: die 1/1440-Grad-Skala des
+            # Assets ist feiner als 0.001 Grad und wuerde sonst beschnitten.
             points = [
-                (round(float(lon), 3), round(float(lat), 3))
+                (float(lon), float(lat))
                 for lon, lat in raw
                 if float(lat) >= LAT_MIN
             ]
@@ -348,7 +363,13 @@ def main():
                 raw_rings.append(points)
         if not raw_rings:
             continue
+        raw_entries.append((code, iso2, props, raw_rings))
 
+    shared_keys = compute_shared_keys(raw_entries)
+    print("%d gemeinsame Grenz-Vertices in >=2 Bundesstaaten" % len(shared_keys))
+
+    entries = []
+    for code, iso2, props, raw_rings in raw_entries:
         lons = [p[0] for ring in raw_rings for p in ring]
         lats = [p[1] for ring in raw_rings for p in ring]
         bbox = (min(lons), min(lats), max(lons), max(lats))
@@ -361,8 +382,35 @@ def main():
 
         rings = []
         for points in raw_rings:
-            simple = simplify(points, eps)
-            rings.append(simple if len(simple) >= 3 else points)
+            # Selbstschnittfrei vereinfachen (siehe build_country_shapes.simplify_safe);
+            # liefert eine Liste (ggf. gespaltene Teilringe).
+            simples = simplify_safe(points, eps)
+            if not simples:
+                simples = [points]
+            okeys = [(to_units(lon), to_units(lat)) for lon, lat in points]
+            skeys = set()
+            for simple in simples:
+                src = simple if len(simple) >= 3 else points
+                skeys.update((to_units(lon), to_units(lat)) for lon, lat in src)
+            # Gemeinsame Grenz-Vertices zwischen Bundesstaaten bleiben erhalten,
+            # damit keine Luecken zwischen den Staaten klaffen.
+            merged_keys = [k for k in okeys if k in skeys or k in shared_keys]
+            if len(merged_keys) < 3:
+                merged_keys = okeys
+            q = [(x / UNITS_PER_DEGREE, y / UNITS_PER_DEGREE) for x, y in merged_keys]
+            # danach erneut auf Selbstschnitte prüfen
+            # (die 1/1440-Grad-Rundung kann Schnitte erzeugen)
+            if has_self_intersection(q):
+                cut = False
+                for loop in cut_loops(q):
+                    loop = quantize(loop)
+                    if len(loop) >= 3:
+                        rings.append(loop)
+                        cut = True
+                if not cut:
+                    rings.append(q)
+            else:
+                rings.append(q)
 
         name_en = props.get("name_en") or props.get("name") or code
         name_de = props.get("name_de") or ""
@@ -377,6 +425,34 @@ def main():
         else:
             cap_lat, cap_lon = float(props.get("latitude") or 0.0), float(props.get("longitude") or 0.0)
             cap_de = cap_en = ""
+        # Hauptstadt-Koordinate ins Polygon klemmen: Küstenstädte (z. B. Anchorage)
+        # können durch die 1/1440-Grad-Rundung knapp außerhalb liegen.
+        if not pip_in_rings(cap_lon, cap_lat, rings):
+            biggest = max(rings, key=ring_area)
+            lons = [p[0] for p in biggest]
+            lats = [p[1] for p in biggest]
+            x0, x1 = min(lons), max(lons)
+            y0, y1 = min(lats), max(lats)
+            coarse = [r[:: max(1, len(r) // 200)] for r in rings]
+            best = None
+            bestd = -1.0
+            n = 24
+            for i in range(1, n):
+                for j in range(1, n):
+                    x = x0 + (x1 - x0) * i / n
+                    y = y0 + (y1 - y0) * j / n
+                    if not pip_in_rings(x, y, rings):
+                        continue
+                    d = min((x - px) ** 2 + (y - py) ** 2 for ring in coarse for px, py in ring)
+                    if d > bestd:
+                        bestd = d
+                        best = (x, y)
+            if best is not None:
+                cap_lon, cap_lat = best
+            else:
+                cx = sum(lons) / len(lons)
+                cy = sum(lats) / len(lats)
+                cap_lon, cap_lat = cx, cy
 
         entries.append(
             {
@@ -437,7 +513,7 @@ def main():
         out += struct.pack("<II", count, offset)
     for ring in all_rings:
         for lon, lat in ring:
-            out += struct.pack("<hh", to_units(lon), to_units(lat))
+            out += struct.pack("<ii", to_units(lon), to_units(lat))
     out += struct.pack("<f", -90.0)
 
     os.makedirs(os.path.dirname(args.out), exist_ok=True)

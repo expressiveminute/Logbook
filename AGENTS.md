@@ -91,9 +91,23 @@ GeoNames-admin1-Code wird über `gn_a1_code` von Natural Earth auf ISO-3166-2 ge
 Wikidata (deutsche Namen der US-Bundesstaaten, CC0, gecacht in
 `tmp_ne/wikidata_us_states_de.json`) und `tmp_ne/airports.csv` zwei Assets:
 
-- `app/src/main/assets/state_shapes.bin` – Binärformat „STSH“ (siehe `StateShapes.kt`):
+- `app/src/main/assets/state_shapes.bin` – Binärformat „STSH“ Version 2 (siehe `StateShapes.kt`):
   je Staat char[5] Code („US-CA“), char[2] Land, float32 Hauptstadt-Koords, Anker,
-  Bounding-Box, Namen de/en, Hauptstadtnamen de/en, Ringe als int16 in 1/180°.
+  Bounding-Box, Namen de/en, Hauptstadtnamen de/en, Ringe als **int32 in 1/1440°**
+  (~77 m Auflösung; Vereinfachung aus den 10m-Daten mit DP-Toleranz 0,004° ≈ 450 m,
+  damit Grenzen wie DE–CZ glatt und nicht doppelt zeichnet werden). Dasselbe Format
+  (Version 2, 1/1440°) nutzt `country_shapes.bin` (`tools/build_country_shapes.py` aus
+  dem offiziellen Natural-Earth-10m-admin-0-GeoJSON `tmp_ne/ne_10m_admin_0_countries.geojson`,
+  Toleranz 0,004°; `-99`-ISO-Codes FRA/NOR/KOS werden auf FR/NO/XK gemappt). Beide
+  Generatoren vereinfachen **selbstschnittfrei** (`simplify_safe`: bei Schlaufen halbe
+  Toleranz, sonst `cut_loops` – Ring an den Schnittpunkten in einfache Teilringe spalten)
+  und prüfen das Ergebnis **nach der 1/1440°-Quantisierung** erneut (`quantize` →
+  `has_self_intersection` → `cut_loops`), weil die Rundung selbst Schnitte erzeugen kann.
+  Der Beschriftungsanker ist der ungefähre Pol der Unzugänglichkeit (Gitterpunkt mit
+  größtem Randabstand innerhalb des Landes), damit er bei konkaven Ländern (Norwegen,
+  Thailand) nicht im Meer landet; Hauptstädte der Staaten werden ins Polygon geklemmt.
+  In der App füllen `GlobeView` (pro Ring) und `RubbelkarteView` (pro Land, WINDING) die
+  Flächen, damit Enklaven (Vatikan, San Marino, Lesotho) Löcher bleiben.
 - `app/src/main/assets/airports/airports_regions.json` – IATA → Region („FRA“ → „DE-HE“),
   nur US/DE. `AirportData.region` lädt sie. Geprüft von `StateShapesTest` (Format +
   echtes Asset + Abgleich mit den Regionen).
@@ -122,10 +136,22 @@ Grenzen hervor (`RubbelkarteView.setHighlight` nimmt eine Menge: Kontinent/EU = 
 der Region, Länder-Kachel = das Land selbst) und öffnet unten im `page_host`
 von `fragment_rubbelkarte.xml` eine **komplette, unten eingeklinkte Seite**: `CountriesFragment` als
 Child-Fragment mit `ARG_EMBEDDED` (bei DE/US mit `ARG_STATES` für die Staatenliste,
-`StateRowAdapter` + `item_state_row.xml`). Die Seite nimmt **70 %** des Bildschirms
-bei Listen ab 20 Einträgen, sonst ca. **47 %** (`PAGE_HALF`/`PAGE_THIRD` =
+`StateRowAdapter` + `item_state_row.xml`, die Staaten-Zeilen tragen vorn die Flagge des
+Bundeslands/-staats als `iv_state_flag` – Assets `assets/state_flags/<ISO-3166-2>.png`,
+geladen über `StateFlags`, heruntergeladen von Wikimedia Commons (gemeinfrei) mit
+`tools/build_state_flags.py`, geprüft von `StateFlagsAssetTest`). Die Seite nimmt **70 %**
+des Bildschirms bei Listen ab 20 Einträgen, sonst ca. **47 %** (`PAGE_HALF`/`PAGE_THIRD` =
  frühere Hälfte bzw. Drittel × `PAGE_HEIGHT_SCALE` = 1,4; Schwelle `PAGE_HALF_MIN` in
-`RubbelkarteFragment`);
+`RubbelkarteFragment`); die Kacheln **Deutschland, Vereinigte Staaten und EU** nehmen
+immer die einheitliche Staaten-Höhe `PAGE_STATES` (ca. **51 %** = `PAGE_THIRD` × 1,1),
+damit alle drei gleich groß öffnen. `page_host` liegt als Overlay (`layout_gravity="bottom"`
+im FrameLayout-Root) über dem Inhalt, damit die Seite per Wisch beweglich ist: Oben mittig
+sitzt der Griff (`page_drag_handle` in `fragment_countries.xml`, nur eingebettet sichtbar,
+vertikaler Strich `bg_sheet_handle`), dessen Touches über `PageSheetHost.onSheetTouch` an
+`RubbelkarteFragment` gehen – die Höhe folgt dem Finger, beim Loslassen schnappt sie auf die
+Ausgangshöhe zurück, ein Wisch nach oben (oder ≥ 75 % Höhe) zieht sie bis zum **Vollbild** auf,
+ein Wisch nach unten (oder unter die Hälfte der Ausgangshöhe) **schließt** sie über
+`popBackStack` – das verhält sich wie die Zurück-Taste (Kugel zurück auf Weltansicht);
 darüber bleibt die Kugel sichtbar und bedienbar; die Kachelzeile wird dabei ausgeblendet
 (`continent_scroll` auf GONE in `openPage`, zurück in `hidePage`), damit die Kugel oben nicht
 auf einen schmalen Streifen schrumpft und kein schwarzer Balken zwischen Kacheln und Liste
@@ -365,22 +391,102 @@ Einheitsvektoren via `CountryShapes.Country.unitRings`). Der Pfadaufbau läuft a
 Hintergrund-Thread, der Zeichen-Thread malt nur den zuletzt fertigen Zustand – Drehen per
 Finger mit Fling-Nachlauf, Pinch- und Doppeltipp-Zoom, programmatisch `zoomTo`/`resetToWorld`.
 Land + Grenzen immer, Flughafen-**Badges mit Dreilettercodes wie auf der Weltkarte**
-(Pill in Akzentfarbe, weißer Ring, Kontrasttext; stark vernetzte zuletzt oben via
-`connections`). **Beschriftungsstufen je Zoom** (`GlobeView.labelTier`, Zoom-Knopf =
+(undurchsichtige Pill in Akzentfarbe, weißer Ring, Kontrasttext, **kein Punkt** darunter;
+stark vernetzte zuletzt oben via `connections`, damit Hubs bei Überlappung oben liegen).
+Tippt man einen Code an, treten die nicht mit ihm verbundenen gräulich zurück (`Content.reached`
+über `MapSelection.connected`), die verbundenen werden fett betont, der ausgewählte bekommt
+einen Akzent-Außenrahmen. **Beschriftungsstufen je Zoom** (`GlobeView.labelTier`, Zoom-Knopf =
 Faktor 1,6): ab ca. 3× Plus (Maßstab erstmals 500 km, `ZOOM_COUNTRY_LABELS`) Ländernamen
-(`CountryShapes.Country.nameDe/nameEn` am Label-Anker) und Hauptstädte; ab ca. 6× Plus
-(`ZOOM_CITIES`) zusätzlich die größten Städte (Rang 0); ab ca. 8× Plus (Maßstab ~25 km,
-`ZOOM_MORE_CITIES`) noch mehr Städte (Rang bis 2, bis `CITY_LABEL_MAX_MORE`). Kollision
-über `LabelCollision`, getestet in `GlobeViewTest`.
+(`CountryShapes.Country.nameDe/nameEn` am Label-Anker, große Länder zuerst) und Hauptstädte
+(**unterstrichen** wie auf der Weltkarte); ab ca. 5× Plus (`ZOOM_CITIES`, Maßstab ~1.250 km)
+zusätzlich die größten Städte (Rang 0); ab ca. 7× Plus (Maßstab ~160 km,
+`ZOOM_MORE_CITIES`) **alle Großstädte des Assets (Rang bis 3)** – nur die
+tatsächlich auf dem Bildschirm liegenden zählen gegen `CITY_LABEL_MAX_MORE`. Kollision
+über `LabelCollision` (die Badge-Flächen sind reserviert, max. 3 Ausweichzeilen), getestet
+in `GlobeViewTest`.
 `GlobeView.metersPerPixel(centerLatRad, radiusPx)` liefert den Maßstab (getestet in
 `GlobeViewTest`). Bisher genutzt von der Kachel und der Seite; die Rubbelkarte
 (`RubbelkarteView`) bleibt vorerst unverändert und kann später auf `GlobeView` migrieren.
  damit das Drehen in der kleinen Kachel flüssig bleibt, dezimiert `GlobeView` im
 Vorschau-Modus (nicht interaktiv) die Ringe auf `PREVIEW_RING_POINTS` bzw. Routen auf
 `PREVIEW_ROUTE_POINTS` Punkte, merged Land/Routen/Punkte in je einen Path (ein
-`drawPath` statt hunderter Aufrufe) und cached den Schatten-Shader. Zoom-Max
+`drawPath` statt hunderter Aufrufe) und cached den Schatten-Shader. Die Eigendrehung
+der Kachel läuft im VSync-Takt (`postOnAnimation`/Choreographer statt festem 33-ms-Timer),
+und `scheduleRebuild` merkt sich während eines laufenden Aufbaus einen Nachbau
+(`rebuildPending`) – sonst gingen Drehwinkel verloren und die Kugel ruckelte. Im
+interaktiven Modus werden die Ringe außerdem zoom-abhängig dezimiert
+(`GeoMath.ringPointBudget`, ~2 px Punktabstand, globales Kontingent `MAX_BUILD_POINTS`)
+und Länder ganz auf der Rückseite oder ganz außerhalb des Bildschirms vorher
+ausgeblendet; dasselbe macht `RubbelkarteView` (`ganzHinten`/`dezimiereRinge`).
+Wichtig für korrekte Flächen: Die Dezimierung arbeitet mit **Douglas-Peucker in
+entrollten lon/lat-Koordinaten** bei bildschirmbezogener Toleranz
+(`GeoMath.decimateUnitsDp`/`decimateUnitsSafe`, epsRad = spacingPx/radius → Fehler
+höchstens ~2 px). Eine gleichmäßige Schritt-Dezimierung erzeugte lange Sehnen quer
+durch konkave Länder (sichtbare Fehlflächen mit geraden Kanten, z. B. Mali/Oman).
+Zusätzlich selbstschnittfrei (`selfIntersects` – bei einer Schlaufe bleibt mehr
+Detail erhalten), denn eine Figuren-acht im Ring würde bei der Füllung ein Loch in
+die Länderfläche reißen. **Gemeinsame Grenzen lückenlos** (`tools/build_country_shapes.py`
+`compute_shared_keys` + `CountryShapes.Country.sharedMasks` / `StateShapes.State.sharedMasks`):
+Natural Earth speichert gemeinsame Grenzen bit-identisch in beiden Ländern; der Builder zählt
+die Vertices (1/1440°-int32-Schlüssel) über alle Länder/Staaten und fügt die in ≥2 Einheiten
+vorkommenden nach der Dezimierung wieder ein (`merged_keys`), und der Parser baut pro Ring eine
+`sharedMasks`-Maske. Die Runtime-Dezimierung (`GeoMath.decimateUnitsSafe(units, eps, forceKeep)`)
+hält diese Punkte fest – sonst würde DP die gemeinsame Grenze in jedem Land anders vereinfachen
+und zwischen den Länderflächen klafften Lücken bzw. die Grenzlinie käme doppelt mit Versatz
+(beobachtet z. B. DE/PL, BR/AR). Getestet in `CountryShapesTest.sharedMasks_…`,
+`StateShapesTest.sharedMasks_…` und `GeoMathDecimateTest.decimateUnitsSafe_forceKeep…`. Das globale Kontingent `MAX_BUILD_POINTS` wird bei
+Überschreitung über die Toleranz für ALLE Ringe skaliert (nie einzelne Länder auf
+wenige Punkte drücken). Das Bildschirm-Culling projiziert die Bounding-Box-**Ecken**, weil die
+Projektion nahe am Horizont stärker dehnt als `diagRad*radius` – sonst würde ein
+Land am Rand abgeschnitten (`GlobeView.build`). Die Landfüllung zeichnet `GlobeView`
+interaktiv **pro Ring einen eigenen Pfad** (`Built.landPaths`, nur die Kachel-Vorschau
+nimmt den gemergten Pfad): Die Horizont-Randslivers verschiedener Ringe überlappen
+sich am Kugelrand, und in einem gemergten Pfad löscht die Füllregel die Überlappung
+gegenseitig aus (Löcher am Rand bei Weitwinkel). `RubbelkarteView` füllt pro Land mit
+**WINDING** (Default): Enklaven-Lochringe sind gegenläufig orientiert und bleiben Löcher,
+Randslivers gleicher Orientierung addieren sich statt zu löschen. Die Horizontbögen
+(`appendHorizonArc`) werden mit **pixelbasierter** Schrittweite gezeichnet (~2 dp),
+sonst ist der Kugelrand bei großer Kugel eckig. Beim Punkt-Kontingent
+(`MAX_BUILD_POINTS`) wird **proportional über alle Ringe skaliert**
+(`MIN_RING_POINTS` als Untergrenze) – nie einzelne Länder (alphabetisch spät wie
+TR/SD) auf 4 Punkte zwingen, das ergäbe Trapezoide statt Umriss. Getestet in
+`GeoMathDecimateTest`. Zoom-Max
 `ZOOM_MAX` = 280 (kurze Bildschirmseite ≈ 50 km am Äquator); Routenbögen haben 96
 Punkte (`GlobeRoutes.arcUnits`).
+
+**Routenbogen (GlobeView):** werden per **Winkel-Subsampling** dezimiert
+(`GeoMath.subsampleUnitsMaxSegment`, max. Segmentwinkel = clamp(epsRad, 0.02, 0.25),
+pro Bogen gecacht in `GlobeView.arcCache`) – nicht per Douglas-Peucker: DP erzeugt
+Sehnen bis sqrt(8·eps) (am Rand der Kachel bis ~36°), die sichtbar durchs Land
+schneiden statt dem Kugelrand zu folgen (Glitch in der Dashboard-Kachel). Interaktiv
+zeichnet `GlobeView` Füllung und Grenze pro Land aus demselben Pfad (`Built.landPaths`,
+`landStroke` nur in der Kachel-Vorschau) – spart eine komplette Punkt-Kopie pro Bild.
+
+**Pfad-Aufbau ohne Mehrfach-Kopien:** Pro Drehwinkel wird jeder Punkt nur EINMAL
+nativ in den Ziel-Pfad geschrieben: `GlobeView.appendRingPath` hängt Ringe direkt an
+den Land-Pfad an (pro Land einer, `Built.landPaths`, WINDING) und Routen direkt an
+`routePath`; `RubbelkarteView.globeRings` schreibt ebenso direkt in den Land-Pfad
+(kein `runPath`-Zwischenpuffer mehr). **Nie alle Länder in einen globalen Pfad
+mergen**: Am Horizont überlappen sich die Rand-Slivers benachbarter Länder, und
+gegenläufig orientierte Slivers löschen sich bei WINDING in einem globalen Pfad
+gegenseitig aus (Löcher am Kugelrand, z. B. Kanada/Alaska – in der Python-Emulation
+verifiziert). Pro Land heben sich nur die eigenen Enklaven-Lochringe auf.
+measureText pro Beschriftung pro Bild ist über einen ConcurrentHashMap-Cache
+(`cachedTextWidth`) gecacht, ebenso die vorsortierten Länder/Städte in
+`GlobeView.Content`.
+
+**Flüssigkeit beim Drehen (GlobeView + RubbelkarteView):** Die teuerste Stelle pro
+Neuaufbau war die Douglas-Peucker-Dekomierung aller sichtbaren Ringe – bei jedem
+Frame der Drehung komplett neu gerechnet, obwohl sich weder Ring noch Toleranz
+ändert. Beide Views cachen die dezimierten Ringe deshalb je Ring (IdentityHashMap)
+und quantisierter Toleranzstufe (`epsBucket`, Faktor ~1,19; `DECIMATE_CACHE_MAX_POINTS`
+~400k Punkte, dann Cache-Reset). Während einer Bewegung (Finger/Fling/Eigendrehung)
+laufen außerdem niedriger LOD (`gestureActive`/`autoRotateActive`: 4 dp statt 2 dp
+Toleranz, Kontingent `MAX_BUILD_POINTS_GESTURE` = 120k statt `MAX_BUILD_POINTS` =
+200k); nach Ende der Bewegung wird mit voller Qualität nachgebaut. In der
+Kachel-Vorschau wird die Landfüllung als ein gemergter Pfad gezeichnet
+(`Built.landPreview`) und die pro-Land-Pfade (`Built.landPaths`) werden gar nicht
+erst aufgebaut; interaktiv füllt `GlobeView` pro Land einen eigenen Pfad (WINDING).
 
 Ein Tipp auf die Kachel öffnet die Seite `nav_globe` (`GlobeFragment`, `fragment_globe.xml`,
 Action `action_dashboard_to_globe`; `MainActivity` blendet wie bei der Weltkarte die

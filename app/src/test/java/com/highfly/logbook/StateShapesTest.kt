@@ -31,11 +31,11 @@ class StateShapesTest {
         val rings: List<FloatArray>
     )
 
-    private fun units(degrees: Float): Short =
-        Math.round(degrees * 180f).toShort()
+    private fun units(degrees: Float): Int =
+        Math.round(degrees * 1440f)
 
     private fun buffer(
-        version: Int = 1,
+        version: Int = 2,
         shapes: List<Shape>
     ): ByteArray {
         val totalPoints = shapes.sumOf { s -> s.rings.sumOf { it.size / 2 } }
@@ -50,7 +50,7 @@ class StateShapesTest {
             } +
             4 +
             shapes.sumOf { it.rings.size } * 8 +
-            totalPoints * 4 +
+            totalPoints * 8 +
             4
         val buf = ByteBuffer.allocate(size).order(ByteOrder.LITTLE_ENDIAN)
         buf.putInt(0x48535453) // "STSH"
@@ -91,8 +91,8 @@ class StateShapesTest {
         for (s in shapes) {
             for (ring in s.rings) {
                 for (i in 0 until ring.size / 2) {
-                    buf.putShort(units(ring[i * 2]))
-                    buf.putShort(units(ring[i * 2 + 1]))
+                    buf.putInt(units(ring[i * 2]))
+                    buf.putInt(units(ring[i * 2 + 1]))
                 }
             }
         }
@@ -156,9 +156,9 @@ class StateShapesTest {
     }
 
     @Test
-    fun parse_liestKoordinatenAusserhalbDesMilligradBereichs() {
-        // Längengrade bis ±180 passen nur, wenn sie nicht als Milligrad in
-        // einem int16 landen.
+    fun parse_liestKoordinatenAusserhalbDesFeinenRasters() {
+        // Längengrade bis ±180 passen nur, wenn sie nicht in ein zu grobes
+        // int16-Raster landen; das 1/1440-Grad-Raster braucht int32.
         val ca = StateShapes.parse(buffer(shapes = sample())).first { it.code == "US-CA" }
         assertEquals(2, ca.rings.size)
         assertEquals(-124.0f, ca.rings[0][0], 0.01f)
@@ -248,6 +248,8 @@ class StateShapesTest {
         for (state in states) {
             assertTrue("Code '${state.code}'", state.code.matches(Regex("(US|DE)-[A-Z0-9]{1,3}")))
             assertTrue("Code '${state.code}' doppelt", codes.add(state.code))
+            // Masken der gemeinsamen Grenzpunkte parallel zu den Ringen
+            assertEquals("Masken ${state.code}", state.rings.size, state.sharedMasks.size)
             assertTrue("Name ${state.code}", state.nameDe.isNotBlank() && state.nameEn.isNotBlank())
             assertTrue("Hauptstadt ${state.code}", state.capDe.isNotBlank() && state.capEn.isNotBlank())
             assertTrue(
@@ -281,5 +283,52 @@ class StateShapesTest {
         assertEquals("DE-HE", regions["FRA"])
         assertEquals("DE-BY", regions["MUC"])
         assertEquals("US-NY", regions["JFK"])
+    }
+
+    @Test
+    fun sharedMasks_gemeinsameStaatenGrenzenSindBitIdentisch() {
+        val asset = File("src/main/assets/${StateShapes.ASSET}")
+        val states = StateShapes.parse(asset.readBytes())
+
+        fun keyOf(lonDeg: Float, latDeg: Float): Long {
+            val x = Math.round(lonDeg * 1440f)
+            val y = Math.round(latDeg * 1440f)
+            return (x.toLong() shl 32) or (y.toLong() and 0xFFFFFFFFL)
+        }
+
+        val keysPerState = HashMap<String, HashSet<Long>>()
+        val users = HashMap<Long, Int>()
+        for (st in states) {
+            val local = HashSet<Long>()
+            for (ring in st.rings) {
+                for (i in 0 until ring.size step 2) local.add(keyOf(ring[i], ring[i + 1]))
+            }
+            keysPerState[st.code] = local
+            for (k in local) users[k] = (users[k] ?: 0) + 1
+        }
+        // Stichprobe Texas/Oklahoma und Bayern/Baden-Württemberg: gemeinsame
+        // Grenz-Vertices müssen in beiden Staaten liegen und dort markiert sein.
+        for ((a, b) in listOf("US-TX" to "US-OK", "US-TX" to "US-NM", "DE-BY" to "DE-BW")) {
+            val ka = keysPerState.getValue(a)
+            val kb = keysPerState.getValue(b)
+            val shared = ka.intersect(kb)
+            assertTrue("$a/$b teilen nur ${shared.size} Vertices", shared.size > 20)
+            fun masked(code: String): Set<Long> {
+                val st = states.first { it.code == code }
+                val out = HashSet<Long>()
+                for (r in st.rings.indices) {
+                    for (p in st.sharedMasks[r].indices) {
+                        if (st.sharedMasks[r][p]) out.add(keyOf(st.rings[r][p * 2], st.rings[r][p * 2 + 1]))
+                    }
+                }
+                return out
+            }
+            val ma = masked(a)
+            val mb = masked(b)
+            for (k in shared) {
+                assertTrue("$a/$b Grenzpunkt nicht in Maske $a", ma.contains(k))
+                assertTrue("$a/$b Grenzpunkt nicht in Maske $b", mb.contains(k))
+            }
+        }
     }
 }

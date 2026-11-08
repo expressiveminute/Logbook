@@ -5,20 +5,21 @@ Reads the cached Natural Earth admin-0 country polygons and produces a compact
 binary file that assigns a country outline to every ISO-2 code, so the
 Rubbelkarte can highlight the countries the user has already flown to.
 
-Data source: Natural Earth (public domain)
-https://www.naturalearthdata.com/downloads/110m-cultural-vectors/
-
-German country names come from CLDR (Unicode, public domain)
+Data source: Natural Earth 1:10m admin-0 countries (public domain), offizielles
+GeoJSON aus dem natural-earth-vector-Repo (nvkelso):
+https://github.com/nvkelso/natural-earth-vector
+Das ist die feinste verfügbare Auflösung für Länderumrisse (10m-Küstenlinie
+inklusive). German country names come from CLDR (Unicode, public domain)
 https://cldr.unicode.org/
 
 Usage:
     python3 tools/build_country_shapes.py
-    python3 tools/build_country_shapes.py --countries tmp_ne/admin_0_countries.json \
+    python3 tools/build_country_shapes.py --countries tmp_ne/ne_10m_admin_0_countries.geojson \
         --cldr tmp_ne/cldr_de.json --out app/src/main/assets/country_shapes.bin
 
 Binary format (little endian), see CountryShapes.kt:
     int32   magic "CSHP"
-    uint8   version
+    uint8   version (2)
     uint8   reserved
     uint16  countryCount
     per country:
@@ -34,14 +35,16 @@ Binary format (little endian), see CountryShapes.kt:
         uint32  pointCount
         uint32  coordOffset (in coord pairs)
     per point:
-        int16   lon in 1/180 degree
-        int16   lat in 1/180 degree
+        int32   lon in 1/1440 degree
+        int32   lat in 1/1440 degree
     float32 sentinel -90.0
 
-Koordinaten liegen als int16 vor, damit das Asset klein bleibt. 180 Einheiten
-pro Grad passen gerade noch in einen signed 16-Bit-Wert (180 Grad * 180 = 32400)
-und entsprechen rund 110 m Auflösung - auf einer telefonbreiten Weltkarte
-faellt das nicht auf.
+Koordinaten liegen als int32 in Einheiten von 1/1440 Grad (~77 m) vor. Das
+reicht bis zum staerksten Zoom der Kugel (~50 m/Pixel) und keeps die Kuesten
+und Grenzen glatt; 1440 * 180 = 259200 passt bequem in einen signed 32-Bit-Wert.
+Die Vereinfachung arbeitet mit 0.004 Grad (~450 m): grob genug, dass das Asset
+klein bleibt, fein genug, dass benachbarte Laender an einer gemeinsamen Grenze
+nicht sichtbar auseinanderlaufen ("doppelte" Grenzlinien).
 """
 
 import argparse
@@ -51,20 +54,22 @@ import struct
 import sys
 
 MAGIC = 0x50485343  # Bytes "C","S","H","P" as little endian int
-VERSION = 1
+VERSION = 2
 
-# Einheiten pro Grad. 180 * 180 = 32400 passt in einen signed 16-Bit-Wert.
-UNITS_PER_DEGREE = 180
+# Einheiten pro Grad. 1440 * 180 = 259200 passt in einen signed 32-Bit-Wert
+# und ergibt rund 77 m Aufloesung.
+UNITS_PER_DEGREE = 1440
 
-# Ramer-Douglas-Peucker tolerance in degrees. 0.04 deg is far below one pixel
-# on a phone-width world map, Antarctica is a featureless bulk and can be much
-# coarser.
-EPS_DEFAULT = 0.04
-EPS_ANTARCTICA = 0.4
+# Ramer-Douglas-Peucker-Toleranz in Grad. 0.004 Grad (~450 m) ist auf der
+# Weltkugel selbst im staerksten Zoom (~50 m/Pixel) kaum sichtbar, haelt die
+# Kuesten aber deutlich genauer als die frueheren 0.04 Grad (~4,4 km).
+# Antarktis bleibt eine strukturlose Masse und darf grober sein.
+EPS_DEFAULT = 0.004
+EPS_ANTARCTICA = 0.05
 
-# Toleranz fuer Laender unter dieser Ausdehnung (Grad). Laenger ist 0.04 Grad
+# Toleranz fuer Laender unter dieser Ausdehnung (Grad). Laenger ist 0.004 Grad
 # nicht sinnvoll: der Umriss eines Kleinstaates waere dann grober als das Land.
-EPS_SMALL = 0.01
+EPS_SMALL = 0.001
 SMALL_COUNTRY_DEG = 6.0
 
 # Antarctica and the far south are cut away in the Rubbelkarte anyway, so the
@@ -72,12 +77,14 @@ SMALL_COUNTRY_DEG = 6.0
 LAT_MIN = -85.0
 
 # Natural Earth marks a few undisputed countries as "-99" because of ISO
-# disputes (ADM0_A3 codes FRA and NOR). Flights to Paris or Oslo must still
-# light up the map, so those two are mapped by hand. Everything else with
-# "-99" is a tiny disputed territory without an ISO-3166 code and is dropped.
+# disputes (ADM0_A3 codes FRA, NOR and KOS). Flights to Paris, Oslo or Pristina
+# must still light up the map, so those are mapped by hand. Everything else
+# with "-99" is a tiny disputed territory without an ISO-3166 code and is
+# dropped.
 ISO2_OVERRIDES = {
     "FRA": "FR",
     "NOR": "NO",
+    "KOS": "XK",  # Kosovo, ISO-3166 user-assigned "XK"
 }
 
 
@@ -125,6 +132,167 @@ def simplify(points, eps):
     return [p for p, k in zip(points, keep) if k]
 
 
+def _seg_intersect(p1, p2, p3, p4):
+    """Strikter Schnitt: beide Segmente müssen einander kreuzen (Vorzeichen
+    echt verschieden) - bloße Berührung an einem gemeinsamen Eckpunkt zählt
+    nicht (die 10m-Quelle hat viele doppelte aufeinanderfolgende Punkte)."""
+    def ccw(a, b, c):
+        return (c[1] - a[1]) * (b[0] - a[0]) - (b[1] - a[1]) * (c[0] - a[0])
+    d1 = ccw(p3, p4, p1)
+    d2 = ccw(p3, p4, p2)
+    d3 = ccw(p1, p2, p3)
+    d4 = ccw(p1, p2, p4)
+    return (d1 * d2 < 0) and (d3 * d4 < 0)
+
+
+def _dateline_segment(a, b):
+    """Segment überspannt die Datumslinie (> 180° Längengrad) - in lon/lat sieht
+    das wie ein Schnitt quer über die Karte aus, auf der Kugel ist es harmlos."""
+    return abs(a[0] - b[0]) > 180.0
+
+
+def has_self_intersection(ring):
+    """Prüft per Grid-Beschleunigung, ob sich der Ring selbst schneidet.
+
+    Douglas-Peucker kann an dichten Küsten Schlaufen (Figuren-acht) erzeugen -
+    die zeichnen sich als Doppellinie und als Fehlfläche. Solche Ringe werden
+    in [simplify_safe] mit feinerer Toleranz neu vereinfacht.
+    """
+    n = len(ring)
+    if n < 4:
+        return False
+    segs = [(ring[i], ring[(i + 1) % n]) for i in range(n)]
+    cell = 2.0
+    grid = {}
+    for i, (a, b) in enumerate(segs):
+        if _dateline_segment(a, b):
+            continue
+        x0 = int(min(a[0], b[0]) // cell)
+        x1 = int(max(a[0], b[0]) // cell)
+        y0 = int(min(a[1], b[1]) // cell)
+        y1 = int(max(a[1], b[1]) // cell)
+        for gx in range(x0, x1 + 1):
+            for gy in range(y0, y1 + 1):
+                grid.setdefault((gx, gy), []).append(i)
+    for i, (a, b) in enumerate(segs):
+        if _dateline_segment(a, b):
+            continue
+        x0 = int(min(a[0], b[0]) // cell)
+        x1 = int(max(a[0], b[0]) // cell)
+        y0 = int(min(a[1], b[1]) // cell)
+        y1 = int(max(a[1], b[1]) // cell)
+        cand = set()
+        for gx in range(x0, x1 + 1):
+            for gy in range(y0, y1 + 1):
+                cand.update(grid.get((gx, gy), ()))
+        for j in cand:
+            if j <= i + 1 or (i == 0 and j == n - 1):
+                continue
+            c, d = segs[j]
+            if _dateline_segment(c, d):
+                continue
+            if _seg_intersect(a, b, c, d):
+                return True
+    return False
+
+
+def _first_intersection(ring):
+    """Erster Selbstschnitt eines Rings als (i, j, punkt) oder None.
+
+    Segmente s_k = (ring[k], ring[(k+1) % n]); i und j sind Segmentindizes.
+    """
+    n = len(ring)
+    if n < 4:
+        return None
+    segs = [(ring[i], ring[(i + 1) % n]) for i in range(n)]
+    cell = 2.0
+    grid = {}
+    for i, (a, b) in enumerate(segs):
+        if _dateline_segment(a, b):
+            continue
+        for gx in range(int(min(a[0], b[0]) // cell), int(max(a[0], b[0]) // cell) + 1):
+            for gy in range(int(min(a[1], b[1]) // cell), int(max(a[1], b[1]) // cell) + 1):
+                grid.setdefault((gx, gy), []).append(i)
+    for i, (a, b) in enumerate(segs):
+        if _dateline_segment(a, b):
+            continue
+        cand = set()
+        for gx in range(int(min(a[0], b[0]) // cell), int(max(a[0], b[0]) // cell) + 1):
+            for gy in range(int(min(a[1], b[1]) // cell), int(max(a[1], b[1]) // cell) + 1):
+                cand.update(grid.get((gx, gy), ()))
+        for j in cand:
+            if j <= i + 1 or (i == 0 and j == n - 1):
+                continue
+            c, d = segs[j]
+            if _dateline_segment(c, d):
+                continue
+            if _seg_intersect(a, b, c, d):
+                x1, y1 = a; x2, y2 = b; x3, y3 = c; x4, y4 = d
+                den = (x2 - x1) * (y4 - y3) - (y2 - y1) * (x4 - x3)
+                if abs(den) < 1e-15:
+                    return None
+                t = ((x3 - x1) * (y4 - y3) - (y3 - y1) * (x4 - x3)) / den
+                return (i, j, (x1 + t * (x2 - x1), y1 + t * (y2 - y1)))
+    return None
+
+
+def cut_loops(ring, depth=0):
+    """Spaltet einen selbstschneidenden Ring an den Schnittpunkten in einfache
+    Teilringe (eine Figuren-acht wird zu zwei Schleifen).
+
+    Die 10m-Quelle enthält selbst an großen Ländern einzelne Schlaufen (z. B.
+    Japan, Bangladesch); gezeichnet wären das Doppellinien und Fehlflächen.
+    Ringe unter 8 Punkten bleiben unangetastet - dort ist eine Schlaufe eine
+    degenerierte Spitze ohne sichtbare Fläche.
+    """
+    n = len(ring)
+    if n < 4 or depth > 60:
+        return [ring]
+    hit = _first_intersection(ring)
+    if hit is None:
+        return [ring]
+    i, j, p = hit
+    # Schleife A: p -> ring[i+1..j] -> p ; Schleife B: p -> ring[j+1..n-1, 0..i] -> p
+    loop_a = [p] + [ring[k % n] for k in range(i + 1, j + 1)] + [p]
+    loop_b = [p] + [ring[k % n] for k in range(j + 1, n + i + 1)] + [p]
+    out = []
+    for loop in (loop_a, loop_b):
+        # aufeinanderfolgende Duplikate entfernen
+        clean = [loop[0]]
+        for q in loop[1:]:
+            if q != clean[-1]:
+                clean.append(q)
+        if len(clean) >= 2 and clean[0] == clean[-1]:
+            clean = clean[:-1]
+        if len(clean) >= 3:
+            out.extend(cut_loops(clean, depth + 1))
+    return out if out else [ring]
+
+
+def simplify_safe(points, eps):
+    """Wie [simplify], aber ohne Selbstschnitte; liefert eine Liste von Ringen.
+
+    Erzeugt die Vereinfachung Schlaufen, wird die Toleranz halbiert und erneut
+    versucht; bleibt der Ring (die 10m-Quelle hat selbst einige) selbst-
+    schneidend, wird er an den Schnittpunkten in einfache Teilringe gespalten
+    ([cut_loops]).
+    """
+    candidate = simplify(points, eps)
+    if len(candidate) < 3:
+        candidate = points
+    e = eps
+    while len(candidate) >= 3 and has_self_intersection(candidate):
+        if e <= 1e-6:
+            break
+        e /= 2.0
+        candidate = simplify(points, e)
+    if len(candidate) < 3:
+        candidate = points
+    if has_self_intersection(candidate):
+        return cut_loops(candidate)
+    return [candidate]
+
+
 def iter_rings(geometry):
     if geometry["type"] == "Polygon":
         for ring in geometry["coordinates"]:
@@ -154,17 +322,65 @@ def ring_centroid(points):
     return sx / n, sy / n
 
 
-def label_anchor(rings):
-    """Anchor for the country name: centroid of the largest ring.
+def pip_in_rings(x, y, rings):
+    """Even-odd point-in-polygon über alle Ringe eines Landes."""
+    inside = False
+    for ring in rings:
+        n = len(ring)
+        j = n - 1
+        for i in range(n):
+            xi, yi = ring[i]
+            xj, yj = ring[j]
+            if (yi > y) != (yj > y) and x < (xj - xi) * (y - yi) / (yj - yi) + xi:
+                inside = not inside
+            j = i
+    return inside
 
-    Good enough for a poster map; the label collision helper in the app keeps
-    the rest tidy. Returns latitude first, matching the binary layout.
+
+def label_anchor(rings):
+    """Anchor for the country name: roughly the "pole of inaccessibility".
+
+    The plain centroid of the largest ring lands in the sea for concave
+    countries (Norway, Thailand, Croatia...), which would float the label off
+    the coast. A coarse grid over the biggest ring's bbox picks the interior
+    point with the largest distance to the outline instead. Returns latitude
+    first, matching the binary layout.
     """
     biggest = max(rings, key=ring_area, default=None)
     if biggest is None or len(biggest) == 0:
         return 0.0, 0.0
+    lons = [p[0] for p in biggest]
+    lats = [p[1] for p in biggest]
+    x0, x1 = min(lons), max(lons)
+    y0, y1 = min(lats), max(lats)
+    # Abstands-Näherung über dezimierte Ringe
+    coarse = [r[::max(1, len(r) // 200)] for r in rings]
+    best = None
+    bestd = -1.0
+    n = 24
+    for i in range(1, n):
+        for j in range(1, n):
+            x = x0 + (x1 - x0) * i / n
+            y = y0 + (y1 - y0) * j / n
+            if not pip_in_rings(x, y, rings):
+                continue
+            d = min((x - px) ** 2 + (y - py) ** 2 for ring in coarse for px, py in ring)
+            if d > bestd:
+                bestd = d
+                best = (x, y)
+    if best is not None:
+        return best[1], best[0]
     lon, lat = ring_centroid(biggest)
     return lat, lon
+
+
+def quantize(points):
+    """Rundet auf das 1/1440-Grad-Speicherraster des Assets."""
+    return [
+        (round(lon * UNITS_PER_DEGREE) / UNITS_PER_DEGREE,
+         round(lat * UNITS_PER_DEGREE) / UNITS_PER_DEGREE)
+        for lon, lat in points
+    ]
 
 
 def load_german_names(path):
@@ -175,16 +391,41 @@ def load_german_names(path):
 
 def to_units(degrees):
     value = int(round(degrees * UNITS_PER_DEGREE))
-    if not -32768 <= value <= 32767:
-        raise SystemExit("Koordinate ausserhalb des int16-Bereichs: %s" % degrees)
+    if not -(2 ** 31) <= value < 2 ** 31:
+        raise SystemExit("Koordinate ausserhalb des int32-Bereichs: %s" % degrees)
     return value
+
+
+def compute_shared_keys(raw_entries):
+    """Vertices, die in mindestens zwei Laendern vorkommen (gemeinsame Grenze).
+
+    Natural Earth speichert gemeinsame Grenzen bit-identisch in beiden
+    Ländern/Staaten. Die Dezimierung je Land darf diese Punkte nicht
+    unterschiedlich entfernen - sonst klaffen zwischen den Laenderflaechen
+    Luecken und die Grenzlinie wird doppelt mit Versatz gezeichnet. Der
+    Runtime-Decimate haelt dieselben Punkte per sharedMask fest (siehe
+    CountryShapes.kt). raw_entries: Tupel (kennung, ..., raw_rings); die
+    Kennung ist beim Laender-Asset der ISO2, beim Staaten-Asset der Code -
+    sie muss pro Flächeneinheit eindeutig sein, sonst kollabiert die Zählung.
+    """
+    users = {}
+    for entry in raw_entries:
+        entity_id = entry[0]
+        raw_rings = entry[-1]
+        local = set()
+        for ring in raw_rings:
+            for lon, lat in ring:
+                local.add((to_units(lon), to_units(lat)))
+        for key in local:
+            users.setdefault(key, set()).add(entity_id)
+    return {key for key, user_set in users.items() if len(user_set) >= 2}
 
 
 def main():
     parser = argparse.ArgumentParser()
     here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     parser.add_argument(
-        "--countries", default=os.path.join(here, "tmp_ne", "admin_0_countries.json")
+        "--countries", default=os.path.join(here, "tmp_ne", "ne_10m_admin_0_countries.geojson")
     )
     parser.add_argument("--cldr", default=os.path.join(here, "tmp_ne", "cldr_de.json"))
     parser.add_argument(
@@ -196,7 +437,9 @@ def main():
         countries = json.load(handle)["features"]
     german = load_german_names(args.cldr)
 
-    entries = []
+    # Erste Runde: Roh-Ringe je Land sammeln, dann die gemeinsamen Grenz-Vertices
+    # bestimmen (siehe compute_shared_keys).
+    raw_entries = []
     for feature in countries:
         props = feature["properties"]
         iso2 = props.get("ISO_A2") or ""
@@ -204,11 +447,12 @@ def main():
             iso2 = ISO2_OVERRIDES.get(props.get("ADM0_A3") or "", "")
         if len(iso2) != 2:
             continue
-        numeric = props.get("ISO_N3") or ""
         raw_rings = []
         for raw in iter_rings(feature["geometry"]):
+            # Keine Rundung auf 3 Dezimalstellen: die 1/1440-Grad-Skala des
+            # Assets ist feiner als 0.001 Grad und wuerde sonst beschnitten.
             points = [
-                (round(float(lon), 3), round(float(lat), 3))
+                (float(lon), float(lat))
                 for lon, lat in raw
                 if float(lat) >= LAT_MIN
             ]
@@ -216,8 +460,16 @@ def main():
                 raw_rings.append(points)
         if not raw_rings:
             continue
+        raw_entries.append((iso2, props, raw_rings))
 
-        # Die Toleranz richtet sich nach der Groesse des Landes: 0.04 Grad sind
+    shared_keys = compute_shared_keys(raw_entries)
+    print("%d gemeinsame Grenz-Vertices in >=2 Laendern" % len(shared_keys))
+
+    entries = []
+    for iso2, props, raw_rings in raw_entries:
+        numeric = props.get("ISO_N3") or ""
+
+        # Die Toleranz richtet sich nach der Groesse des Landes: 0.004 Grad sind
         # fuer Russland grosszuegig, wuerden Dubai oder Liechtenstein aber zu
         # einem unbrauchbaren Strich zusammenziehen. Deshalb wird zuerst die
         # Ausdehnung bestimmt und die Toleranz darauf abgestimmt.
@@ -237,11 +489,44 @@ def main():
 
         rings = []
         for points in raw_rings:
-            simple = simplify(points, eps)
-            # Fuehrt die Vereinfachung zu einem entarteten Ring, bleibt das
-            # Original erhalten - lieber ein paar Punkte zu viel als ein Land,
-            # das auf der Karte fehlt.
-            rings.append(simple if len(simple) >= 3 else points)
+            # Selbstschnittfreie Vereinfachung: Schnitte im Ring zeichneten
+            # sich als Doppellinien und Fehlflächen (z. B. Korsika, Ägypten).
+            # simplify_safe liefert eine Liste (ggf. gespaltene Teilringe).
+            simples = simplify_safe(points, eps)
+            if not simples:
+                simples = [points]
+            # Originale Vertices auf das Speicherraster (Schluessel bleiben exakt).
+            okeys = [(to_units(lon), to_units(lat)) for lon, lat in points]
+            # Vereinigung der von der Vereinfachung behaltenen Punkte ueber alle
+            # (ggf. gespaltenen) Teilringe.
+            skeys = set()
+            for simple in simples:
+                # Fuehrt die Vereinfachung zu einem entarteten Ring, bleibt das
+                # Original erhalten - lieber ein paar Punkte zu viel als ein
+                # Land, das auf der Karte fehlt.
+                src = simple if len(simple) >= 3 else points
+                skeys.update((to_units(lon), to_units(lat)) for lon, lat in src)
+            # Gemeinsame Grenz-Vertices werden NICHT dezimiert: nur so bleibt
+            # die Grenze in beiden Laendern bit-identisch und es klaffen keine
+            # Luecken zwischen den Laenderflaechen.
+            merged_keys = [k for k in okeys if k in skeys or k in shared_keys]
+            if len(merged_keys) < 3:
+                merged_keys = okeys
+            q = [(x / UNITS_PER_DEGREE, y / UNITS_PER_DEGREE) for x, y in merged_keys]
+            # Die Schluessel sind exakt auf das Speicherraster; erneut pruefen,
+            # ob der Ring sich selbst schneidet (die Quelle hat einzelne
+            # Schlaufen, z. B. Aleuten). Gegebenenfalls wird der Ring gespalten.
+            if has_self_intersection(q):
+                cut = False
+                for loop in cut_loops(q):
+                    loop = quantize(loop)
+                    if len(loop) >= 3:
+                        rings.append(loop)
+                        cut = True
+                if not cut:
+                    rings.append(q)
+            else:
+                rings.append(q)
         label_lat, label_lon = label_anchor(rings)
         # CLDR nennt die Territorien hier ueber Alpha-2, zusaetzlich gibt es
         # einige numerische Kontinente ("015" = Nordafrika).
@@ -298,7 +583,7 @@ def main():
     for ring in all_rings:
         for lon, lat in ring:
             out += struct.pack(
-                "<hh",
+                "<ii",
                 to_units(lon),
                 to_units(lat),
             )

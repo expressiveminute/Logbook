@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dezenter Rahmen um die Bundesland-/Staatenflagge in der Staatenliste, damit
+     helle Flaggen (z. B. weißer Anteil) nicht im Hintergrund untergehen. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <corners android:radius="2dp" />
+    <stroke
+        android:width="0.5dp"
+        android:color="?attr/colorOutlineVariant" />
+</shape>

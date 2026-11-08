@@ -1,7 +1,9 @@
 package com.highfly.logbook
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import androidx.navigation.fragment.findNavController
@@ -10,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.highfly.logbook.databinding.FragmentCountriesBinding
 import java.text.Collator
 import java.util.Locale
+import kotlin.math.abs
 
 /**
  * Länderliste hinter dem Stift auf der Rubbelkarte: alle Länder der Welt als
@@ -73,6 +76,7 @@ class CountriesFragment : LogbookFragment() {
         return binding.root
     }
 
+    @SuppressLint("ClickableViewAccessibility") // der Griff ist ein Zieh-Griff, kein Klick
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.btnCountriesBack.setOnClickListener {
@@ -82,6 +86,29 @@ class CountriesFragment : LogbookFragment() {
             } else {
                 findNavController().navigateUp()
             }
+        }
+        // Griff oben mittig: nur eingebettet (Kachel-Tipp) sichtbar. Wisch daran
+        // meldet das Blatt an den Host (Rubbelkarte), der die Seite aufzieht,
+        // zurückschnappt oder schließt - siehe PageSheetHost.
+        val handle = binding.pageDragHandle
+        if (embedded) {
+            handle.visibility = View.VISIBLE
+            handle.isClickable = true
+            var dragStartY = 0f
+            handle.setOnTouchListener { v, event ->
+                when (event.actionMasked) {
+                    MotionEvent.ACTION_DOWN -> dragStartY = event.rawY
+                    MotionEvent.ACTION_UP -> {
+                        // Ein Tipp ohne Wisch ist ein Klick auf den Griff.
+                        if (abs(event.rawY - dragStartY) < 8f * resources.displayMetrics.density) {
+                            v.performClick()
+                        }
+                    }
+                }
+                (parentFragment as? PageSheetHost)?.onSheetTouch(event) ?: false
+            }
+        } else {
+            handle.visibility = View.GONE
         }
         // Platz unter der schwebenden Navigationsleiste: eingebettet reicht
         // die Seite bis zum unteren Bildschirmrand, die Leiste schwebt darüber.

@@ -26,11 +26,11 @@ class CountryShapesTest {
         val rings: List<FloatArray>
     )
 
-    private fun units(degrees: Float): Short =
-        Math.round(degrees * 180f).toShort()
+    private fun units(degrees: Float): Int =
+        Math.round(degrees * 1440f)
 
     private fun buffer(
-        version: Int = 1,
+        version: Int = 2,
         shapes: List<Shape>
     ): ByteArray {
         val totalPoints = shapes.sumOf { s -> s.rings.sumOf { it.size / 2 } }
@@ -38,7 +38,7 @@ class CountryShapesTest {
             shapes.sumOf { 2 + 8 + 8 + 16 + 1 + it.nameDe.toByteArray().size + 1 + it.nameEn.toByteArray().size } +
             4 +
             shapes.sumOf { it.rings.size } * 8 +
-            totalPoints * 4 +
+            totalPoints * 8 +
             4
         val buf = ByteBuffer.allocate(size).order(ByteOrder.LITTLE_ENDIAN)
         buf.putInt(0x50485343) // "CSHP"
@@ -74,8 +74,8 @@ class CountryShapesTest {
         for (s in shapes) {
             for (ring in s.rings) {
                 for (i in 0 until ring.size / 2) {
-                    buf.putShort(units(ring[i * 2]))
-                    buf.putShort(units(ring[i * 2 + 1]))
+                    buf.putInt(units(ring[i * 2]))
+                    buf.putInt(units(ring[i * 2 + 1]))
                 }
             }
         }
@@ -125,10 +125,10 @@ class CountryShapesTest {
     }
 
     @Test
-    fun parse_liestKoordinatenAusserhalbDesMilligradBereichs() {
+    fun parse_liestKoordinatenAusserhalbDesFeinenRasters() {
         // Der entscheidende Punkt: Längengrade bis ±180 passen nur, wenn sie
-        // nicht als Milligrad in einem int16 landen. 179.8 Grad wären als
-        // 179800 nicht mehr darstellbar.
+        // nicht in ein zu grobes int16-Raster landen. Beim 1/1440-Grad-Raster
+        // wären 179.8 Grad = 258912 Einheiten - nur int32 fasst das.
         val countries = CountryShapes.parse(buffer(shapes = sample()))
         val nz = countries.first { it.iso2 == "NZ" }
         assertEquals(2, nz.rings.size)
@@ -190,7 +190,7 @@ class CountryShapesTest {
     /**
      * Der wichtigste Test: das echte, mitgelieferte Asset muss durch den echten
      * Parser laufen. Ein Fehler im Generator - etwa Koordinaten außerhalb des
-     * int16-Bereichs - fällt sonst erst auf dem Gerät auf.
+     * int32-Bereichs - fällt sonst erst auf dem Gerät auf.
      */
     @Test
     fun parse_liestDasMitgelieferteAsset() {
@@ -213,9 +213,9 @@ class CountryShapesTest {
                 assertTrue("Bounding-Box ${country.iso2}: $value", !value.isNaN())
                 assertTrue("Bounding-Box ${country.iso2}: $value", value in -180.0..180.0)
             }
-            // Genau hier schlägt eine zu kleine Koordinatenskala fehl: Werte
-            // jenseits von ±32.7 Grad können nicht in einem int16 Milligrad
-            // stehen, die ganze Karte wäre dann ein Fleck am Äquator.
+            // Genau hier schlägt eine zu grobe Koordinatenskala fehl: Ohne
+            // int32 in 1/1440 Grad kämen Werte jenseits von ±22.7 Grad nicht
+            // darstellbar vor, die Karte wäre ein Fleck um den Äquator.
             for (ring in country.rings) {
                 for (i in 0 until ring.size) {
                     val limit = if (i % 2 == 0) 180.0 else 90.0
@@ -268,6 +268,79 @@ class CountryShapesTest {
     fun unitRings_werdenNurEinmaligGerechnet() {
         val de = CountryShapes.parse(buffer(shapes = sample())).first { it.iso2 == "DE" }
         assertTrue(de.unitRings === de.unitRings)
+    }
+
+    @Test
+    fun sharedMasks_gemeinsameGrenzpunkteSindInBeidenLaendernBitIdentisch() {
+        val asset = File("src/main/assets/$ASSET_NAME")
+        val countries = CountryShapes.parse(asset.readBytes())
+
+        fun keyOf(lonDeg: Float, latDeg: Float): Long {
+            val x = Math.round(lonDeg * 1440f)
+            val y = Math.round(latDeg * 1440f)
+            return (x.toLong() shl 32) or (y.toLong() and 0xFFFFFFFFL)
+        }
+
+        // Alle Vertices je Land, gezählt über die Länder hinweg.
+        val users = HashMap<Long, Int>()
+        val keysPerCountry = HashMap<String, HashSet<Long>>()
+        for (c in countries) {
+            val local = HashSet<Long>()
+            for (ring in c.rings) {
+                for (i in 0 until ring.size step 2) {
+                    local.add(keyOf(ring[i], ring[i + 1]))
+                }
+            }
+            keysPerCountry[c.iso2] = local
+            for (k in local) users[k] = (users[k] ?: 0) + 1
+        }
+        val sharedTotal = users.count { it.value >= 2 }
+        // Der Builder muss die gemeinsamen Grenzen erhalten (Messung: > 60k).
+        assertTrue("nur $sharedTotal gemeinsame Grenzpunkte", sharedTotal > 60_000)
+
+        // Masken parallel zu den Ringen, und jeder markierte Punkt kommt in
+        // mindestens einem ANDEREN Land vor.
+        var maskedTotal = 0
+        for (c in countries) {
+            assertEquals("Masken ${c.iso2}", c.rings.size, c.sharedMasks.size)
+            val own = keysPerCountry.getValue(c.iso2)
+            for (r in c.rings.indices) {
+                val mask = c.sharedMasks[r]
+                assertEquals(mask.size, c.rings[r].size / 2)
+                for (p in mask.indices) {
+                    if (!mask[p]) continue
+                    maskedTotal++
+                    val key = keyOf(c.rings[r][p * 2], c.rings[r][p * 2 + 1])
+                    assertTrue("Maskierter Punkt ${c.iso2}[$r][$p] in keinem anderen Land", (users[key] ?: 0) >= 2)
+                    assertTrue("Maskierter Punkt ${c.iso2} fehlt im eigenen Land?!", own.contains(key))
+                }
+            }
+        }
+        assertTrue("nur $maskedTotal maskierte Punkte", maskedTotal > 60_000)
+
+        // Stichprobe Deutschland/Polen: gemeinsame Grenz-Vertices liegen in BEIDEN
+        // Ländern - sonst klafft zwischen den Länderflächen eine Lücke.
+        val de = keysPerCountry.getValue("DE")
+        val pl = keysPerCountry.getValue("PL")
+        val dePl = de.intersect(pl)
+        assertTrue("DE und PL teilen nur ${dePl.size} Vertices", dePl.size > 100)
+        // ... und genau diese sind in beiden Ländern als gemeinsame Grenze markiert.
+        fun maskedKeys(iso2: String): Set<Long> {
+            val c = countries.first { it.iso2 == iso2 }
+            val out = HashSet<Long>()
+            for (r in c.rings.indices) {
+                for (p in c.sharedMasks[r].indices) {
+                    if (c.sharedMasks[r][p]) out.add(keyOf(c.rings[r][p * 2], c.rings[r][p * 2 + 1]))
+                }
+            }
+            return out
+        }
+        val deMasked = maskedKeys("DE")
+        val plMasked = maskedKeys("PL")
+        for (k in dePl) {
+            assertTrue("DE/PL-Grenzpunkt nicht in DE-Maske", deMasked.contains(k))
+            assertTrue("DE/PL-Grenzpunkt nicht in PL-Maske", plMasked.contains(k))
+        }
     }
 
     private companion object {

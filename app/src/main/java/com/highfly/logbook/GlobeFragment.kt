@@ -310,13 +310,18 @@ class GlobeFragment : LogbookFragment() {
         } else {
             allRoutes.filter { MapSelection.touches(it.from to it.to, selected) }
         }
+        // Wie auf der Weltkarte: die mit dem ausgewählten Flughafen verbundenen
+        // werden betont, die übrigen gräulich (siehe GlobeView.Content).
+        val reached = MapSelection.connected(allRoutes.map { it.from to it.to }, selected)
         binding.globeView.setContent(
             GlobeView.Content(
                 countries = countriesData,
                 routes = visibleRoutes,
                 airports = airportsData,
                 connections = connectionsData,
-                cities = citiesData
+                cities = citiesData,
+                selectedIata = selected,
+                reached = reached
             )
         )
         // Stats-Karte wie auf der Weltkarte.

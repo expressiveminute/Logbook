@@ -1,178 +1,188 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="?android:attr/colorBackground"
-    android:orientation="vertical"
     tools:context=".RubbelkarteFragment">
 
-    <!-- Überschrift, Untertitel und der Stift auf einer Höhe. -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingHorizontal="16dp">
+        android:layout_height="match_parent"
+        android:baselineAligned="false"
+        android:orientation="vertical">
 
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="@string/nav_rubbelkarte"
-                android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tv_rubbelkarte_subtitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                tools:text="12 Länder · 4 Kontinente · 19 Flughäfen" />
-        </LinearLayout>
-
-        <!-- Der Stift öffnet die Länderliste. Er sitzt mittig zu Überschrift und
-             Untertitel und nicht auf der Karte, sonst verdeckte er je nach
-             Kartenformat Wasser oder Land. -->
-        <FrameLayout
-            android:id="@+id/btn_countries"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_marginStart="8dp"
-            android:background="@drawable/bg_icon_button"
-            android:clickable="true"
-            android:focusable="true">
-
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:layout_gravity="center"
-                android:contentDescription="@string/rubbelkarte_countries"
-                app:srcCompat="@drawable/ic_edit"
-                app:tint="?attr/colorOnSurface" />
-        </FrameLayout>
-    </LinearLayout>
-
-    <!-- Gesamtstand der besuchten Länder: Beschriftung links, Prozent rechts,
-         darüber der Balken, der sich von links nach rechts füllt. Er steht über
-         der Kugel, damit der Fortschritt auch beim Drehen der Kugel im Blick
-         bleibt, und wird zusammen mit der Kachelzeile ausgeblendet, wenn die
-         Länderumrisse fehlen. -->
-    <LinearLayout
-        android:id="@+id/rubbelkarte_progress_row"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="14dp"
-        android:orientation="vertical"
-        android:paddingHorizontal="16dp"
-        tools:visibility="visible">
-
+        <!-- Überschrift, Untertitel und der Stift auf einer Höhe. -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp">
 
-            <TextView
-                android:id="@+id/tv_rubbelkarte_progress_label"
+            <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
-                android:textColor="?attr/colorOnSurface"
-                tools:text="12 von 239 Ländern besucht" />
+                android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/tv_rubbelkarte_progress_percent"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/nav_rubbelkarte"
+                    android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_rubbelkarte_subtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    tools:text="12 Länder · 4 Kontinente · 19 Flughäfen" />
+            </LinearLayout>
+
+            <!-- Der Stift öffnet die Länderliste. Er sitzt mittig zu Überschrift und
+                 Untertitel und nicht auf der Karte, sonst verdeckte er je nach
+                 Kartenformat Wasser oder Land. -->
+            <FrameLayout
+                android:id="@+id/btn_countries"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
                 android:layout_marginStart="8dp"
-                android:maxLines="1"
-                android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
-                android:textColor="?attr/colorPrimary"
-                android:textStyle="bold"
-                tools:text="5 %" />
+                android:background="@drawable/bg_icon_button"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center"
+                    android:contentDescription="@string/rubbelkarte_countries"
+                    app:srcCompat="@drawable/ic_edit"
+                    app:tint="?attr/colorOnSurface" />
+            </FrameLayout>
         </LinearLayout>
 
-        <com.google.android.material.progressindicator.LinearProgressIndicator
-            android:id="@+id/progress_rubbelkarte_world"
+        <!-- Gesamtstand der besuchten Länder: Beschriftung links, Prozent rechts,
+             darüber der Balken, der sich von links nach rechts füllt. Er steht über
+             der Kugel, damit der Fortschritt auch beim Drehen der Kugel im Blick
+             bleibt, und wird zusammen mit der Kachelzeile ausgeblendet, wenn die
+             Länderumrisse fehlen. -->
+        <LinearLayout
+            android:id="@+id/rubbelkarte_progress_row"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            app:trackCornerRadius="3dp"
-            app:trackThickness="6dp" />
+            android:layout_marginTop="14dp"
+            android:orientation="vertical"
+            android:paddingHorizontal="16dp"
+            tools:visibility="visible">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tv_rubbelkarte_progress_label"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
+                    android:textColor="?attr/colorOnSurface"
+                    tools:text="12 von 239 Ländern besucht" />
+
+                <TextView
+                    android:id="@+id/tv_rubbelkarte_progress_percent"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:maxLines="1"
+                    android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
+                    android:textColor="?attr/colorPrimary"
+                    android:textStyle="bold"
+                    tools:text="5 %" />
+            </LinearLayout>
+
+            <com.google.android.material.progressindicator.LinearProgressIndicator
+                android:id="@+id/progress_rubbelkarte_world"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                app:trackCornerRadius="3dp"
+                app:trackThickness="6dp" />
+        </LinearLayout>
+
+        <FrameLayout
+            android:id="@+id/rubbelkarte_area"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp">
+
+            <!-- Die Kugel selbst lässt links und rechts den Abstand, den sie
+                 braucht, und nutzt beim Zoomen die volle Breite. Deshalb geht
+                 dieses Feld ohne Innenabstand bis an den Seitenrand. -->
+            <com.highfly.logbook.RubbelkarteView
+                android:id="@+id/rubbelkarte"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                tools:contentDescription="12 besuchte Länder" />
+
+            <TextView
+                android:id="@+id/tv_rubbelkarte_empty"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="32dp"
+                android:layout_gravity="center_vertical"
+                android:gravity="center"
+                android:text="@string/rubbelkarte_empty"
+                android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:visibility="gone"
+                tools:visibility="visible" />
+        </FrameLayout>
+
+        <!-- Eine Zeile Kontinent-Kacheln mit dem Anteil der besuchten Länder je
+             Kontinent. Es sind sieben Kacheln, die passen nicht nebeneinander,
+             darum scrollt die Zeile von rechts nach links.
+
+             Kein requiresFadingEdge: Der weiche Rand wird vom Innenabstand aus
+             versetzt gezeichnet und endet mitten auf einer Kachel - es blieb eine
+             senkrechte Naht über den Kacheln stehen, die beim Scrollen mitwandert.
+             Die halb sichtbare Kachel am Rand zeigt den Rest ohnehin an. -->
+        <HorizontalScrollView
+            android:id="@+id/continent_scroll"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:clipToPadding="false"
+            android:paddingHorizontal="16dp"
+            android:paddingBottom="@dimen/continent_row_padding_bottom"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:id="@+id/continent_tiles"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal" />
+        </HorizontalScrollView>
     </LinearLayout>
 
-    <FrameLayout
-        android:id="@+id/rubbelkarte_area"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp">
-
-        <!-- Die Kugel selbst lässt links und rechts den Abstand, den sie
-             braucht, und nutzt beim Zoomen die volle Breite. Deshalb geht
-             dieses Feld ohne Innenabstand bis an den Seitenrand. -->
-        <com.highfly.logbook.RubbelkarteView
-            android:id="@+id/rubbelkarte"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            tools:contentDescription="12 besuchte Länder" />
-
-        <TextView
-            android:id="@+id/tv_rubbelkarte_empty"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginHorizontal="32dp"
-            android:layout_gravity="center_vertical"
-            android:gravity="center"
-            android:text="@string/rubbelkarte_empty"
-            android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            android:visibility="gone"
-            tools:visibility="visible" />
-    </FrameLayout>
-
-    <!-- Eine Zeile Kontinent-Kacheln mit dem Anteil der besuchten Länder je
-         Kontinent. Es sind sieben Kacheln, die passen nicht nebeneinander,
-         darum scrollt die Zeile von rechts nach links.
-
-         Kein requiresFadingEdge: Der weiche Rand wird vom Innenabstand aus
-         versetzt gezeichnet und endet mitten auf einer Kachel - es blieb eine
-         senkrechte Naht über den Kacheln stehen, die beim Scrollen mitwandert.
-         Die halb sichtbare Kachel am Rand zeigt den Rest ohnehin an. -->
-    <HorizontalScrollView
-        android:id="@+id/continent_scroll"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:clipToPadding="false"
-        android:paddingHorizontal="16dp"
-        android:paddingBottom="@dimen/continent_row_padding_bottom"
-        android:scrollbars="none">
-
-        <LinearLayout
-            android:id="@+id/continent_tiles"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal" />
-    </HorizontalScrollView>
-
     <!-- Halbhohe Seite mit der Länder-/Staaten-Liste, die ein Tipp auf eine
-         Kachel unten einblendet; darüber bleibt die Kugel sichtbar. Die Höhe
-         setzt RubbelkarteFragment (Hälfte oder Drittel des Bildschirms). -->
+         Kachel unten einblendet; als Overlay über dem Inhalt, damit sie per
+         Wisch am Griff bis zum Vollbild aufgezogen werden kann. Die Höhe setzt
+         RubbelkarteFragment (Anteil des Bildschirms, siehe openPage). -->
     <FrameLayout
         android:id="@+id/page_host"
         android:layout_width="match_parent"
         android:layout_height="0dp"
+        android:layout_gravity="bottom"
+        android:background="?android:attr/colorBackground"
+        android:elevation="4dp"
         android:visibility="gone" />
-</LinearLayout>
+</FrameLayout>
