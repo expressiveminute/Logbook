@@ -1555,6 +1555,12 @@
 "file": "liveries/AZA.webp"
 },
 {
+"iata": "AZ",
+"icao": "ITY",
+"name": "ITA Airways",
+"file": null
+},
+{
 "iata": "B0",
 "icao": "666",
 "name": "Aws express",
@@ -2086,6 +2092,12 @@
 "iata": "DH",
 "icao": "DVA",
 "name": "Discovery Airways",
+"file": null
+},
+{
+"iata": "DI",
+"icao": "MBU",
+"name": "Marabu",
 "file": null
 },
 {
@@ -4504,6 +4516,12 @@
 "iata": "P9",
 "icao": null,
 "name": "",
+"file": null
+},
+{
+"iata": "PA",
+"icao": "PAA",
+"name": "Pan Am",
 "file": null
 },
 {

@@ -86,20 +86,20 @@ def commons_url(filename, width):
 
 
 def state_codes_from_asset(path):
-    """Liest die ISO-3166-2-Codes direkt aus state_shapes.bin (Version 2)."""
+    """Liest die ISO-3166-2-Codes direkt aus state_shapes.bin (Version 3)."""
     with open(path, "rb") as handle:
         buf = io.BytesIO(handle.read())
     magic = struct.unpack("<i", buf.read(4))[0]
     if magic != 0x48535453:
         raise SystemExit("state_shapes.bin hat die falsche Kennung")
     version = buf.read(1)[0]
-    if version != 2:
-        raise SystemExit("state_shapes.bin Version %d nicht unterstützt" % version)
+    if version != 3:
+        raise SystemExit("state_shapes.bin Version %d nicht unterstützt (3 erwartet)" % version)
     buf.read(1)
     count = struct.unpack("<H", buf.read(2))[0]
     codes = []
     for _ in range(count):
-        code = buf.read(5).decode("ascii").strip()
+        code = buf.read(6).decode("ascii").strip()
         buf.read(2)  # iso2
         buf.read(16)  # capLat/capLon/labelLat/labelLon
         buf.read(16)  # bbox
@@ -111,9 +111,34 @@ def state_codes_from_asset(path):
     return codes
 
 
+# Australische Bundesstaaten/-territories (alle Public Domain auf Commons).
+AU_FLAGS = {
+    "AU-ACT": "Flag of the Australian Capital Territory.svg",
+    "AU-NSW": "Flag of New South Wales.svg",
+    "AU-NT": "Flag of the Northern Territory.svg",
+    "AU-QLD": "Flag of Queensland.svg",
+    "AU-SA": "Flag of South Australia.svg",
+    "AU-TAS": "Flag of Tasmania.svg",
+    "AU-VIC": "Flag of Victoria (Australia).svg",
+    "AU-WA": "Flag of Western Australia.svg",
+}
+
+# Die vier Landesteile Grossbritanniens (alle Public Domain auf Commons).
+GB_FLAGS = {
+    "GB-ENG": "Flag of England.svg",
+    "GB-NIR": "Flag of Northern Ireland.svg",
+    "GB-SCT": "Flag of Scotland.svg",
+    "GB-WLS": "Flag of Wales.svg",
+}
+
+
 def flag_file_for(code):
     if code in DE_FLAGS:
         return DE_FLAGS[code]
+    if code in AU_FLAGS:
+        return AU_FLAGS[code]
+    if code in GB_FLAGS:
+        return GB_FLAGS[code]
     if code.startswith("US-"):
         suffix = code[3:]
         if suffix in US_STATE_NAMES:

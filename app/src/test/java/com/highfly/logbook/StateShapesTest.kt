@@ -35,13 +35,13 @@ class StateShapesTest {
         Math.round(degrees * 1440f)
 
     private fun buffer(
-        version: Int = 2,
+        version: Int = 3,
         shapes: List<Shape>
     ): ByteArray {
         val totalPoints = shapes.sumOf { s -> s.rings.sumOf { it.size / 2 } }
         val size = 8 +
             shapes.sumOf {
-                5 + 2 + 16 + 16 +
+                6 + 2 + 16 + 16 +
                     1 + it.nameDe.toByteArray().size +
                     1 + it.nameEn.toByteArray().size +
                     1 + it.capDe.toByteArray().size +
@@ -59,7 +59,7 @@ class StateShapesTest {
         buf.putShort(shapes.size.toShort())
         var firstRing = 0
         for (s in shapes) {
-            buf.put(s.code.padEnd(5).take(5).toByteArray(Charsets.US_ASCII))
+            buf.put(s.code.padEnd(6).take(6).toByteArray(Charsets.US_ASCII))
             buf.put(s.iso2.toByteArray(Charsets.US_ASCII))
             buf.putFloat(s.capLat)
             buf.putFloat(s.capLon)
@@ -240,13 +240,16 @@ class StateShapesTest {
         assertTrue("Asset nicht gefunden: ${asset.absolutePath}", asset.exists())
         val states = StateShapes.parse(asset.readBytes())
 
-        // 50 US-Bundesstaaten + DC und 16 deutsche Bundesländer.
+        // 50 US-Bundesstaaten + DC, 16 deutsche Bundesländer, 8 australische
+        // Bundesstaaten/-territories und die 4 britischen Landesteile.
         assertEquals(51, states.count { it.iso2 == "US" })
         assertEquals(16, states.count { it.iso2 == "DE" })
+        assertEquals(8, states.count { it.iso2 == "AU" })
+        assertEquals(4, states.count { it.iso2 == "GB" })
 
         val codes = HashSet<String>()
         for (state in states) {
-            assertTrue("Code '${state.code}'", state.code.matches(Regex("(US|DE)-[A-Z0-9]{1,3}")))
+            assertTrue("Code '${state.code}'", state.code.matches(Regex("(US|DE|AU|GB)-[A-Z0-9]{1,3}")))
             assertTrue("Code '${state.code}' doppelt", codes.add(state.code))
             // Masken der gemeinsamen Grenzpunkte parallel zu den Ringen
             assertEquals("Masken ${state.code}", state.rings.size, state.sharedMasks.size)
@@ -271,7 +274,7 @@ class StateShapesTest {
         val regionsFile = File("src/main/assets/airports/airports_regions.json")
         assertTrue(regionsFile.exists())
         val regionsJson = regionsFile.readText()
-        val regionPattern = Regex(""""([A-Z]{3})":\s*"((?:US|DE)-[A-Z0-9]{1,3})"""")
+        val regionPattern = Regex(""""([A-Z]{3})":\s*"((?:US|DE|AU|GB)-[A-Z0-9]{1,3})"""")
         val regions = regionPattern.findAll(regionsJson).associate {
             it.groupValues[1] to it.groupValues[2]
         }
@@ -279,10 +282,13 @@ class StateShapesTest {
         for ((iata, code) in regions) {
             assertTrue("Region $code von $iata ohne Staat im Asset", codes.contains(code))
         }
-        // Bekannte Zuordnungen: FRA -> Hessen, MUC -> Bayern, JFK -> New York.
+        // Bekannte Zuordnungen: FRA -> Hessen, MUC -> Bayern, JFK -> New York,
+        // SYD -> New South Wales, LHR -> England.
         assertEquals("DE-HE", regions["FRA"])
         assertEquals("DE-BY", regions["MUC"])
         assertEquals("US-NY", regions["JFK"])
+        assertEquals("AU-NSW", regions["SYD"])
+        assertEquals("GB-ENG", regions["LHR"])
     }
 
     @Test

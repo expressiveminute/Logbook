@@ -209,6 +209,29 @@
             android:gravity="center_horizontal"
             android:orientation="vertical">
 
+            <!-- Datenquellen & Lizenzen: über dem Disclaimer, öffnet ein Popup
+                 mit allen verwendeten Datenquellen und ihren Lizenzen. -->
+            <LinearLayout
+                android:id="@+id/header_section_sources"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/settings_section_sources"
+                    android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
             <!-- Disclaimer: linksbündig ganz unten über dem Logo, öffnet ein Popup -->
             <LinearLayout
                 android:id="@+id/header_section_disclaimer"

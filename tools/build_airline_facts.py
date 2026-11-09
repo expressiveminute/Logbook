@@ -79,6 +79,68 @@ SPARQL_ENDPOINT = "https://query.wikidata.org/sparql"
 WIKI_API = "https://{wiki}.wikipedia.org/w/api.php"
 USER_AGENT = "LogbookAirlineFacts/1.0 (https://github.com/expressiveminute/Logbook)"
 
+# Hand gepflegte Stammdaten, die ein Lauf aus Wikidata nicht (mehr) liefert:
+# Codes, die von einer insolventen und einer aktiven Airline gemeinsam getragen
+# werden (PA = Pan Am, DI = Marabu; die insolvente Vorgängerin bleibt als
+# Variante unter ihrem ICAO-Schluessel erhalten), und ITA Airways, das den
+# IATA-Code AZ der insolventen Alitalia übernommen hat (Variante zu "AZ",
+# Fakten unter dem ICAO-Schluessel ITY).
+MANUAL_FACTS = {
+    "PA": {
+        "callsign": "CLIPPER",
+        "dissolved": 1991,
+        "founded": 1927,
+        "hq": "New York",
+        "hq_de": "New York",
+        "hubs": ["JFK"],
+        "ownership": "public",
+        "wiki": "https://en.wikipedia.org/wiki/Pan_American_World_Airways",
+    },
+    "FCL": {
+        "callsign": "FLORIDA COASTAL",
+        "dissolved": 2010,
+        "fleet": 5,
+        "founded": 1995,
+        "hq": "Fort Lauderdale",
+        "hq_de": "Fort Lauderdale",
+        "hubs": ["FLL"],
+        "wiki": "https://en.wikipedia.org/wiki/Florida_Coastal_Airlines",
+    },
+    "DI": {
+        "callsign": "MARABU",
+        "fleet": 11,
+        "founded": 2022,
+        "hq": "Tallinn",
+        "hq_de": "Tallinn",
+        "hubs": ["HAM", "MUC"],
+        "ownership": "private",
+        "wiki": "https://en.wikipedia.org/wiki/Marabu",
+    },
+    "BAG": {
+        "callsign": "SPEEDWAY",
+        "dissolved": 2008,
+        "fleet": 22,
+        "founded": 2003,
+        "group": "Air Berlin",
+        "hq": "Munich",
+        "hq_de": "München",
+        "hubs": ["MUC"],
+        "wiki": "https://en.wikipedia.org/wiki/DBA_%28airline%29",
+    },
+    "ITY": {
+        "alliance": "Star Alliance",
+        "callsign": "ITARROW",
+        "fleet": 109,
+        "founded": 2020,
+        "group": "Lufthansa Group",
+        "hq": "Rome",
+        "hq_de": "Rom",
+        "hubs": ["FCO"],
+        "ownership": "public",
+        "wiki": "https://en.wikipedia.org/wiki/ITA_Airways",
+    },
+}
+
 # IATA-Codes pro SPARQL-Abfrage und Artikeltitel pro Wikipedia-Abruf.
 SPARQL_BATCH = 200
 WIKI_BATCH = 50
@@ -641,6 +703,9 @@ def main():
             record["wiki"] = wiki_url(entry["titles_en"][0])
         if record:
             payload[iata] = record
+
+    # Hand gepflegte Eintraege gewinnen (siehe MANUAL_FACTS oben).
+    payload.update(MANUAL_FACTS)
 
     os.makedirs(os.path.dirname(args.out), exist_ok=True)
     with open(args.out, "w", encoding="utf-8") as handle:

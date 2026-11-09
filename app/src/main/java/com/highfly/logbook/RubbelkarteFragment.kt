@@ -296,10 +296,11 @@ class RubbelkarteFragment : LogbookFragment(), BackPressAware, MapZoomHost, Page
     /**
      * Baut die Kachelliste: die Kontinente - Europa als eigener Kontinent wie
      * [Continents.ORDER] vorsieht -, sortiert wie [ContinentStats.build] liefert,
-     * und ganz rechts - auch wenn davor ein Kontinent 0 % hat - die Kacheln
-     * Deutschland und Vereinigte Staaten mit ihren Bundesstaaten/-ländern.
-     * Dahinter, als letzte Kachel, die EU mit Sternen im Kreis und EU-Flagge
-     * dezent im Hintergrund.
+     * und ganz rechts - auch wenn davor ein Kontinent 0 % hat - die Länder-Kacheln
+     * Deutschland, Vereinigte Staaten, Australien und Großbritannien (Flagge als
+     * Hintergrund, je mit ihren Bundesstaaten/-ländern bzw. Landesteilen aus
+     * `state_shapes.bin`). Dahinter, als letzte Kachel, die EU mit Sternen im
+     * Kreis und EU-Flagge dezent im Hintergrund.
      */
     private fun buildTileUis(progress: List<ContinentStats.Progress>): List<TileUi> {
         val german = useGermanNames()
@@ -331,15 +332,15 @@ class RubbelkarteFragment : LogbookFragment(), BackPressAware, MapZoomHost, Page
                     kind = TileUi.Kind.COUNTRY,
                     flag = AirportData.flagEmoji(country),
                     countryIso2 = country,
-                    unitRes = if (country == "DE") {
-                        R.string.rubbelkarte_state_unit_de
-                    } else {
-                        R.string.rubbelkarte_state_unit_us
+                    unitRes = when (country) {
+                        "DE" -> R.string.rubbelkarte_state_unit_de
+                        "GB" -> R.string.rubbelkarte_state_unit_gb
+                        else -> R.string.rubbelkarte_state_unit_us
                     }
                 )
             )
         }
-        // Ganz rechts, hinter Deutschland und den USA, die EU-Kachel.
+        // Ganz rechts, hinter den Länder-Kacheln, die EU-Kachel.
         eu?.let { p ->
             out.add(
                 TileUi(
@@ -438,6 +439,10 @@ class RubbelkarteFragment : LogbookFragment(), BackPressAware, MapZoomHost, Page
         if (_binding == null) return
         // Kachel-Tipp zoomt auf die ganze Region: keine einzelne Hauptstadt.
         binding.rubbelkarte.setCapitalMarker(0.0, 0.0, null)
+        // Die Seite zuerst öffnen: Sie meldet der Kugel die Verdeckung unten
+        // (setBottomCover), damit der Zoom die Region passend in den sichtbaren
+        // Streifen rechnet (sonst wäre z. B. Deutschland unten abgeschnitten).
+        openPage(item)
         when (item.kind) {
             TileUi.Kind.CONTINENT -> {
                 val codes = Continents.countriesOf(item.key).toSet()
@@ -458,28 +463,17 @@ class RubbelkarteFragment : LogbookFragment(), BackPressAware, MapZoomHost, Page
                 binding.rubbelkarte.setHighlight(setOf(country))
             }
         }
-        openPage(item)
     }
 
     /**
      * Öffnet die Seite unten im [R.id.page_host]: eine komplette Seite
-     * (Länder-Checkliste bzw. Staatenliste), deren Höhe ein Anteil des
-     * Bildschirms ist - [PAGE_HALF] bei umfangreichen Listen, sonst
-     * [PAGE_THIRD], damit oben genug von der Kugel sichtbar bleibt.
-     * Die Kacheln Deutschland/Vereinigte Staaten und die EU nehmen die
-     * einheitliche Staaten-Höhe [PAGE_STATES], damit alle drei gleich groß sind.
+     * (Länder-Checkliste bzw. Staatenliste) in einheitlicher Höhe - überall
+     * die Höhe der Länderliste von Deutschland ([PAGE_STATES]), damit alle
+     * Kacheln gleich hoch öffnen und oben genug von der Kugel sichtbar bleibt.
      */
     private fun openPage(item: TileUi) {
         if (_binding == null) return
-        val total = when (item.kind) {
-            TileUi.Kind.CONTINENT -> Continents.countriesOf(item.key).size
-            TileUi.Kind.COUNTRY -> stateShapes.count { it.iso2 == item.countryIso2 }
-        }
-        val fraction = when {
-            item.kind == TileUi.Kind.COUNTRY || item.key == Continents.EU -> PAGE_STATES
-            total >= PAGE_HALF_MIN -> PAGE_HALF
-            else -> PAGE_THIRD
-        }
+        val fraction = PAGE_STATES
         // Eine bereits offene Seite wird ersetzt, nicht aufgestapelt: Erst poppen
         // - der Backstack-Listener schaltet das page_host dabei aus ([hidePage]) -
         // und erst danach wird es mit der neuen Höhe wieder sichtbar. Umgekehrt
@@ -728,25 +722,15 @@ class RubbelkarteFragment : LogbookFragment(), BackPressAware, MapZoomHost, Page
         /** [com.google.android.material.progressindicator.BaseProgressIndicator] zählt auf 100. */
         const val PERCENT_MAX = 100
 
-        /** Ab dieser Listengröße nimmt die Seite den größeren Anteil des Bildschirms. */
-        const val PAGE_HALF_MIN = 20
-
-        /** Vergrößerung der Seitenhöhe gegenüber der früheren Hälfte bzw. dem Drittel. */
+        /** Vergrößerung der Seitenhöhe gegenüber der früheren Drittelhöhe. */
         const val PAGE_HEIGHT_SCALE = 1.4f
 
-        /** Seitenhöhe bei großen Listen (70 % des Bildschirms). */
-        const val PAGE_HALF = 0.5f * PAGE_HEIGHT_SCALE
-
-        /** Seitenhöhe bei kleinen Listen (ca. 47 % des Bildschirms). */
-        const val PAGE_THIRD = 1f / 3f * PAGE_HEIGHT_SCALE
-
         /**
-         * Einheitliche Höhe der Seite bei den Kacheln Deutschland, Vereinigte
-         * Staaten und EU: rund 10 % mehr als das frühere Drittel, damit die
-         * Bundesländer-Liste etwas höher ist und alle drei Kacheln gleich groß
-         * öffnen (ca. 51 % des Bildschirms).
+         * Einheitliche Höhe der unten eingeklinkten Seite - die Höhe der
+         * Länderliste von Deutschland (früheres Drittel × 1,4 × 1,1, ca. 51 %
+         * des Bildschirms): Alle Kacheln öffnen ihre Liste gleich hoch.
          */
-        const val PAGE_STATES = PAGE_THIRD * 1.1f
+        const val PAGE_STATES = 1f / 3f * PAGE_HEIGHT_SCALE * 1.1f
 
         /** Dauer der Höhen-Animation beim Loslassen des Griffs. */
         const val SHEET_ANIM_MS = 200L

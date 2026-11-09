@@ -119,6 +119,25 @@ class SaveFlowLogicTest {
     }
 
     @Test
+    fun csv_dateFormat_isGerman_ddMMyyyy() {
+        val csv = LogbookCsv.toCsv(listOf(entry))
+        // Erste Datenzeile beginnt mit dem Datum im deutschen Format.
+        val firstDataLine = csv.lineSequence().drop(1).first()
+        assertTrue(firstDataLine.startsWith("07.09.2026,"))
+        // Roundtrip bleibt erhalten.
+        assertEquals(entry.date, LogbookCsv.fromCsv(csv)[0].date)
+    }
+
+    @Test
+    fun csv_parseDate_acceptsGermanAndLegacyIso() {
+        assertEquals(LocalDate.of(2026, 9, 7), LogbookCsv.parseDate("07.09.2026"))
+        // Alte Dateien im ISO-Format bleiben importierbar.
+        assertEquals(LocalDate.of(2026, 9, 7), LogbookCsv.parseDate("2026-09-07"))
+        assertNull(LogbookCsv.parseDate(""))
+        assertNull(LogbookCsv.parseDate("07/09/2026"))
+    }
+
+    @Test
     fun saveFlight_dateParsing_returnsNullForInvalidInput() {
         val formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
         val parsed = try {

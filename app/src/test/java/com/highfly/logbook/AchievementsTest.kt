@@ -74,11 +74,81 @@ class AchievementsTest {
     fun anzahlDerErfolgeHaengtAnDerRolle() {
         // 12 Flüge, 3 Gesellschaften, 2 Typen, 2 Distanz, 4 Zeit, 1 Strecke,
         // 2 Geografie, 7 Kontinente, 7 Länder, 3 Klassen, 6 Besatzung.
+        // (Die Hauptairline-Meilensteine entstehen erst dynamisch in evaluate.)
         assertEquals(49, Achievements.definitionsFor(Role.CREW).size)
         assertEquals(43, Achievements.definitionsFor(Role.PASSENGER).size)
         assertTrue(
             Achievements.definitionsFor(Role.PASSENGER).none { it.crewOnly }
         )
+    }
+
+    @Test
+    fun hauptairlineBekommteDieFlugmeilensteine() {
+        val d = LocalDate.of(2024, 1, 1)
+        val entries = buildList {
+            // LH wird mit 12 Flügen die Hauptairline (Meilensteine 1 und 10).
+            repeat(12) { add(entry((it + 1).toLong(), d.plusDays(it.toLong()), airline = "LH")) }
+            // AF nur 2 Flüge.
+            add(entry(100, d.plusDays(20), airline = "AF"))
+            add(entry(101, d.plusDays(21), airline = "af")) // gleiche Airline, andere Schreibweise
+        }
+        val result = evaluate(entries)
+        // Dynamische Definitionen: 1. und 10. Flug mit LH (50 wären es nicht).
+        val mainDefs = result.definitions.filter { it.kind == Achievements.Kind.MAIN_AIRLINE }
+        assertEquals(listOf(1, 10), mainDefs.map { it.number })
+        val reachedMain = result.reached.filter { it.definition.kind == Achievements.Kind.MAIN_AIRLINE }
+        assertEquals(2, reachedMain.size)
+        val first = reachedMain.first { it.definition.number == 1 }
+        assertEquals("LH", first.label)
+        assertEquals(1L, first.entry.id) // erster LH-Flug
+        val tenth = reachedMain.first { it.definition.number == 10 }
+        assertEquals(10L, tenth.entry.id) // zehnter LH-Flug
+        // Ohne Airline-Angabe gibt es keine Hauptairline-Meilensteine.
+        val ohne = evaluate(listOf(entry(1, d), entry(2, d.plusDays(1))))
+        assertTrue(ohne.definitions.none { it.kind == Achievements.Kind.MAIN_AIRLINE })
+    }
+
+    @Test
+    fun hauptairlineMeilensteineNutzenDieVolleListe() {
+        // Dieselbe Meilensteinliste wie die Flugzahl:
+        // 1, 10, 50, 100, 250, 500, 1000, 1250, 1500, 2000, 2500, 5000.
+        val d = LocalDate.of(2024, 1, 1)
+        val entries = (1..5001).map {
+            entry(it.toLong(), d.plusDays((it % 300).toLong()), airline = "LH")
+        }
+        val result = evaluate(entries)
+        val mainDefs = result.definitions.filter { it.kind == Achievements.Kind.MAIN_AIRLINE }
+        assertEquals(
+            listOf(1, 10, 50, 100, 250, 500, 1000, 1250, 1500, 2000, 2500, 5000),
+            mainDefs.map { it.number }
+        )
+        assertEquals(12, result.reached.count { it.definition.kind == Achievements.Kind.MAIN_AIRLINE })
+    }
+
+    @Test
+    fun dienstlichPrivatUnterscheidungAmAusloesendenFlug() {
+        val d = LocalDate.of(2024, 1, 1)
+        val entries = listOf(
+            entry(1, d, flightType = "On Duty"),
+            entry(2, d.plusDays(1), flightType = "Privat"),
+            entry(3, d.plusDays(2), flightType = "Deadhead")
+        )
+        val result = evaluate(entries)
+        // flight_1 hängt am On-Duty-Flug (dienstlich), flight_10 gibt es nicht.
+        val first = result.reached.first { it.definition.id == "flight_1" }
+        assertTrue(first.isBusiness)
+        // Direkter Check über die Reached-Werte aller Meilensteine.
+        val byId = result.reached.associateBy { it.definition.id }
+        assertTrue(byId.getValue("crew_on_duty").isBusiness)
+        assertFalse(
+            Achievements.evaluate(
+                listOf(entry(1, d, flightType = "Privat")),
+                Role.CREW,
+                Achievements.Lookups(countryOf = countries)
+            ).reached.first { it.definition.id == "flight_1" }.isBusiness
+        )
+        // Deadhead zählt als dienstlich.
+        assertTrue(byId.getValue("crew_deadhead").isBusiness)
     }
 
     @Test
@@ -426,7 +496,8 @@ class AchievementsTest {
         val d = LocalDate.of(2024, 1, 1)
         val result = evaluate(listOf(entry(1, d)))
 
-        // Ein Flug erreicht: der 1. Flug sowie die beiden Kontinente des Flugs.
+        // Ein Flug ohne Airline-Angabe erreicht: der 1. Flug sowie die beiden
+        // Kontinente des Flugs (keine Hauptairline-Meilensteine ohne Airline).
         assertEquals(3, result.reachedCount)
         assertEquals(49, result.total)
         assertEquals((3 * 100f / 49f).roundToInt(), result.percent)

@@ -53,6 +53,42 @@ class AirlineFactsTest {
     }
 
     @Test
+    fun panAmIstInsolventMitKlassischemCode() {
+        val pa = entry("PA")
+        assertTrue("PA-Block fehlt", pa.isNotEmpty())
+        assertTrue("Pan Am: Insolvenzjahr 1991 fehlt: $pa", pa.contains("\"dissolved\":1991"))
+        assertTrue("Gründung 1927 fehlt: $pa", pa.contains("\"founded\":1927"))
+        assertTrue("Rufzeichen CLIPPER fehlt: $pa", pa.contains("\"callsign\":\"CLIPPER\""))
+    }
+
+    @Test
+    fun marabuTraegtDenCodeDi() {
+        val di = entry("DI")
+        assertTrue("DI-Block fehlt", di.isNotEmpty())
+        assertTrue("Marabu: Rufzeichen fehlt: $di", di.contains("\"callsign\":\"MARABU\""))
+        assertTrue("Marabu: kein Insolvenzjahr erwartet: $di", !di.contains("\"dissolved\""))
+        // dba bleibt als Variante unter seinem ICAO BAG erhalten.
+        val bag = entry("BAG")
+        assertTrue("BAG-Block (dba) fehlt", bag.isNotEmpty())
+        assertTrue("dba: Insolvenzjahr 2008 fehlt: $bag", bag.contains("\"dissolved\":2008"))
+    }
+
+    @Test
+    fun itaAirwaysIstLufthansaGroupVarianteZuAz() {
+        // ITA Airways teilt sich den IATA-Code AZ mit der insolventen
+        // Alitalia; die Fakten liegen unter dem ICAO-Schluessel ITY.
+        val ity = entry("ITY")
+        assertTrue("ITY-Block fehlt", ity.isNotEmpty())
+        assertTrue("ITA: Lufthansa Group fehlt: $ity", ity.contains("\"group\":\"Lufthansa Group\""))
+        assertTrue("ITA: Gründung 2020 fehlt: $ity", ity.contains("\"founded\":2020"))
+        assertTrue("ITA: FCO-Hub fehlt: $ity", ity.contains("\"FCO\""))
+        // AZ bleibt Alitalia mit Insolvenzjahr.
+        val az = entry("AZ")
+        assertTrue("AZ muss Alitalia bleiben", az.contains("\"callsign\":\"ALITALIA\""))
+        assertTrue("AZ: Insolvenzjahr 2021 fehlt: $az", az.contains("\"dissolved\":2021"))
+    }
+
+    @Test
     fun airBerlinHatInsolvenzjahrUndWikiLink() {
         val ab = entry("AB")
         assertTrue("AB-Block fehlt", ab.isNotEmpty())

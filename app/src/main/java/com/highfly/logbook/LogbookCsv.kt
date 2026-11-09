@@ -1,8 +1,36 @@
 package com.highfly.logbook
 
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 object LogbookCsv {
+
+    /** Datumsformat in der CSV-Datei: deutsch dd.MM.yyyy. */
+    val DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
+
+    /** Frueheres ISO-Format yyyy-MM-dd, wird beim Import noch akzeptiert. */
+    private val DATE_FORMAT_LEGACY: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE
+
+    /** Formatiert ein Datum fuer die CSV-Datei (dd.MM.yyyy). */
+    fun formatDate(date: LocalDate): String = DATE_FORMAT.format(date)
+
+    /**
+     * Liest ein Datum aus der CSV-Datei: dd.MM.yyyy, als Rueckfall das alte
+     * ISO-Format yyyy-MM-dd (Bestandsdateien bleiben importierbar). Sonst null.
+     */
+    fun parseDate(value: String): LocalDate? {
+        val text = value.trim()
+        if (text.isEmpty()) return null
+        return try {
+            LocalDate.parse(text, DATE_FORMAT)
+        } catch (e: Exception) {
+            try {
+                LocalDate.parse(text, DATE_FORMAT_LEGACY)
+            } catch (e2: Exception) {
+                null
+            }
+        }
+    }
 
     /**
      * Spalten der CSV-Datei in fester Reihenfolge. Neue Spalten kommen
@@ -22,7 +50,7 @@ object LogbookCsv {
         entries.forEach { entry ->
             appendLine(
                 listOf(
-                    entry.date.toString(),
+                    formatDate(entry.date),
                     entry.flightType.orEmpty(),
                     entry.classType.orEmpty(),
                     entry.fromAirport,
@@ -49,11 +77,7 @@ object LogbookCsv {
         parse(text).forEachIndexed { index, fields ->
             if (fields.size < 5) return@forEachIndexed
             if (index == 0 && fields[0].equals("date", ignoreCase = true)) return@forEachIndexed
-            val date = try {
-                LocalDate.parse(fields[0])
-            } catch (e: Exception) {
-                return@forEachIndexed
-            }
+            val date = parseDate(fields[0]) ?: return@forEachIndexed
             val fromAirport = fields.getOrNull(3)?.nullIfBlank()
                 ?: return@forEachIndexed
             val toAirport = fields.getOrNull(4)?.nullIfBlank()

@@ -36,12 +36,23 @@ class StateStatsTest {
 
     @Test
     fun summarize_ignoriertRegionenAndererLaender() {
+        // FR ist kein Kachel-Land: Regionen anderer Länder zählen nicht.
         val summary = summarize(
-            listOf(entry("LHR", "CDG")),
-            mapOf("LHR" to "GB-ENG", "CDG" to "FR-IDF")
+            listOf(entry("ORY", "CDG")),
+            mapOf("ORY" to "FR-IDF", "CDG" to "FR-IDF")
         )
         assertTrue(summary.states.isEmpty())
         assertTrue(summary.countries.isEmpty())
+    }
+
+    @Test
+    fun summarize_nimmtAuchAustralienUndGrossbritannien() {
+        val summary = summarize(
+            listOf(entry("SYD", "LHR"), entry("MEL", "BNE")),
+            mapOf("SYD" to "AU-NSW", "LHR" to "GB-ENG", "MEL" to "AU-VIC", "BNE" to "AU-QLD")
+        )
+        assertEquals(setOf("AU-NSW", "AU-VIC", "AU-QLD", "GB-ENG"), summary.states)
+        assertEquals(setOf("AU", "GB"), summary.countries)
     }
 
     @Test

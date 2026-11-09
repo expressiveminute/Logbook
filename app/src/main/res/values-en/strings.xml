@@ -316,6 +316,8 @@
     <string name="settings_compact_text_subtitle">Smaller text so more content fits on small screens</string>
     <string name="settings_section_data">Data</string>
     <string name="settings_section_disclaimer">Disclaimer</string>
+    <string name="settings_section_sources">Data sources &amp; licenses</string>
+    <string name="sources_message">Data and images used:\n\n• GeoNames (places, coordinates) — CC BY 4.0, geonames.org\n• Natural Earth (countries, borders, places) — Public Domain, naturalearthdata.com\n• OurAirports (airports, runways) — Public Domain, ourairports.com\n• Wikidata (airline facts, country facts) — CC0, wikidata.org\n• English Wikipedia (aircraft facts, fleet sizes) — CC BY-SA 4.0, wikipedia.org\n• Wikimedia Commons (airline logos, airline and aircraft photos, state flags) — per file Public Domain, CC0, CC BY or GFDL; attribution is shown with each image\n• Sentinel-2 cloudless 2016 &amp; 2017 by EOX IT Services GmbH (airport satellite images, s2maps.eu) — CC BY 4.0; contains modified Copernicus Sentinel data 2016 &amp; 2017\n• CO₂ map aerial images: HVBG Hessen (dl-de/zero-2.0) and Bayerische Vermessungsverwaltung (CC BY 4.0)\n\nAll other graphics and icons were created for this app.</string>
     <string name="disclaimer_message">This app is a private fan project by a single person who loves to travel. It is not a political statement, not an official announcement, and represents neither an organization nor any opinion other than that of the person behind it. All content is solely for personally documenting the flights of that person.</string>
     <string name="data_export">Export</string>
     <string name="data_import">Import</string>
@@ -463,6 +465,7 @@
     <string name="entry_airline_logo">Airline logo</string>
     <string name="entry_travel_buddy_desc">Travel buddies: %1$s</string>
     <string name="entry_layover_hours_desc">Layover duration: %1$d h</string>
+    <string name="entry_achievement_medal_desc">Achievement unlocked: %1$s</string>
     <string name="filter_title">Filter</string>
     <string name="filter_travel_type">Travel type</string>
     <string name="filter_class_type">Travel class</string>
@@ -565,6 +568,7 @@
     <string name="rubbelkarte_state_tile_desc">%1$s: %2$d of %3$d %4$s visited, %5$d percent</string>
     <string name="rubbelkarte_state_unit_de">federal states</string>
     <string name="rubbelkarte_state_unit_us">states</string>
+    <string name="rubbelkarte_state_unit_gb">constituent countries</string>
     <string name="rubbelkarte_zoom_to">Show on map</string>
     <string name="sheet_visited_count">%1$d of %2$d visited</string>
     <string name="state_capital_label">Capital: %1$s</string>
@@ -906,6 +910,10 @@
     <string name="ach_crew_flight_attendant">First flight as flight attendant</string>
     <string name="ach_crew_purser_i">First flight as Purser I</string>
     <string name="ach_crew_purser_ii">First flight as Purser II</string>
+    <string name="ach_main_flight_milestone">%1$s. flight with %2$s</string>
+    <!-- Color marker of the triggering flight: business vs. private. -->
+    <string name="ach_badge_duty">Business</string>
+    <string name="ach_badge_private">Private</string>
 
     <!-- Story: Play & Insights (flip-clock highlights) -->
     <string name="story_insights_title">Insights</string>

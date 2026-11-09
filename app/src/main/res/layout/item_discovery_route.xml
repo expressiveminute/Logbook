@@ -31,11 +31,12 @@
                 android:layout_weight="1"
                 android:orientation="vertical">
 
-                <!-- Richtungspfeile mit ihren Daten: bei Hin- und Rueckflug an
-                     zwei Tagen steht der Hin-Pfeil vor dem Hinflug-Datum und der
-                     Rueck-Pfeil (gespiegelt) vor dem Rueckflug-Datum; am selben
-                     Tag ein Symbol mit zwei Pfeilen in Gegenrichtung vor dem
-                     einen Datum. -->
+                <!-- Richtungspfeil mit dem Datum: bei Hin- und Rueckflug an
+                     zwei Tagen steht der Hin-Pfeil vor dem Hinflug-Datum, dann
+                     ein Punkt, dann der gespiegelte Rueck-Pfeil vor dem
+                     Rueckflug-Datum ("12.03.2026 · 19.03.2026"); am selben Tag
+                     ein Symbol mit zwei Pfeilen in Gegenrichtung vor dem einen
+                     Datum. -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -55,18 +56,27 @@
 
                     <TextView
                         android:id="@+id/tv_discovery_date"
-                        android:layout_width="0dp"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
                         android:autoSizeMaxTextSize="12sp"
                         android:autoSizeMinTextSize="8sp"
                         android:autoSizeStepGranularity="1sp"
                         android:autoSizeTextType="uniform"
-                        android:ellipsize="end"
                         android:maxLines="1"
                         android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                         android:textColor="?attr/colorOnSurfaceVariant"
                         tools:text="12.03.2026" />
+
+                    <TextView
+                        android:id="@+id/tv_discovery_date_sep"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:text="·"
+                        android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:visibility="gone"
+                        tools:visibility="visible" />
 
                     <ImageView
                         android:id="@+id/iv_discovery_arrow_back"

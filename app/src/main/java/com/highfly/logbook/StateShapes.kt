@@ -25,7 +25,7 @@ object StateShapes {
 
     private const val TAG = "StateShapes"
     private const val MAGIC = 0x48535453 // Bytes "S","T","S","H" (little-endian int)
-    private const val VERSION = 2
+    private const val VERSION = 3
 
     /**
      * Koordinaten liegen als signed 32-Bit-Wert in Einheiten von 1/1440 Grad im
@@ -35,7 +35,7 @@ object StateShapes {
 
     /**
      * Eine Verwaltungseinheit (Bundesstaat/Bundesland) mit allen Ringen.
-     * [code] ist der ISO-3166-2-Code ("US-CA", "DE-BY"), [iso2] das Land.
+     * [code] ist der ISO-3166-2-Code ("US-CA", "DE-BY", "AU-NSW", "GB-ENG"), [iso2] das Land.
      */
     class State(
         val code: String,
@@ -145,7 +145,7 @@ object StateShapes {
 
         val heads = ArrayList<Head>(stateCount)
         for (i in 0 until stateCount) {
-            val code = String(ByteArray(5) { buf.get() }, Charsets.US_ASCII).trim()
+            val code = String(ByteArray(6) { buf.get() }, Charsets.US_ASCII).trim()
             val iso2 = String(byteArrayOf(buf.get(), buf.get()), Charsets.US_ASCII)
             val capLat = buf.float.toDouble()
             val capLon = buf.float.toDouble()

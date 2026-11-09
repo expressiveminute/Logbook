@@ -52,6 +52,12 @@ class AirlineDetailFragment : LogbookFragment() {
     /** Kanonischer Schlüssel der Airline: IATA-Code oder Rohtext, gross. */
     private var code: String = ""
 
+    /**
+     * ICAO der gewählten Variante, wenn sich mehrere Airlines den IATA-Code
+     * teilen (z. B. AZ: Alitalia/ITA Airways); null = kanonische erste Variante.
+     */
+    private var variantKey: String? = null
+
     /** Verwirft das Ergebnis eines bereits verlassenen Ladevorgangs. */
     private var loadGeneration = 0
 
@@ -119,9 +125,21 @@ class AirlineDetailFragment : LogbookFragment() {
         }
 
         Thread {
-            val info = AirlineCatalog.info(appContext, target)
-            val logo = AirlineCatalog.loadLogo(appContext, info?.iata ?: target)
-            val facts = AirlineFacts.get(appContext, info?.iata ?: target)
+            // Variante des Codes (z. B. AZ: Alitalia/ITA Airways): Kanonisch
+            // ist der erste Katalogeintrag, umschaltbar über das Menü oben.
+            val variants = AirlineCatalog.variantsOf(appContext, target)
+            val info = variants.firstOrNull { it.icao == variantKey }
+                ?: variants.firstOrNull()
+                ?: AirlineCatalog.info(appContext, target)
+            val logo = if (info != null) {
+                AirlineCatalog.loadLogoFor(appContext, info)
+            } else {
+                AirlineCatalog.loadLogo(appContext, target)
+            }
+            // Stammdaten der Variante: zuerst über ihren ICAO (z. B. ITY für
+            // ITA Airways), sonst über den IATA-Code.
+            val facts = AirlineFacts.get(appContext, info?.icao ?: target)
+                ?: AirlineFacts.get(appContext, info?.iata ?: target)
             val entries = DashboardStats.dashboardEntries(appContext)
             val matching = entries.filter { entry ->
                 AirlineStats.keyOf(entry.airline) {
@@ -146,9 +164,39 @@ class AirlineDetailFragment : LogbookFragment() {
             }
             view?.post {
                 if (generation != loadGeneration || _binding == null) return@post
-                bind(info, logo, facts, airline, routes)
+                bind(info, logo, facts, airline, routes, variants)
             }
         }.start()
+    }
+
+    /**
+     * Baut das Auswahlmenü der Varianten auf (sichtbar, wenn sich mehrere
+     * Airlines den IATA-Code teilen, z. B. AZ: Alitalia und ITA Airways).
+     * Ein Wechsel lädt die Seite mit der gewählten Variante neu.
+     */
+    private fun setupVariantSelector(variants: List<AirlineCatalog.Info>) {
+        val button = binding.btnAirlineVariant
+        if (variants.size <= 1) {
+            button.visibility = View.GONE
+            return
+        }
+        val current = variants.firstOrNull { it.icao == variantKey } ?: variants.first()
+        button.text = current.name.ifBlank { current.iata }
+        button.visibility = View.VISIBLE
+        button.setOnClickListener {
+            val popup = android.widget.PopupMenu(requireContext(), button)
+            variants.forEachIndexed { index, variant ->
+                val label = variant.name.ifBlank { variant.iata }
+                popup.menu.add(0, index, index, label)
+            }
+            popup.setOnMenuItemClickListener { item ->
+                val chosen = variants[item.itemId]
+                variantKey = chosen.icao ?: chosen.iata
+                load()
+                true
+            }
+            popup.show()
+        }
     }
 
     /**
@@ -289,9 +337,11 @@ class AirlineDetailFragment : LogbookFragment() {
         logo: android.graphics.Bitmap?,
         facts: AirlineFacts.Facts?,
         airline: AirlineStats.Airline?,
-        routes: List<Triple<AirportData.GeoLocation, AirportData.GeoLocation, Pair<String, String>>>
+        routes: List<Triple<AirportData.GeoLocation, AirportData.GeoLocation, Pair<String, String>>>,
+        variants: List<AirlineCatalog.Info> = emptyList()
     ) {
         val context = requireContext()
+        setupVariantSelector(variants)
         val name = info?.name?.takeIf { it.isNotBlank() }
             ?: airline?.name
             ?: code

@@ -22,7 +22,6 @@ import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
 
@@ -69,10 +68,6 @@ class GlobeView @JvmOverloads constructor(
         val citiesSorted: List<MapCity> by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
             cities.sortedBy { it.importance() }
         }
-        /** Länder einmalig nach Ausdehnung sortiert (große zuerst für die Beschriftung). */
-        val countriesBySize: List<CountryShapes.Country> by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
-            countries.sortedByDescending { it.latSpan }
-        }
     }
 
     /** Ein projizierter Punkt mit Beschriftung. */
@@ -101,15 +96,7 @@ class GlobeView @JvmOverloads constructor(
         val cy: Float,
         val radius: Float,
         val zoom: Float,
-        /**
-         * Landfüllung interaktiv: ein Path **pro Land** (WINDING). Wichtig: NICHT
-         * alle Länder in einen gemergten Pfad - am Horizont überlappen sich die
-         * Rand-Slivers zweier Nachbarländer, und bei WINDING in einem Pfad
-         * können sich gegenläufig orientierte Slivers gegenseitig auslöschen
-         * (Loch am Kugelrand, z. B. Kanada/Alaska). Pro Land heben sich nur die
-         * eigenen Enklaven-Lochringe auf.
-         */
-        val landPaths: List<Path>,
+        val landPath: Path,
         val routePath: Path,
         val dotHaloPath: Path,
         val dotPath: Path,
@@ -139,15 +126,6 @@ class GlobeView @JvmOverloads constructor(
             field = value
             if (!value) stopFling()
         }
-
-    /**
-     * Läuft gerade eine Zug-/Fling-/Zoom-Animation: Der Neuaufbau arbeitet dann
-     * mit doppelter Dezimierungs-Toleranz (schneller), nach dem Ende wird mit
-     * voller Toleranz nachgebaut. Sonst ruckelt das Drehen, weil jeder Fingerzug
-     * einen kompletten Neuaufbau aller Länderpfade auslöst.
-     */
-    @Volatile
-    private var gestureActive = false
 
     /** Langsame Eigendrehung (Dashboard-Kachel). */
     var autoRotate = false
@@ -369,18 +347,6 @@ class GlobeView @JvmOverloads constructor(
             }
         }
         focusAnim = anim
-        gestureActive = true
-        anim.addListener(object : android.animation.AnimatorListenerAdapter() {
-            override fun onAnimationEnd(animation: android.animation.Animator) {
-                if (focusAnim === animation) {
-                    gestureActive = false
-                    scheduleRebuild()
-                }
-            }
-            override fun onAnimationCancel(animation: android.animation.Animator) {
-                if (focusAnim === animation) gestureActive = false
-            }
-        })
         anim.start()
     }
 
@@ -456,21 +422,9 @@ class GlobeView @JvmOverloads constructor(
 
     // ---------------------------------------------------------------- Aufbau
 
-    /**
-     * Steht, während ein Aufbau läuft, aber schon ein neuer Zustand anliegt:
-     * Nach Fertigstellung des laufenden Aufbaus wird sofort der neueste Stand
-     * erneut gebaut. Ohne diese Markierung gingen Drehwinkel, die während eines
-     * Aufbaus entstehen, verloren - die Kugel bliebe stehen und ruckelte dann
-     * nach (sichtbar in der rotierenden Kachel).
-     */
-    private var rebuildPending = false
-
     private fun scheduleRebuild() {
         if (width <= 0 || height <= 0 || !isAttachedToWindow) return
-        if (rebuildPosted) {
-            rebuildPending = true
-            return
-        }
+        if (rebuildPosted) return
         rebuildPosted = true
         val generation = ++buildGeneration
         val executor = synchronized(this) {
@@ -494,21 +448,12 @@ class GlobeView @JvmOverloads constructor(
                     rebuildPosted = false
                     // Nach dem Detach (z. B. Orientierungs-Recreate) nicht mehr
                     // anrufen - die Empfänger (Fragment) sind dann ungültig.
-                    if (!isAttachedToWindow) {
-                        rebuildPending = false
-                        return@post
-                    }
+                    if (!isAttachedToWindow) return@post
                     if (built != null && generation == buildGeneration) {
                         drawn = built
                         onStateChanged?.invoke()
                     }
                     invalidate()
-                    // Während des Aufbaus ist die Kugel weitergedreht: sofort den
-                    // neuesten Stand nachbauen, statt bis zum nächsten Impuls zu warten.
-                    if (rebuildPending) {
-                        rebuildPending = false
-                        scheduleRebuild()
-                    }
                 }
             }
         } catch (_: java.util.concurrent.RejectedExecutionException) {
@@ -516,7 +461,6 @@ class GlobeView @JvmOverloads constructor(
             // Executor heruntergefahren (z. B. Orientierungswechsel beim
             // 2D/3D-Wechsel) - der Neuaufbau ist dann ohnehin hinfällig.
             rebuildPosted = false
-            rebuildPending = false
         }
     }
 
@@ -534,152 +478,24 @@ class GlobeView @JvmOverloads constructor(
         val cx = w / 2f
         val cy = h / 2f
 
-        // Rückseiten- und Bildschirm-Ausschluss: Ein Land, dessen Bounding-Box
-        // ganz auf der Rückseite der Kugel oder (beim Zoom) ganz außerhalb des
-        // Bildschirms liegt, wird gar nicht erst projiziert - bei den feinen
-        // 10m-Umrissen sind das sonst zigtausend Punkte pro Bild, die niemand
-        // sieht.
-        val clat = globe.centerLat
-        val clon = globe.centerLon
-        val viewX = cos(clat) * cos(clon)
-        val viewY = cos(clat) * sin(clon)
-        val viewZ = sin(clat)
-        val scratch = DoubleArray(3)
-        // In der Kachel-Vorschau (nicht interaktiv) werden die Ringe fest dezimiert:
+        // In der Kachel-Vorschau (nicht interaktiv) werden die Ringe dezimiert:
         // Bei kleiner Kugel reichen wenige Punkte pro Ring, und der Neuaufbau
         // pro Frame bleibt dadurch leicht genug für flüssiges Drehen.
-        val landPaths = ArrayList<Path>()
-        // Dezimierung per Douglas-Peucker mit bildschirmbezogener Toleranz:
-        // epsRad = spacingPx / radius -> sichtbarer Fehler höchstens ~2 px,
-        // konkave Küsten behalten ihre Form (keine langen Sehnen quer durchs Land).
-        // Während einer Zug-/Zoom-Animation (gestureActive) doppelte Toleranz -
-        // der Neuaufbau pro Bild bleibt leicht, nach dem Loslassen wird fein
-        // nachgebaut.
-        // Niedriger LOD während jeder Bewegung (Finger, Fling, Eigendrehung der
-        // Kachel): 4 dp Toleranz statt 2 dp - nach Ende der Bewegung wird fein nachgebaut.
-        val lowLod = gestureActive || autoRotateActive
-        val spacingPx = (if (lowLod) 4.0 else 2.0) * density
-        var epsRad = (spacingPx / radius).toDouble()
-        // Pro Land die Ringe plus die Maske der gemeinsamen Grenzpunkte (parallel
-        // zu den Ringen) - die Dezimierung hält diese Punkte fest, damit Grenzen
-        // in beiden Nachbarländern identisch bleiben (keine Lücken dazwischen).
-        val countryRingJobs = ArrayList<Pair<List<DoubleArray>, List<BooleanArray>>>()
+        val landPath = Path()
         for (country in c.countries) {
-            var midLon = (country.minLon + country.maxLon) / 2.0
-            if (country.maxLon - country.minLon > 180.0) midLon += 180.0
-            midLon = ((midLon + 180.0) % 360.0 + 360.0) % 360.0 - 180.0
-            val midLat = (country.minLat + country.maxLat) / 2.0
-            val midLatRad = Math.toRadians(midLat)
-            val midLonRad = Math.toRadians(midLon)
-            val ccx = cos(midLatRad) * cos(midLonRad)
-            val ccy = cos(midLatRad) * sin(midLonRad)
-            val ccz = sin(midLatRad)
-            val dot = viewX * ccx + viewY * ccy + viewZ * ccz
-            var diagDeg = max(
-                (country.maxLon - country.minLon) * cos(midLatRad),
-                country.maxLat - country.minLat
-            )
-            if (diagDeg > 180.0) diagDeg = 180.0
-            val diagRad = Math.toRadians(diagDeg)
-            // Ganz auf der Rückseite: Winkel zwischen Blickrichtung und jedem
-            // Punkt des Landes > 90°.
-            if (dot < -sin(diagRad) - 0.02) continue
-            // Ganz außerhalb des Bildschirms (nur beim Hineinzoomen wirksam):
-            // Nahe am Horizont dehnt die Projektion eine Box stärker als
-            // diagRad*radius aus - deshalb werden die Ecken mit projiziert und
-            // die wahre Bildschirm-Ausdehnung bestimmt, sonst würde ein Land am
-            // Rand fälschlich abgeschnitten.
-            val diagPx = diagRad * radius
-            if (diagPx > 0f) {
-                globe.point(midLat, midLon, scratch)
-                if (scratch[GeoMath.Globe.FRONT] > ZERO_EPS) {
-                    val sx = (cx + scratch[GeoMath.Globe.X] * radius).toDouble()
-                    val sy = (cy - scratch[GeoMath.Globe.Y] * radius).toDouble()
-                    var extent = diagPx
-                    for ((elat, elon) in listOf(
-                        country.minLat to country.minLon,
-                        country.minLat to country.maxLon,
-                        country.maxLat to country.minLon,
-                        country.maxLat to country.maxLon
-                    )) {
-                        globe.point(elat, elon, scratch)
-                        if (scratch[GeoMath.Globe.FRONT] > ZERO_EPS) {
-                            val ex = (cx + scratch[GeoMath.Globe.X] * radius).toDouble()
-                            val ey = (cy - scratch[GeoMath.Globe.Y] * radius).toDouble()
-                            val d = sqrt((ex - sx) * (ex - sx) + (ey - sy) * (ey - sy))
-                            if (d > extent) extent = d
-                        }
-                    }
-                    val dxr = if (sx < 0.0) -sx else if (sx > w) sx - w else 0.0
-                    val dyr = if (sy < 0.0) -sy else if (sy > h) sy - h else 0.0
-                    if (sqrt(dxr * dxr + dyr * dyr) > extent + 2.0 * density) continue
-                }
+            for (ring in country.unitRings) {
+                val units = if (interactive) ring else decimate(ring, PREVIEW_RING_POINTS)
+                val path = ringPath(units, globe, cx, cy, radius, closed = true) ?: continue
+                landPath.addPath(path)
             }
-            if (country.unitRings.isNotEmpty()) {
-                countryRingJobs.add(country.unitRings.toList() to country.sharedMasks)
-            }
-        }
-        // Globales Kontingent: bei Überschreitung die Toleranz für ALLE Ringe
-        // gleichmäßig erhöhen (nie einzelne Länder auf wenige Punkte drücken).
-        // Dezimierung ist teuer (Douglas-Peucker über alle Originalpunkte) und
-        // hängt nur vom Ring und der Toleranz ab - beim Drehen ändert sich keine
-        // von beiden, deshalb wird das Ergebnis je Ring und Toleranzstufe gecacht.
-        // Ohne Cache würde jeder Frame der Drehung alle sichtbaren Länder neu
-        // dezimieren: das ist der Hauptgrund für das Ruckeln beim Drehen.
-        fun decimateAll(eps: Double): Pair<List<List<DoubleArray>>, Int> {
-            val bucket = epsBucket(eps)
-            var total = 0
-            val out = ArrayList<List<DoubleArray>>(countryRingJobs.size)
-            for ((rings, masks) in countryRingJobs) {
-                val dl = ArrayList<DoubleArray>(rings.size)
-                for (r in rings.indices) {
-                    val d = decimateCached(rings[r], eps, bucket, masks.getOrNull(r))
-                    total += d.size / 3
-                    dl.add(d)
-                }
-                out.add(dl)
-            }
-            return out to total
-        }
-        // Während einer Geste (Ziehen/Zommen/Fling) ein niedrigeres Kontingent:
-        // weniger Punkte zu projizieren hält den Neuaufbau pro Bild leicht, nach
-        // dem Loslassen wird mit voller Qualität nachgebaut (gestureActive=false).
-        val maxPoints = if (lowLod) MAX_BUILD_POINTS_GESTURE else MAX_BUILD_POINTS
-        var decResult = decimateAll(epsRad)
-        var decLists = decResult.first
-        var totalPoints = decResult.second
-        if (totalPoints > maxPoints) {
-            epsRad *= sqrt(totalPoints.toDouble() / maxPoints)
-            decResult = decimateAll(epsRad)
-            decLists = decResult.first
-            totalPoints = decResult.second
-            if (totalPoints > maxPoints) {
-                epsRad *= sqrt(totalPoints.toDouble() / maxPoints)
-                decLists = decimateAll(epsRad).first
-            }
-        }
-        for (decRings in decLists) {
-            // Pro Land ein Pfad (WINDING), direkt angehängt (keine Zwischen-Paths,
-            // eine native Schreibung pro Punkt). Niemals alle Länder in einen
-            // gemergten Pfad: am Horizont überlappen sich die Rand-Slivers zweier
-            // Nachbarländer, und gegenläufig orientierte Slivers löschen sich bei
-            // WINDING in einem globalen Pfad gegenseitig aus (Löcher am Rand).
-            val cp = Path()
-            for (units in decRings) {
-                appendRingPath(units, globe, cx, cy, radius, closed = true, cp)
-            }
-            if (!cp.isEmpty) landPaths.add(cp)
         }
         val routePath = Path()
         for (arc in c.routes) {
-            // Routen per Winkel-Subsampling dezimieren (nicht per Douglas-Peucker):
-            // DP kann Sehnen von bis zu sqrt(8*eps) erzeugen - am Kugelrand schneidet
-            // so eine Sehne sichtbar durchs Land statt dem Rand zu folgen. Der
-            // maximale Segmentwinkel bleibt klein, das Ergebnis ist pro Bogen
-            // konstant (drehungsunabhängig) und wird gecacht.
-            val units = routeUnits(arc.units, epsRad)
-            appendRingPath(units, globe, cx, cy, radius, closed = false, routePath)
+            val units = if (interactive) arc.units else decimate(arc.units, PREVIEW_ROUTE_POINTS)
+            val path = ringPath(units, globe, cx, cy, radius, closed = false) ?: continue
+            routePath.addPath(path)
         }
+        val scratch = DoubleArray(3)
         val dotHaloPath = Path()
         val dotPath = Path()
         val airportMarkers = ArrayList<Marker>(c.airports.size)
@@ -707,15 +523,13 @@ class GlobeView @JvmOverloads constructor(
             compareBy({ if (it.muted) 0 else 1 }, { if (it.selected) 1 else 0 }, { it.importance })
         )
         // Beschriftungsstufen je Zoom (siehe [labelTier]): Ländernamen und
-        // Hauptstädte ab Stufe 1, größte Städte ab Stufe 2, noch mehr Städte
-        // (alle Ränge) ab Stufe 3.
+        // Hauptstädte ab Stufe 1, größte Städte ab Stufe 2, mehr Städte ab
+        // Stufe 3.
         val tier = labelTier(z)
         val countryMarkers = ArrayList<Marker>()
         if (interactive && tier >= 1) {
             val de = useGermanNames()
-            // Große Länder zuerst: Ihre Namen belegen in der
-            // Kollisionsauflösung zuerst Platz, kleine weichen aus.
-            for (country in c.countriesBySize) {
+            for (country in c.countries) {
                 globe.point(country.labelLat, country.labelLon, scratch)
                 if (!(scratch[GeoMath.Globe.FRONT] > ZERO_EPS)) continue
                 countryMarkers.add(
@@ -753,7 +567,7 @@ class GlobeView @JvmOverloads constructor(
                 )
             }
         }
-        return Built(globe, cx, cy, radius, z, landPaths, routePath, dotHaloPath, dotPath, airportMarkers, countryMarkers, cityMarkers)
+        return Built(globe, cx, cy, radius, z, landPath, routePath, dotHaloPath, dotPath, airportMarkers, countryMarkers, cityMarkers)
     }
 
     /** Die App ist deutschsprachig, values-en liefert die englischen Namen. */
@@ -779,85 +593,14 @@ class GlobeView @JvmOverloads constructor(
         bufF = DoubleArray(count)
     }
 
-    // ---------------------------------------------------------------- Dezimierungs-Cache
-
-    // Nur der einzelne Aufbau-Thread (buildExecutor) liest/schreibt den Cache.
-    // Schlüssel ist die Ring-Referenz (die Ringe liegen ab dem Laden fest in
-    // Content), zweiter Schlüssel die quantisierte Toleranzstufe.
-    private val decimateCache = java.util.IdentityHashMap<DoubleArray, HashMap<Int, DoubleArray>>()
-    private var decimateCachePoints = 0
-
-    /**
-     * Toleranzstufe: eps wird geometrisch quantisiert (Faktor ~1,19 pro Stufe),
-     * damit schon kleinste Zoom-Änderungen nicht jede Stufe neu rechnen lassen -
-     * beim reinen Drehen ist eps ohnehin konstant und landet immer im selben Fach.
-     */
-    private fun epsBucket(eps: Double): Int {
-        // Während einer Bewegung gröbere Stufen (Faktor 1.5 statt 1.19): Beim
-        // Pinch-Zoom wechselt die Toleranz sonst bei jedem Bild die Stufe und der
-        // Cache läuft leer - jeder Frame müsste alle Ringe neu dezimieren.
-        val factor = if (gestureActive || autoRotateActive) 1.5 else 1.19
-        return (Math.log(eps.coerceAtLeast(1e-9)) / Math.log(factor)).roundToInt()
-    }
-
-    // Cache für winkel-subsamplete Routenbogen: Schlüssel Bogen-Referenz +
-    // quantisierter maximaler Segmentwinkel. Nur der Aufbau-Thread benutzt ihn.
-    private val arcCache = java.util.IdentityHashMap<DoubleArray, HashMap<Int, DoubleArray>>()
-
-    /**
-     * Dezimiert einen Routenbogen per [GeoMath.subsampleUnitsMaxSegment]. Der
-     * maximale Segmentwinkel folgt der Bildschirm-Toleranz (epsRad), ist aber
-     * nach unten begrenzt (fein genug, dass der Bogen am Kugelrand sauber dem
-     * Rand folgt) und nach oben gedeckelt.
-     */
-    private fun routeUnits(arc: DoubleArray, epsRad: Double): DoubleArray {
-        val maxSeg = max(0.02, min(0.25, epsRad))
-        val bucket = (Math.log(maxSeg.coerceAtLeast(1e-9)) / Math.log(1.25)).roundToInt()
-        arcCache[arc]?.get(bucket)?.let { return it }
-        val d = GeoMath.subsampleUnitsMaxSegment(arc, maxSeg)
-        arcCache.getOrPut(arc) { HashMap() }[bucket] = d
-        if (arcCache.size > 4096) arcCache.clear()
-        return d
-    }
-
-    private fun decimateCached(
-        ring: DoubleArray,
-        eps: Double,
-        bucket: Int,
-        forceKeep: BooleanArray? = null
-    ): DoubleArray {
-        decimateCache[ring]?.get(bucket)?.let { return it }
-        val d = GeoMath.decimateUnitsSafe(ring, eps, forceKeep)
-        if (decimateCachePoints > DECIMATE_CACHE_MAX_POINTS) {
-            // Cache überläuft (z. B. nach Zoom-Wechsel über viele Stufen): einmal
-            // komplett verwerfen - die Ringe der aktuellen Stufe werden ohnehin
-            // sofort neu eingetragen.
-            decimateCache.clear()
-            decimateCachePoints = 0
-        }
-        decimateCache.getOrPut(ring) { HashMap() }[bucket] = d
-        decimateCachePoints += d.size / 3
-        return d
-    }
-
-    /**
-     * Projiziert einen Ring aus Einheitsvektoren und hängt ihn direkt an [out] an
-     * (am Horizont abgeschnitten, siehe Doku oben). Geschlossene Ringe (Länder)
-     * schließen sich über den Horizontbogen, offene (Routen) enden am Horizont.
-     *
-     * Es wird bewusst direkt in den Ziel-Pfad geschrieben: Ein Zwischen-Path pro
-     * Ring plus addPath-Kopie pro Land kostete pro Drehwinkel jeden Punkt mehrfach
-     * nativ - das war der Hauptgrund für das Ruckeln.
-     */
-    private fun appendRingPath(
+    private fun ringPath(
         units: DoubleArray,
         globe: GeoMath.Globe,
         cx: Float, cy: Float, radius: Float,
-        closed: Boolean,
-        out: Path
-    ): Boolean {
+        closed: Boolean
+    ): Path? {
         val count = units.size / 3
-        if (count < 2) return false
+        if (count < 2) return null
         ensureBuffers(count)
         val xs = bufX
         val ys = bufY
@@ -871,9 +614,10 @@ class GlobeView @JvmOverloads constructor(
             fs[i] = scratch[GeoMath.Globe.FRONT]
             if (fs[i] > ZERO_EPS) anyVisible = true
         }
-        if (!anyVisible) return false
+        if (!anyVisible) return null
 
-        var appended = false
+        val out = Path()
+        val run = Path()
         if (!closed) {
             // Offene Linie (Route): sichtbare Abschnitte, an Horizontübergängen
             // an den Rand geführt.
@@ -884,21 +628,20 @@ class GlobeView @JvmOverloads constructor(
                 val visB = fs[j] > ZERO_EPS
                 if (visA && visB) {
                     if (!pen) {
-                        out.moveTo(px(xs[i], cx, radius), py(ys[i], cy, radius))
+                        run.moveTo(px(xs[i], cx, radius), py(ys[i], cy, radius))
                         pen = true
-                        appended = true
                     }
-                    out.lineTo(px(xs[j], cx, radius), py(ys[j], cy, radius))
+                    run.lineTo(px(xs[j], cx, radius), py(ys[j], cy, radius))
                 } else if (visA != visB) {
                     val alpha = horizonAngle(xs[i], ys[i], fs[i], xs[j], ys[j], fs[j])
                     if (alpha.isFinite()) {
                         val hx = (cx + cos(alpha) * radius).toFloat()
                         val hy = (cy - sin(alpha) * radius).toFloat()
                         if (visA) {
-                            if (pen) out.lineTo(hx, hy)
+                            if (pen) run.lineTo(hx, hy)
                             pen = false
                         } else if (!pen) {
-                            out.moveTo(hx, hy)
+                            run.moveTo(hx, hy)
                             pen = true
                         }
                     } else {
@@ -906,7 +649,8 @@ class GlobeView @JvmOverloads constructor(
                     }
                 }
             }
-            return appended
+            out.addPath(run)
+            return if (out.isEmpty) null else out
         }
 
         // Geschlossener Ring: wie RubbelkarteView - sichtbare Bögen zwischen
@@ -930,52 +674,66 @@ class GlobeView @JvmOverloads constructor(
             )
         }
         if (crossings.isEmpty()) {
-            var firstPt = true
             for (i in 0 until count) {
                 if (!(fs[i] > ZERO_EPS)) continue
                 val x = px(xs[i], cx, radius)
                 val y = py(ys[i], cy, radius)
-                if (firstPt) {
-                    out.moveTo(x, y)
-                    firstPt = false
-                } else {
-                    out.lineTo(x, y)
-                }
+                if (i == 0) run.moveTo(x, y) else run.lineTo(x, y)
             }
-            if (!firstPt) {
-                out.close()
-                appended = true
-            }
+            run.close()
+            out.addPath(run)
         } else {
             var first = 0
             while (first < crossings.size && !crossings[first].entering) first++
-            // Kein "entering" gefunden (nur bei NaN-abgebrochenen Übergängen möglich):
-            // trotzdem ab dem ersten Übergang paaren, sonst fiele der Ring komplett weg.
-            if (first >= crossings.size) first = 0
-            val total = crossings.size
-            for (k in 0 until total / 2) {
-                val enter = crossings[(first + 2 * k) % total]
-                val exit = crossings[(first + 2 * k + 1) % total]
-                out.moveTo(enter.x, enter.y)
-                var steps = exit.segment - enter.segment
-                if (steps <= 0) steps += count
-                val start = enter.segment + 1
-                for (s in 0 until steps) {
-                    val index = (start + s) % count
-                    if (!(fs[index] > ZERO_EPS)) continue
-                    out.lineTo(px(xs[index], cx, radius), py(ys[index], cy, radius))
+            if (first < crossings.size) {
+                val total = crossings.size
+                for (k in 0 until total / 2) {
+                    val enter = crossings[(first + 2 * k) % total]
+                    val exit = crossings[(first + 2 * k + 1) % total]
+                    run.reset()
+                    run.moveTo(enter.x, enter.y)
+                    var steps = exit.segment - enter.segment
+                    if (steps <= 0) steps += count
+                    val start = enter.segment + 1
+                    for (s in 0 until steps) {
+                        val index = (start + s) % count
+                        if (!(fs[index] > ZERO_EPS)) continue
+                        run.lineTo(px(xs[index], cx, radius), py(ys[index], cy, radius))
+                    }
+                    run.lineTo(exit.x, exit.y)
+                    appendHorizonArc(exit.alpha, enter.alpha, cx, cy, radius, run)
+                    run.close()
+                    out.addPath(run)
                 }
-                out.lineTo(exit.x, exit.y)
-                appendHorizonArc(exit.alpha, enter.alpha, cx, cy, radius, out)
-                out.close()
-                appended = true
             }
         }
-        return appended
+        return if (out.isEmpty) null else out
     }
 
     private fun px(x: Double, cx: Float, radius: Float): Float = (cx + x * radius).toFloat()
     private fun py(y: Double, cy: Float, radius: Float): Float = (cy - y * radius).toFloat()
+
+    /**
+     * Dezimiert einen Ring aus Einheitsvektoren auf höchstens [maxPoints]
+     * Punkte (gleichmäßig verteilt, erster Punkt bleibt). Für die kleine
+     * Kugel in der Dashboard-Kachel: volle Auflösung wäre pro Frame zu teuer.
+     */
+    private fun decimate(units: DoubleArray, maxPoints: Int): DoubleArray {
+        val count = units.size / 3
+        if (count <= maxPoints) return units
+        val step = ceil(count.toDouble() / maxPoints).toInt()
+        val kept = (count + step - 1) / step
+        val out = DoubleArray(kept * 3)
+        var j = 0
+        var i = 0
+        while (i < count && j < out.size) {
+            out[j++] = units[i * 3]
+            out[j++] = units[i * 3 + 1]
+            out[j++] = units[i * 3 + 2]
+            i += step
+        }
+        return if (j == out.size) out else out.copyOf(j)
+    }
 
     private class Crossing(
         val segment: Int,
@@ -1008,9 +766,7 @@ class GlobeView @JvmOverloads constructor(
         var delta = to - from
         delta = ((delta + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI
         if (abs(delta) < ZERO_EPS) return
-        // Schrittweite in Pixeln (nicht in Radiant): sonst wird der Horizontbogen
-        // bei großer Kugel eckig (0.06 rad sind bei 500 px Radius ~31 px pro Stück).
-        val steps = min(512, max(2, ceil(abs(delta) * radius / (2.0 * density)).toInt()))
+        val steps = min(64, max(2, ceil(abs(delta) / ARC_STEP).toInt()))
         for (s in 1..steps) {
             val a = from + delta * s / steps
             out.lineTo((cx + cos(a) * radius).toFloat(), (cy - sin(a) * radius).toFloat())
@@ -1032,13 +788,10 @@ class GlobeView @JvmOverloads constructor(
         canvas.save()
         canvas.clipPath(clipPath)
 
-        // Land pro Land ein Pfad (WINDING): Füllung und Grenzlinie daraus. In
-        // einem globalen Pfad könnten sich Rand-Slivers benachbarter Länder am
-        // Horizont gegenseitig auslöschen (Löcher am Kugelrand, siehe Built).
-        for (p in b.landPaths) {
-            canvas.drawPath(p, landFillPaint)
-            canvas.drawPath(p, borderPaint)
-        }
+        // Land als ein gemergter Pfad: Füllung und Grenze sind zwei
+        // drawPath-Aufrufe statt hunderter einzelner.
+        canvas.drawPath(b.landPath, landFillPaint)
+        canvas.drawPath(b.landPath, borderPaint)
 
         // Routen - während der Layover-Animation ausgeblendet, die animierten
         // Spuren zeichnen stattdessen.
@@ -1049,12 +802,8 @@ class GlobeView @JvmOverloads constructor(
         }
         drawLayover(canvas, b)
 
-        // Punkte unter den Dreilettercodes nur in der Kachel-Vorschau; auf der
-        // Seite sitzen die Badges wie auf der Weltkarte ohne Punkt darunter.
-        if (!interactive) {
-            canvas.drawPath(b.dotHaloPath, dotHaloPaint)
-            canvas.drawPath(b.dotPath, airportDotPaint)
-        }
+        canvas.drawPath(b.dotHaloPath, dotHaloPaint)
+        canvas.drawPath(b.dotPath, airportDotPaint)
         if (interactive) {
             drawMarkers(canvas, b)
         }
@@ -1082,31 +831,10 @@ class GlobeView @JvmOverloads constructor(
     private var shadowShaderRadius = -1f
 
     /**
-     * Dreilettercodes als Badges wie auf der Weltkarte: undurchsichtige Pill mit
-     * Ring und Text in Kontrastfarbe, zentriert auf dem Punkt (kein Punkt
-     * darunter). Ist ein Flughafen ausgewählt, treten die nicht verbundenen
-     * gräulich zurück, die verbundenen werden fett betont, der ausgewählte
-     * bekommt zusätzlich einen Akzent-Rahmen - und zeichnet immer zuletzt (oben).
-     * Danach Länder- und Städtebeschriftungen mit Kollisionsauflösung; die
-     * Badge-Flächen sind dabei reserviert, damit keine Beschriftung auf einem
-     * Code steht.
+     * Dreilettercodes als Badges wie auf der Weltkarte: gefüllte Pill in der
+     * Akzentfarbe mit weißem Ring und Text in Kontrastfarbe, zentriert auf dem
+     * Punkt. Danach die Städtebeschriftungen mit Kollisionsauflösung.
      */
-    // measureText pro Marker pro Bild ist teuer - Breiten werden gecacht
-    // (Schlüssel: fett/normal + Text; Schlüsselraum ist begrenzt: IATA-Codes,
-    // Länder- und Städtenamen).
-    // Concurrent: bei der Rubbelkarte misst der Aufbau-Thread (Label-Bau) und der
-    // Zeichen-Thread (Stadtplatzierung) - beides darf nicht auf einer HashMap landen.
-    private val textWidthCache = java.util.concurrent.ConcurrentHashMap<String, Float>()
-
-    private fun cachedTextWidth(paint: Paint, bold: Boolean, text: String): Float {
-        val key = (if (bold) 'b' else 'n') + text
-        textWidthCache[key]?.let { return it }
-        val w = paint.measureText(text)
-        if (textWidthCache.size > 8192) textWidthCache.clear()
-        textWidthCache.putIfAbsent(key, w)
-        return w
-    }
-
     private fun drawMarkers(canvas: Canvas, b: Built) {
         val padX = 3f * density
         val padY = 1.5f * density
@@ -1134,7 +862,7 @@ class GlobeView @JvmOverloads constructor(
                 badgeTextPaint.isFakeBoldText = bold
                 badgeRingPaint.alpha = if (g == 0) 200 else 255
             }
-            val textWidth = cachedTextWidth(badgeTextPaint, badgeTextPaint.isFakeBoldText, m.label)
+            val textWidth = badgeTextPaint.measureText(m.label)
             val badgeW = textWidth + 2 * padX
             val badgeH = textH + 2 * padY
             val left = m.x - badgeW / 2
@@ -1166,31 +894,17 @@ class GlobeView @JvmOverloads constructor(
         }
         if (b.zoom >= ZOOM_COUNTRY_LABELS) {
             collision.beginFrame()
-            // Die Badge-Flächen reservieren, damit keine Beschriftung über
-            // einem Dreilettercode steht.
-            for (m in b.airportMarkers) {
-                val textWidth = cachedTextWidth(badgeTextPaint, badgeTextPaint.isFakeBoldText, m.label)
-                val badgeW = textWidth + 2 * padX
-                val badgeH = textH + 2 * padY
-                collision.reserve(
-                    m.x - badgeW / 2 - 2f * density,
-                    m.y - badgeH / 2 - 2f * density,
-                    m.x + badgeW / 2 + 2f * density,
-                    m.y + badgeH / 2 + 2f * density
-                )
-            }
             // Zuerst die Ländernamen (grösser), dann die Städte - die
-            // Kollisionsauflösung verteilt beide. Grössere Verschiebungen als
-            // auf der Weltkarte, damit möglichst wenige Namen übereinanderfallen.
+            // Kollisionsauflösung verteilt beide.
             for (m in b.countryMarkers) {
-                val w = cachedTextWidth(countryLabelPaint, false, m.label)
+                val w = countryLabelPaint.measureText(m.label)
                 val cfm = countryLabelPaint.fontMetrics
-                val cTextH = cfm.descent - cfm.ascent
+                val textH = cfm.descent - cfm.ascent
                 val placed = collision.place(
                     m.x - w / 2f,
-                    m.y - cfm.ascent + cTextH / 2f,
-                    w, cTextH,
-                    2f * density, cTextH * 0.9f, 3,
+                    m.y - cfm.ascent + textH / 2f,
+                    w, textH,
+                    2f * density, textH * 0.9f, 2,
                     null,
                     width.toFloat(), height.toFloat()
                 )
@@ -1201,14 +915,14 @@ class GlobeView @JvmOverloads constructor(
             }
             val dotR = 1.6f * density
             for (m in b.cityMarkers) {
-                val w = cachedTextWidth(cityLabelPaint, m.capital, m.label)
+                val w = cityLabelPaint.measureText(m.label)
                 val cfm = cityLabelPaint.fontMetrics
-                val cTextH = cfm.descent - cfm.ascent
+                val textH = cfm.descent - cfm.ascent
                 val placed = collision.place(
                     m.x + dotR + 2.5f * density,
-                    m.y - cfm.ascent + cTextH / 2f,
-                    w, cTextH,
-                    2f * density, cTextH * 0.9f, 3,
+                    m.y - cfm.ascent + textH / 2f,
+                    w, textH,
+                    2f * density, textH * 0.9f, 2,
                     m.x - dotR - 2.5f * density - w,
                     width.toFloat(), height.toFloat()
                 )
@@ -1328,7 +1042,6 @@ class GlobeView @JvmOverloads constructor(
                 stopFling()
                 focusAnim?.cancel()
                 focusAnim = null
-                gestureActive = true
                 touchIndex = 0
                 touchX = event.getX(0)
                 touchY = event.getY(0)
@@ -1376,19 +1089,12 @@ class GlobeView @JvmOverloads constructor(
                 return true
             }
             MotionEvent.ACTION_UP -> {
-                if (!scaled && draggedPx > touchSlopPx()) {
-                    startFling() // setzt gestureActive selbst, bis der Fling ausläuft
-                } else {
-                    gestureActive = false
-                    scheduleRebuild()
-                    if (!scaled && draggedPx <= touchSlopPx()) performClick()
-                }
+                if (!scaled && draggedPx > touchSlopPx()) startFling()
+                if (!scaled && draggedPx <= touchSlopPx()) performClick()
                 return true
             }
             MotionEvent.ACTION_CANCEL -> {
                 stopFling()
-                gestureActive = false
-                scheduleRebuild()
                 return true
             }
         }
@@ -1416,8 +1122,6 @@ class GlobeView @JvmOverloads constructor(
             val dy = velocityY * dt / 16f
             if (abs(dx) < 0.02f && abs(dy) < 0.02f) {
                 flingActive = false
-                gestureActive = false
-                scheduleRebuild()
                 return
             }
             rotate(dx, dy)
@@ -1431,16 +1135,11 @@ class GlobeView @JvmOverloads constructor(
         if (abs(velocityX) < 40f && abs(velocityY) < 40f) return
         if (flingActive) return
         flingActive = true
-        gestureActive = true
         postOnAnimationDelayed(flingTick, 16)
     }
 
     private fun stopFling() {
-        if (flingActive) {
-            flingActive = false
-            gestureActive = false
-            scheduleRebuild()
-        }
+        flingActive = false
         removeCallbacks(flingTick)
     }
 
@@ -1519,7 +1218,6 @@ class GlobeView @JvmOverloads constructor(
 
     // ---------------------------------------------------------------- Eigendrehung
 
-    @Volatile
     private var autoRotateActive = false
 
     private val autoRotateTick = object : Runnable {
@@ -1529,12 +1227,8 @@ class GlobeView @JvmOverloads constructor(
             val dt = if (lastAutoRotateMs == 0L) 16L else (now - lastAutoRotateMs).coerceIn(1L, 100L)
             lastAutoRotateMs = now
             centerLonRad = (centerLonRad + AUTO_ROTATE_RAD_PER_MS * dt) % (2 * Math.PI)
-            if (centerLonRad < 0.0) centerLonRad += 2 * Math.PI
             scheduleRebuild()
-            // postOnAnimation (Choreographer) statt festem 33-ms-Timer: Der Tick
-            // läuft damit im VSync-Takt des Displays (60/120 Hz) und die Drehung
-            // der Kachel bleibt gleichmäßig statt in 30-Hz-Schritten zu ruckeln.
-            if (autoRotateActive) postOnAnimation(this)
+            if (autoRotateActive) postOnAnimationDelayed(this, 33)
         }
     }
 
@@ -1554,7 +1248,7 @@ class GlobeView @JvmOverloads constructor(
         autoRotateActive = should
         if (should) {
             lastAutoRotateMs = 0L
-            postOnAnimation(autoRotateTick)
+            postOnAnimationDelayed(autoRotateTick, 33)
         } else {
             removeCallbacks(autoRotateTick)
         }
@@ -1570,6 +1264,7 @@ class GlobeView @JvmOverloads constructor(
 
     companion object {
         private const val ZERO_EPS = 1e-9
+        private const val ARC_STEP = 0.06
 
         /** Rand der Kugel im Ausgangszustand (Anteil am Halbmesser). */
         const val GLOBE_MARGIN = 0.04f
@@ -1586,36 +1281,26 @@ class GlobeView @JvmOverloads constructor(
         /**
          * Beschriftungsstufen je Zoom (Zoom-Knopf = Faktor 1,6, also Stufe 1
          * ab ca. 3× Plus - der Maßstab zeigt dann erstmals 500 km): Stufe 1
-         * Ländernamen und Hauptstädte (unterstrichen), Stufe 2 eine Zoomstufe
-         * früher als zuvor ab ca. 5× Plus (Maßstab ~1.250 km) zusätzlich die
-         * größten Städte (Rang 0), Stufe 3 ab ca. 7× Plus (Maßstab ~160 km)
-         * alle übrigen Großstädte des Assets (Rang bis 3, also z. B. Hamburg,
-         * Dresden, München, Stuttgart oder Flensburg in Deutschland und
-         * Bukhara, Samarkand oder Khiva in Usbekistan) - beschränkt auf die
-         * tatsächlich sichtbaren (Bildschirm) und höchstens [CITY_LABEL_MAX_MORE].
+         * Ländernamen und Hauptstädte (unterstrichen), Stufe 2 ab ca. 5× Plus
+         * (Maßstab ~1.250 km) zusätzlich die größten Städte (Rang 0), Stufe 3
+         * ab ca. 7× Plus (Maßstab ~160 km) alle übrigen Großstädte des Assets
+         * (Rang bis 3, also z. B. Hamburg, Flensburg, Samarkand, Khiva, Almaty)
+         * - beschränkt auf die tatsächlich sichtbaren (Bildschirm) und
+         * höchstens [CITY_LABEL_MAX_MORE].
          */
         const val ZOOM_COUNTRY_LABELS = 4.0f
         const val ZOOM_CITIES = 10.4f
         const val ZOOM_MORE_CITIES = 26.8f
 
+        /** Punkte pro Landring in der Kachel-Vorschau (dezimiert, siehe [decimate]). */
+        const val PREVIEW_RING_POINTS = 40
+
+        /** Punkte pro Route in der Kachel-Vorschau. */
+        const val PREVIEW_ROUTE_POINTS = 24
+
         /** Höchstzahl der Städtebeschriftungen (Stufe 1+2 bzw. Stufe 3). */
         const val CITY_LABEL_MAX = 60
         const val CITY_LABEL_MAX_MORE = 150
-
-        /**
-         * Globales Punkt-Kontingent pro Kugel-Aufbau: Begrenzt den Aufwand beim
-         * Drehen/Zoomen. Wird es überschritten, werden ALLE Ring-Budgets
-         * proportional skaliert (nie einzelne Länder auf wenige Punkte drücken).
-         */
-        const val MAX_BUILD_POINTS = 200_000
-
-        // Punktkontingent während einer Geste: 60k Punkte projizieren reicht für
-        // flüssiges Drehen (danach wird auf MAX_BUILD_POINTS nachgebaut).
-        const val MAX_BUILD_POINTS_GESTURE = 60_000
-
-        // Obergrenze für den Dezimierungs-Cache (Punkte, nicht Bytes): ca. 400k
-        // Punkte sind ~10 MB - genug für alle Ringe der aktuellen Toleranzstufen.
-        private const val DECIMATE_CACHE_MAX_POINTS = 400_000
 
         /** Beschriftungsstufe zur Zoomstufe [zoom] (0 = keine, reine Kugel). */
         fun labelTier(zoom: Float): Int = when {

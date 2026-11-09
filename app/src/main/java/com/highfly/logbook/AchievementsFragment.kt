@@ -1,5 +1,6 @@
 package com.highfly.logbook
 
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -7,6 +8,7 @@ import android.view.ViewGroup
 import androidx.core.os.bundleOf
 import androidx.core.view.isEmpty
 import androidx.navigation.fragment.findNavController
+import com.google.android.material.color.MaterialColors
 import com.highfly.logbook.databinding.FragmentAchievementsBinding
 import com.highfly.logbook.databinding.ItemAchievementTimelineBinding
 import com.highfly.logbook.databinding.ItemAchievementYearBinding
@@ -126,7 +128,32 @@ class AchievementsFragment : LogbookFragment() {
                 layoutInflater, binding.achTimeline, false
             )
             row.ivAchievementDot.setImageResource(item.definition.iconRes)
-            row.tvAchievementTitle.text = item.definition.title(context)
+            // Dienstlich/privat farblich kennzeichnen: der Punkt des auslösenden
+            // Flugs ist in der Akzentfarbe (dienstlich) bzw. Tertiärfarbe (privat).
+            val business = item.isBusiness
+            val dotBg = MaterialColors.getColor(
+                row.root,
+                if (business) {
+                    com.google.android.material.R.attr.colorPrimary
+                } else {
+                    com.google.android.material.R.attr.colorTertiary
+                }
+            )
+            val dotFg = MaterialColors.getColor(
+                row.root,
+                if (business) {
+                    com.google.android.material.R.attr.colorOnPrimary
+                } else {
+                    com.google.android.material.R.attr.colorOnTertiary
+                }
+            )
+            row.ivAchievementDot.backgroundTintList = ColorStateList.valueOf(dotBg)
+            row.ivAchievementDot.imageTintList = ColorStateList.valueOf(dotFg)
+            val title = item.title(context)
+            row.tvAchievementTitle.text = title
+            row.root.contentDescription = title + META_SEPARATOR + getString(
+                if (business) R.string.ach_badge_duty else R.string.ach_badge_private
+            )
             row.tvAchievementRoute.text = getString(
                 R.string.achievements_timeline_route,
                 item.entry.fromAirport.uppercase(),

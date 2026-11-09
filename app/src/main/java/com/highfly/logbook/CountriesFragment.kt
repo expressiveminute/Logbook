@@ -180,8 +180,16 @@ class CountriesFragment : LogbookFragment() {
             val entries = LogbookRepository.getFlownEntries()
             val german = useGermanNames(locale)
             val collator = Collator.getInstance(locale)
+            // Länder-Kacheln ohne Staaten im Asset (z. B. Australien,
+            // Großbritannien) zeigen statt der Staatenliste das Land selbst.
+            val states = if (statesCountry != null) {
+                StateShapes.load(appContext).orEmpty().filter { it.iso2 == statesCountry }
+            } else {
+                emptyList()
+            }
+            val useStates = statesCountry != null && states.isNotEmpty()
             val items = shapes?.let { list ->
-                if (statesCountry != null) {
+                if (useStates) {
                     null // Staaten-Modus, siehe unten
                 } else {
                     val flightIso2 = RubbelkarteStats.summarize(entries) { iata ->
@@ -195,12 +203,12 @@ class CountriesFragment : LogbookFragment() {
                         collator = collator,
                         continent = continent,
                         hiddenIso2 = Settings.getHiddenCountries(appContext)
-                    )
+                    ).let { built ->
+                        if (statesCountry != null) built.filter { it.iso2 == statesCountry } else built
+                    }
                 }
             }
-            val stateRows = if (statesCountry != null) {
-                val states = StateShapes.load(appContext).orEmpty()
-                    .filter { it.iso2 == statesCountry }
+            val stateRows = if (useStates) {
                 val flown = RubbelkarteStats.summarize(entries) { iata ->
                     AirportData.country(appContext, iata)
                 }.countries

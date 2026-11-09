@@ -60,7 +60,8 @@ object Achievements {
         ON_DUTY,
         DEADHEAD,
         LAYOVER,
-        FUNCTION
+        FUNCTION,
+        MAIN_AIRLINE
     }
 
     /** Bordfunktionen, an die ein Erfolg hängt, siehe [crewFunctionOf]. */
@@ -132,8 +133,35 @@ object Achievements {
     data class Reached(
         val definition: Definition,
         val date: LocalDate,
-        val entry: LogbookEntry
-    )
+        val entry: LogbookEntry,
+        /**
+         * Dynamisches Titel-Argument (z. B. der Name der Hauptairline), wenn
+         * weder [Definition.number] noch [Definition.labelRes] greifen.
+         */
+        val label: String? = null
+    ) {
+        /**
+         * Titel in der Sprache der App: mit [label] als Argument, sonst wie
+         * [Definition.title].
+         */
+        fun title(context: Context): String = when {
+            label != null && definition.number != null -> context.getString(
+                definition.titleRes,
+                String.format(Settings.language(context), "%,d", definition.number),
+                label
+            )
+            label != null -> context.getString(definition.titleRes, label)
+            else -> definition.title(context)
+        }
+
+        /**
+         * War der auslösende Flug dienstlich (On Duty, Deadhead, Dienstreise -
+         * alles außer Privat)? Steuert die farbliche Kennzeichnung in Zeitstrahl
+         * und Übersicht.
+         */
+        val isBusiness: Boolean
+            get() = ChartData.normalizeFlightType(entry.flightType) in ChartData.DUTY_CANONICALS
+    }
 
     /**
      * Ergebnis einer Auswertung: [definitions] sind alle für die Rolle
@@ -223,7 +251,7 @@ object Achievements {
                     id = "airlines_$count",
                     category = Category.AIRLINES,
                     titleRes = R.string.ach_airlines,
-                    iconRes = R.drawable.ic_airlines,
+                    iconRes = R.drawable.ic_groups,
                     kind = Kind.AIRLINE_COUNT,
                     number = count
                 )
@@ -276,7 +304,7 @@ object Achievements {
                 id = "duration_over_10h",
                 category = Category.TIME,
                 titleRes = R.string.ach_duration_over_10h,
-                iconRes = R.drawable.ic_time,
+                iconRes = R.drawable.ic_hourglass,
                 kind = Kind.DURATION,
                 minMinutes = DURATION_OVER_10H_MIN
             )
@@ -286,7 +314,7 @@ object Achievements {
                 id = "duration_over_15h",
                 category = Category.TIME,
                 titleRes = R.string.ach_duration_over_15h,
-                iconRes = R.drawable.ic_time,
+                iconRes = R.drawable.ic_hourglass,
                 kind = Kind.DURATION,
                 minMinutes = DURATION_OVER_15H_MIN
             )
@@ -296,7 +324,7 @@ object Achievements {
                 id = "duration_under_1h",
                 category = Category.TIME,
                 titleRes = R.string.ach_duration_under_1h,
-                iconRes = R.drawable.ic_time,
+                iconRes = R.drawable.ic_flash,
                 kind = Kind.DURATION,
                 maxMinutes = DURATION_UNDER_1H_MIN
             )
@@ -335,7 +363,7 @@ object Achievements {
                     id = "continent_first_$continent",
                     category = Category.CONTINENTS,
                     titleRes = Continents.nameRes(continent),
-                    iconRes = R.drawable.ic_earth,
+                    iconRes = R.drawable.ic_flag,
                     kind = Kind.CONTINENT_FIRST,
                     continent = continent
                 )
@@ -411,7 +439,7 @@ object Achievements {
                 id = "crew_function_purser_i",
                 category = Category.CREW,
                 titleRes = R.string.ach_crew_purser_i,
-                iconRes = R.drawable.ic_function,
+                iconRes = R.drawable.ic_star,
                 kind = Kind.FUNCTION,
                 crewFunction = CrewFunction.PURSER_I,
                 crewOnly = true
@@ -422,7 +450,7 @@ object Achievements {
                 id = "crew_function_purser_ii",
                 category = Category.CREW,
                 titleRes = R.string.ach_crew_purser_ii,
-                iconRes = R.drawable.ic_function,
+                iconRes = R.drawable.ic_verified,
                 kind = Kind.FUNCTION,
                 crewFunction = CrewFunction.PURSER_II,
                 crewOnly = true
@@ -456,9 +484,9 @@ object Achievements {
         val reached = mutableListOf<Reached>()
         val done = mutableSetOf<String>()
 
-        fun reach(definition: Definition, entry: LogbookEntry) {
+        fun reach(definition: Definition, entry: LogbookEntry, label: String? = null) {
             if (done.add(definition.id)) {
-                reached.add(Reached(definition, entry.date, entry))
+                reached.add(Reached(definition, entry.date, entry, label))
             }
         }
 
@@ -466,6 +494,53 @@ object Achievements {
         definitions.filter { it.kind == Kind.FLIGHT_COUNT }.forEach { definition ->
             val count = definition.number ?: return@forEach
             chrono.getOrNull(count - 1)?.let { reach(definition, it) }
+        }
+
+        // Hauptairline: die Fluggesellschaft mit den meisten Flügen bekommt
+        // dieselben Meilensteine wie die Flugzahl - "1. Flug mit LH",
+        // "10. Flug mit LH" usw. (Definitionen entstehen dynamisch, weil die
+        // Hauptairline erst aus den Einträgen hervorgeht; bei Gleichstand gewinnt
+        // die Airline, die die Höchstzahl zuerst erreicht). Anzeigename ist die
+        // erste Schreibweise im Logbuch.
+        val mainAirlineDefs = mutableListOf<Definition>()
+        val counts = HashMap<String, Int>()
+        val rawOf = HashMap<String, String>()
+        var mainKey: String? = null
+        var mainCount = 0
+        chrono.forEach { entry ->
+            val raw = entry.airline?.trim()?.takeIf { it.isNotEmpty() } ?: return@forEach
+            val key = raw.lowercase()
+            val count = (counts[key] ?: 0) + 1
+            counts[key] = count
+            rawOf.putIfAbsent(key, raw)
+            if (count > mainCount) {
+                mainCount = count
+                mainKey = key
+            }
+        }
+        val mainLabel = mainKey?.let { rawOf[it] }
+        if (mainKey != null && mainLabel != null) {
+            FLIGHT_MILESTONES.filter { it <= mainCount }.forEach { milestone ->
+                mainAirlineDefs += Definition(
+                    id = "main_flight_$milestone",
+                    category = Category.FLIGHTS,
+                    titleRes = R.string.ach_main_flight_milestone,
+                    iconRes = R.drawable.ic_airlines,
+                    kind = Kind.MAIN_AIRLINE,
+                    number = milestone
+                )
+            }
+            // Erreicht am n-ten Flug der Hauptairline.
+            val perAirline = HashMap<String, Int>()
+            chrono.forEach { entry ->
+                val raw = entry.airline?.trim()?.takeIf { it.isNotEmpty() } ?: return@forEach
+                val key = raw.lowercase()
+                if (key != mainKey) return@forEach
+                val count = (perAirline[key] ?: 0) + 1
+                perAirline[key] = count
+                mainAirlineDefs.firstOrNull { it.number == count }
+                    ?.let { reach(it, entry, mainLabel) }
+            }
         }
 
         // Fluggesellschaften: sobald so viele verschiedene zusammenkommen.
@@ -610,7 +685,8 @@ object Achievements {
             }
         }
 
-        return Result(definitions, reached)
+        // Die dynamischen Hauptairline-Meilensteine gehören zur Gesamtliste dazu.
+        return Result(definitions + mainAirlineDefs, reached)
     }
 
     /**

@@ -69,7 +69,11 @@ object AirlineCatalog {
                 }
                 val info = Info(iata, icao, name, file)
                 all += info
-                byIata[iata] = info
+                // Mehrere Airlines können sich einen IATA-Code teilen (z. B.
+                // AZ: Alitalia und ITA Airways, DI: Marabu und dba): Der erste
+                // Eintrag im Katalog bleibt der kanonische fuer den Code, die
+                // übrigen sind Varianten (siehe [variantsOf]).
+                byIata.putIfAbsent(iata, info)
                 if (icao != null) {
                     byIcao.putIfAbsent(icao, info)
                 }
@@ -106,6 +110,17 @@ object AirlineCatalog {
     fun all(context: Context): List<Info> {
         ensureLoaded(context)
         return infos.orEmpty()
+    }
+
+    /**
+     * Alle Varianten eines IATA-Codes in Katalogreihenfolge: Airlines, die sich
+     * den Code teilen (z. B. AZ: Alitalia und ITA Airways). Der erste Eintrag
+     * ist der kanonische (siehe [info]); bei nur einem Eintrag eine Einerliste.
+     */
+    fun variantsOf(context: Context, iata: String): List<Info> {
+        ensureLoaded(context)
+        val key = iata.trim().uppercase()
+        return infos.orEmpty().filter { it.iata == key }
     }
 
     /**
@@ -147,6 +162,17 @@ object AirlineCatalog {
     fun loadLogo(context: Context, iata: String): Bitmap? {
         ensureLoaded(context)
         val file = fileByIata?.get(iata.uppercase()) ?: return null
+        return loadLogoFile(context, file)
+    }
+
+    /** Lädt das Logo genau des übergebenen Katalogeintrags (auch Varianten). */
+    fun loadLogoFor(context: Context, info: Info): Bitmap? {
+        ensureLoaded(context)
+        val file = info.file ?: return null
+        return loadLogoFile(context, file)
+    }
+
+    private fun loadLogoFile(context: Context, file: String): Bitmap? {
         bitmapCache.get(file)?.let { return it }
         return try {
             val bitmap = context.assets.open("airlines/$file").use {

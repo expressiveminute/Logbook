@@ -151,31 +151,36 @@ class DiscoveryAdapter(
         /**
          * Richtungspfeile mit ihren Daten: Wurde die Strecke an zwei
          * verschiedenen Tagen zum ersten Mal hin und zurück geflogen, steht
-         * der Hin-Pfeil vor dem Hinflug-Datum und der gespiegelte Rück-Pfeil
-         * vor dem Rückflug-Datum ([tv_discovery_date_back]); am selben Tag
-         * ein einzelnes Symbol mit zwei Pfeilen in Gegenrichtung vor dem einen
-         * Datum. Ohne Rückflug bleiben Pfeile und zweites Datum frei.
+         * der Hin-Pfeil vor dem Hinflug-Datum, dann ein Punkt, dann der
+         * gespiegelte Rück-Pfeil vor dem Rückflug-Datum
+         * ([tv_discovery_date_back]); am selben Tag ein einzelnes Symbol mit
+         * zwei Pfeilen in Gegenrichtung vor dem einen Datum. Ohne Rückflug
+         * bleiben Pfeile, Punkt und zweites Datum frei.
          */
         private fun bindDirectionArrows(route: RouteDiscovery) {
             val arrow = binding.ivDiscoveryArrow
+            val sep = binding.tvDiscoveryDateSep
             val back = binding.ivDiscoveryArrowBack
             val dateBack = binding.tvDiscoveryDateBack
             val returnDate = route.returnDate
             when {
                 returnDate == null -> {
                     arrow.visibility = View.GONE
+                    sep.visibility = View.GONE
                     back.visibility = View.GONE
                     dateBack.visibility = View.GONE
                 }
                 route.isSameDayRoundTrip -> {
                     arrow.setImageResource(R.drawable.ic_arrows_roundtrip)
                     arrow.visibility = View.VISIBLE
+                    sep.visibility = View.GONE
                     back.visibility = View.GONE
                     dateBack.visibility = View.GONE
                 }
                 else -> {
                     arrow.setImageResource(R.drawable.ic_arrow_route)
                     arrow.visibility = View.VISIBLE
+                    sep.visibility = View.VISIBLE
                     back.visibility = View.VISIBLE
                     dateBack.visibility = View.VISIBLE
                     dateBack.text = returnDate.format(dateFormatter)
@@ -183,11 +188,7 @@ class DiscoveryAdapter(
             }
         }
 
-        /**
-         * Datum des Erstdurchflugs (Hinflug); bei einem Rückflug an einem
-         * anderen Tag steht dessen Datum neben dem Rück-Pfeil in
-         * [bindDirectionArrows].
-         */
+        /** Datum des Erstdurchflugs (Hinflug); das Rückflug-Datum steht separat daneben. */
         private fun dateText(route: RouteDiscovery): String =
             route.date.format(dateFormatter)
 

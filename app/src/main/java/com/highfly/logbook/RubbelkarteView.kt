@@ -200,10 +200,9 @@ class RubbelkarteView @JvmOverloads constructor(
         const val ZOOM_DOPPELTIPP = 1.8f
 
         /**
-         * Anteil der View-Höhe, um den die Kugel bei geöffneter halbhoher Seite
-         * nach oben rutscht (siehe [centerShiftFor]). Deckel auf GLOBE_MARGIN/2:
-         * Bei FIT-Zoom (Region = (1-GLOBE_MARGIN)/2 der kleineren Seite um die
-         * Kugelmitte) schneidet mehr oben ab, als unten frei wird.
+         * Anteil der View-Höhe, um den die Kugel bei geöffneter Seite unten über
+         * die Mitte des sichtbaren Streifens hinaus nach oben rutscht (siehe
+         * [centerShiftFor]), damit sie unten nicht in die Seite hineinragt.
          */
         const val PAGE_OPEN_UP_FRACTION = GLOBE_MARGIN / 2f
 
@@ -218,9 +217,12 @@ class RubbelkarteView @JvmOverloads constructor(
          * Ohne offene Seite steht die Kugel in der Bildschirmmitte - solange die
          * innerhalb der View liegt, sonst in der View-Mitte. Mit offener Seite
          * läge die Bildschirmmitte im verdeckten Bereich: Die Kugel nimmt dann
-         * die Mitte des sichtbaren Streifens und rutscht davon noch bis zu
-         * [PAGE_OPEN_UP_FRACTION] der View-Höhe nach oben, damit sie unten nicht
-         * in die Seite hineinragt.
+         * die Mitte des sichtbaren Streifens über der Seite und rutscht davon
+         * noch bis zu [PAGE_OPEN_UP_FRACTION] der View-Höhe nach oben, damit sie
+         * unten nicht in die Seite hineinragt. Der Zoom wird passend dazu über
+         * [zoomForCover] kleiner gerechnet, damit die angefahrene Region ganz in
+         * den sichtbaren Streifen passt (sonst wäre z. B. Deutschland unten
+         * abgeschnitten).
          */
         fun centerShiftFor(
             viewTop: Float,
@@ -234,10 +236,31 @@ class RubbelkarteView @JvmOverloads constructor(
             val want = if (cover <= 0f && screenCenter in viewTop..(viewTop + viewHeight)) {
                 screenCenter
             } else {
+                val stripHeight = (viewHeight - cover).coerceAtLeast(0f)
                 val up = minOf(viewHeight * PAGE_OPEN_UP_FRACTION, cover * PAGE_OPEN_COVER_FRACTION)
-                viewTop + viewHeight / 2f - up
+                viewTop + stripHeight / 2f - up
             }
             return want - viewTop - viewHeight / 2f
+        }
+
+        /**
+         * Zoom-Anpassung bei geöffneter Seite unten ([coverPx] > 0): Die Kugelmitte
+         * sitzt in der Mitte des sichtbaren Streifens (siehe [centerShiftFor]),
+         * drum herum steht nur dessen halbe Höhe an Platz. Beim FIT-Zoom
+         * ([MapFocus], FIT = 1) reicht die projizierte Region genau bis
+         * base = min(w,h)·(1-GLOBE_MARGIN)/2 vom Zentrum - der Zoom wird daher um
+         * maxExtent/base kleiner skaliert, wenn der sichtbare Streifen schmaler
+         * ist, damit kein Landesteil hinter der Seite verschwindet.
+         */
+        fun zoomForCover(zoom: Float, viewW: Int, viewH: Int, coverPx: Int): Float {
+            if (coverPx <= 0 || viewW <= 0 || viewH <= 0) return zoom
+            val base = min(viewW, viewH) * (1f - GLOBE_MARGIN) / 2f
+            if (base <= 0f) return zoom
+            val rut = minOf(viewH * PAGE_OPEN_UP_FRACTION, coverPx * PAGE_OPEN_COVER_FRACTION)
+            val stripHalf = ((viewH - coverPx).coerceAtLeast(0) / 2f - rut)
+            val maxExtent = minOf(stripHalf, viewW / 2f)
+            if (maxExtent >= base) return zoom
+            return zoom * (maxExtent / base)
         }
 
         /**
@@ -994,7 +1017,9 @@ class RubbelkarteView @JvmOverloads constructor(
      * auf das fertige Ziel drauf - das Land läge dann daneben.
      */
     fun zoomTo(lat: Double, lon: Double, targetZoom: Float) {
-        val toZoom = clampZoom(targetZoom)
+        // Ist unten die Seite offen, wird der Zoom so klein gerechnet, dass die
+        // Region in den sichtbaren Streifen passt (siehe companion.zoomForCover).
+        val toZoom = clampZoom(zoomForCover(clampZoom(targetZoom), width, height, bottomCoverPx))
         val state = liveState()
         val fromLat = if (state != null) Math.toDegrees(state.globe.centerLat) else DEFAULT_CENTER_LAT
         val fromLon =

@@ -73,6 +73,23 @@
             android:paddingTop="4dp"
             android:paddingBottom="32dp">
 
+            <!-- Varianten-Auswahl: teilt sich die Airline den IATA-Code mit
+                 einer anderen (z. B. AZ: Alitalia / ITA Airways, DI: Marabu /
+                 dba), erscheint oben ein Auswahlmenü; nur sichtbar bei mehr
+                 als einer Variante. -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_airline_variant"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="8dp"
+                android:visibility="gone"
+                app:icon="@drawable/ic_expand"
+                app:iconGravity="textEnd"
+                tools:visibility="visible"
+                tools:text="Alitalia" />
+
             <!-- Kopfbereich: mittig zentriert das Logo der Airline; gibt es
                  keines, tritt an seine Stelle der Code gross - wie auf der
                  Flughafen-Detailseite. -->

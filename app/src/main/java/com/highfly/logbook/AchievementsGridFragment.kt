@@ -75,15 +75,39 @@ class AchievementsGridFragment : LogbookFragment() {
 
         val container = binding.achGridContainer
         container.removeAllViews()
-        val reachedIds = result.reachedIds
+        // Erreichte Erfolge samt auslösendem Flug, für Farbcodierung und Klick.
+        val reachedById = result.reached.associateBy { it.definition.id }
         Achievements.Category.entries.forEach { category ->
             val definitions = result.definitions.filter { it.category == category }
             if (definitions.isEmpty()) return@forEach
             container.addView(categoryHeading(getString(category.titleRes)))
-            definitions.chunked(GRID_COLUMNS).forEach { chunk ->
-                container.addView(gridRow(chunk, reachedIds))
+            chunkGrid(definitions).forEach { chunk ->
+                container.addView(gridRow(chunk, reachedById))
             }
         }
+    }
+
+    /**
+     * Zeilen der Übersicht: höchstens [GRID_COLUMNS] Kacheln pro Zeile, und die
+     * Hauptairline-Meilensteine („n. Flug mit X“) fangen in einer **neuen Zeile**
+     * an, statt mit den normalen Flugmeilensteinen gemischt zu werden.
+     */
+    private fun chunkGrid(definitions: List<Achievements.Definition>): List<List<Achievements.Definition>> {
+        val out = mutableListOf<List<Achievements.Definition>>()
+        var current = mutableListOf<Achievements.Definition>()
+        for (definition in definitions) {
+            val newRowForMainAirline =
+                definition.kind == Achievements.Kind.MAIN_AIRLINE &&
+                    current.isNotEmpty() &&
+                    current.last().kind != Achievements.Kind.MAIN_AIRLINE
+            if (newRowForMainAirline || current.size >= GRID_COLUMNS) {
+                out.add(current)
+                current = mutableListOf()
+            }
+            current.add(definition)
+        }
+        if (current.isNotEmpty()) out.add(current)
+        return out
     }
 
     /** Überschrift einer Kategorie, mit Abstand zur vorigen Gruppe. */
@@ -103,28 +127,59 @@ class AchievementsGridFragment : LogbookFragment() {
     /** Eine Zeile mit höchstens fünf Kacheln; fehlende Plätze bleiben leer. */
     private fun gridRow(
         definitions: List<Achievements.Definition>,
-        reachedIds: Set<String>
+        reachedById: Map<String, Achievements.Reached>
     ): LinearLayout {
         val row = LinearLayout(requireContext()).apply {
             orientation = LinearLayout.HORIZONTAL
         }
         definitions.forEach { definition ->
-            val reached = definition.id in reachedIds
+            val reached = reachedById[definition.id]
             val tile = layoutInflater.inflate(R.layout.item_achievement_tile, row, false)
-            val title = definition.title(requireContext())
-            tile.findViewById<ImageView>(R.id.iv_ach_tile_icon).apply {
-                setImageResource(definition.iconRes)
-                imageTintList = ColorStateList.valueOf(
-                    color(if (reached) COLOR_PRIMARY else COLOR_ON_SURFACE_VARIANT)
+            val context = requireContext()
+            val title = reached?.title(context) ?: definition.title(context)
+            if (reached != null) {
+                // Erreichte Kachel: das Icon selbst trägt die Farbe des
+                // auslösenden Flugs - Primär (dienstlich) bzw. Tertiär (privat).
+                val business = reached.isBusiness
+                tile.background = null
+                tile.findViewById<ImageView>(R.id.iv_ach_tile_icon).apply {
+                    setImageResource(definition.iconRes)
+                    imageTintList = ColorStateList.valueOf(
+                        color(if (business) COLOR_PRIMARY else COLOR_TERTIARY)
+                    )
+                }
+                tile.findViewById<TextView>(R.id.tv_ach_tile_title).apply {
+                    text = title
+                    setTextColor(color(COLOR_ON_SURFACE))
+                }
+                tile.alpha = 1f
+                tile.isClickable = true
+                tile.isFocusable = true
+                // Druckeffekt wie auf den Zeitstrahl-Zeilen.
+                val ripple = android.util.TypedValue()
+                context.theme.resolveAttribute(android.R.attr.selectableItemBackground, ripple, true)
+                tile.foreground = androidx.core.content.ContextCompat.getDrawable(
+                    context, ripple.resourceId
                 )
+                tile.setOnClickListener { openEditEntry(reached.entry) }
+                tile.contentDescription = title + " · " + context.getString(
+                    if (business) R.string.ach_badge_duty else R.string.ach_badge_private
+                )
+            } else {
+                tile.background = null
+                tile.findViewById<ImageView>(R.id.iv_ach_tile_icon).apply {
+                    setImageResource(definition.iconRes)
+                    imageTintList = ColorStateList.valueOf(color(COLOR_ON_SURFACE_VARIANT))
+                }
+                tile.findViewById<TextView>(R.id.tv_ach_tile_title).apply {
+                    text = title
+                    setTextColor(color(COLOR_ON_SURFACE_VARIANT))
+                }
+                // Offene Erfolge treten zurück, erreichte stehen farbig da.
+                tile.alpha = DIMMED_ALPHA
+                tile.isClickable = false
+                tile.contentDescription = title
             }
-            tile.findViewById<TextView>(R.id.tv_ach_tile_title).apply {
-                text = title
-                setTextColor(color(if (reached) COLOR_ON_SURFACE else COLOR_ON_SURFACE_VARIANT))
-            }
-            // Offene Erfolge treten zurück, erreichte stehen farbig da.
-            tile.alpha = if (reached) 1f else DIMMED_ALPHA
-            tile.contentDescription = title
             row.addView(
                 tile,
                 LinearLayout.LayoutParams(
@@ -138,6 +193,14 @@ class AchievementsGridFragment : LogbookFragment() {
             row.addView(Space(requireContext()), LinearLayout.LayoutParams(0, 1, 1f))
         }
         return row
+    }
+
+    /** Erreichter Erfolg antippen: auslösenden Eintrag zum Bearbeiten öffnen. */
+    private fun openEditEntry(entry: LogbookEntry) {
+        findNavController().navigate(
+            R.id.action_achievements_grid_to_add_entry,
+            androidx.core.os.bundleOf("entryId" to (entry.id ?: -1L))
+        )
     }
 
     private fun color(attr: Int): Int = MaterialColors.getColor(_binding!!.root, attr)
@@ -155,6 +218,7 @@ class AchievementsGridFragment : LogbookFragment() {
         const val DIMMED_ALPHA = 0.45f
 
         val COLOR_PRIMARY = com.google.android.material.R.attr.colorPrimary
+        val COLOR_TERTIARY = com.google.android.material.R.attr.colorTertiary
         val COLOR_ON_SURFACE = com.google.android.material.R.attr.colorOnSurface
         val COLOR_ON_SURFACE_VARIANT =
             com.google.android.material.R.attr.colorOnSurfaceVariant

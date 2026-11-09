@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Vertikaler Griff-Strich oben an der eingebetteten Seite der Rubbelkarte
+<!-- Waagerechter Griff-Strich oben an der eingebetteten Seite der Rubbelkarte
      (Bottom-Sheet-Griff); die Tönung setzt CountriesFragment auf
      colorOnSurfaceVariant. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"

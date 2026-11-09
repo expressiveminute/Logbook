@@ -1,6 +1,7 @@
 package com.highfly.logbook
 
 import android.content.Context
+import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
@@ -42,6 +43,13 @@ class EntryListAdapter(
 
     var entries: List<LogbookEntry> = emptyList()
     var schemeColors: List<Int> = emptyList()
+
+    /**
+     * Erfolge, die ein Eintrag ausgelöst hat: Entry-ID -> Liste der Definitionen
+     * (Icon + Titel). In der Zeile erscheint rechts neben der Reiseart eine
+     * schief gedrehte Medaille mit dem Icon des ersten Erfolgs.
+     */
+    var achievementMedals: Map<Long, List<Achievements.Definition>> = emptyMap()
 
     private var rows: List<EntryRow> = emptyList()
 
@@ -388,6 +396,20 @@ class EntryListAdapter(
         item.itemFlightType.setTextColor(if (upcoming) grayTone else MaterialColors.getColor(
             item.itemFlightType, com.google.android.material.R.attr.colorOnSurfaceVariant
         ))
+
+        // Achievement-Medaille rechts neben der Reiseart, wenn der Flug einen
+        // Erfolg ausgelöst hat: der Pokal der Achievements-Kachel (fixes Icon),
+        // die Titel aller ausgelösten Erfolge stehen in der Description.
+        val medals = entry.id?.let { achievementMedals[it] }
+        if (medals.isNullOrEmpty()) {
+            item.ivAchievementMedal.visibility = View.GONE
+        } else {
+            item.ivAchievementMedal.visibility = View.VISIBLE
+            item.ivAchievementMedal.contentDescription = context.getString(
+                R.string.entry_achievement_medal_desc,
+                medals.joinToString(", ") { it.title(context) }
+            )
+        }
 
         // Die Layover-Uhr erscheint nur, wenn fuer den Flug eine Dauer
         // eingetragen ist. Sie steht links neben dem Reisebuddy-Symbol; ohne

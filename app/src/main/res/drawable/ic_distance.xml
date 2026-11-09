@@ -1,3 +1,5 @@
+<!-- Gesamtdistanz („einmal um die Welt“): Globus mit Orbit-Ring - zwei getrennte
+     Pfade mit evenOdd, damit die Ringe sich nicht gegenseitig auslöschen. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
@@ -5,5 +7,17 @@
     android:viewportHeight="24">
     <path
         android:fillColor="#FF000000"
-        android:pathData="M21,6H3C1.9,6 1,6.9 1,8V16C1,17.1 1.9,18 3,18H4.9H21C22.1,18 23,17.1 23,16V8C23,6.9 22.1,6 21,6ZM8.75,16H7.25V14H5.75V16H4.25V9H5.75V11H7.25V9H8.75V16ZM15.5,13H12V11H13V9H15.5V13ZM18.25,16H17.25V14H15.75V16H14.25V9H15.75V11H17.25V9H18.25V16Z" />
+        android:fillType="evenOdd"
+        android:pathData="M5.2,12 A6.8,6.8 0 1,0 18.8,12 A6.8,6.8 0 1,0 5.2,12 Z M6.4,12 A5.6,5.6 0 1,1 17.6,12 A5.6,5.6 0 1,1 6.4,12 Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M6.5,11.5 H17.5 V12.5 H6.5 Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="evenOdd"
+        android:pathData="M12,6.4 A2.2,5.6 0 1,0 12,17.6 A2.2,5.6 0 1,0 12,6.4 Z M12,7.8 A0.9,4.2 0 1,1 12,16.2 A0.9,4.2 0 1,1 12,7.8 Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="evenOdd"
+        android:pathData="M1.2,12 A10.8,4.2 0 1,0 22.8,12 A10.8,4.2 0 1,0 1.2,12 Z M2.2,12 A9.8,3.2 0 1,1 21.8,12 A9.8,3.2 0 1,1 2.2,12 Z" />
 </vector>

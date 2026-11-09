@@ -325,6 +325,8 @@
     <string name="settings_compact_text_subtitle">Kleinere Schrift, damit auf kleinen Displays mehr Text passt</string>
     <string name="settings_section_data">Daten</string>
     <string name="settings_section_disclaimer">Disclaimer</string>
+    <string name="settings_section_sources">Datenquellen &amp; Lizenzen</string>
+    <string name="sources_message">Verwendete Daten und Bilder:\n\n• GeoNames (Orte, Koordinaten) — CC BY 4.0, geonames.org\n• Natural Earth (Länder, Grenzen, Orte) — Public Domain, naturalearthdata.com\n• OurAirports (Flughäfen, Pisten) — Public Domain, ourairports.com\n• Wikidata (Airline-Stammdaten, Länderfakten) — CC0, wikidata.org\n• Englische Wikipedia (Flugzeug-Stammdaten, Flottengrößen) — CC BY-SA 4.0, wikipedia.org\n• Wikimedia Commons (Airline-Logos, Airline- und Flugzeugfotos, Bundesland-Flaggen) — je Datei Public Domain, CC0, CC BY oder GFDL; die Namensnennung steht bei jedem Bild\n• Sentinel-2 cloudless 2016 &amp; 2017 by EOX IT Services GmbH (Flughafen-Satellitenbilder, s2maps.eu) — CC BY 4.0; enthält modified Copernicus Sentinel data 2016 &amp; 2017\n• Luftbilder CO₂-Karte: HVBG Hessen (dl-de/zero-2.0) und Bayerische Vermessungsverwaltung (CC BY 4.0)\n\nAlle übrigen Grafiken und Icons wurden für diese App selbst erstellt.</string>
     <string name="disclaimer_message">Diese App ist ein privates Fanprojekt einer einzelnen Person, die gerne reist. Sie ist kein politisches Statement, keine offizielle Verlautbarung und vertritt weder eine Organisation noch eine andere Meinung als die der Person dahinter. Alle Inhalte dienen ausschließlich der persönlichen Dokumentation der eigenen Flüge.</string>
     <string name="data_export">Export</string>
     <string name="data_import">Import</string>
@@ -476,6 +478,7 @@
     <string name="entry_airline_logo">Airline-Logo</string>
     <string name="entry_travel_buddy_desc">Reisebuddies: %1$s</string>
     <string name="entry_layover_hours_desc">Layoverlänge: %1$d h</string>
+    <string name="entry_achievement_medal_desc">Erfolg ausgelöst: %1$s</string>
     <string name="filter_title">Filter</string>
     <string name="filter_travel_type">Reiseart</string>
     <string name="filter_class_type">Reiseklasse</string>
@@ -579,6 +582,7 @@
     <string name="rubbelkarte_state_tile_desc">%1$s: %2$d von %3$d %4$s besucht, %5$d Prozent</string>
     <string name="rubbelkarte_state_unit_de">Bundesländern</string>
     <string name="rubbelkarte_state_unit_us">Bundesstaaten</string>
+    <string name="rubbelkarte_state_unit_gb">Landesteilen</string>
     <string name="rubbelkarte_zoom_to">Auf der Karte zeigen</string>
     <string name="sheet_visited_count">%1$d von %2$d besucht</string>
     <string name="state_capital_label">Hauptstadt: %1$s</string>
@@ -925,6 +929,10 @@
     <string name="ach_crew_flight_attendant">Erster Flug als Flugbegleiter</string>
     <string name="ach_crew_purser_i">Erster Flug als Purser I</string>
     <string name="ach_crew_purser_ii">Erster Flug als Purser II</string>
+    <string name="ach_main_flight_milestone">%1$s. Flug mit %2$s</string>
+    <!-- Farbkennzeichnung des auslösenden Flugs: dienstlich vs. privat. -->
+    <string name="ach_badge_duty">Dienstlich</string>
+    <string name="ach_badge_private">Privat</string>
 
     <!-- Story: Play & Insights (Flip-Uhr-Highlights) -->
     <string name="story_insights_title">Einblicke</string>

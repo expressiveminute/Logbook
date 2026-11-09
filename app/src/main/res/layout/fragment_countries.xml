@@ -7,20 +7,20 @@
     android:background="?android:attr/colorBackground"
     tools:context=".CountriesFragment">
 
-    <!-- Griff oben mittig (nur eingebettet sichtbar): der bekannte vertikale
+    <!-- Griff oben mittig (nur eingebettet sichtbar): ein kurzer waagerechter
          Strich; per Wisch daran zieht der Nutzer die Seite bis zum Vollbild auf
          oder wischt sie nach unten wieder zu (wie Zurück). -->
     <FrameLayout
         android:id="@+id/page_drag_handle"
         android:layout_width="match_parent"
-        android:layout_height="24dp"
+        android:layout_height="16dp"
         android:visibility="gone"
         app:layout_constraintTop_toTopOf="parent">
 
         <View
             android:id="@+id/page_drag_handle_bar"
-            android:layout_width="4dp"
-            android:layout_height="20dp"
+            android:layout_width="36dp"
+            android:layout_height="4dp"
             android:layout_gravity="center"
             android:background="@drawable/bg_sheet_handle" />
     </FrameLayout>

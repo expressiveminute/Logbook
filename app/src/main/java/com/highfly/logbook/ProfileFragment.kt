@@ -70,6 +70,8 @@ class ProfileFragment : LogbookFragment() {
         binding.headerSectionData.setOnClickListener { openSection("data") }
         // Ganz unten über dem Logo: öffnet den Disclaimer als Popup.
         binding.headerSectionDisclaimer.setOnClickListener { showDisclaimerDialog() }
+        // Darüber: alle Datenquellen und Lizenzen als Popup.
+        binding.headerSectionSources.setOnClickListener { showSourcesDialog() }
     }
 
     /** Popup mit dem Disclaimer-Text der App. */
@@ -77,6 +79,15 @@ class ProfileFragment : LogbookFragment() {
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.settings_section_disclaimer)
             .setMessage(R.string.disclaimer_message)
+            .setPositiveButton(R.string.import_review_close, null)
+            .show()
+    }
+
+    /** Popup mit den verwendeten Datenquellen und ihren Lizenzen. */
+    private fun showSourcesDialog() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.settings_section_sources)
+            .setMessage(R.string.sources_message)
             .setPositiveButton(R.string.import_review_close, null)
             .show()
     }

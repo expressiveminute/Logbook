@@ -477,11 +477,16 @@
             app:destination="@id/nav_add_entry" />
     </fragment>
 
-    <!-- Übersicht aller Erfolge, nach Kategorie. -->
+    <!-- Übersicht aller Erfolge, nach Kategorie. Erreichte Erfolge sind
+         antippbar und öffnen den auslösenden Eintrag zum Bearbeiten. -->
     <fragment
         android:id="@+id/nav_achievements_grid"
         android:name="com.highfly.logbook.AchievementsGridFragment"
-        tools:layout="@layout/fragment_achievements_grid" />
+        tools:layout="@layout/fragment_achievements_grid">
+        <action
+            android:id="@+id/action_achievements_grid_to_add_entry"
+            app:destination="@id/nav_add_entry" />
+    </fragment>
 
     <!-- Detailseite der Kachel "Sitzplatz": Flugzeug-Schema von oben mit
          Heatmap der erfassten Sitzplätze. -->

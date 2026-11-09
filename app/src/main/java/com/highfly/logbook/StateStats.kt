@@ -20,8 +20,11 @@ package com.highfly.logbook
  */
 object StateStats {
 
-    /** Länder, die eigene Kacheln in der Kachelzeile der Rubbelkarte bekommen. */
-    val TILE_COUNTRIES = listOf("DE", "US")
+    /**
+     * Länder, die eigene Kacheln in der Kachelzeile der Rubbelkarte bekommen
+     * (mit ihren Bundesstaaten/-ländern bzw. Landesteilen im Asset).
+     */
+    val TILE_COUNTRIES = listOf("DE", "US", "AU", "GB")
 
     /** Bundesland Berlin als ISO-3166-2. */
     const val BERLIN_REGION = "DE-BE"

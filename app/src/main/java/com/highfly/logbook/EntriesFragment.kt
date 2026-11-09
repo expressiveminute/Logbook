@@ -55,6 +55,13 @@ class EntriesFragment : LogbookFragment(), ImeVisibilityAware, BackPressAware {
     private var scrollToEntryId: Long? = null
 
     /**
+     * Erfolge, die ein Eintrag auslöste (Entry-ID -> Definitionen), für die
+     * Medaille rechts neben der Reiseart. Wird zusammen mit den Einträgen im
+     * Hintergrund geladen, siehe [loadEntries].
+     */
+    private var achievementMedals: Map<Long, List<Achievements.Definition>> = emptyMap()
+
+    /**
      * Ob die Startposition der Liste schon angesprungen wurde. Beim ersten
      * Oeffnen startet die Liste nicht ganz oben, sondern bei den ersten
      * geflogenen Eintraegen - die geplanten Fluege ("Upcoming") stehen darueber
@@ -155,11 +162,19 @@ class EntriesFragment : LogbookFragment(), ImeVisibilityAware, BackPressAware {
         val appContext = requireContext().applicationContext
         Thread {
             val entries = LogbookRepository.getEntries()
+            // Dieselbe Auswertung wie die Achievements-Seite: welcher Flug
+            // welchen Erfolg auslöste.
+            val medals = Achievements.evaluate(appContext).reached
+                .mapNotNull { reached ->
+                    reached.entry.id?.let { it to reached.definition }
+                }
+                .groupBy({ it.first }, { it.second })
             view?.post {
                 if (generation != loadGeneration || _binding == null) return@post
                 binding.entriesProgress.visibility = View.GONE
                 allEntries.clear()
                 allEntries += entries
+                achievementMedals = medals
                 dataLoaded = true
                 renderEntries()
             }
@@ -296,6 +311,7 @@ class EntriesFragment : LogbookFragment(), ImeVisibilityAware, BackPressAware {
         }
         adapter.schemeColors =
             ClassColorSchemes.textColorsFor(Settings.getClassScheme(requireContext()))
+        adapter.achievementMedals = achievementMedals
         // Die Tagesordnung (Layover immer oben, Hin-/Rückflug-Paare ab der
         // Homebase gruppiert, erster Flug des Tages unten) richtet sich nach
         // dem, was tatsächlich angezeigt wird; die Homebase kommt dabei aus

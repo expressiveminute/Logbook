@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
-"""Baut die Assets für Bundesstaaten (USA) und Bundesländer (Deutschland).
+"""Baut die Assets für Bundesstaaten/-länder (USA, Deutschland, Australien)
+und die Landesteile Grossbritanniens.
 
 Zwei Dateien entstehen:
 
 1. `app/src/main/assets/state_shapes.bin`
-   Umrisse aller US-Bundesstaaten (inkl. District of Columbia) und aller
-   deutschen Bundesländer, dazu je Einheit der ISO-3166-2-Code ("US-CA",
-   "DE-BY"), Name (deutsch/englisch), Hauptstadt mit Koordinaten und ein
+   Umrisse aller US-Bundesstaaten (inkl. District of Columbia), aller
+   deutschen Bundesländer, der australischen Bundesstaaten/-territories
+   (AU-*) und der vier britischen Landesteile (GB-ENG/SCT/WLS/NIR, aus der
+   Admin-0-Subunits-Ebene, weil Admin-1 nur Counties hat), dazu je Einheit
+   der ISO-3166-2-Code ("US-CA", "DE-BY", "AU-NSW", "GB-ENG"), Name
+   (deutsch/englisch), Hauptstadt mit Koordinaten und ein
    Beschriftungsanker. Die Rubbelkarte zeichnet daraus die dünnen
    Staatengrenzen und färbt angeflogene Staaten ein.
 
@@ -41,7 +45,7 @@ Binärformat von state_shapes.bin (little endian), siehe StateShapes.kt:
     uint8   reserved
     uint16  stateCount
     je Staat:
-        char[5] code ("US-CA")
+        char[6] code ("US-CA", "AU-NSW", "GB-ENG")
         char[2] iso2 des Landes ("US")
         float32 capLat, capLon        Hauptstadt
         float32 labelLat, labelLon    Beschriftungsanker
@@ -77,11 +81,11 @@ import zipfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from build_country_shapes import (
     simplify_safe, has_self_intersection, cut_loops, quantize, pip_in_rings, ring_area,
-    compute_shared_keys,
+    compute_shared_keys, label_anchor,
 )
 
 MAGIC = 0x48535453  # Bytes "S","T","S","H" als little-endian int
-VERSION = 2
+VERSION = 3
 
 UNITS_PER_DEGREE = 1440  # 1440 * 180 = 259200 passt in int32, wie bei country_shapes.bin
 
@@ -103,10 +107,21 @@ WIKIDATA_SPARQL = "https://query.wikidata.org/sparql"
 ADMIN_TO_ISO2 = {
     "United States of America": "US",
     "Germany": "DE",
+    "Australia": "AU",
+    "United Kingdom": "GB",
 }
-WANTED_ISO2 = {"US", "DE"}
+WANTED_ISO2 = {"US", "DE", "AU", "GB"}
 
-CODE_RE = re.compile(r"^(US|DE)-[A-Z0-9]{1,3}$")
+CODE_RE = re.compile(r"^(US|DE|AU|GB)-[A-Z0-9]{1,3}$")
+
+# Die vier Landesteile Grossbritanniens gibt es nicht in der Admin-1-Ebene
+# (die hat nur Counties), sondern in der Admin-0-Subunits-Ebene; SU_A3 ist
+# dort ENG/SCT/WLS/NIR.
+GB_SUBUNITS_URL = (
+    "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/"
+    "geojson/ne_10m_admin_0_map_subunits.geojson"
+)
+GB_SU_TO_ISO = {"ENG": "GB-ENG", "SCT": "GB-SCT", "WLS": "GB-WLS", "NIR": "GB-NIR"}
 
 
 def download(url, dest):
@@ -234,6 +249,83 @@ def geonames_admin1_map(features):
     return mapping
 
 
+def wikidata_de_labels_codes(cache_path, codes):
+    """Deutsche Namen zu ISO-3166-2-Codes von Wikidata (CC0), nach Code.
+
+    Ueber P300 (ISO-3166-2-Code) wird das jeweilige Item gefunden; Cache wie
+    bei [wikidata_de_labels_us_states]. Offline oder ohne Treffer bleibt das
+    Dict leer - dann steht der englische Name auch in der deutschen App.
+    """
+    codes = sorted(set(codes))
+    if cache_path and os.path.exists(cache_path):
+        with open(cache_path, encoding="utf-8") as handle:
+            cached = json.load(handle)
+        if all(c in cached for c in codes):
+            return cached
+    values = " ".join('"%s"' % c for c in codes)
+    query = (
+        "SELECT ?code ?de WHERE {"
+        " VALUES ?code { %s }"
+        " ?item wdt:P300 ?code ."
+        " OPTIONAL { ?item rdfs:label ?de . FILTER(LANG(?de) = 'de') }"
+        "}"
+    ) % values
+    try:
+        req = urllib.request.Request(
+            WIKIDATA_SPARQL + "?format=json&query=" + urllib.request.quote(query),
+            headers={"User-Agent": "logbook-tools/1.0", "Accept": "application/sparql-results+json"},
+        )
+        data = json.loads(urllib.request.urlopen(req, timeout=60).read())
+    except Exception as exc:
+        print("Wikidata nicht erreichbar (%s), nutze englische Namen" % exc)
+        return {}
+    out = {}
+    for b in data["results"]["bindings"]:
+        code = b.get("code", {}).get("value")
+        if code:
+            out[code] = b.get("de", {}).get("value") or code
+    if cache_path:
+        os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+        with open(cache_path, "w", encoding="utf-8") as handle:
+            json.dump(out, handle, ensure_ascii=False, indent=1)
+    return out
+
+
+def load_gb_subunits(path):
+    """Die vier Landesteile Grossbritanniens als synthetische Admin-1-Features.
+
+    Quelle: ne_10m_admin_0_map_subunits (gleiche Public-Domain-Quelle wie der
+    Rest). SU_A3 (ENG/SCT/WLS/NIR) wird zum ISO-3166-2-Code GB-xxx; der
+    GeoNames-Code lautet GB.ENG usw. (cities5000 nutzt genau diese Codes).
+    """
+    if not os.path.exists(path):
+        return []
+    with open(path, encoding="utf-8") as handle:
+        data = json.load(handle)
+    out = []
+    for feature in data["features"]:
+        props = feature["properties"]
+        if props.get("ADM0_A3") != "GBR" or props.get("LEVEL") != 3:
+            continue
+        su = (props.get("SU_A3") or "").upper()
+        if su not in GB_SU_TO_ISO:
+            continue
+        out.append({
+            "properties": {
+                "iso_a2": "GB",
+                "admin": "United Kingdom",
+                "iso_3166_2": GB_SU_TO_ISO[su],
+                "gn_a1_code": "GB." + su,
+                "name_en": props.get("SUBUNIT") or props.get("NAME_LONG") or su,
+                "name_de": props.get("NAME_DE") or "",
+                "latitude": props.get("latitude"),
+                "longitude": props.get("longitude"),
+            },
+            "geometry": feature["geometry"],
+        })
+    return out
+
+
 def load_capitals(cities_path, populated_path, admin1_map):
     """Hauptstädte der first-order-Einheiten (GeoNames PPLA/PPLC) als code -> (lat, lon, name, geonameid)."""
     capitals = {}
@@ -315,10 +407,12 @@ def main():
     here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     tmp = os.path.join(here, "tmp_ne")
     parser.add_argument("--admin1", default=os.path.join(tmp, "ne_10m_admin_1_states_provinces.geojson"))
+    parser.add_argument("--subunits", default=os.path.join(tmp, "ne_10m_admin_0_map_subunits.geojson"))
     parser.add_argument("--cities", default=os.path.join(tmp, "cities5000.txt"))
     parser.add_argument("--populated", default=os.path.join(tmp, "populated_places.json"))
     parser.add_argument("--airports", default=os.path.join(tmp, "airports.csv"))
     parser.add_argument("--wikidata-de", default=os.path.join(tmp, "wikidata_us_states_de.json"))
+    parser.add_argument("--wikidata-subdiv", default=os.path.join(tmp, "wikidata_subdivisions_de.json"))
     parser.add_argument("--out", default=os.path.join(here, "app", "src", "main", "assets", "state_shapes.bin"))
     parser.add_argument(
         "--regions-out",
@@ -329,10 +423,13 @@ def main():
 
     if not args.no_download:
         download(NE_ADMIN1_URL, args.admin1)
+        download(GB_SUBUNITS_URL, args.subunits)
         download(CITIES5000_URL, args.cities)
 
     with open(args.admin1, encoding="utf-8") as handle:
         features = json.load(handle)["features"]
+    # Grossbritannien: die vier Landesteile kommen aus der Subunits-Ebene.
+    features += load_gb_subunits(args.subunits)
     capitals = load_capitals(args.cities, args.populated, geonames_admin1_map(features))
     de_us = wikidata_de_labels_us_states(args.wikidata_de)
 
@@ -348,6 +445,9 @@ def main():
             continue
         code = (props.get("iso_3166_2") or "").upper()
         if not CODE_RE.match(code) or not code.startswith(iso2 + "-"):
+            continue
+        # GB: nur die vier Landesteile aus der Subunits-Ebene, nicht die Counties.
+        if iso2 == "GB" and code not in GB_SU_TO_ISO.values():
             continue
 
         raw_rings = []
@@ -365,8 +465,27 @@ def main():
             continue
         raw_entries.append((code, iso2, props, raw_rings))
 
+    # Doppelte Codes (z. B. Lord Howe Island mit AU-NSW): die größere Fläche gewinnt.
+    by_code = {}
+    for item in raw_entries:
+        prev = by_code.get(item[0])
+        if prev is None:
+            by_code[item[0]] = item
+            continue
+        def diag(entry):
+            lons = [p[0] for r in entry[3] for p in r]
+            lats = [p[1] for r in entry[3] for p in r]
+            return max(max(lons) - min(lons), max(lats) - min(lats))
+        if diag(item) > diag(prev):
+            by_code[item[0]] = item
+    raw_entries = [by_code[c] for c in sorted(by_code)]
+
     shared_keys = compute_shared_keys(raw_entries)
     print("%d gemeinsame Grenz-Vertices in >=2 Bundesstaaten" % len(shared_keys))
+
+    # Deutsche Namen für AU/GB von Wikidata (P300 = ISO-3166-2-Code).
+    augb_codes = [e[0] for e in raw_entries if e[0][:3] in ("AU-", "GB-")]
+    de_augb = wikidata_de_labels_codes(args.wikidata_subdiv, augb_codes) if augb_codes else {}
 
     entries = []
     for code, iso2, props, raw_rings in raw_entries:
@@ -414,7 +533,10 @@ def main():
 
         name_en = props.get("name_en") or props.get("name") or code
         name_de = props.get("name_de") or ""
-        if not name_de or name_de == name_en:
+        if code[:3] in ("AU-", "GB-"):
+            # AU/GB: deutsche Namen von Wikidata (P300), sonst englisch.
+            name_de = de_augb.get(code, name_en)
+        elif not name_de or name_de == name_en:
             # US-Bundesstaaten haben bei Natural Earth keinen deutschen Namen;
             # die holen wir von Wikidata, sonst bleibt es englisch.
             name_de = de_us.get(name_en, name_en)
@@ -454,12 +576,20 @@ def main():
                 cy = sum(lats) / len(lats)
                 cap_lon, cap_lat = cx, cy
 
+        # Beschriftungsanker: Natural Earth liefert latitude/longitude (bei den
+        # GB-Subunits fehlen sie) - sonst der Pol der Unzugänglichkeit des
+        # Polygons, damit das Label nicht im Meer oder auf 0,0 landet.
+        if props.get("latitude") is not None and props.get("longitude") is not None:
+            anchor = (float(props["latitude"]), float(props["longitude"]))
+        else:
+            anchor = label_anchor(rings)
+
         entries.append(
             {
                 "code": code,
                 "iso2": iso2,
                 "cap": (cap_lat, cap_lon),
-                "label": (float(props.get("latitude") or 0.0), float(props.get("longitude") or 0.0)),
+                "label": anchor,
                 "bbox": bbox,
                 "name_de": name_de,
                 "name_en": name_en,
@@ -497,7 +627,7 @@ def main():
         for label, raw in (("name_de", de), ("name_en", en), ("cap_de", cde), ("cap_en", cen)):
             if len(raw) > 255:
                 raise SystemExit("Name zu lang (%s): %s" % (label, entry["code"]))
-        out += entry["code"].ljust(5).encode("ascii")
+        out += entry["code"].ljust(6).encode("ascii")
         out += entry["iso2"].encode("ascii")
         out += struct.pack("<ff", entry["cap"][0], entry["cap"][1])
         out += struct.pack("<ff", entry["label"][0], entry["label"][1])

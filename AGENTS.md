@@ -85,14 +85,19 @@ Grundfarbe – deutlich weniger stark als angeflogene, aber nicht wie ein unbesu
 Beim Hereinzoomen (`ZOOM_STAEDTE`) erscheinen die Hauptstädte der aktiven Staaten
 (`STATE_CAP_MAX` gleichzeitig).
 
-Daten: `tools/build_states.py` erzeugt aus Natural Earth Admin 1 (Public Domain, nur
-`admin` = USA/Deutschland), GeoNames `cities5000` (Hauptstädte, Feature-Code PPLA/PPLC,
-GeoNames-admin1-Code wird über `gn_a1_code` von Natural Earth auf ISO-3166-2 gemappt),
-Wikidata (deutsche Namen der US-Bundesstaaten, CC0, gecacht in
-`tmp_ne/wikidata_us_states_de.json`) und `tmp_ne/airports.csv` zwei Assets:
+Daten: `tools/build_states.py` erzeugt aus Natural Earth Admin 1 (Public Domain, `admin` =
+USA/Deutschland/Australien; Großbritannien kommt aus der Admin-0-Subunits-Ebene
+`ne_10m_admin_0_map_subunits`, weil Admin 1 dort nur Counties hat – die vier Landesteile
+GB-ENG/SCT/WLS/NIR mit SU_A3 als Code; deren Beschriftungsanker fehlt in den Subunits und
+wird daher aus dem Polygon gerechnet (`label_anchor`, Pol der Unzugänglichkeit)),
+GeoNames `cities5000` (Hauptstädte, Feature-Code
+PPLA/PPLC, GeoNames-admin1-Code wird über `gn_a1_code` von Natural Earth auf ISO-3166-2
+gemappt), Wikidata (deutsche Namen der US-Bundesstaaten und der AU/GB-Einheiten über P300,
+CC0, gecacht in `tmp_ne/wikidata_us_states_de.json` bzw. `tmp_ne/wikidata_subdivisions_de.json`)
+und `tmp_ne/airports.csv` zwei Assets:
 
-- `app/src/main/assets/state_shapes.bin` – Binärformat „STSH“ Version 2 (siehe `StateShapes.kt`):
-  je Staat char[5] Code („US-CA“), char[2] Land, float32 Hauptstadt-Koords, Anker,
+- `app/src/main/assets/state_shapes.bin` – Binärformat „STSH“ Version 3 (siehe `StateShapes.kt`):
+  je Staat char[6] Code („US-CA“, „AU-NSW", „GB-ENG“), char[2] Land, float32 Hauptstadt-Koords, Anker,
   Bounding-Box, Namen de/en, Hauptstadtnamen de/en, Ringe als **int32 in 1/1440°**
   (~77 m Auflösung; Vereinfachung aus den 10m-Daten mit DP-Toleranz 0,004° ≈ 450 m,
   damit Grenzen wie DE–CZ glatt und nicht doppelt zeichnet werden). Dasselbe Format
@@ -116,8 +121,10 @@ In der Kachelzeile unter der Kugel stehen die Kontinent-Kacheln – **Europa als
 Kontinent-Kachel** wie in `Continents.ORDER` vorgesehen. Die **EU als eigene Kachel**
 (`Continents.EU`, 27 Mitgliedstaaten in `EU_MEMBERS`; die EU ist *nicht* in
 `Continents.ORDER`, damit die Erfolge unverändert bleiben) steht **ganz rechts, hinter
-Deutschland und den Vereinigten Staaten** (`StateStats.TILE_COUNTRIES`), auch wenn davor
-ein Kontinent 0 % hat – siehe `RubbelkarteFragment.buildTileUis`. Die EU-Kachel zeigt
+Deutschland, den Vereinigten Staaten, Australien und Großbritannien** (`StateStats.TILE_COUNTRIES`
+= DE/US/AU/GB, je mit Staatenliste aus `state_shapes.bin`), auch wenn davor ein Kontinent
+0 % hat – siehe
+`RubbelkarteFragment.buildTileUis`. Die EU-Kachel zeigt
 **zwölf Sterne auf dem Kreis** (`ContinentProgressView.starMode`: die Sterne sitzen auf dem
 Kreis, ohne zusätzliche Kreislinie darunter – nur die Sterne sind zu sehen; beginnend oben
 füllen sich die ersten Sterne im
@@ -139,15 +146,14 @@ Child-Fragment mit `ARG_EMBEDDED` (bei DE/US mit `ARG_STATES` für die Staatenli
 `StateRowAdapter` + `item_state_row.xml`, die Staaten-Zeilen tragen vorn die Flagge des
 Bundeslands/-staats als `iv_state_flag` – Assets `assets/state_flags/<ISO-3166-2>.png`,
 geladen über `StateFlags`, heruntergeladen von Wikimedia Commons (gemeinfrei) mit
-`tools/build_state_flags.py`, geprüft von `StateFlagsAssetTest`). Die Seite nimmt **70 %**
-des Bildschirms bei Listen ab 20 Einträgen, sonst ca. **47 %** (`PAGE_HALF`/`PAGE_THIRD` =
- frühere Hälfte bzw. Drittel × `PAGE_HEIGHT_SCALE` = 1,4; Schwelle `PAGE_HALF_MIN` in
-`RubbelkarteFragment`); die Kacheln **Deutschland, Vereinigte Staaten und EU** nehmen
-immer die einheitliche Staaten-Höhe `PAGE_STATES` (ca. **51 %** = `PAGE_THIRD` × 1,1),
-damit alle drei gleich groß öffnen. `page_host` liegt als Overlay (`layout_gravity="bottom"`
+`tools/build_state_flags.py`, geprüft von `StateFlagsAssetTest`; bei AU/GB ohne Staaten im
+Asset zeigt die Seite stattdessen die Länder-Checkliste nur mit diesem Land). Alle Kacheln
+öffnen die Seite in **einheitlicher Höhe** – der Höhe der Länderliste von Deutschland,
+`PAGE_STATES` (ca. **51 %** des Bildschirms = früheres Drittel × `PAGE_HEIGHT_SCALE` 1,4 × 1,1
+in `RubbelkarteFragment`). `page_host` liegt als Overlay (`layout_gravity="bottom"`
 im FrameLayout-Root) über dem Inhalt, damit die Seite per Wisch beweglich ist: Oben mittig
 sitzt der Griff (`page_drag_handle` in `fragment_countries.xml`, nur eingebettet sichtbar,
-vertikaler Strich `bg_sheet_handle`), dessen Touches über `PageSheetHost.onSheetTouch` an
+**waagerechter** Strich `bg_sheet_handle`, 36×4 dp in 16 dp hohem Streifen), dessen Touches über `PageSheetHost.onSheetTouch` an
 `RubbelkarteFragment` gehen – die Höhe folgt dem Finger, beim Loslassen schnappt sie auf die
 Ausgangshöhe zurück, ein Wisch nach oben (oder ≥ 75 % Höhe) zieht sie bis zum **Vollbild** auf,
 ein Wisch nach unten (oder unter die Hälfte der Ausgangshöhe) **schließt** sie über
@@ -164,8 +170,11 @@ ist das Vektormittel der Beschriftungsanker, die Ausdehnung der Abstand zu den R
 Übersee-Exklaven wie Guayana, Kanaren, Hawaii – fallen heraus, sonst zoomt ein einzelnes Land
 auf Weltansicht; mehrere große Inseln wie in Indonesien bleiben erhalten), Zoom über
 `MapFocus.zoomForSpan` mit `FIT = 1.0` –
-damit liegen die Randpunkte noch innerhalb der sichtbaren Fläche, auch wenn die halbhohe
-Seite die Kartenfläche flach macht. Das **Auge** je Zeile
+damit liegen die Randpunkte noch innerhalb der sichtbaren Fläche. Ist die Seite unten offen
+(`setBottomCover`), rechnet `RubbelkarteView.zoomTo` den Zoom über `zoomForCover` kleiner und
+`centerShiftFor` zentriert die Kugel auf die **Mitte des sichtbaren Streifens** (statt nur
+wenig nach oben), damit die Region nicht hinter der Seite abgeschnitten wird (z. B.
+Deutschland nicht unter Hamburg); `openTile` öffnet die Seite daher **vor** dem Zoom. Das **Auge** je Zeile
 steht **rechts von der Flagge, links vom Namen** (`iv_country_zoom`/`iv_state_zoom`,
 `ic_visibility`; nur eingebettet sichtbar, auf der vollen Seite hinter dem Stift nicht) und
 zoomt über `MapZoomHost` auf das Land bzw. den Staat (`MapFocus.forCountry`/`forState`),
@@ -372,6 +381,14 @@ im Standardbrowser. Geprüft werden beide Assets von `AircraftFactsTest` und
 `AircraftPhotosAssetTest`.
 
 ## Kachel und Seite „Weltkugel"
+
+**Stand:** Basis ist die Kugel aus v0.0.44 (ein gemergter Land-Pfad, Vorschau-Dezimierung per
+`PREVIEW_RING_POINTS`); aus v0.0.45 wurden gezielt übernommen: undurchsichtige Dreilettercode-
+Badges, Auswahl per Tipp (nicht verbundene gräulich, ausgewählter mit Akzent-Rahmen -
+`GlobeView.Content.selectedIata`/`reached`), Beschriftungsstufen 3/5/7 (`ZOOM_CITIES` 10.4,
+`ZOOM_MORE_CITIES` 26.8, Stufe 3 = alle Ränge bis 3 mit Bildschirm-Rand-Prüfung) und
+unterstrichene Hauptstädte. Der v0.0.45-Umbau (pro-Land-Pfade, Dezimierungs-Cache, Low-LOD)
+wurde bewusst nicht übernommen.
 
 Die Dashboard-Kachel **Weltkugel** (`globe`, Icon `ic_globe`) ist die einzige Kartenkachel in
 `DashboardPrefs.DEFAULT_ROWS` (die frühere Weltkarte-Kachel `worldmap` wurde entfernt;
@@ -711,6 +728,21 @@ börsennotiert sind, sonst `private` bei einem sonstigen Konzern-Eigentümer;
 werden als IATA-Codes gespeichert und über `AirportNames` als Städtenamen in der App-Sprache
 angezeigt. Geprüft wird das Asset von `AirlineFactsTest`.
 
+**Gemeinsame IATA-Codes (Varianten):** Mehrere Airlines können sich einen IATA-Code teilen –
+der Katalog (`airlines.json`) hält dann mehrere Einträge mit demselben `iata`; `AirlineCatalog`
+meldet den ersten Eintrag als kanonischen (`putIfAbsent`), alle über `variantsOf(iata)`. Auf der
+Detailseite (`btn_airline_variant` in `fragment_airline_detail.xml`) erscheint dann oben ein
+Auswahlmenü zwischen den Varianten; Stammdaten der Variante liegen in `airline_facts.json`
+unter ihrem ICAO-Schlüssel (z. B. `ITY` für ITA Airways, `BAG` für dba, `FCL` für Florida
+Coastal), Logos über `AirlineCatalog.loadLogoFor` nur aus dem eigenen `file`-Feld. Hand gepflegte
+Stammdaten (Pan Am `PA`/PAA insolvent 1991, Marabu `DI`/MBU, ITA Airways `ITY` als AZ-Variante der
+insolventen Alitalia) stehen als `MANUAL_FACTS` in `tools/build_airline_facts.py`, damit ein
+Neubau des Assets sie nicht löscht.
+
+**CSV-Import/Export** (`LogbookCsv`): Das Datumsformat in der CSV-Datei ist **dd.MM.yyyy**
+(`LogbookCsv.DATE_FORMAT`); beim Import wird als Rückfall auch das alte ISO-Format yyyy-MM-dd
+akzeptiert (`parseDate`).
+
 ## Karte „CO₂-Ausgleich"
 
 Die Seite zeigt die nötige Pflanzfläche als Kreis in **echtem Maßstab** (Radius in Metern aus
@@ -937,9 +969,9 @@ In der Discovery-Liste (`item_discovery_route.xml`) steht vor dem Datum ein Rich
 sobald die Strecke auch zurückgeflogen wurde (`RouteDiscovery.returnDate`): Hin- und Rückflug
 **am selben Tag** zeigen ein Symbol mit zwei Pfeilen in Gegenrichtung (`ic_arrows_roundtrip`)
 vor dem einen Datum; an **verschiedenen Tagen** steht der Hin-Pfeil (`ic_arrow_route`) vor dem
-Hinflug-Datum und der gespiegelte Rück-Pfeil (`iv_discovery_arrow_back`, `scaleX="-1"`) vor dem
-Rückflug-Datum in `tv_discovery_date_back`. Ohne Rückflug bleiben Pfeile und zweites Datum
-frei.
+Hinflug-Datum, dann ein Punkt (`tv_discovery_date_sep`), dann der gespiegelte Rück-Pfeil
+(`iv_discovery_arrow_back`) vor dem Rückflug-Datum (`tv_discovery_date_back`) –
+„12.03.2026 · ↩ 19.03.2026“. Ohne Rückflug bleiben Pfeile, Punkt und zweites Datum frei.
 
 ## Hintergrund-Flugzeuge (Einträge, Discovery, Dashboard)
 
@@ -981,6 +1013,14 @@ Companion – prüft `PlaneBackgroundViewTest`.
 andernorts verwendet und bleibt.
 
 ## Seite „Einträge" – Tagesordnung
+
+Hat ein Flug ein Achievement ausgelöst, trägt seine Kachel rechts neben der Reiseart eine
+**Medaille**: der Pokal der Achievements-Kachel (`ic_achievement`, Akzentfarbe), um 15°
+schief gedreht (`iv_achievement_medal` in `item_entry.xml`). Grundlage ist
+dieselbe Auswertung wie die Achievements-Seite: `EntriesFragment.loadEntries` rechnet
+`Achievements.evaluate` mit und füllt `EntryListAdapter.achievementMedals` (Entry-ID ->
+Definitionen); bei mehreren Erfolgen pro Flug steht das Icon des ersten, die Description
+nennt alle Titel (`entry_achievement_medal_desc`).
 
 Die Kacheln kommen absteigend nach Datum aus der Datenbank (`date DESC, id DESC`); innerhalb eines
 Tages steht der erste Flug des Tages unten, der letzte oben. Die Grundreihenfolge ist die
@@ -1032,7 +1072,20 @@ hervorgehobene Kachel über die ganze Breite im Format der beiden Layover-Kachel
 „x / y" samt `LinearProgressIndicator` und Prozent) und darunter der Zeitstrahl der erreichten
 Erfolge, der jüngste oben. Ein Tipp auf die Kachel öffnet `AchievementsGridFragment` mit allen
 Erfolgen nach Kategorie, fünf Kacheln je Zeile (Icon oben, Titel darunter, erreicht farbig,
-offen ausgegraut); eine Zeile des Zeitstrahls öffnet den auslösenden Eintrag zum Bearbeiten.
+offen ausgegraut); eine Zeile des Zeitstrahls **und** eine erreichte Kachel in der Übersicht
+öffnen den auslösenden Eintrag zum Bearbeiten (`action_achievements_to_add_entry` bzw.
+`action_achievements_grid_to_add_entry` mit `entryId`). Ob der auslösende Flug **dienstlich**
+(On Duty/Deadhead/Dienstreise) oder **privat** war, ist farblich markiert: im Zeitstrahl
+tintet der Punkt des Erfolgs, in der Übersicht das Icon selbst (Primär = dienstlich,
+Tertiär = privat, `Reached.isBusiness`) – die Kacheln selbst tragen keine Umrandung mehr.
+Unter *Flüge* bekommt die **Hauptairline** (meiste Flüge im Logbuch) dynamisch dieselben
+Meilensteine wie die Flugzahl („1. Flug mit LH“, „10. Flug mit LH“, …; `Kind.MAIN_AIRLINE`,
+Definitionen entstehen in `evaluate` mit genau der Meilensteinliste der Flugzahl
+(1, 10, 50, 100, 250, 500, 1000, 1250, 1500, 2000, 2500, 5000), Titel über `Reached.label` +
+`number`), ebenfalls farblich nach dienstlich/privat; in der Übersicht fangen die
+Hauptairline-Kacheln in einer **neuen Zeile** an (`AchievementsGridFragment.chunkGrid`). Die Icons sind je Erfolg eigene Vektor-Drawables
+(`ic_hourglass`, `ic_flash`, `ic_groups`, `ic_flag`, `ic_verified`; `ic_distance` ist ein
+Globus mit Orbit-Ring für „einmal um die Welt`).
 
 Die Erfolge selbst sind rein in `Achievements.kt` beschrieben und werden von
 `Achievements.evaluate(entries, role, lookups)` über das **ganze** Logbuch ausgewertet – nicht
@@ -1044,7 +1097,7 @@ die `Context`-Überladung von `evaluate` brauchen Android.
 Der Zeitpunkt eines Erfolgs ist der auslösende Flug, deshalb kann der Zeitstrahl Datum,
 Flugstrecke und Flugnummer zeigen.
 
-Die Erfolge stehen in elf Kategorien: *Flüge* (1., 10., 50. … 5000. Flug), *Distanz* (40.075 km
+Die Erfolge stehen in elf Kategorien: *Flüge* (1., 10., 50. … 5000. Flug plus Hauptairline), *Distanz* (40.075 km
 zusammen, ein einzelner Flug über 10.000 km), *Zeit* (1.000 Stunden, erster Flug über 10 bzw. 15
 Stunden, erster unter einer Stunde), *Strecken* (10× dieselbe Strecke), *Fluggesellschaften*
 (10/25/50 verschiedene), *Flugzeugtypen* (erster A380/B747), *Geografie* (Äquator, Nullmeridian),
@@ -1193,7 +1246,11 @@ Gefahrenzone mit Strich und rotem Titel | **ganz unten** Crash-Log und Demo-Date
 eigener Abschnitt „Development“, der aufgelöst wurde). Ganz unten auf der Profilseite über dem
 Logo (`iv_settings_logo`) sitzt der Reiter **„Disclaimer“** (`header_section_disclaimer`); ein
 Tipp öffnet ein Popup (`disclaimer_message`: privates Fanprojekt einer reisenden Person, kein
-politisches Statement).
+politisches Statement). Darüber liegt der Reiter **„Datenquellen & Lizenzen“**
+(`header_section_sources`): Popup (`sources_message`) mit allen verwendeten Datenquellen und
+Lizenzen (GeoNames CC BY 4.0, Natural Earth/OurAirports Public Domain, Wikidata CC0, Wikipedia
+CC BY-SA 4.0, Wikimedia Commons je Datei, EOX Sentinel-2 cloudless 2016/2017 CC BY 4.0 samt
+Copernicus-Vermerk, HVBG Hessen dl-de/zero-2.0, Bayerische Vermessungsverwaltung CC BY 4.0).
 
 Das Erscheinungsbild hat drei Werte (`Settings.THEME_MODE_SYSTEM/LIGHT/DARK`) und wird in
 `MainActivity` über `AppCompatDelegate.setDefaultNightMode` gesetzt. `THEME_MODE_SYSTEM` folgt dem
