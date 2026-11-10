@@ -58,38 +58,60 @@ object ImportProcessor {
         toCountry = entry.toCountry?.takeIf { it.isNotBlank() } ?: toCountry
     )
 
-    fun hasConflict(context: Context, entry: LogbookEntry): Boolean {
-        val from = entry.fromAirport.trim().uppercase()
-        val to = entry.toAirport.trim().uppercase()
-        if (from.isBlank() || to.isBlank() || from == to) return true
-        if (!isPlausibleCode(from) || !isPlausibleCode(to)) return true
-        return AirportData.location(context, from) == null || AirportData.location(context, to) == null
-    }
+    fun hasConflict(context: Context, entry: LogbookEntry): Boolean =
+        conflictReasons(context, entry).isNotEmpty()
 
     /**
      * Liefert einen verständlichen Grund, warum der Eintrag als Konflikt gilt,
      * oder null, wenn es (nach aktueller Prüfung) kein Konflikt ist.
      */
-    fun conflictReason(context: Context, entry: LogbookEntry): String? {
+    fun conflictReason(context: Context, entry: LogbookEntry): String? =
+        conflictReasons(context, entry).firstOrNull()
+
+    /**
+     * Alle Gründe, warum der Eintrag als Konflikt gilt (leer = kein Konflikt).
+     * Pro Feld geprüft, damit der Korrekturdialog die betroffenen Werte einzeln
+     * markieren kann: Flughafencodes und die Fluggesellschaft.
+     */
+    fun conflictReasons(context: Context, entry: LogbookEntry): List<String> {
         val from = entry.fromAirport.trim().uppercase()
         val to = entry.toAirport.trim().uppercase()
+        val reasons = mutableListOf<String>()
         if (from.isBlank() || to.isBlank()) {
-            return context.getString(R.string.import_conflict_missing_route)
-        }
-        if (from == to) {
-            return context.getString(R.string.import_conflict_same_airport)
-        }
-        val invalid = listOfNotNull(
-            from.takeIf { !isPlausibleCode(it) || AirportData.location(context, it) == null },
-            to.takeIf { !isPlausibleCode(it) || AirportData.location(context, it) == null }
-        )
-        if (invalid.isNotEmpty()) {
-            return context.getString(
-                R.string.import_conflict_invalid_iata,
-                invalid.joinToString(" / ")
+            reasons += context.getString(R.string.import_conflict_missing_route)
+        } else {
+            if (from == to) {
+                reasons += context.getString(R.string.import_conflict_same_airport)
+            }
+            val invalid = listOfNotNull(
+                from.takeIf { !isKnownAirport(context, it) },
+                to.takeIf { !isKnownAirport(context, it) }
             )
+            if (invalid.isNotEmpty()) {
+                reasons += context.getString(
+                    R.string.import_conflict_invalid_iata,
+                    invalid.joinToString(" / ")
+                )
+            }
         }
-        return null
+        val airline = entry.airline.orEmpty().trim()
+        if (!isKnownAirline(context, airline)) {
+            reasons += context.getString(R.string.import_conflict_invalid_airline, airline)
+        }
+        return reasons
+    }
+
+    /** Ist der Code ein bekannter Flughafen (Form ok und in den Assets)? */
+    fun isKnownAirport(context: Context, code: String): Boolean {
+        val c = code.trim().uppercase()
+        return isPlausibleCode(c) && AirportData.location(context, c) != null
+    }
+
+    /** Ist die Fluggesellschaft bekannt? Leer ist erlaubt (optionales Feld). */
+    fun isKnownAirline(context: Context, code: String): Boolean {
+        val c = code.trim()
+        if (c.isEmpty()) return true
+        return AirlineCatalog.resolve(context, c) != null
     }
 
     /**

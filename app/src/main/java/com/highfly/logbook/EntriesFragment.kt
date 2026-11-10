@@ -55,11 +55,15 @@ class EntriesFragment : LogbookFragment(), ImeVisibilityAware, BackPressAware {
     private var scrollToEntryId: Long? = null
 
     /**
-     * Erfolge, die ein Eintrag auslöste (Entry-ID -> Definitionen), für die
-     * Medaille rechts neben der Reiseart. Wird zusammen mit den Einträgen im
-     * Hintergrund geladen, siehe [loadEntries].
+     * Erfolge, die ein Eintrag auslöste (Entry-ID -> erreichte Erfolge), für
+     * die Medaille rechts neben der Reiseart. Wird zusammen mit den Einträgen
+     * im Hintergrund geladen, siehe [loadEntries]. Wichtig ist der volle
+     * [Achievements.Reached] samt seinem Label (z. B. der Name der
+     * Hauptairline): [Achievements.Definition.title] allein kann den Titel
+     * "N. Flug mit <Airline>" nicht auflösen und würde mit
+     * MissingFormatArgumentException abstürzen.
      */
-    private var achievementMedals: Map<Long, List<Achievements.Definition>> = emptyMap()
+    private var achievementMedals: Map<Long, List<Achievements.Reached>> = emptyMap()
 
     /**
      * Ob die Startposition der Liste schon angesprungen wurde. Beim ersten
@@ -166,7 +170,7 @@ class EntriesFragment : LogbookFragment(), ImeVisibilityAware, BackPressAware {
             // welchen Erfolg auslöste.
             val medals = Achievements.evaluate(appContext).reached
                 .mapNotNull { reached ->
-                    reached.entry.id?.let { it to reached.definition }
+                    reached.entry.id?.let { it to reached }
                 }
                 .groupBy({ it.first }, { it.second })
             view?.post {

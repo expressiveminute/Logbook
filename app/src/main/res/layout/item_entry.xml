@@ -172,8 +172,8 @@
                  der Flug einen Erfolg auslöste. -->
             <ImageView
                 android:id="@+id/iv_achievement_medal"
-                android:layout_width="18dp"
-                android:layout_height="18dp"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
                 android:layout_marginStart="4dp"
                 android:contentDescription="@string/entry_achievement_medal_desc"
                 android:rotation="15"

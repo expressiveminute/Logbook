@@ -1,26 +1,37 @@
 package com.highfly.logbook
 
+import android.animation.ObjectAnimator
+import android.content.Context
 import android.content.res.ColorStateList
+import android.graphics.Color
+import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
 import android.text.InputType
 import android.text.TextWatcher
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.DecelerateInterpolator
+import android.view.animation.LinearInterpolator
+import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
 import androidx.navigation.fragment.findNavController
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.highfly.logbook.databinding.FragmentImportBinding
-import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 class ImportFragment : LogbookFragment() {
@@ -261,15 +272,86 @@ class ImportFragment : LogbookFragment() {
         }
     }
 
+    /**
+     * Korrekturdialog für einen Konflikt-Eintrag. Zeigt nur die relevanten
+     * Felder: Fluggesellschaft und Flugnummer in einer Reihe, darunter FROM
+     * und TO als Textfelder nebeneinander und darunter zwei Kacheln im Stil
+     * von "Neuer Flug", die die Codes groß zeigen. Ungültige Werte tragen ein
+     * rotes X im Textfeld; oben rechts steht der Fortschritt "Eintrag x von y"
+     * in der Akzentfarbe, darunter die Warnzeile mit rotem Dreieck und Grund.
+     *
+     * Unten rechts sitzt der fette Knopf "Prüfen": Erst wenn alle Werte ok
+     * sind, wird er zu "Übernehmen & weiter" bzw. beim letzten Eintrag zu
+     * "Übernehmen & beenden". Links daneben bleiben "Überspringen" und
+     * "Schließen".
+     */
+    /**
+     * Korrekturdialog für einen Konflikt-Eintrag. Oben im Header steht links
+     * der Titel, rechts daneben "y von z" in der Akzentfarbe und ganz rechts
+     * ein X (schließt erst nach Bestätigung). Darunter die Warnzeile mit rotem
+     * Dreieck und Grund, dann Fluggesellschaft + Flugnummer in einer Reihe.
+     * Die Flughafen stehen als Spalten: oben der Originalwert aus dem
+     * Datensatz als Text (mit rotem X, wenn er ungültig war - so bleibt
+     * sichtbar, was es war), darunter eine Kachel im Stil von "Neuer Flug" mit
+     * leerem Eingabefeld für den eigenen Eintrag. Ganz unten ein voller
+     * "Prüfen"-Button im Stil von "Flug speichern": Beim Klick schrumpft er
+     * und dreht sich im Uhrzeigersinn (laden), danach wird das Drehbild zu
+     * einem grünen Haken ("Neue Daten valide.") oder einem roten X
+     * ("Neue Daten ungültig"). Bei validen Daten erscheint unten links der
+     * fette Button "Übernehmen & weiter" bzw. "Übernehmen & beenden".
+     */
     private fun showReviewDialog(index: Int) {
         val ctx = requireContext()
         val entry = ImportSession.entries.getOrNull(index) ?: return
         val total = ImportSession.conflictIndexes.size
         val position = ImportSession.conflictIndexes.indexOf(index) + 1
-        val onSurface = MaterialColors.getColor(
-            binding.root, com.google.android.material.R.attr.colorOnSurface
+        val primary = MaterialColors.getColor(
+            binding.root, com.google.android.material.R.attr.colorPrimary
         )
-        val warn = ContextCompat.getColor(ctx, R.color.import_warn)
+        val errorColor = MaterialColors.getColor(
+            binding.root, com.google.android.material.R.attr.colorError
+        )
+        val onSurfaceVariant = MaterialColors.getColor(
+            binding.root, com.google.android.material.R.attr.colorOnSurfaceVariant
+        )
+
+        var dialog: AlertDialog? = null
+        var saveButton: Button? = null
+        var validated: LogbookEntry? = null
+        var checking = false
+        var resultShown = false
+        var spin: ObjectAnimator? = null
+
+        // Header: Titel links, "y von z" rechts in der Akzentfarbe, X ganz rechts.
+        val closeX = ImageView(ctx).apply {
+            setImageResource(R.drawable.ic_close)
+            setColorFilter(onSurfaceVariant)
+            contentDescription = getString(R.string.import_review_close)
+            setPadding(dp(4), dp(4), dp(4), dp(4))
+            isClickable = true
+            layoutParams = LinearLayout.LayoutParams(dp(28), dp(28)).apply {
+                setMargins(dp(12), 0, 0, 0)
+            }
+        }
+        val titleView = LinearLayout(ctx).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(24), dp(20), dp(12), dp(4))
+        }
+        titleView.addView(TextView(ctx).apply {
+            text = getString(R.string.import_review_title)
+            setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_HeadlineSmall)
+        })
+        titleView.addView(View(ctx).apply {
+            layoutParams = LinearLayout.LayoutParams(0, dp(1), 1f)
+        })
+        titleView.addView(TextView(ctx).apply {
+            text = getString(R.string.import_review_progress_short, position, total)
+            textSize = 14f
+            setTextColor(primary)
+            setTypeface(null, Typeface.BOLD)
+        })
+        titleView.addView(closeX)
 
         val scroll = ScrollView(ctx).apply {
             layoutParams = LinearLayout.LayoutParams(
@@ -283,185 +365,250 @@ class ImportFragment : LogbookFragment() {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
             )
-            setPadding(dp(20), dp(8), dp(20), dp(8))
+            setPadding(dp(20), dp(4), dp(20), dp(8))
         }
         scroll.addView(container)
 
-        container.addView(
-            TextView(ctx).apply {
-                text = getString(R.string.import_review_progress, position, total)
-                textSize = 14f
-                setTextColor(warn)
-                setTypeface(null, android.graphics.Typeface.BOLD)
-            }
-        )
+        // Warnzeile: rotes Warndreieck mit dem Grund dahinter.
+        val warningText = TextView(ctx).apply {
+            textSize = 13f
+            setTextColor(errorColor)
+            layoutParams = LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f
+            ).apply { setMargins(dp(8), 0, 0, 0) }
+        }
+        val warningRow = LinearLayout(ctx).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(6), 0, dp(2))
+            addView(ImageView(ctx).apply {
+                setImageResource(R.drawable.ic_warning)
+                setColorFilter(errorColor)
+                layoutParams = LinearLayout.LayoutParams(dp(20), dp(20))
+            })
+            addView(warningText)
+        }
+        container.addView(warningRow)
 
-        val summaryFrom =
-            entry.fromAirport.ifBlank { getString(R.string.import_review_summary_unknown) }
-        val summaryTo =
-            entry.toAirport.ifBlank { getString(R.string.import_review_summary_unknown) }
-        val reason = ImportProcessor.conflictReason(ctx, entry)
-        container.addView(
-            TextView(ctx).apply {
-                text = getString(
-                    R.string.import_review_summary_route,
-                    summaryFrom,
-                    summaryTo
-                )
-                textSize = 18f
-                setTextColor(onSurface)
-                setTypeface(null, android.graphics.Typeface.BOLD)
-                setPadding(dp(4), dp(10), dp(4), dp(2))
-            }
+        fun showReasons(reasons: List<String>) {
+            warningRow.visibility = if (reasons.isEmpty()) View.GONE else View.VISIBLE
+            warningText.text = reasons.joinToString("\n")
+        }
+
+        // Zeile 1: Fluggesellschaft und Flugnummer in einer Reihe.
+        val airlineCell = addFieldCell(
+            R.string.airline_label, entry.airline, InputType.TYPE_CLASS_TEXT, maxLength = 2
         )
-        if (reason != null) {
-            container.addView(
-                TextView(ctx).apply {
-                    text = reason
-                    textSize = 13f
-                    setTextColor(warn)
-                    setPadding(dp(4), dp(2), dp(4), dp(6))
-                }
+        airlineCell.edit.addTextChangedListener(upperCaseWatcher())
+        val flightNoCell = addFieldCell(
+            R.string.flight_number_label, entry.flightNumber,
+            InputType.TYPE_CLASS_NUMBER, maxLength = 6
+        )
+        container.addView(fieldRow(ctx, airlineCell.cell, flightNoCell.cell))
+
+        // Zeile 2: Flughafen-Spalten - oben der Originalwert als Text (mit rotem
+        // X bei ungültigem Datensatz), darunter die Kachel mit leerem Feld.
+        fun originalInvalid(code: String, other: String): Boolean {
+            val c = code.trim().uppercase()
+            if (c.isBlank()) return true
+            if (c == other.trim().uppercase()) return true
+            return !ImportProcessor.isKnownAirport(ctx, c)
+        }
+        val fromCol = airportColumn(
+            entry.fromAirport, R.string.airport_departure_label,
+            originalInvalid(entry.fromAirport, entry.toAirport)
+        )
+        val toCol = airportColumn(
+            entry.toAirport, R.string.airport_arrival_label,
+            originalInvalid(entry.toAirport, entry.fromAirport)
+        )
+        fromCol.second.addTextChangedListener(upperCaseWatcher())
+        toCol.second.addTextChangedListener(upperCaseWatcher())
+        container.addView(fieldRow(ctx, fromCol.first, toCol.first))
+
+        // Voller Prüf-Button im Stil von "Flug speichern".
+        val saveBg = ContextCompat.getColor(ctx, R.color.button_save_bg)
+        val checkButton = MaterialButton(ctx).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = dp(24) }
+            text = getString(R.string.import_review_check)
+            setTextColor(Color.WHITE)
+            textSize = 16f
+            setTypeface(null, Typeface.BOLD)
+            backgroundTintList = ColorStateList.valueOf(saveBg)
+            cornerRadius = dp(16)
+            minHeight = dp(56)
+            iconGravity = MaterialButton.ICON_GRAVITY_TEXT_START
+        }
+        container.addView(checkButton)
+
+        fun candidate(): LogbookEntry {
+            val from = fromCol.second.text.toString().trim().uppercase()
+            val to = toCol.second.text.toString().trim().uppercase()
+            return entry.copy(
+                fromAirport = from,
+                toAirport = to,
+                airline = airlineCell.edit.text.toString().trim().uppercase().ifEmpty { null },
+                flightNumber = flightNoCell.edit.text.toString().trim().ifEmpty { null }
             )
         }
 
-        val etDate = addField(
-            container, R.string.date_label, entry.date.format(DATE_FORMAT),
-            InputType.TYPE_CLASS_TEXT, maxLength = 10
-        ).apply { addTextChangedListener(dateMaskWatcher) }
-
-        val etFrom = addField(
-            container, R.string.airport_departure_label, entry.fromAirport,
-            InputType.TYPE_CLASS_TEXT, maxLength = 3
-        ).apply { addTextChangedListener(upperCaseWatcher()) }
-
-        val etTo = addField(
-            container, R.string.airport_arrival_label, entry.toAirport,
-            InputType.TYPE_CLASS_TEXT, maxLength = 3
-        ).apply { addTextChangedListener(upperCaseWatcher()) }
-
-        val etAirline = addField(
-            container, R.string.airline_label, entry.airline,
-            InputType.TYPE_CLASS_TEXT, maxLength = 2
-        ).apply { addTextChangedListener(upperCaseWatcher()) }
-
-        val etFlightNumber = addField(
-            container, R.string.flight_number_label, entry.flightNumber,
-            InputType.TYPE_CLASS_NUMBER
-        )
-
-        val etDistance = addField(
-            container, R.string.flight_distance_label, entry.distanceKm?.toString(),
-            InputType.TYPE_CLASS_NUMBER
-        )
-
-        val etFlightTime = addField(
-            container, R.string.flight_time_label, entry.flightMinutes?.toString(),
-            InputType.TYPE_CLASS_NUMBER
-        )
-
-        val etFlightType = addField(
-            container, R.string.flight_type_label, entry.flightType,
-            InputType.TYPE_CLASS_TEXT
-        )
-
-        val etClassType = addField(
-            container, R.string.class_label, entry.classType,
-            InputType.TYPE_CLASS_TEXT
-        )
-
-        val etAircraft = addField(
-            container, R.string.aircraft_type_label, entry.aircraftType,
-            InputType.TYPE_CLASS_TEXT
-        )
-
-        val etRegistration = addField(
-            container, R.string.registration_label, entry.registration,
-            InputType.TYPE_CLASS_TEXT
-        ).apply { addTextChangedListener(upperCaseWatcher()) }
-
-        val etComment = addField(
-            container, R.string.comment_label, entry.comment,
-            InputType.TYPE_CLASS_TEXT, multiLine = true
-        )
-
-        MaterialAlertDialogBuilder(ctx)
-            .setTitle(R.string.import_review_title)
-            .setView(scroll)
-            .setPositiveButton(R.string.import_review_save) { _, _ ->
-                val updated = buildUpdatedEntry(
-                    entry, etDate, etFrom, etTo, etAirline, etFlightNumber,
-                    etDistance, etFlightTime, etFlightType, etClassType,
-                    etAircraft, etRegistration, etComment
-                )
-                if (updated == null) {
-                    Toast.makeText(ctx, R.string.import_review_invalid, Toast.LENGTH_SHORT).show()
-                    showReviewDialog(index)
-                } else {
-                    ImportSession.entries[index] = updated
-                    ImportSession.conflictIndexes.remove(index)
-                    render()
-                    if (ImportSession.conflictIndexes.isNotEmpty()) {
-                        showReviewDialog(ImportSession.conflictIndexes.first())
-                    } else {
-                        Toast.makeText(ctx, R.string.import_review_all_done, Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }
-            .setNeutralButton(R.string.import_review_skip, null)
-            .setNegativeButton(R.string.import_review_close, null)
-            .show()
-    }
-
-    private fun buildUpdatedEntry(
-        original: LogbookEntry,
-        etDate: EditText,
-        etFrom: EditText,
-        etTo: EditText,
-        etAirline: EditText,
-        etFlightNumber: EditText,
-        etDistance: EditText,
-        etFlightTime: EditText,
-        etFlightType: EditText,
-        etClassType: EditText,
-        etAircraft: EditText,
-        etRegistration: EditText,
-        etComment: EditText
-    ): LogbookEntry? {
-        val date = try {
-            LocalDate.parse(etDate.text.toString().trim(), DATE_FORMAT)
-        } catch (e: Exception) {
-            return null
+        /** Rote X an den Eingabefeldern + Warnzeile live aus den Feldern. */
+        fun updateMarks() {
+            val from = fromCol.second.text.toString().trim().uppercase()
+            val to = toCol.second.text.toString().trim().uppercase()
+            val sameRoute = from.isNotEmpty() && from == to
+            fun airportBad(code: String): Boolean =
+                (code.isNotEmpty() && (!ImportProcessor.isKnownAirport(ctx, code) || sameRoute)) ||
+                    (resultShown && code.isBlank())
+            fromCol.third.visibility = if (airportBad(from)) View.VISIBLE else View.GONE
+            toCol.third.visibility = if (airportBad(to)) View.VISIBLE else View.GONE
+            airlineCell.errorIcon.visibility = if (
+                !ImportProcessor.isKnownAirline(ctx, airlineCell.edit.text.toString().trim())
+            ) View.VISIBLE else View.GONE
+            showReasons(ImportProcessor.conflictReasons(ctx, candidate()))
         }
-        val from = etFrom.text.toString().trim().uppercase()
-        val to = etTo.text.toString().trim().uppercase()
-        if (from.isEmpty() || to.isEmpty()) return null
 
-        val base = original.copy(
-            date = date,
-            fromAirport = from,
-            toAirport = to,
-            airline = etAirline.text.toString().trim().uppercase().ifEmpty { null },
-            flightNumber = etFlightNumber.text.toString().trim().ifEmpty { null },
-            distanceKm = etDistance.text.toString().trim().toIntOrNull(),
-            flightMinutes = etFlightTime.text.toString().trim().toIntOrNull(),
-            flightType = etFlightType.text.toString().trim().ifEmpty { null },
-            classType = etClassType.text.toString().trim().ifEmpty { null },
-            aircraftType = etAircraft.text.toString().trim().ifEmpty { null },
-            registration = etRegistration.text.toString().trim().uppercase().ifEmpty { null },
-            comment = etComment.text.toString().trim().ifEmpty { null }
-        )
-        return ImportProcessor.enrich(requireContext(), base)
+        /** Setzt Button und Save-Knopf nach einer Änderung wieder auf "Prüfen". */
+        fun resetToCheckState() {
+            if (!resultShown && !checking) return
+            resultShown = false
+            checking = false
+            validated = null
+            spin?.cancel()
+            checkButton.animate().cancel()
+            checkButton.rotation = 0f
+            checkButton.scaleX = 1f
+            checkButton.scaleY = 1f
+            checkButton.icon = null
+            checkButton.backgroundTintList = ColorStateList.valueOf(saveBg)
+            checkButton.text = getString(R.string.import_review_check)
+            checkButton.isEnabled = true
+            saveButton?.visibility = View.GONE
+        }
+
+        fun refresh() {
+            updateMarks()
+            resetToCheckState()
+        }
+
+        fun save() {
+            val updated = validated ?: return
+            ImportSession.entries[index] = updated
+            ImportSession.conflictIndexes.remove(index)
+            render()
+            dialog?.dismiss()
+            if (ImportSession.conflictIndexes.isNotEmpty()) {
+                showReviewDialog(ImportSession.conflictIndexes.first())
+            } else {
+                Toast.makeText(ctx, R.string.import_review_all_done, Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        fun finishCheck() {
+            checking = false
+            resultShown = true
+            val reasons = ImportProcessor.conflictReasons(ctx, candidate())
+            updateMarks()
+            checkButton.isEnabled = true
+            checkButton.animate().scaleX(1f).scaleY(1f).setDuration(250).start()
+            if (reasons.isEmpty()) {
+                validated = ImportProcessor.enrich(ctx, candidate())
+                showReasons(emptyList())
+                checkButton.icon = AppCompatResources.getDrawable(ctx, R.drawable.ic_check)
+                checkButton.iconTint = ColorStateList.valueOf(Color.WHITE)
+                checkButton.backgroundTintList = ColorStateList.valueOf(saveBg)
+                checkButton.text = getString(R.string.import_review_valid)
+                val last = ImportSession.conflictIndexes.size <= 1
+                saveButton?.visibility = View.VISIBLE
+                saveButton?.text = getString(
+                    if (last) R.string.import_review_save_exit else R.string.import_review_save
+                )
+                saveButton?.setOnClickListener { save() }
+            } else {
+                validated = null
+                saveButton?.visibility = View.GONE
+                checkButton.icon = AppCompatResources.getDrawable(ctx, R.drawable.ic_close)
+                checkButton.iconTint = ColorStateList.valueOf(Color.WHITE)
+                checkButton.backgroundTintList = ColorStateList.valueOf(errorColor)
+                checkButton.text = getString(R.string.import_review_invalid_result)
+            }
+        }
+
+        fun startCheck() {
+            if (checking) return
+            checking = true
+            resultShown = false
+            checkButton.isEnabled = false
+            checkButton.text = ""
+            checkButton.icon = AppCompatResources.getDrawable(ctx, R.drawable.ic_progress_circle)
+            checkButton.iconTint = ColorStateList.valueOf(Color.WHITE)
+            // Button klein machen und im Uhrzeigersinn drehen (laden).
+            checkButton.animate().scaleX(0.35f).scaleY(0.35f).setDuration(250).start()
+            val animator = ObjectAnimator.ofFloat(checkButton, View.ROTATION, 0f, 360f).apply {
+                duration = 700
+                repeatCount = ObjectAnimator.INFINITE
+                repeatMode = ObjectAnimator.RESTART
+                interpolator = LinearInterpolator()
+            }
+            spin = animator
+            animator.start()
+            // Drehung mindestens ~0,8 s laufen lassen, dann das Ergebnis zeigen.
+            checkButton.postDelayed({
+                if (dialog?.isShowing != true || !checking) return@postDelayed
+                animator.cancel()
+                val target = Math.ceil(checkButton.rotation.toDouble() / 360.0).toFloat() * 360f
+                checkButton.animate().rotation(target).setDuration(150)
+                    .setInterpolator(DecelerateInterpolator())
+                    .withEndAction { finishCheck() }
+                    .start()
+            }, 800)
+        }
+
+        val refreshWatcher = object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable) { refresh() }
+        }
+        listOf(airlineCell.edit, flightNoCell.edit, fromCol.second, toCol.second).forEach {
+            it.addTextChangedListener(refreshWatcher)
+        }
+
+        dialog = MaterialAlertDialogBuilder(ctx)
+            .setCustomTitle(titleView)
+            .setView(scroll)
+            .setNeutralButton(R.string.import_review_skip, null)
+            .setNegativeButton(R.string.import_review_save, null)
+            .show()
+        saveButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE)
+        saveButton.visibility = View.GONE
+        saveButton.setTypeface(saveButton.typeface, Typeface.BOLD)
+        closeX.setOnClickListener {
+            MaterialAlertDialogBuilder(ctx)
+                .setTitle(R.string.import_review_close_confirm_title)
+                .setMessage(R.string.import_review_close_confirm_message)
+                .setPositiveButton(R.string.import_review_close) { _, _ -> dialog?.dismiss() }
+                .setNegativeButton(R.string.discard_cancel, null)
+                .show()
+        }
+        checkButton.setOnClickListener { startCheck() }
+        refresh()
     }
 
-    private fun addField(
-        container: LinearLayout,
+    private class FieldCell(
+        val cell: LinearLayout,
+        val edit: EditText,
+        val errorIcon: ImageView,
+        var tileValue: TextView? = null
+    )
+
+    private fun addFieldCell(
         labelRes: Int,
         value: String?,
         inputType: Int,
-        maxLength: Int = -1,
-        multiLine: Boolean = false
-    ): EditText {
+        maxLength: Int
+    ): FieldCell {
         val ctx = requireContext()
         val onSurface = MaterialColors.getColor(
             binding.root, com.google.android.material.R.attr.colorOnSurface
@@ -472,44 +619,165 @@ class ImportFragment : LogbookFragment() {
         val outlineVariant = MaterialColors.getColor(
             binding.root, com.google.android.material.R.attr.colorOutlineVariant
         )
-
-        container.addView(
-            TextView(ctx).apply {
-                text = getString(labelRes)
-                textSize = 14f
-                setTextColor(onSurfaceVariant)
-                layoutParams = LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-                ).apply { setMargins(0, dp(12), 0, dp(2)) }
-            }
+        val errorColor = MaterialColors.getColor(
+            binding.root, com.google.android.material.R.attr.colorError
         )
 
+        val cell = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
+        cell.addView(TextView(ctx).apply {
+            text = getString(labelRes)
+            textSize = 14f
+            setTextColor(onSurfaceVariant)
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply { setMargins(0, dp(12), 0, dp(2)) }
+        })
+        val editRow = LinearLayout(ctx).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
         val edit = EditText(ctx).apply {
             setText(value.orEmpty())
-            this.inputType =
-                if (multiLine) inputType or InputType.TYPE_TEXT_FLAG_MULTI_LINE else inputType
+            this.inputType = inputType
             textSize = 16f
             setTextColor(onSurface)
             backgroundTintList = ColorStateList.valueOf(outlineVariant)
             setPadding(dp(4), dp(8), dp(4), dp(8))
-            setSingleLine(!multiLine)
+            setSingleLine(true)
+            minHeight = dp(44)
             layoutParams = LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f
             )
-            if (!multiLine) minHeight = dp(44)
-            if (multiLine) {
-                minLines = 3
-                maxLines = 5
-                gravity = android.view.Gravity.TOP
-            }
-            if (maxLength != -1) {
-                filters = arrayOf(android.text.InputFilter.LengthFilter(maxLength))
+            filters = arrayOf(android.text.InputFilter.LengthFilter(maxLength))
+        }
+        val errorIcon = ImageView(ctx).apply {
+            setImageResource(R.drawable.ic_close)
+            setColorFilter(errorColor)
+            visibility = View.GONE
+            contentDescription = getString(R.string.import_review_invalid_field_desc)
+            layoutParams = LinearLayout.LayoutParams(dp(20), dp(20)).apply {
+                setMargins(dp(6), 0, dp(4), 0)
             }
         }
-        container.addView(edit)
-        return edit
+        editRow.addView(edit)
+        editRow.addView(errorIcon)
+        cell.addView(editRow)
+        return FieldCell(cell, edit, errorIcon)
+    }
+
+    /** Zwei Zellen nebeneinander in einer Reihe (je halbe Breite, 8 dp Abstand). */
+    private fun fieldRow(ctx: Context, first: View, second: View): LinearLayout =
+        LinearLayout(ctx).apply {
+            orientation = LinearLayout.HORIZONTAL
+            addView(first.apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f
+                ).apply { marginEnd = dp(8) }
+            })
+            addView(second.apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f
+                )
+            })
+        }
+
+    /**
+     * Kachel im Stil von "Neuer Flug" (gefüllter grauer Grund, 16 dp Ecken,
+     * Beschriftung oben, Wert groß mittig): zeigt den Flughafencode groß an.
+     * Ein Tipp darauf fokussiert das zugehörige Textfeld.
+     */
+    /**
+     * Eine Flughafen-Spalte: oben der Originalwert aus dem Datensatz als Text
+     * (mit rotem X, wenn er ungültig war - so bleibt sichtbar, was es war),
+     * darunter eine Kachel im Stil von "Neuer Flug" mit leerem Eingabefeld für
+     * den eigenen Eintrag. Zurückgegeben: Spalte, Eingabefeld, rotes X am Feld.
+     */
+    private fun airportColumn(
+        originalCode: String,
+        labelRes: Int,
+        originalInvalid: Boolean
+    ): Triple<LinearLayout, EditText, ImageView> {
+        val ctx = requireContext()
+        val onSurface = MaterialColors.getColor(
+            binding.root, com.google.android.material.R.attr.colorOnSurface
+        )
+        val onSurfaceVariant = MaterialColors.getColor(
+            binding.root, com.google.android.material.R.attr.colorOnSurfaceVariant
+        )
+        val errorColor = MaterialColors.getColor(
+            binding.root, com.google.android.material.R.attr.colorError
+        )
+
+        val column = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
+
+        val origRow = LinearLayout(ctx).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+        origRow.addView(TextView(ctx).apply {
+            text = originalCode.ifBlank { getString(R.string.import_review_summary_unknown) }
+            textSize = 15f
+            setTextColor(onSurfaceVariant)
+            setTypeface(null, Typeface.BOLD)
+        })
+        origRow.addView(ImageView(ctx).apply {
+            setImageResource(R.drawable.ic_close)
+            setColorFilter(errorColor)
+            visibility = if (originalInvalid) View.VISIBLE else View.GONE
+            contentDescription = getString(R.string.import_review_invalid_field_desc)
+            layoutParams = LinearLayout.LayoutParams(dp(16), dp(16)).apply {
+                setMargins(dp(4), 0, 0, 0)
+            }
+        })
+        column.addView(origRow)
+
+        val tile = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundResource(R.drawable.bg_input_tile_filled)
+            setPadding(dp(28), dp(10), dp(28), dp(12))
+            minimumHeight = dp(72)
+        }
+        val labelRow = LinearLayout(ctx).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        labelRow.addView(TextView(ctx).apply {
+            text = getString(labelRes)
+            textSize = 12f
+            setTextColor(onSurfaceVariant)
+            setTypeface(null, Typeface.BOLD)
+            layoutParams = LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f
+            )
+        })
+        val inputX = ImageView(ctx).apply {
+            setImageResource(R.drawable.ic_close)
+            setColorFilter(errorColor)
+            visibility = View.GONE
+            contentDescription = getString(R.string.import_review_invalid_field_desc)
+            layoutParams = LinearLayout.LayoutParams(dp(18), dp(18))
+        }
+        labelRow.addView(inputX)
+        tile.addView(labelRow)
+        val edit = EditText(ctx).apply {
+            inputType = InputType.TYPE_CLASS_TEXT
+            textSize = 28f
+            setTextColor(onSurface)
+            setTypeface(null, Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setSingleLine(true)
+            setBackground(null)
+            hint = getString(labelRes)
+            filters = arrayOf(android.text.InputFilter.LengthFilter(4))
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+            setPadding(0, dp(2), 0, 0)
+        }
+        tile.addView(edit)
+        column.addView(tile)
+        return Triple(column, edit, inputX)
     }
 
     private fun upperCaseWatcher(): TextWatcher = object : TextWatcher {
@@ -521,30 +789,6 @@ class ImportFragment : LogbookFragment() {
         }
     }
 
-    private val dateMaskWatcher = object : TextWatcher {
-        private var isFormatting = false
-        override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-        override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-        override fun afterTextChanged(s: Editable) {
-            if (isFormatting) return
-            val formatted = formatDateMask(s.toString())
-            if (formatted != s.toString()) {
-                isFormatting = true
-                s.replace(0, s.length, formatted)
-                isFormatting = false
-            }
-        }
-    }
-
-    private fun formatDateMask(input: String): String {
-        val digits = input.filter { it.isDigit() }.take(8)
-        return when {
-            digits.length > 4 ->
-                "${digits.substring(0, 2)}.${digits.substring(2, 4)}.${digits.substring(4)}"
-            digits.length > 2 -> "${digits.substring(0, 2)}.${digits.substring(2)}"
-            else -> digits
-        }
-    }
 
     private fun implementData() {
         if (ImportSession.entries.isEmpty()) return

@@ -45,11 +45,14 @@ class EntryListAdapter(
     var schemeColors: List<Int> = emptyList()
 
     /**
-     * Erfolge, die ein Eintrag ausgelöst hat: Entry-ID -> Liste der Definitionen
-     * (Icon + Titel). In der Zeile erscheint rechts neben der Reiseart eine
-     * schief gedrehte Medaille mit dem Icon des ersten Erfolgs.
+     * Erfolge, die ein Eintrag ausgelöst hat: Entry-ID -> Liste der
+     * erreichten Erfolge (voller [Achievements.Reached] samt Label, damit
+     * [Achievements.Reached.title] z. B. "10. Flug mit LH" auflösen kann -
+     * [Achievements.Definition.title] allein stürzt dabei ab). In der Zeile
+     * erscheint rechts neben der Reiseart eine schief gedrehte Medaille mit
+     * dem Icon des ersten Erfolgs.
      */
-    var achievementMedals: Map<Long, List<Achievements.Definition>> = emptyMap()
+    var achievementMedals: Map<Long, List<Achievements.Reached>> = emptyMap()
 
     private var rows: List<EntryRow> = emptyList()
 
