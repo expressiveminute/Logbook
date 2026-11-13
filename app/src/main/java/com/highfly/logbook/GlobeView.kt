@@ -114,6 +114,12 @@ class GlobeView @JvmOverloads constructor(
     private var zoom = ZOOM_MIN
 
     private var accentColor = Color.BLUE
+
+    /** Farbe der Flughafen-Punkte/Badges; null = neutral (Label-Farbe). */
+    private var pointColor: Int? = null
+
+    /** Neutrale Badge-Füllung (nur Routen tragen die Akzentfarbe). */
+    private var badgeNeutralColor = Color.GRAY
     @Volatile
     private var drawn: Built? = null
     private var buildGeneration = 0
@@ -263,9 +269,18 @@ class GlobeView @JvmOverloads constructor(
         planePath.close()
     }
 
-    /** Farben: Akzent für Routen/Punkte, Land/Ozean je nach Dark Mode. */
+    /** Farben: Akzent nur für die Flugrouten (Bögen, Spuren, Flugzeuge),
+     *  Punkte/Badges/Kugelrand neutral, Land/Ozean je nach Dark Mode. */
     fun setColors(accent: Int) {
         accentColor = accent
+        applyColors()
+        invalidate()
+    }
+
+    /** Farbe der Flughafen-Punkte und -Badges (z. B. Primärfarbe auf der
+     *  Dashboard-Kachel); null stellt die neutrale Label-Farbe wieder her. */
+    fun setPointColor(color: Int?) {
+        pointColor = color
         applyColors()
         invalidate()
     }
@@ -275,22 +290,25 @@ class GlobeView @JvmOverloads constructor(
         landFillPaint.color = if (isDark) Color.rgb(52, 65, 76) else Color.rgb(222, 226, 220)
         borderPaint.color = if (isDark) Color.rgb(120, 132, 144) else Color.rgb(150, 160, 152)
         borderPaint.strokeWidth = 0.7f * density
+        // Nur die Routen in Akzentfarbe.
         routePaint.color = accentColor
-        airportDotPaint.color = accentColor
         cityDotPaint.color = if (isDark) Color.rgb(200, 210, 220) else Color.rgb(90, 100, 90)
-        badgeFillPaint.color = accentColor
-        badgeFillPaint.alpha = 255
-        badgeRingPaint.color = Color.WHITE
-        badgeRingPaint.alpha = 255
-        badgeTextPaint.color = readableOn(accentColor)
-        badgeTextPaint.isFakeBoldText = false
+        airportDotPaint.color = cityDotPaint.color
         mutedBadgeColor = if (isDark) Color.rgb(96, 104, 116) else Color.rgb(150, 158, 152)
         cityLabelPaint.color = if (isDark) Color.rgb(210, 218, 226) else Color.rgb(70, 80, 70)
         cityLabelHaloPaint.color = if (isDark) Color.rgb(20, 30, 40) else Color.rgb(240, 246, 250)
         countryLabelPaint.color = if (isDark) Color.rgb(235, 240, 246) else Color.rgb(35, 42, 48)
+        // Badges/Punkte: eigene Punktfarbe, sonst neutral (Label-Farbe).
+        badgeNeutralColor = pointColor ?: countryLabelPaint.color
+        badgeFillPaint.color = badgeNeutralColor
+        badgeFillPaint.alpha = 255
+        badgeRingPaint.color = Color.WHITE
+        badgeRingPaint.alpha = 255
+        badgeTextPaint.color = readableOn(badgeNeutralColor)
+        badgeTextPaint.isFakeBoldText = false
         countryLabelHaloPaint.color = cityLabelHaloPaint.color
         dotHaloPaint.color = cityLabelHaloPaint.color
-        rimPaint.color = accentColor
+        rimPaint.color = borderPaint.color
         rimPaint.alpha = 140
         rimPaint.strokeWidth = 1.5f * density
         planePaint.color = accentColor
@@ -853,7 +871,7 @@ class GlobeView @JvmOverloads constructor(
                     fill = mutedBadgeColor
                     bold = false
                 } else {
-                    fill = accentColor
+                    fill = badgeNeutralColor
                     bold = true
                 }
                 badgeFillPaint.color = fill
@@ -869,7 +887,7 @@ class GlobeView @JvmOverloads constructor(
             val top = m.y - badgeH / 2
             if (m.selected) {
                 val extra = 3f * density
-                badgeHighlightPaint.color = accentColor
+                badgeHighlightPaint.color = badgeNeutralColor
                 canvas.drawRoundRect(
                     left - extra, top - extra,
                     left + badgeW + extra, top + badgeH + extra,

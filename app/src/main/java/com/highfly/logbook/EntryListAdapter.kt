@@ -39,6 +39,7 @@ class EntryListAdapter(
     private val context: Context,
     private val onClickEdit: (LogbookEntry) -> Unit,
     private val onClickDelete: (LogbookEntry) -> Unit,
+    private val onClickEntry: (LogbookEntry) -> Unit = {},
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     var entries: List<LogbookEntry> = emptyList()
@@ -270,7 +271,10 @@ class EntryListAdapter(
                                 if (currentlyOpenId == entry?.id) setOpen(null)
                             }
                         } else {
+                            // Kurzer Tap auf die Kachel (kein Wischen): Die
+                            // Bordkarte des Eintrags oeffnen.
                             closeOpenRow()
+                            entry?.let(onClickEntry)
                         }
                         card.requestDisallowInterceptTouchEvent(false)
                         true

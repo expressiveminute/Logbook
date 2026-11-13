@@ -6,14 +6,13 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.View
-import com.google.android.material.color.MaterialColors
 
 /**
- * Diskreter Balken im Hintergrund einer Länderzeile: Er füllt die Zeile von
- * links und zeigt so, wie oft das Land angeflogen wurde, gemessen am
- * meistbesuchten Land der Liste. Die Füllung bleibt leise - niedrige Deckkraft
- * in der Primärfarbe -, damit die Flagge, der Name und die Flugzahl darüber
- * ungestört lesbar bleiben.
+ * Diskreter Balken im Hintergrund einer Listenzeile (Länder, Airlines,
+ * Reisebuddies): Er füllt die Zeile von links und zeigt so den Anteil am
+ * Maximum der Liste. Die Füllung bleibt leise - niedrige Deckkraft in der
+ * aktiven Primärfarbe des Schemas ([AirlineSchemes.primaryColor]) -, damit
+ * Flagge, Name und Zahl darüber ungestört lesbar bleiben.
  *
  * Die Fraktion wird über [setFraction] gesetzt, 0 bis 1 (Anteil am Maximum).
  */
@@ -24,9 +23,7 @@ class VisitedCountryBarView @JvmOverloads constructor(
 
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
-        color = MaterialColors.getColor(
-            this@VisitedCountryBarView, com.google.android.material.R.attr.colorPrimary
-        )
+        color = AirlineSchemes.primaryColor(context)
         alpha = FILL_ALPHA
     }
     private val bounds = RectF()

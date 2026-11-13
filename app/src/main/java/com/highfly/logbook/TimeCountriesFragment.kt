@@ -202,6 +202,8 @@ class TimeCountriesFragment : LogbookFragment(), BackPressAware {
                 R.string.layover_sort_duration
             }
         )
+        // Sortier-Wert in der Akzentfarbe des Schemas.
+        binding.tvTimeSort.setTextColor(AirlineSchemes.accentColor(requireContext()))
     }
 
     override fun onResume() {
@@ -401,6 +403,8 @@ class TimeCountriesFragment : LogbookFragment(), BackPressAware {
         val ctx = requireContext()
         val de = useGermanNames()
         val view = LayoutInflater.from(ctx).inflate(R.layout.dialog_manual_stay, null)
+        // Kacheln im Dialog: Sekundär-Container durch Primärfarbe ersetzen.
+        DashboardTileColors.replaceSecondaryCards(view)
         val act = view.findViewById<MaterialAutoCompleteTextView>(R.id.act_stay_country)
         val actIn = view.findViewById<MaterialAutoCompleteTextView>(R.id.act_transport_in)
         val actOut = view.findViewById<MaterialAutoCompleteTextView>(R.id.act_transport_out)

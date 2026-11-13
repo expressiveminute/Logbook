@@ -72,14 +72,16 @@
             android:orientation="vertical"
             android:paddingHorizontal="16dp">
 
-            <!-- Flugzeug-Schema mit Heatmap. -->
+            <!-- Flugzeug-Schema mit Heatmap; ohne Kachelrand (strokeWidth 0,
+                 sonst zeichnet der Material3-Default-Card-Stil einen Strich). -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
                 app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="0dp">
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp">
 
                 <com.highfly.logbook.SeatHeatmapView
                     android:id="@+id/seat_heatmap"

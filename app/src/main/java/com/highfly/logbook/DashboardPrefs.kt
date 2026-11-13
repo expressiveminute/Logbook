@@ -118,10 +118,24 @@ object DashboardPrefs {
     )
 
     /**
-     * Farbcode der Rasterposition für den gewählten Akzent, oder null, wenn die
-     * Position keine eigene Farbe hat und die Standarddarstellung gilt.
+     * Farbcode der Rasterposition für das gewählte Farbschema, oder null, wenn
+     * die Position keine eigene Farbe hat und die Standarddarstellung gilt.
+     * Airline-Schemas färben alle Kachelpositionen einheitlich in der
+     * Primärfarbe der Airline mit deren Sekundärfarbe als Schrift.
      */
     fun positionStyle(position: TilePosition, accent: String): TileStyle? {
+        // Airline-Schemas färben alle Kachelpositionen einheitlich (auch die
+        // Reihen unter der Weltkugel); die Weltkugel-Kachel selbst bleibt davon
+        // ausgenommen und wird grau wie der Dashboard-Hintergrund gezeichnet
+        // (siehe DashboardTileColors.apply).
+        AirlineSchemes.byKey(accent)?.let { scheme ->
+            return TileStyle(
+                backgroundColorRes = scheme.tileBackgroundRes,
+                contentColorRes = scheme.tileContentRes,
+                strokeColorRes = scheme.tileContentRes,
+                strokeWidthDp = 0
+            )
+        }
         if (position.row !in 0 until COLORED_ROWS) return null
         if (position.column !in 0 until COLORED_COLUMNS) return null
         val key = position.row * COLORED_COLUMNS + position.column
@@ -505,6 +519,27 @@ object DashboardTileColors {
 
     fun apply(card: MaterialCardView, position: DashboardPrefs.TilePosition) {
         val accent = Settings.getAccentColor(card.context)
+        // Weltkugel-Kachel bei Airline-Schema: Hintergrund wie der Dashboard-
+        // Hintergrund (grau) mit dezenter Umrandung; die Globuslinien malt die
+        // Kachel selbst in der aktiven Primärfarbe (siehe FirstFragment).
+        if (AirlineSchemes.byKey(accent) != null && card.tag == "globe") {
+            val onSurface = MaterialColors.getColor(
+                card, com.google.android.material.R.attr.colorOnSurface
+            )
+            card.setCardBackgroundColor(
+                MaterialColors.getColor(
+                    card, com.google.android.material.R.attr.colorSurface
+                )
+            )
+            card.strokeColor = MaterialColors.getColor(
+                card, com.google.android.material.R.attr.colorOutlineVariant
+            )
+            card.strokeWidth = dp(card, 1)
+            textViewIds.forEach { viewId -> setTextColor(card.findViewById(viewId), onSurface) }
+            card.findViewById<ImageView>(R.id.iv_tile_icon)?.imageTintList =
+                ColorStateList.valueOf(onSurface)
+            return
+        }
         val style = DashboardPrefs.positionStyle(position, accent)
         if (style == null) {
             card.setCardBackgroundColor(
@@ -542,6 +577,74 @@ object DashboardTileColors {
         val text = view.text as? Spannable ?: return
         text.getSpans(0, text.length, ForegroundColorSpan::class.java)
             .forEach { text.removeSpan(it) }
+    }
+
+    /**
+     * Färbt eine Zusammenfassungs-Kachel (z. B. die beiden Layover-Kacheln oder
+     * „Reiseart“ auf der Flüge-Seite) in der aktiven Primärfarbe des Schemas ein
+     * ([AirlineSchemes.primaryColor]: bei Airlines die Marken-Primärfarbe, z. B.
+     * das LH-Blau). Mit [useAccent] stattdessen die Akzentfarbe
+     * ([AirlineSchemes.accentColor], z. B. das LH-Gold). Der Strich entfällt auf
+     * der Vollfläche. Mit [recolorTexts] werden auch alle TextViews in der Kachel
+     * auf die Kontrastfarbe gesetzt (nur für Kacheln ohne eingefärbte Segmente
+     * mit eigener Textfarbe, z. B. nicht für den Reiseart-Balken).
+     */
+    fun applyPrimaryCardBackground(
+        card: MaterialCardView,
+        recolorTexts: Boolean = false,
+        useAccent: Boolean = false
+    ) {
+        val color = if (useAccent) {
+            AirlineSchemes.accentColor(card.context)
+        } else {
+            AirlineSchemes.primaryColor(card.context)
+        }
+        card.setCardBackgroundColor(color)
+        card.strokeWidth = 0
+        if (recolorTexts) {
+            recolorTexts(card, primaryCardTextColor(color, card.context))
+        }
+    }
+
+    /** Textfarbe auf der Primär-Kachel: bei LH bewusst weiß. */
+    fun primaryCardTextColor(card: MaterialCardView): Int =
+        primaryCardTextColor(AirlineSchemes.primaryColor(card.context), card.context)
+
+    private fun primaryCardTextColor(color: Int, context: Context): Int =
+        BoardingPassLogic.textColorFor(Settings.getAccentColor(context), color)
+
+    /**
+     * Ersetzt im Airline-Schema die Kachel-Hintergründe aus
+     * `colorSecondaryContainer` (das dort ein unruhiges Blau ist) durch die
+     * Marken-Primärfarbe. Bei klassischen Akzentfarben bleibt alles unverändert.
+     * Greift nur auf MaterialCardViews, deren Hintergrund exakt die
+     * Sekundär-Containerfarbe ist.
+     */
+    fun replaceSecondaryCards(root: android.view.View) {
+        val context = root.context
+        if (AirlineSchemes.byKey(Settings.getAccentColor(context)) == null) return
+        val secondary = MaterialColors.getColor(
+            root, com.google.android.material.R.attr.colorSecondaryContainer
+        )
+        val primary = AirlineSchemes.primaryColor(context)
+        fun walk(view: android.view.View) {
+            if (view is MaterialCardView &&
+                view.cardBackgroundColor?.defaultColor == secondary
+            ) {
+                view.setCardBackgroundColor(primary)
+            }
+            if (view is android.view.ViewGroup) {
+                for (i in 0 until view.childCount) walk(view.getChildAt(i))
+            }
+        }
+        walk(root)
+    }
+
+    private fun recolorTexts(root: android.view.View, color: Int) {
+        if (root is TextView) root.setTextColor(color)
+        if (root is android.view.ViewGroup) {
+            for (i in 0 until root.childCount) recolorTexts(root.getChildAt(i), color)
+        }
     }
 
     private fun dp(card: MaterialCardView, value: Int): Int =

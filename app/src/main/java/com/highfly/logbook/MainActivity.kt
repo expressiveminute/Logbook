@@ -45,7 +45,6 @@ class MainActivity : AppCompatActivity() {
 
     /** Akzentfarbe und Erscheinungsbild, mit denen diese Instanz gestartet ist. */
     private var appliedAccent: String? = null
-    private var appliedThemeMode: String? = null
 
     /** Laufende Glow-Animationen der beiden Filterwoerter im Dashboard-Kopf. */
     private val filterGlowAnimators = HashMap<TextView, ValueAnimator>()
@@ -58,13 +57,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        AppCompatDelegate.setDefaultNightMode(
-            when (Settings.getThemeMode(this)) {
-                Settings.THEME_MODE_DARK -> AppCompatDelegate.MODE_NIGHT_YES
-                Settings.THEME_MODE_LIGHT -> AppCompatDelegate.MODE_NIGHT_NO
-                else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
-            }
-        )
+        // Die App ist immer im Dark Mode.
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         setTheme(Settings.accentThemeResId(this))
         super.onCreate(savedInstanceState)
 
@@ -215,6 +209,14 @@ class MainActivity : AppCompatActivity() {
         val periodKey = Settings.getDefaultPeriodKey(this)
         binding.tvFilterFlightType.text = FlightTypeOptions.label(this, typeKey)
         binding.tvFilterPeriod.text = PeriodOptions.headerLabel(this, periodKey)
+        // Die Filterschrift ("All Flights"/"All Time") steht immer in der
+        // Akzentfarbe - bei einem Airline-Schema in dessen Akzentfarbe.
+        val filterTextColor = MaterialColors.getColor(
+            binding.tvFilterFlightType,
+            com.google.android.material.R.attr.colorPrimary
+        )
+        binding.tvFilterFlightType.setTextColor(filterTextColor)
+        binding.tvFilterPeriod.setTextColor(filterTextColor)
         val weight = if (
             typeKey == FlightTypeOptions.KEY_ALL && periodKey == PeriodOptions.KEY_ALL
         ) {
@@ -343,6 +345,35 @@ class MainActivity : AppCompatActivity() {
             // Fluggast: nur der Name, ohne Funktion und Arbeitgeber.
             binding.tvDashboardSubtitle.text = ""
             binding.tvDashboardSubtitle.visibility = View.GONE
+        }
+
+        // Story-Knopf: Bei einem Airline-Schema steht der Knopf in der
+        // Primärfarbe der Airline, Schrift und Icon in deren Akzentfarbe
+        // (colorPrimary des Themes); sonst die Tonal-Standardfarben.
+        val storyButton = binding.btnDashboardStory
+        val scheme = AirlineSchemes.byKey(Settings.getAccentColor(this))
+        if (scheme != null) {
+            val accent = MaterialColors.getColor(
+                storyButton, com.google.android.material.R.attr.colorPrimary
+            )
+            storyButton.backgroundTintList = ColorStateList.valueOf(
+                androidx.core.content.ContextCompat.getColor(this, scheme.tileBackgroundRes)
+            )
+            storyButton.setTextColor(accent)
+            storyButton.iconTint = ColorStateList.valueOf(accent)
+        } else {
+            val onTonal = MaterialColors.getColor(
+                storyButton,
+                com.google.android.material.R.attr.colorOnSecondaryContainer
+            )
+            storyButton.backgroundTintList = ColorStateList.valueOf(
+                MaterialColors.getColor(
+                    storyButton,
+                    com.google.android.material.R.attr.colorSecondaryContainer
+                )
+            )
+            storyButton.setTextColor(onTonal)
+            storyButton.iconTint = ColorStateList.valueOf(onTonal)
         }
     }
 
@@ -593,21 +624,15 @@ class MainActivity : AppCompatActivity() {
             return
         }
         // Die Willkommens-Tour laesst sich aus den Einstellungen erneut öffnen
-        // und kann dort Akzentfarbe und Erscheinungsbild ändern. Theme-Wechsel
-        // meldet AppCompatDelegate zwar selbst, die Akzentfarbe nicht - sie
-        // wird hier verglichen und die Activity bei Bedarf neu aufgebaut.
+        // und kann dort die Akzentfarbe ändern. Sie wird hier verglichen und
+        // die Activity bei Bedarf neu aufgebaut.
         val accent = Settings.getAccentColor(this)
-        val themeMode = Settings.getThemeMode(this)
-        if (appliedAccent != null &&
-            (appliedAccent != accent || appliedThemeMode != themeMode)
-        ) {
+        if (appliedAccent != null && appliedAccent != accent) {
             appliedAccent = accent
-            appliedThemeMode = themeMode
             recreate()
             return
         }
         appliedAccent = accent
-        appliedThemeMode = themeMode
         // Der Zeitraum laesst sich auch in den Einstellungen aendern: Die
         // Filterzeile muss das bei jedem Aufkommen uebernehmen. Gleiches gilt
         // fuer Avatar, Rolle und Fluggesellschaft der Kopfzeile.

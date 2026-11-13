@@ -7,7 +7,6 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.slider.Slider
 import com.highfly.logbook.databinding.FragmentPassengersBinding
 import kotlin.math.roundToInt
@@ -40,6 +39,10 @@ class PassengersFragment : LogbookFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        // Die obere Info-Kachel trägt die Akzentfarbe des Schemas.
+        DashboardTileColors.applyPrimaryCardBackground(
+            binding.cardPassengersSubtitle, recolorTexts = true, useAccent = true
+        )
         // Platz unter der schwebenden Navigationsleiste.
         binding.scrollPassengers.addBottomNavPadding()
         binding.btnPassengersBack.setOnClickListener { findNavController().navigateUp() }
@@ -113,12 +116,18 @@ class PassengersFragment : LogbookFragment() {
                     PassengersCalculator.roundToHundreds(year.passengers),
                     locale
                 )
-            val bar = row.findViewById<LinearProgressIndicator>(R.id.bar_passenger_year)
-            bar.progress = if (maxPassengers > 0) {
+            // Balken wie bei der Höhenstrahlung: Anteil am stärksten Jahr.
+            val bar = row.findViewById<RadiationLimitBar>(R.id.bar_passenger_year)
+            val percent = if (maxPassengers > 0) {
                 (year.passengers.toDouble() / maxPassengers * 100.0).roundToInt()
             } else {
                 0
             }
+            bar.percent = percent
+            bar.overLimit = false
+            // Ohne Prozentzahl im Balken.
+            bar.showLabel = false
+            bar.contentDescription = getString(R.string.passenger_year_percent, percent)
             binding.passengersYearsContainer.addView(row)
         }
         binding.tvPassengersEmpty.visibility =

@@ -71,12 +71,11 @@ class WelcomeActivity : AppCompatActivity() {
         // Schritte der Profilseite. Sie werden in dieser Reihenfolge nach und
         // nach eingeblendet; Funktions- und Klassen-Schritt nur bei Besatzung.
         private const val STEP_NAME = 0
-        private const val STEP_THEME = 1
-        private const val STEP_ACCENT = 2
-        private const val STEP_ROLE = 3
-        private const val STEP_FUNCTION = 4
-        private const val STEP_CLASS = 5
-        private const val STEP_AIRLINE = 6
+        private const val STEP_ACCENT = 1
+        private const val STEP_ROLE = 2
+        private const val STEP_FUNCTION = 3
+        private const val STEP_CLASS = 4
+        private const val STEP_AIRLINE = 5
 
         /** Erster Start: nach dem Abschluss wird [MainActivity] frisch gestartet. */
         fun startForFirstRun(context: Context) {
@@ -106,12 +105,11 @@ class WelcomeActivity : AppCompatActivity() {
     private var visibleStep = STEP_NAME
     private var restoredStep = -1
 
-    // Schritte, die der Nutzer in dieser Sitzung angetippt hat. Vorbelegt ist
-    // nur das Erscheinungsbild (Dunkel); alle übrigen Kacheln stehen zunächst
-    // ungewählt da, damit die Wahl wirklich getroffen wird. Ein Akzent- oder
-    // Theme-Wechsel baut die Seite neu auf, deshalb überlebt der Satz den
-    // Neubau über [STATE_CHOSEN].
-    private val chosenSteps = mutableSetOf(STEP_THEME)
+    // Schritte, die der Nutzer in dieser Sitzung angetippt hat. Alle Kacheln
+    // stehen zunächst ungewählt da, damit die Wahl wirklich getroffen wird.
+    // Ein Akzent-Wechsel baut die Seite neu auf, deshalb überlebt der Satz
+    // den Neubau über [STATE_CHOSEN].
+    private val chosenSteps = mutableSetOf<Int>()
 
     private val avatarPickerLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
@@ -128,12 +126,8 @@ class WelcomeActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         isReplay = intent.getBooleanExtra(EXTRA_REPLAY, false)
-        // Beim ersten Start ist "Dunkel" die Vorauswahl. Eine bereits bewußt
-        // getroffene Wahl (auch aus einer früheren Installation) bleibt bestehen.
-        if (!isReplay && !Settings.isThemeModeChosen(this)) {
-            Settings.setThemeMode(this, Settings.THEME_MODE_DARK)
-        }
-        AppCompatDelegate.setDefaultNightMode(nightModeFor(Settings.getThemeMode(this)))
+        // Die App ist immer im Dark Mode.
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         setTheme(Settings.accentThemeResId(this))
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -163,12 +157,6 @@ class WelcomeActivity : AppCompatActivity() {
         outState.putInt(STATE_PAGE, currentPage)
         outState.putInt(STATE_STEP, visibleStep)
         outState.putIntegerArrayList(STATE_CHOSEN, ArrayList(chosenSteps))
-    }
-
-    private fun nightModeFor(mode: String): Int = when (mode) {
-        Settings.THEME_MODE_DARK -> AppCompatDelegate.MODE_NIGHT_YES
-        Settings.THEME_MODE_LIGHT -> AppCompatDelegate.MODE_NIGHT_NO
-        else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
     }
 
     // --- Seitenrahmen -----------------------------------------------------
@@ -337,19 +325,6 @@ class WelcomeActivity : AppCompatActivity() {
             }
         })
 
-        b.welcomeThemeDarkTile.setOnClickListener {
-            applyThemeMode(Settings.THEME_MODE_DARK)
-            advanceFrom(STEP_THEME)
-        }
-        b.welcomeThemeLightTile.setOnClickListener {
-            applyThemeMode(Settings.THEME_MODE_LIGHT)
-            advanceFrom(STEP_THEME)
-        }
-        b.welcomeThemeSystemTile.setOnClickListener {
-            applyThemeMode(Settings.THEME_MODE_SYSTEM)
-            advanceFrom(STEP_THEME)
-        }
-
         b.welcomeAccentBrownTile.setOnClickListener {
             chosenSteps += STEP_ACCENT
             applyAccent(Settings.ACCENT_BROWN)
@@ -441,7 +416,6 @@ class WelcomeActivity : AppCompatActivity() {
         // Schritt-Verweise in der Reihenfolge der Einblendung.
         stepViews = listOf(
             listOf(b.welcomeStepName),
-            listOf(b.welcomeStepTheme),
             listOf(b.welcomeStepAccent),
             listOf(b.welcomeStepRole),
             listOf(b.welcomeStepFunction),
@@ -449,17 +423,16 @@ class WelcomeActivity : AppCompatActivity() {
             listOf(b.welcomeStepAirline)
         )
 
-        updateThemeTiles()
         updateAccentTiles()
         updateRoleRow()
         updateCrewFunctionTiles()
         updatePreferredClassTiles()
         updateAirlineRow()
 
-        // Nach dem Wechsel des Erscheinungsbilds wird die Activity neu gebaut;
+        // Nach dem Wechsel der Akzentfarbe wird die Activity neu gebaut;
         // dann den zuletzt erreichten Schritt wiederherstellen. Ist der Name
         // schon gesetzt (erneutes Öffnen aus den Einstellungen), beginnt die
-        // Seite gleich mit Erscheinungsbild, Akzentfarbe und Rolle.
+        // Seite gleich mit Akzentfarbe und Rolle.
         when {
             restoredStep >= 0 -> showStep(restoredStep)
             Settings.getProfileName(this).isNotBlank() -> showStep(STEP_ROLE)
@@ -512,10 +485,10 @@ class WelcomeActivity : AppCompatActivity() {
     private fun advanceFrom(step: Int) {
         if (step != visibleStep) return
         when (step) {
-            // Erscheinungsbild, Akzentfarbe und Rolle stehen von Anfang an zur
-            // Wahl; erst die bewusst getroffene Rollenwahl gibt den nächsten
-            // Schritt frei (die Rolle ist damit der "Türöffner").
-            STEP_NAME, STEP_THEME, STEP_ACCENT -> showStep(STEP_ROLE)
+            // Akzentfarbe und Rolle stehen von Anfang an zur Wahl; erst die
+            // bewusst getroffene Rollenwahl gibt den nächsten Schritt frei
+            // (die Rolle ist damit der "Türöffner").
+            STEP_NAME, STEP_ACCENT -> showStep(STEP_ROLE)
             STEP_ROLE -> showStep(if (Settings.getRole(this).isCrew) STEP_FUNCTION else STEP_AIRLINE)
             STEP_FUNCTION -> showStep(STEP_CLASS)
             STEP_CLASS -> showStep(STEP_AIRLINE)
@@ -532,23 +505,6 @@ class WelcomeActivity : AppCompatActivity() {
         pageBinding.welcomeProfileScroll.post {
             pageBinding.welcomeProfileScroll.smoothScrollTo(0, target.top)
         }
-    }
-
-    private fun applyThemeMode(mode: String) {
-        if (Settings.getThemeMode(this) == mode) return
-        Settings.setThemeMode(this, mode)
-        AppCompatDelegate.setDefaultNightMode(nightModeFor(mode))
-        updateThemeTiles()
-    }
-
-    private fun updateThemeTiles() {
-        val mode = Settings.getThemeMode(this)
-        highlight(pageBinding.welcomeThemeDarkTile, pageBinding.welcomeThemeDarkLabel,
-            mode == Settings.THEME_MODE_DARK)
-        highlight(pageBinding.welcomeThemeLightTile, pageBinding.welcomeThemeLightLabel,
-            mode == Settings.THEME_MODE_LIGHT)
-        highlight(pageBinding.welcomeThemeSystemTile, pageBinding.welcomeThemeSystemLabel,
-            mode == Settings.THEME_MODE_SYSTEM)
     }
 
     private fun applyAccent(accent: String) {

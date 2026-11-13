@@ -68,9 +68,8 @@ class AirportAltitudeView @JvmOverloads constructor(
     private val clickTargets = mutableListOf<Pair<RectF, String>>()
 
     init {
-        val primary = MaterialColors.getColor(
-            this, com.google.android.material.R.attr.colorPrimary
-        )
+        // Immer die aktive Akzentfarbe des Schemas (bei Airlines die Marken-Akzentfarbe).
+        val primary = AirlineSchemes.primaryColor(context)
         mountainPaint.color = primary
         mountainPaint.alpha = 0x4D
         // Winterschnee bleibt hell, auch im dunklen Modus.

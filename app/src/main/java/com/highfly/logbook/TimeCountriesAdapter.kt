@@ -246,8 +246,10 @@ class TimeCountriesAdapter(
             b.tvCountryFlag.text = item.flag
             b.tvCountryName.text = item.name
             // Dieselbe stundenbasierte Zahl wie auf der Detailseite (Sortierung
-            // der Liste läuft ebenfalls über die Stunden).
+            // der Liste läuft ebenfalls über die Stunden); in der Akzentfarbe
+            // des Schemas statt des blassen Theme-Primär.
             b.tvCountryDays.text = TimeCountryFormat.daysText(context, item.time.totalHours)
+            b.tvCountryDays.setTextColor(AirlineSchemes.accentColor(context))
             // "y Aufenthalte"; bei einem offenen Zeitraum (nur Hin- oder nur
             // Rueckflug in den Daten) hintenangestellt "Offene Zeiträume".
             val visits = TimeCountryFormat.visitsText(context, item.time.visits)

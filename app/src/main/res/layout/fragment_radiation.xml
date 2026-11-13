@@ -87,8 +87,10 @@
             android:paddingHorizontal="16dp">
 
             <!-- Untertitel der Kachel als Karte über den Jahren, im Format
-                 der Achievements-Kachel. -->
+                 der Achievements-Kachel; die Kachel selbst trägt die aktive
+                 Primärfarbe (siehe onViewCreated). -->
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_radiation_subtitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"

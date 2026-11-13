@@ -75,9 +75,8 @@ class CompassView @JvmOverloads constructor(
     private val clickTargets = mutableListOf<Pair<RectF, String>>()
 
     init {
-        val primary = MaterialColors.getColor(
-            this, com.google.android.material.R.attr.colorPrimary
-        )
+        // Immer die aktive Akzentfarbe des Schemas (bei Airlines die Marken-Akzentfarbe).
+        val primary = AirlineSchemes.primaryColor(context)
         needleLightPaint.color = primary
         needleLightPaint.alpha = 0x30
         needleDarkPaint.color = primary

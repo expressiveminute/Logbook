@@ -1012,6 +1012,31 @@ Companion – prüft `PlaneBackgroundViewTest`.
 `PlaneBackgroundView.kt` und `PlaneBackgroundViewTest.kt` löschen. `ic_flight` wird auch
 andernorts verwendet und bleibt.
 
+## Seite „Einträge" – Bordkarte
+
+Tippt man auf die Kachel eines Flugeintrags (kurzer Tap, kein Wisch-Reveal), öffnet sich
+`nav_boarding_pass` (`BoardingPassFragment`, `fragment_boarding_pass.xml`, Action
+`action_entries_to_boarding_pass` mit `entryId`; Eintrag wird über `LogbookRepository.getEntry`
+geladen). Die Seite ist als Bordkarte gestaltet: Hintergrund ist die **Primärfarbe** des aktiven
+Airline-Schemas, **außer bei LH — dort die Akzentfarbe (Gold)**; ohne Airline-Schema
+`colorPrimaryContainer`. Textfarbe ist Schwarz/Weiß je nach Kontrast (`BoardingPassLogic.onColor`).
+Aufbau von oben: Airline-Logo in weißem Kreis (`bg_boarding_pass_logo.xml`) + Flugnummer in
+Logogröße (Airline auf IATA aufgelöst via `AirlineCatalog.resolve`, „DLH“ → „LH 2058“), rechts
+die Reiseklasse als Ein-Buchstaben-Kachel (Y/E/C/F/J, Hintergrund = `ClassColorSchemes`, weiße
+Schrift, randlos). Darunter Datum (links bündig zum Logo) und rechts die Reiseart-Kachel
+(Hintergrund = `type_*_bg` zur kanonischen Reiseart, weiß, randlos); **davor** („dahinter“) eine
+gleiche Kachel mit der Funktions-Kurzform (P1/P2/FB, `BoardingPassLogic.functionShortForm`) bei
+On Duty/Deadhead/Dienstreise/Ferry bzw. dem Sitzplatz bei Privat — fehlt beides, rückt die
+Reiseart-Kachel nach rechts. Dann die `RouteMiniMapView` mit `playRouteAnimation()` und
+`revealDestinationOnArrival = true`: der Ziel-Dreilettercode erscheint erst ab 90 % der
+Aufbauanimation (`DESTINATION_REVEAL_PROGRESS`). Layover-Zeile nur mit eingetragener Dauer:
+`LayoverClockView` (Zeiger drehen sich einmal, respektiert `ANIMATOR_DURATION_SCALE`) + Plural-Satz
+`boarding_pass_layover_hours` („In XXX für yy Stunden im Layover verbracht“, XXX = `toAirport`).
+Dann Distanz (`DashboardStats.kmText`) links / Flugzeit „x h y min" rechts, Flugzeugmuster links /
+Registrierung rechts, Kommentar in Handschrift (`@font/patrick_hand`, Patrick Hand, SIL OFL 1.1 —
+in `sources_message` genannt). Fehlende Angaben bleiben weg. Reine Logik in `BoardingPassLogic`
+(getestet in `BoardingPassLogicTest`).
+
 ## Seite „Einträge" – Tagesordnung
 
 Hat ein Flug ein Achievement ausgelöst, trägt seine Kachel rechts neben der Reiseart eine
@@ -1226,8 +1251,8 @@ gehört `android:labelFor` der Zeilenbeschriftung auf das Feld. **Eine Ausnahme*
 unten (links Export mit `ic_export`, rechts Import mit `ic_import`; die Knopf-IDs `btn_full_export`/
 `btn_full_import` bleiben, damit die Verknüpfung in `SettingsSectionFragment` steht).
 
-**Auswahlen mit mehreren Werten** (Rolle, Funktion, bevorzugte Arbeitsposition, Erscheinungsbild,
-Akzentfarbe, Sprache) sind keine Kacheln mehr, sondern ein **Regler** (`SegmentedOptionView`, wie
+**Auswahlen mit mehreren Werten** (Rolle, Funktion, bevorzugte Arbeitsposition,
+Akzentfarbe/Farbschema, Sprache) sind keine Kacheln mehr, sondern ein **Regler** (`SegmentedOptionView`, wie
 die Reiseklasse unter „Neuer Flug“): eine gerundete, umrandete Leiste (52 dp) mit gleich breiten
 Zellen, deren Markierung zur gewählten Zelle gleitet (250 ms). Darüber steht die Beschriftung in
 einem Block (`SettingsBlock` + `SettingsBlockLabel`). Eine Zelle trägt entweder eine Beschriftung
@@ -1241,7 +1266,7 @@ und bleiben deshalb stehen.
 
 Die Punkte sind nach **Themen gruppiert**: innerhalb einer Gruppe 12 dp Abstand, zwischen zwei
 Gruppen mit unterschiedlichem Inhalt 28 dp (Profil: Rolle+Funktion | Fluggesellschaft+Arbeitsposition
-| Willkommens-Tour; Anpassung: Darstellung | Voreinstellungen; Daten: Sichern/Wiederherstellen |
+| Willkommens-Tour; Anpassung: Voreinstellungen; Daten: Sichern/Wiederherstellen |
 Gefahrenzone mit Strich und rotem Titel | **ganz unten** Crash-Log und Demo-Datenbank – früher
 eigener Abschnitt „Development“, der aufgelöst wurde). Ganz unten auf der Profilseite über dem
 Logo (`iv_settings_logo`) sitzt der Reiter **„Disclaimer“** (`header_section_disclaimer`); ein
@@ -1252,10 +1277,10 @@ Lizenzen (GeoNames CC BY 4.0, Natural Earth/OurAirports Public Domain, Wikidata 
 CC BY-SA 4.0, Wikimedia Commons je Datei, EOX Sentinel-2 cloudless 2016/2017 CC BY 4.0 samt
 Copernicus-Vermerk, HVBG Hessen dl-de/zero-2.0, Bayerische Vermessungsverwaltung CC BY 4.0).
 
-Das Erscheinungsbild hat drei Werte (`Settings.THEME_MODE_SYSTEM/LIGHT/DARK`) und wird in
-`MainActivity` über `AppCompatDelegate.setDefaultNightMode` gesetzt. `THEME_MODE_SYSTEM` folgt dem
-Handy. Vor dem Umstauf lag hier nur ein Ja/Nein-Wert im Schlüssel `dark_mode`; solange der
-Schlüssel gesetzt ist, hat er Vorrang, damit eine installierte App ihr Aussehen behält.
+Das Erscheinungsbild ist **immer dunkel**: `MainActivity` und `WelcomeActivity` setzen in
+`onCreate` `AppCompatDelegate.setDefaultNightMode(MODE_NIGHT_YES)`; in den Einstellungen gibt es
+keine Auswahl mehr (früher `Settings.THEME_MODE_*` mit dem Legacy-Schlüssel `dark_mode`, der
+inzwischen ignoriert wird).
 
 Die Sprache der App hat zwei Werte (`Settings.LANG_DE`/`LANG_EN`) und steht unter dem Schlüssel
 `language`; Standard ist Deutsch, damit eine bestehende Installation ihre Sprache behält. Die

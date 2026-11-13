@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Nicht von Hand aendern - wird von tools/build_airline_schemes.py erzeugt.
+Nach Aenderung an den Airline-Farben das Skript neu laufen lassen. -->
+    <!-- Nur die Material-3-Rollen und tileChartColor weichen im
+         Nacht-Modus ab; Marken- und Kachelfarben gelten in beiden Modi. -->
+
+    <!-- Lufthansa (LH) -->
+    <color name="airline_lh_primary">#FFFFDE99</color>
+    <color name="airline_lh_on_primary">#FF000000</color>
+    <color name="airline_lh_primary_container">#FF996800</color>
+    <color name="airline_lh_on_primary_container">#FFFFEFCC</color>
+    <color name="airline_lh_secondary">#FF9FB4F9</color>
+    <color name="airline_lh_on_secondary">#FF051548</color>
+    <color name="airline_lh_secondary_container">#FF092990</color>
+    <color name="airline_lh_on_secondary_container">#FFCFDAFC</color>
+    <color name="airline_lh_tertiary">#FFBCC4DC</color>
+    <color name="airline_lh_on_tertiary">#FF1A2032</color>
+    <color name="airline_lh_tertiary_container">#FF354064</color>
+    <color name="airline_lh_on_tertiary_container">#FFDEE1ED</color>
+    <color name="airline_lh_tile_chart">#FFFFFFFF</color>
+
+    <!-- Swiss (LX) -->
+    <color name="airline_lx_primary">#FFD6C2C6</color>
+    <color name="airline_lx_on_primary">#FF000000</color>
+    <color name="airline_lx_primary_container">#FF5C3D43</color>
+    <color name="airline_lx_on_primary_container">#FFEBE0E2</color>
+    <color name="airline_lx_secondary">#FFFF9999</color>
+    <color name="airline_lx_on_secondary">#FF4C0000</color>
+    <color name="airline_lx_secondary_container">#FF990000</color>
+    <color name="airline_lx_on_secondary_container">#FFFFCCCC</color>
+    <color name="airline_lx_tertiary">#FFDEBABA</color>
+    <color name="airline_lx_on_tertiary">#FF341919</color>
+    <color name="airline_lx_tertiary_container">#FF673232</color>
+    <color name="airline_lx_on_tertiary_container">#FFEEDDDD</color>
+    <color name="airline_lx_tile_chart">#FFFFFFFF</color>
+
+    <!-- Edelweiss (WK) -->
+    <color name="airline_wk_primary">#FFFFE499</color>
+    <color name="airline_wk_on_primary">#FF000000</color>
+    <color name="airline_wk_primary_container">#FF997100</color>
+    <color name="airline_wk_on_primary_container">#FFFFF2CC</color>
+    <color name="airline_wk_secondary">#FF99AFFF</color>
+    <color name="airline_wk_on_secondary">#FF00114C</color>
+    <color name="airline_wk_secondary_container">#FF002199</color>
+    <color name="airline_wk_on_secondary_container">#FFCCD7FF</color>
+    <color name="airline_wk_tertiary">#FFBAC2DE</color>
+    <color name="airline_wk_on_tertiary">#FF191F34</color>
+    <color name="airline_wk_tertiary_container">#FF323D67</color>
+    <color name="airline_wk_on_tertiary_container">#FFDDE0EE</color>
+    <color name="airline_wk_tile_chart">#FFE34C70</color>
+
+    <!-- Austrian Airlines (OS) -->
+    <color name="airline_os_primary">#FFCCCCCC</color>
+    <color name="airline_os_on_primary">#FF000000</color>
+    <color name="airline_os_primary_container">#FF4C4C4C</color>
+    <color name="airline_os_on_primary_container">#FFE6E6E6</color>
+    <color name="airline_os_secondary">#FFFDA79B</color>
+    <color name="airline_os_on_secondary">#FF4B0A02</color>
+    <color name="airline_os_secondary_container">#FF961503</color>
+    <color name="airline_os_on_secondary_container">#FFFED3CD</color>
+    <color name="airline_os_tertiary">#FFDDBFBB</color>
+    <color name="airline_os_on_tertiary">#FF331C19</color>
+    <color name="airline_os_tertiary_container">#FF663933</color>
+    <color name="airline_os_on_tertiary_container">#FFEEDFDD</color>
+    <color name="airline_os_tile_chart">#FFFFFFFF</color>
+
+    <!-- Eurowings (EW) -->
+    <color name="airline_ew_primary">#FF99EBFF</color>
+    <color name="airline_ew_on_primary">#FF000000</color>
+    <color name="airline_ew_primary_container">#FF007B99</color>
+    <color name="airline_ew_on_primary_container">#FFCCF5FF</color>
+    <color name="airline_ew_secondary">#FFEDABCE</color>
+    <color name="airline_ew_on_secondary">#FF3F0D27</color>
+    <color name="airline_ew_secondary_container">#FF7F1A4F</color>
+    <color name="airline_ew_on_secondary_container">#FFF6D5E6</color>
+    <color name="airline_ew_tertiary">#FFD8C0CD</color>
+    <color name="airline_ew_on_tertiary">#FF2F1D27</color>
+    <color name="airline_ew_tertiary_container">#FF5E3B4D</color>
+    <color name="airline_ew_on_tertiary_container">#FFEBE0E6</color>
+    <color name="airline_ew_tile_chart">#FFFFFFFF</color>
+
+    <!-- Lufthansa City (VL) -->
+    <color name="airline_vl_primary">#FFBBC8DD</color>
+    <color name="airline_vl_on_primary">#FF000000</color>
+    <color name="airline_vl_primary_container">#FF334766</color>
+    <color name="airline_vl_on_primary_container">#FFDDE4EE</color>
+    <color name="airline_vl_secondary">#FF9FB4F9</color>
+    <color name="airline_vl_on_secondary">#FF051548</color>
+    <color name="airline_vl_secondary_container">#FF092990</color>
+    <color name="airline_vl_on_secondary_container">#FFCFDAFC</color>
+    <color name="airline_vl_tertiary">#FFBCC4DC</color>
+    <color name="airline_vl_on_tertiary">#FF1A2032</color>
+    <color name="airline_vl_tertiary_container">#FF354064</color>
+    <color name="airline_vl_on_tertiary_container">#FFDEE1ED</color>
+    <color name="airline_vl_tile_chart">#FFFFFFFF</color>
+
+    <!-- Discover (4Y) -->
+    <color name="airline_4y_primary">#FFFFEB99</color>
+    <color name="airline_4y_on_primary">#FF000000</color>
+    <color name="airline_4y_primary_container">#FF997B00</color>
+    <color name="airline_4y_on_primary_container">#FFFFF5CC</color>
+    <color name="airline_4y_secondary">#FFA8D2F0</color>
+    <color name="airline_4y_on_secondary">#FF0B2B41</color>
+    <color name="airline_4y_secondary_container">#FF165683</color>
+    <color name="airline_4y_on_secondary_container">#FFD3E9F8</color>
+    <color name="airline_4y_tertiary">#FFBFCED9</color>
+    <color name="airline_4y_on_tertiary">#FF1D2830</color>
+    <color name="airline_4y_tertiary_container">#FF3A505F</color>
+    <color name="airline_4y_on_tertiary_container">#FFDFE7EC</color>
+    <color name="airline_4y_tile_chart">#FFFFFFFF</color>
+
+    <!-- Air Dolomiti (EN) -->
+    <color name="airline_en_primary">#FF99D1FF</color>
+    <color name="airline_en_on_primary">#FF000000</color>
+    <color name="airline_en_primary_container">#FF005499</color>
+    <color name="airline_en_on_primary_container">#FFCCE8FF</color>
+    <color name="airline_en_secondary">#FF99F2FF</color>
+    <color name="airline_en_on_secondary">#FF00434C</color>
+    <color name="airline_en_secondary_container">#FF008699</color>
+    <color name="airline_en_on_secondary_container">#FFCCF9FF</color>
+    <color name="airline_en_tertiary">#FFBAD9DE</color>
+    <color name="airline_en_on_tertiary">#FF193034</color>
+    <color name="airline_en_tertiary_container">#FF326167</color>
+    <color name="airline_en_on_tertiary_container">#FFDDECEE</color>
+    <color name="airline_en_tile_chart">#FFFFFFFF</color>
+
+    <!-- ITA Airways (AZ) -->
+    <color name="airline_az_primary">#FFF9A89F</color>
+    <color name="airline_az_on_primary">#FF000000</color>
+    <color name="airline_az_primary_container">#FF901609</color>
+    <color name="airline_az_on_primary_container">#FFFCD3CF</color>
+    <color name="airline_az_secondary">#FF9AFED3</color>
+    <color name="airline_az_on_secondary">#FF014C2C</color>
+    <color name="airline_az_secondary_container">#FF019857</color>
+    <color name="airline_az_on_secondary_container">#FFCCFFE9</color>
+    <color name="airline_az_tertiary">#FFBADECF</color>
+    <color name="airline_az_on_tertiary">#FF193328</color>
+    <color name="airline_az_tertiary_container">#FF326750</color>
+    <color name="airline_az_on_tertiary_container">#FFDDEEE7</color>
+    <color name="airline_az_tile_chart">#FFFFFFFF</color>
+
+    <!-- Brussels Airlines (SN) -->
+    <color name="airline_sn_primary">#FFFF99AC</color>
+    <color name="airline_sn_on_primary">#FF000000</color>
+    <color name="airline_sn_primary_container">#FF99001D</color>
+    <color name="airline_sn_on_primary_container">#FFFFCCD6</color>
+    <color name="airline_sn_secondary">#FFA0B4F8</color>
+    <color name="airline_sn_on_secondary">#FF051447</color>
+    <color name="airline_sn_secondary_container">#FF0A298F</color>
+    <color name="airline_sn_on_secondary_container">#FFCFDAFC</color>
+    <color name="airline_sn_tertiary">#FFBDC4DB</color>
+    <color name="airline_sn_on_tertiary">#FF1B2032</color>
+    <color name="airline_sn_tertiary_container">#FF354064</color>
+    <color name="airline_sn_on_tertiary_container">#FFDEE1ED</color>
+    <color name="airline_sn_tile_chart">#FFD6E2F5</color>
+
+    <!-- TAP Air Portugal (TP) -->
+    <color name="airline_tp_primary">#FFF8A0A3</color>
+    <color name="airline_tp_on_primary">#FF000000</color>
+    <color name="airline_tp_primary_container">#FF8E0B10</color>
+    <color name="airline_tp_on_primary_container">#FFFBD0D1</color>
+    <color name="airline_tp_secondary">#FFE5EEAA</color>
+    <color name="airline_tp_on_secondary">#FF39400C</color>
+    <color name="airline_tp_secondary_container">#FF718019</color>
+    <color name="airline_tp_on_secondary_container">#FFF2F7D4</color>
+    <color name="airline_tp_tertiary">#FFD5D8C0</color>
+    <color name="airline_tp_on_tertiary">#FF2D2F1D</color>
+    <color name="airline_tp_tertiary_container">#FF595F3A</color>
+    <color name="airline_tp_on_tertiary_container">#FFEAECDF</color>
+    <color name="airline_tp_tile_chart">#FFFFFFFF</color>
+
+</resources>

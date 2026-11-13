@@ -22,14 +22,14 @@ object Settings {
     const val ACCENT_MAGENTA = "magenta"
     const val ACCENT_TURQUOISE = "turquoise"
 
-    const val THEME_MODE_SYSTEM = "system"
-    const val THEME_MODE_LIGHT = "light"
-    const val THEME_MODE_DARK = "dark"
-
-    val THEME_MODE_OPTIONS =
-        listOf(THEME_MODE_SYSTEM, THEME_MODE_LIGHT, THEME_MODE_DARK)
-
     val ACCENT_OPTIONS = listOf(ACCENT_BROWN, ACCENT_MAGENTA, ACCENT_TURQUOISE)
+
+    /**
+     * Alle wählbaren Farbschemas: die drei klassischen Akzentfarben plus die
+     * Airline-Schemas ([AirlineSchemes]). Alles landet im selben Schlüssel
+     * [KEY_ACCENT], damit Theme-Wechsel und Dashboard unverändert bleiben.
+     */
+    val SCHEME_OPTIONS: List<String> = ACCENT_OPTIONS + AirlineSchemes.KEYS
 
     private const val LEGACY_ACCENT_LIGHT_BLUE = "light_blue"
     private const val LEGACY_ACCENT_BLUE = "blue"
@@ -51,8 +51,6 @@ object Settings {
     const val WORLD_MAP_PORTRAIT = "portrait"
 
     private const val PREF_NAME = "logbook_settings"
-    private const val KEY_THEME_MODE = "theme_mode"
-    private const val KEY_LEGACY_DARK_MODE = "dark_mode"
     private const val KEY_DEFAULT_PERIOD = "default_period"
     private const val KEY_FLIGHT_TYPE_FILTER = "flight_type_filter"
     private const val KEY_CLASS_TRAVEL_TYPE = "class_travel_type"
@@ -91,43 +89,6 @@ object Settings {
     private fun suffixFor(userId: Int): String = if (userId <= 1) "" else "_u$userId"
 
     private fun userSuffix(context: Context): String = suffixFor(Users.activeId(context))
-
-    /**
-     * Erscheinungsbild der App. [THEME_MODE_SYSTEM] übernimmt die Einstellung,
-     * die auf dem Handy gespeichert ist.
-     *
-     * Früher stand hier nur ein Ja/Nein-Wert im Schlüssel "dark_mode". Ist er
-     * noch gesetzt, weil die Wahl vor dem Umstauf getroffen wurde, gilt er
-     * weiter - so behält eine installierte App ihr Aussehen. Fehlt er, folgt
-     * eine frische Installation dem Handy.
-     */
-    fun getThemeMode(context: Context): String {
-        val prefs = prefs(context)
-        return when {
-            prefs.contains(KEY_THEME_MODE) -> normalizeThemeMode(prefs.getString(KEY_THEME_MODE, null))
-            prefs.contains(KEY_LEGACY_DARK_MODE) ->
-                if (prefs.getBoolean(KEY_LEGACY_DARK_MODE, true)) THEME_MODE_DARK else THEME_MODE_LIGHT
-            else -> THEME_MODE_SYSTEM
-        }
-    }
-
-    fun setThemeMode(context: Context, value: String) {
-        require(value in THEME_MODE_OPTIONS)
-        prefs(context).edit().putString(KEY_THEME_MODE, value).apply()
-    }
-
-    /**
-     * Ob der Nutzer das Erscheinungsbild schon einmal bewußt gewählt hat. Die
-     * Willkommens-Tour setzt sonst beim ersten Start [THEME_MODE_DARK] als
-     * Vorauswahl; eine getroffene Wahl bleibt unangetastet.
-     */
-    fun isThemeModeChosen(context: Context): Boolean {
-        val prefs = prefs(context)
-        return prefs.contains(KEY_THEME_MODE) || prefs.contains(KEY_LEGACY_DARK_MODE)
-    }
-
-    private fun normalizeThemeMode(value: String?): String =
-        THEME_MODE_OPTIONS.firstOrNull { it == value } ?: THEME_MODE_SYSTEM
 
     fun getDefaultPeriodKey(context: Context): String =
         prefs(context).getString(KEY_DEFAULT_PERIOD, "all") ?: "all"
@@ -182,20 +143,23 @@ object Settings {
         normalizeAccentColor(prefs(context).getString(KEY_ACCENT, ACCENT_BROWN))
 
     fun setAccentColor(context: Context, value: String) {
-        require(value in ACCENT_OPTIONS)
+        require(value in SCHEME_OPTIONS)
         prefs(context).edit().putString(KEY_ACCENT, value).apply()
     }
 
-    fun accentThemeResId(context: Context): Int = when (getAccentColor(context)) {
-        ACCENT_MAGENTA -> R.style.Theme_Logbook_Magenta
-        ACCENT_TURQUOISE -> R.style.Theme_Logbook_Turquoise
-        else -> R.style.Theme_Logbook_Brown
+    fun accentThemeResId(context: Context): Int {
+        val accent = getAccentColor(context)
+        AirlineSchemes.byKey(accent)?.let { return it.themeRes }
+        return when (accent) {
+            ACCENT_MAGENTA -> R.style.Theme_Logbook_Magenta
+            ACCENT_TURQUOISE -> R.style.Theme_Logbook_Turquoise
+            else -> R.style.Theme_Logbook_Brown
+        }
     }
 
-    private fun normalizeAccentColor(value: String?): String = when (value) {
-        ACCENT_MAGENTA -> ACCENT_MAGENTA
-        ACCENT_TURQUOISE, LEGACY_ACCENT_BLUE -> ACCENT_TURQUOISE
-        LEGACY_ACCENT_LIGHT_BLUE -> ACCENT_TURQUOISE
+    private fun normalizeAccentColor(value: String?): String = when {
+        value != null && value in SCHEME_OPTIONS -> value
+        value == LEGACY_ACCENT_BLUE || value == LEGACY_ACCENT_LIGHT_BLUE -> ACCENT_TURQUOISE
         else -> ACCENT_BROWN
     }
 

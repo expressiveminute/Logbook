@@ -102,7 +102,8 @@ class BarChartView @JvmOverloads constructor(
     private var stackedLabel = false
 
     init {
-        barColor = MaterialColors.getColor(this, com.google.android.material.R.attr.colorPrimary)
+        // Immer die aktive Akzentfarbe des Schemas (bei Airlines die Marken-Akzentfarbe).
+        barColor = AirlineSchemes.primaryColor(context)
         labelColor = MaterialColors.getColor(
             this, com.google.android.material.R.attr.colorOnSurface
         )
@@ -720,7 +721,7 @@ class BarChartView @JvmOverloads constructor(
         /**
          * Deckkraft des Balkens im zweizeiligen Layout (Layover): dieselbe wie
          * die Hintergrundbalken der Länder-/Airlines-/Reisebuddy-Listen
-         * (VisitedCountryBarView malt colorPrimary mit dieser Deckkraft).
+         * (VisitedCountryBarView malt die aktive Primärfarbe mit dieser Deckkraft).
          */
         const val STACKED_BAR_ALPHA = 45
 

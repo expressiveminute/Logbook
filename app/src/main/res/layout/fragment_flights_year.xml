@@ -89,6 +89,7 @@
 
                     <!-- Überschrift der Kachel. -->
                     <TextView
+                        android:id="@+id/tv_travel_type_title"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="@string/tile_travel_type"

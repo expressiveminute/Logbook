@@ -14,6 +14,9 @@
             android:id="@+id/action_dashboard_to_add_entry"
             app:destination="@id/nav_add_entry" />
         <action
+            android:id="@+id/action_dashboard_to_boarding_pass_scan"
+            app:destination="@id/nav_boarding_pass_scan" />
+        <action
             android:id="@+id/action_dashboard_to_tile_detail"
             app:destination="@id/nav_tile_detail" />
         <action
@@ -66,6 +69,35 @@
 
         <action
             android:id="@+id/action_entries_to_add_entry"
+            app:destination="@id/nav_add_entry" />
+
+        <action
+            android:id="@+id/action_entries_to_boarding_pass"
+            app:destination="@id/nav_boarding_pass" />
+    </fragment>
+
+    <!-- Bordkarte zu einem Eintrag (Tippen auf die Eintragskachel). -->
+    <fragment
+        android:id="@+id/nav_boarding_pass"
+        android:name="com.highfly.logbook.BoardingPassFragment"
+        tools:layout="@layout/fragment_boarding_pass">
+
+        <argument
+            android:name="entryId"
+            app:argType="long"
+            android:defaultValue="-1L" />
+    </fragment>
+
+    <!-- QR-Scanner für Bordkarten (Long-Press auf dem Dashboard-Plus): scannt
+         den Code und öffnet „Neuer Flug" mit den dekodierten Daten. -->
+    <fragment
+        android:id="@+id/nav_boarding_pass_scan"
+        android:name="com.highfly.logbook.BoardingPassScanFragment"
+        android:label="@string/boarding_pass_scan_title"
+        tools:layout="@layout/fragment_boarding_pass_scan">
+
+        <action
+            android:id="@+id/action_boarding_pass_scan_to_add_entry"
             app:destination="@id/nav_add_entry" />
     </fragment>
 
@@ -202,6 +234,13 @@
             android:name="entryId"
             app:argType="long"
             android:defaultValue="-1L" />
+        <!-- Rohtext eines gescannten Bordkarten-QR-Codes; wird dekodiert und
+             vorbefüllt ([QrPayload]). Null beim normalen „Neuer Flug“. -->
+        <argument
+            android:name="prefillQr"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
     </fragment>
 
     <fragment

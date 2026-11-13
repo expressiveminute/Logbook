@@ -41,6 +41,10 @@ class RadiationFragment : LogbookFragment() {
         binding.btnRadiationInfo.setOnClickListener {
             findNavController().navigate(R.id.action_radiation_to_info)
         }
+        // Die obere Info-Kachel trägt die Akzentfarbe des Schemas.
+        DashboardTileColors.applyPrimaryCardBackground(
+            binding.cardRadiationSubtitle, recolorTexts = true, useAccent = true
+        )
         val context = requireContext()
         // Aktiver Flugart-Filter: Der Wert leuchtet in der Akzentfarbe.
         val typeKey = Settings.getFlightTypeFilterKey(context)
@@ -100,6 +104,12 @@ class RadiationFragment : LogbookFragment() {
             )
             row.findViewById<TextView>(R.id.tv_radiation_year_value).text =
                 RadiationCalculator.msvText(year.uSv, locale)
+            // Balken je Jahr: Anteil am Jahresgrenzwert, wie auf der Kachel.
+            val percent = RadiationCalculator.percentOfAnnualLimit(year.uSv)
+            val bar = row.findViewById<RadiationLimitBar>(R.id.bar_radiation_year)
+            bar.percent = percent
+            bar.overLimit = year.uSv > RadiationCalculator.ANNUAL_LIMIT_USV
+            bar.contentDescription = getString(R.string.radiation_limit_percent, percent)
             binding.radiationYearsContainer.addView(row)
         }
         binding.tvRadiationEmpty.visibility = if (years.isEmpty()) View.VISIBLE else View.GONE

@@ -4,7 +4,6 @@ import android.text.SpannableString
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
 import android.view.View
-import com.google.android.material.color.MaterialColors
 
 /**
  * Hebt den Wert eines aktiven Filters in der Akzentfarbe hervor. Auf dem
@@ -32,9 +31,9 @@ object FilterHighlight {
         if (!active || value.isEmpty()) return text
         val start = text.toString().indexOf(value)
         if (start < 0) return text
-        val accent = MaterialColors.getColor(
-            view, com.google.android.material.R.attr.colorPrimary
-        )
+        // Akzentfarbe des aktiven Schemas (bei LH das satte Gold, nicht das
+        // blasse Theme-Primär, das bräunlich wirkt).
+        val accent = AirlineSchemes.accentColor(view.context)
         // SpannableString uebernimmt die Spans einer etwaigen Vorstufe, das
         // Verkketten mehrerer Werte geht also nicht verloren.
         return SpannableString(text).apply {

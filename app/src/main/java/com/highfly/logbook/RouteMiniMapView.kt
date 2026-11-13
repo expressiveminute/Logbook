@@ -56,6 +56,9 @@ class RouteMiniMapView @JvmOverloads constructor(
      */
     companion object {
         const val TAG = "RouteMiniMapView"
+
+        /** Ab diesem Fortschritt der Aufbau-Animation erscheint der Zielcode. */
+        const val DESTINATION_REVEAL_PROGRESS = 0.9f
         const val LAND_ASSET = "world_land.json"
 
         /** Stützstellen des Großkreises zwischen Abflug und Ankunft. */
@@ -413,6 +416,13 @@ class RouteMiniMapView @JvmOverloads constructor(
 
     private var planePhase = PlanePhase.IDLE
     private var routeProgress = 1f
+
+    /**
+     * Wenn gesetzt (Bordkarte), wird der Dreilettercode des Ziels erst kurz vor
+     * Ende der Aufbau-Animation eingeblendet; vorher sieht man nur den
+     * Startcode, während das Flugzeug die Linie zieht.
+     */
+    var revealDestinationOnArrival = false
     private var cruiseProgress = 0f
     private var drawAnimator: ValueAnimator? = null
     private var cruiseAnimator: ValueAnimator? = null
@@ -718,7 +728,10 @@ class RouteMiniMapView @JvmOverloads constructor(
                 drawPlane(canvas, points, projection, cruiseProgress)
             }
         }
-        drawBadges(canvas, points, projection, startRect, endRect)
+        val showEnd = !revealDestinationOnArrival ||
+            planePhase != PlanePhase.DRAWING ||
+            routeProgress >= DESTINATION_REVEAL_PROGRESS
+        drawBadges(canvas, points, projection, startRect, if (showEnd) endRect else null)
         canvas.restore()
     }
 

@@ -63,18 +63,6 @@ class SettingsSectionFragment : LogbookFragment() {
         R.string.class_first
     )
 
-    /** Zellen des Reglers "Erscheinungsbild" (Reihenfolge wie früher die Kacheln). */
-    private val themeModeKeys = listOf(
-        Settings.THEME_MODE_DARK,
-        Settings.THEME_MODE_LIGHT,
-        Settings.THEME_MODE_SYSTEM
-    )
-    private val themeModeLabels = listOf(
-        R.string.settings_dark_mode,
-        R.string.settings_light_mode,
-        R.string.settings_system_mode
-    )
-
     /** Zellen des Reglers "Akzentfarbe": Schlüssel, Farbe und Name je Index. */
     private val accentKeys = Settings.ACCENT_OPTIONS
     private val accentColors = listOf(
@@ -87,6 +75,9 @@ class SettingsSectionFragment : LogbookFragment() {
         R.string.settings_accent_magenta,
         R.string.settings_accent_turquoise
     )
+
+    /** Zellen des Reglers "Airline-Farbschemas" (unter der Akzentfarbe). */
+    private val airlineSchemes = AirlineSchemes.ALL
 
     /** Zellen des Reglers "Sprache". */
     private val languageKeys = Settings.LANG_OPTIONS
@@ -220,7 +211,7 @@ class SettingsSectionFragment : LogbookFragment() {
             }
             "customization" -> {
                 binding.contentCustomization.visibility = View.VISIBLE
-                setupThemes()
+                setupAccentSchemes()
                 setupCustomization()
             }
             "data" -> {
@@ -309,17 +300,21 @@ class SettingsSectionFragment : LogbookFragment() {
         binding.preferredClassSelector.onOptionSelected = { applyPreferredClass(it) }
     }
 
-    private fun setupThemes() {
+    private fun setupAccentSchemes() {
         val ctx = requireContext()
 
-        binding.themeModeSelector.setOptions(
-            themeModeLabels.map { SegmentedOptionView.Option(getString(it)) },
-            selected = themeModeKeys.indexOf(Settings.getThemeMode(ctx)).coerceAtLeast(0)
-        )
-        binding.themeModeSelector.onOptionSelected = { index ->
-            applyThemeMode(themeModeKeys[index])
-        }
-
+        // Ist ein Airline-Schema aktiv, bleibt im Akzentfarben-Regler nichts
+        // markiert (-1) und der ganze Akzent-Block wird blass dargestellt
+        // (inaktiv); er bleibt aber bedienbar, denn erst die Wahl einer
+        // Akzentfarbe beendet das Airline-Schema. Umgekehrt wird bei einer
+        // klassischen Akzentfarbe der Airline-Block blass - nur eins von
+        // beiden ist je aktiv.
+        val accent = Settings.getAccentColor(ctx)
+        val airlineActive = AirlineSchemes.byKey(accent) != null
+        binding.accentBlock.alpha =
+            if (airlineActive) SegmentedOptionView.INACTIVE_ALPHA else 1f
+        binding.airlineBlock.alpha =
+            if (airlineActive) 1f else SegmentedOptionView.INACTIVE_ALPHA
         binding.accentSelector.setOptions(
             accentKeys.mapIndexed { index, _ ->
                 SegmentedOptionView.Option(
@@ -327,10 +322,25 @@ class SettingsSectionFragment : LogbookFragment() {
                     contentDescription = getString(accentNames[index])
                 )
             },
-            selected = accentKeys.indexOf(Settings.getAccentColor(ctx)).coerceAtLeast(0)
+            selected = accentKeys.indexOf(accent)
         )
         binding.accentSelector.onOptionSelected = { index ->
             applyAccent(accentKeys[index])
+        }
+
+        // Die Airline-Zellen tragen den IATA-Code als Beschriftung, die
+        // Airline-Namen bleiben als contentDescription für TalkBack.
+        binding.airlineSelector.setOptions(
+            airlineSchemes.map { scheme ->
+                SegmentedOptionView.Option(
+                    label = scheme.code,
+                    contentDescription = getString(scheme.nameRes)
+                )
+            },
+            selected = airlineSchemes.indexOfFirst { it.key == accent }
+        )
+        binding.airlineSelector.onOptionSelected = { index ->
+            applyAccent(airlineSchemes[index].key)
         }
     }
 
@@ -653,29 +663,6 @@ class SettingsSectionFragment : LogbookFragment() {
         if (Settings.getAccentColor(requireContext()) == accent) return
         Settings.setAccentColor(requireContext(), accent)
         requireActivity().recreate()
-    }
-
-    /**
-     * Übernimmt das Erscheinungsbild. [Settings.THEME_MODE_SYSTEM] überlässt
-     * die Entscheidung dem Handy, gespeichert wird sie trotzdem, damit der
-     * Regler nach dem Neustart der Activity den aktiven Zustand zeigen kann.
-     */
-    private fun applyThemeMode(mode: String) {
-        if (Settings.getThemeMode(requireContext()) == mode) return
-        Settings.setThemeMode(requireContext(), mode)
-        AppCompatDelegate.setDefaultNightMode(
-            when (mode) {
-                Settings.THEME_MODE_DARK -> AppCompatDelegate.MODE_NIGHT_YES
-                Settings.THEME_MODE_LIGHT -> AppCompatDelegate.MODE_NIGHT_NO
-                else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
-            }
-        )
-        updateThemeModeSelection(mode)
-    }
-
-    private fun updateThemeModeSelection(mode: String) {
-        val index = themeModeKeys.indexOf(mode)
-        if (index >= 0) binding.themeModeSelector.select(index)
     }
 
     /**

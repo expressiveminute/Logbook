@@ -71,7 +71,8 @@ class MonthBarChartView @JvmOverloads constructor(
     private var contentVisible = true
 
     init {
-        barColor = MaterialColors.getColor(this, com.google.android.material.R.attr.colorPrimary)
+        // Immer die aktive Akzentfarbe des Schemas (bei Airlines die Marken-Akzentfarbe).
+        barColor = AirlineSchemes.primaryColor(context)
         labelColor = MaterialColors.getColor(
             this, com.google.android.material.R.attr.colorOnSurfaceVariant
         )

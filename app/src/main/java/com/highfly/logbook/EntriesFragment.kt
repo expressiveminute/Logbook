@@ -92,7 +92,7 @@ class EntriesFragment : LogbookFragment(), ImeVisibilityAware, BackPressAware {
         // Der letzte Eintrag bleibt über der schwebenden Navigationsleiste sichtbar.
         binding.entriesList.addBottomNavPadding()
         binding.entriesList.layoutManager = LinearLayoutManager(requireContext())
-        adapter = EntryListAdapter(requireContext(), ::openEdit, ::confirmDelete)
+        adapter = EntryListAdapter(requireContext(), ::openEdit, ::confirmDelete, ::openBoardingPass)
         binding.entriesList.adapter = adapter
         binding.entriesList.itemAnimator?.changeDuration = 0
         setupSearch()
@@ -657,6 +657,15 @@ class EntriesFragment : LogbookFragment(), ImeVisibilityAware, BackPressAware {
             ColorStateList.valueOf(
                 if (activeFilters.isActive()) accent else onSurfaceVariant
             )
+        )
+    }
+
+    /** Tippt auf eine Eintragskachel: Bordkarte des Eintrags öffnen. */
+    private fun openBoardingPass(entry: LogbookEntry) {
+        val id = entry.id ?: return
+        findNavController().navigate(
+            R.id.action_entries_to_boarding_pass,
+            androidx.core.os.bundleOf("entryId" to id)
         )
     }
 

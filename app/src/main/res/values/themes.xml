@@ -9,6 +9,11 @@
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">?attr/isLightTheme</item>
+        <!-- Zeichnungen innerhalb von Kacheln folgen in den Basis-Themen der
+             Akzentfarbe; Airline-Schemas überschreiben das Attribut. -->
+        <item name="tileChartColor">?attr/colorPrimary</item>
+        <item name="tileContentColor">?attr/colorOnSurface</item>
+        <item name="tileContentSecondaryColor">?attr/colorOnSurfaceVariant</item>
     </style>
 
     <style name="Theme.Logbook.Brown" parent="Theme.Logbook">

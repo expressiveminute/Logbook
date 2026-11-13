@@ -76,9 +76,7 @@ class LayoverTimeBarView @JvmOverloads constructor(
         trackPaint.color = MaterialColors.getColor(
             this, com.google.android.material.R.attr.colorSurfaceVariant
         )
-        progressPaint.color = MaterialColors.getColor(
-            this, com.google.android.material.R.attr.colorPrimary
-        )
+        progressPaint.color = AirlineSchemes.accentColor(context)
         tickPaint.color = MaterialColors.getColor(
             this, com.google.android.material.R.attr.colorOutline
         )

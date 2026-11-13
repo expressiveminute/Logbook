@@ -2,6 +2,8 @@ package com.highfly.logbook
 
 import android.content.Context
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.text.Layout
 import android.text.SpannableStringBuilder
 import android.text.Spanned
@@ -10,6 +12,7 @@ import android.text.TextPaint
 import android.text.style.ForegroundColorSpan
 import android.text.style.RelativeSizeSpan
 import android.util.TypedValue
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.LayoutInflater
@@ -35,6 +38,12 @@ class FirstFragment : LogbookFragment() {
     private var timeMinutes = 0
     private var loadGeneration = 0
 
+    private val longPressHandler = Handler(Looper.getMainLooper())
+    private var longPressRunnable: Runnable? = null
+
+    /** true, nachdem ein Long-Press den Klick unterdrückt hat. */
+    private var suppressFabClick = false
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -54,13 +63,58 @@ class FirstFragment : LogbookFragment() {
         binding.dashboardScroll.addBottomNavPadding()
 
         binding.fabAdd.setOnClickListener {
+            // Nach einem Long-Press (2 s) war der Klick nur das Loslassen -
+            // dann darf nicht die "Neuer Flug"-Seite aufgehen.
+            if (suppressFabClick) {
+                suppressFabClick = false
+                return@setOnClickListener
+            }
+            hideScanButton()
             findNavController().navigate(R.id.action_dashboard_to_add_entry)
+        }
+
+        // Long-Press (2 s) auf dem Plus-Knopf blendet links daneben den
+        // "Bordkarte scannen"-Button ein.
+        binding.fabAdd.setOnTouchListener { _, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    suppressFabClick = false
+                    longPressRunnable = Runnable {
+                        suppressFabClick = true
+                        showScanButton()
+                    }.also { longPressHandler.postDelayed(it, FAB_LONG_PRESS_MS) }
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    longPressRunnable?.let(longPressHandler::removeCallbacks)
+                    longPressRunnable = null
+                }
+            }
+            false
+        }
+
+        binding.btnScanBoardingPass.setOnClickListener {
+            hideScanButton()
+            findNavController().navigate(R.id.action_dashboard_to_boarding_pass_scan)
         }
 
         binding.dashboardScroll.setOnScrollChangeListener { _, _, _, _, _ ->
             updateFabVisibility()
         }
         binding.dashboardScroll.post { updateFabVisibility() }
+    }
+
+    private fun showScanButton() {
+        val button = binding.btnScanBoardingPass
+        if (button.visibility == View.VISIBLE) return
+        button.visibility = View.VISIBLE
+        button.alpha = 0f
+        button.scaleX = 0.8f
+        button.scaleY = 0.8f
+        button.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(180).start()
+    }
+
+    private fun hideScanButton() {
+        binding.btnScanBoardingPass.visibility = View.GONE
     }
 
     private fun updateFabVisibility() {
@@ -70,6 +124,7 @@ class FirstFragment : LogbookFragment() {
         val fab = binding.fabAdd
         val target = if (showFab) View.VISIBLE else View.GONE
         if (fab.visibility == target) return
+        if (target == View.GONE) hideScanButton()
         fab.animate().cancel()
 
         if (showFab) {
@@ -120,6 +175,8 @@ class FirstFragment : LogbookFragment() {
     }
 
     override fun onDestroyView() {
+        longPressRunnable?.let(longPressHandler::removeCallbacks)
+        longPressRunnable = null
         super.onDestroyView()
         TileValueAnimator.cancelAll()
         _binding = null
@@ -399,8 +456,10 @@ class FirstFragment : LogbookFragment() {
                     globePreview.visibility = View.VISIBLE
                     globePreview.interactive = false
                     globePreview.autoRotate = true
-                    val primaryColor = MaterialColors.getColor(tileContainer, com.google.android.material.R.attr.colorPrimary)
-                    globePreview.setColors(primaryColor)
+                    // Nur die Flugstrecken in der Akzentfarbe, die
+                    // Flughafen-Punkte/-Badges in der Primärfarbe.
+                    globePreview.setColors(AirlineSchemes.accentColor(tileContainer.context))
+                    globePreview.setPointColor(AirlineSchemes.primaryColor(tileContainer.context))
                     globePreview.setContent(globeContent)
                 } else if (ChartData.isPieChart(tileId)) {
                     iconView.visibility = if (tileId == "function") View.VISIBLE else View.GONE
@@ -1002,6 +1061,9 @@ class FirstFragment : LogbookFragment() {
         (value * resources.displayMetrics.density).toInt()
 
     private companion object {
+        /** Dauer des Long-Press auf dem Plus-Knopf bis „Bordkarte scannen“ erscheint. */
+        const val FAB_LONG_PRESS_MS = 2000L
+
         /** Fester Aussenrand des Dashboards; das Raster bleibt unverändert. */
         const val GRID_PADDING_DP = 16
 

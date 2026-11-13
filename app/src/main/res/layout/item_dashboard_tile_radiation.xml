@@ -114,11 +114,13 @@
         </FrameLayout>
 
         <!-- Rechte Karte: die Gesamtdosis über alle Jahre. Halbtransparentes
-             Indigo mit hellem Rand - glasig über der Kachel. -->
+             Indigo mit hellem Rand - glasig über der Kachel. Abstand nach links,
+             damit der Balken der linken Spalte nicht an die Karte andockt. -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_radiation_total"
             android:layout_width="0dp"
             android:layout_height="match_parent"
+            android:layout_marginStart="8dp"
             android:layout_marginTop="16dp"
             android:layout_marginBottom="8dp"
             android:layout_weight="1"

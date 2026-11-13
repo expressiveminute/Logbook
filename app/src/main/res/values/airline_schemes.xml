@@ -1,0 +1,446 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Nicht von Hand aendern - wird von tools/build_airline_schemes.py erzeugt.
+Nach Aenderung an den Airline-Farben das Skript neu laufen lassen. -->
+
+    <!-- Lufthansa (LH) -->
+    <color name="airline_lh_brand_primary">#FF05164D</color>
+    <color name="airline_lh_brand_secondary">#FFFFFFFF</color>
+    <color name="airline_lh_brand_accent">#FFFFAD00</color>
+    <!-- Dashboard-Kacheln: Primär als Grundfarbe, Sekundär als Schrift -->
+    <color name="airline_lh_tile_bg">#FF05164D</color>
+    <color name="airline_lh_tile_text">#FFFFFFFF</color>
+    <color name="airline_lh_tile_text_dim">#B3FFFFFF</color>
+    <color name="airline_lh_tile_chart">#FF737373</color>
+    <color name="airline_lh_primary">#FFFFAD00</color>
+    <color name="airline_lh_on_primary">#FF000000</color>
+    <color name="airline_lh_primary_container">#FFFFF2D6</color>
+    <color name="airline_lh_on_primary_container">#FF3D2A00</color>
+    <color name="airline_lh_secondary">#FF05164D</color>
+    <color name="airline_lh_on_secondary">#FFFFFFFF</color>
+    <color name="airline_lh_secondary_container">#FFD9E1FD</color>
+    <color name="airline_lh_on_secondary_container">#FF041039</color>
+    <color name="airline_lh_tertiary">#FF697AB0</color>
+    <color name="airline_lh_on_tertiary">#FF000000</color>
+    <color name="airline_lh_tertiary_container">#FFE4E7F1</color>
+    <color name="airline_lh_on_tertiary_container">#FF151A28</color>
+
+    <!-- Swiss (LX) -->
+    <color name="airline_lx_brand_primary">#FFCC0000</color>
+    <color name="airline_lx_brand_secondary">#FFFFFFFF</color>
+    <color name="airline_lx_brand_accent">#FFB9969D</color>
+    <!-- Dashboard-Kacheln: Primär als Grundfarbe, Sekundär als Schrift -->
+    <color name="airline_lx_tile_bg">#FFCC0000</color>
+    <color name="airline_lx_tile_text">#FFFFFFFF</color>
+    <color name="airline_lx_tile_text_dim">#B3FFFFFF</color>
+    <color name="airline_lx_tile_chart">#FF737373</color>
+    <color name="airline_lx_primary">#FFB9969D</color>
+    <color name="airline_lx_on_primary">#FF000000</color>
+    <color name="airline_lx_primary_container">#FFEFE7E8</color>
+    <color name="airline_lx_on_primary_container">#FF25181B</color>
+    <color name="airline_lx_secondary">#FFCC0000</color>
+    <color name="airline_lx_on_secondary">#FFFFFFFF</color>
+    <color name="airline_lx_secondary_container">#FFFFD6D6</color>
+    <color name="airline_lx_on_secondary_container">#FF3D0000</color>
+    <color name="airline_lx_tertiary">#FFB46464</color>
+    <color name="airline_lx_on_tertiary">#FF000000</color>
+    <color name="airline_lx_tertiary_container">#FFF2E3E3</color>
+    <color name="airline_lx_on_tertiary_container">#FF291414</color>
+
+    <!-- Edelweiss (WK) -->
+    <color name="airline_wk_brand_primary">#FF001973</color>
+    <color name="airline_wk_brand_secondary">#FFD70032</color>
+    <color name="airline_wk_brand_accent">#FFFFC82D</color>
+    <!-- Dashboard-Kacheln: Primär als Grundfarbe, Sekundär als Schrift -->
+    <color name="airline_wk_tile_bg">#FF001973</color>
+    <color name="airline_wk_tile_text">#FFE6607F</color>
+    <color name="airline_wk_tile_text_dim">#B3E6607F</color>
+    <color name="airline_wk_tile_chart">#FFD70032</color>
+    <color name="airline_wk_primary">#FFFFC82D</color>
+    <color name="airline_wk_on_primary">#FF000000</color>
+    <color name="airline_wk_primary_container">#FFFFF4D6</color>
+    <color name="airline_wk_on_primary_container">#FF3D2D00</color>
+    <color name="airline_wk_secondary">#FF001973</color>
+    <color name="airline_wk_on_secondary">#FFFFFFFF</color>
+    <color name="airline_wk_secondary_container">#FFD6DFFF</color>
+    <color name="airline_wk_on_secondary_container">#FF000D3D</color>
+    <color name="airline_wk_tertiary">#FF6476B4</color>
+    <color name="airline_wk_on_tertiary">#FF000000</color>
+    <color name="airline_wk_tertiary_container">#FFE3E7F2</color>
+    <color name="airline_wk_on_tertiary_container">#FF141929</color>
+
+    <!-- Austrian Airlines (OS) -->
+    <color name="airline_os_brand_primary">#FFD81E05</color>
+    <color name="airline_os_brand_secondary">#FFFFFFFF</color>
+    <color name="airline_os_brand_accent">#FF000000</color>
+    <!-- Dashboard-Kacheln: Primär als Grundfarbe, Sekundär als Schrift -->
+    <color name="airline_os_tile_bg">#FFD81E05</color>
+    <color name="airline_os_tile_text">#FFFFFFFF</color>
+    <color name="airline_os_tile_text_dim">#B3FFFFFF</color>
+    <color name="airline_os_tile_chart">#FF737373</color>
+    <color name="airline_os_primary">#FF000000</color>
+    <color name="airline_os_on_primary">#FFFFFFFF</color>
+    <color name="airline_os_primary_container">#FFEBEBEB</color>
+    <color name="airline_os_on_primary_container">#FF1F1F1F</color>
+    <color name="airline_os_secondary">#FFD81E05</color>
+    <color name="airline_os_on_secondary">#FFFFFFFF</color>
+    <color name="airline_os_secondary_container">#FFFEDCD7</color>
+    <color name="airline_os_on_secondary_container">#FF3C0801</color>
+    <color name="airline_os_tertiary">#FFB36F66</color>
+    <color name="airline_os_on_tertiary">#FF000000</color>
+    <color name="airline_os_tertiary_container">#FFF1E5E4</color>
+    <color name="airline_os_on_tertiary_container">#FF291714</color>
+
+    <!-- Eurowings (EW) -->
+    <color name="airline_ew_brand_primary">#FF871C54</color>
+    <color name="airline_ew_brand_secondary">#FFFFFFFF</color>
+    <color name="airline_ew_brand_accent">#FF00A6CF</color>
+    <!-- Dashboard-Kacheln: Primär als Grundfarbe, Sekundär als Schrift -->
+    <color name="airline_ew_tile_bg">#FF871C54</color>
+    <color name="airline_ew_tile_text">#FFFFFFFF</color>
+    <color name="airline_ew_tile_text_dim">#B3FFFFFF</color>
+    <color name="airline_ew_tile_chart">#FF737373</color>
+    <color name="airline_ew_primary">#FF00A6CF</color>
+    <color name="airline_ew_on_primary">#FF000000</color>
+    <color name="airline_ew_primary_container">#FFD6F7FF</color>
+    <color name="airline_ew_on_primary_container">#FF00313D</color>
+    <color name="airline_ew_secondary">#FF871C54</color>
+    <color name="airline_ew_on_secondary">#FFFFFFFF</color>
+    <color name="airline_ew_secondary_container">#FFF8DDEB</color>
+    <color name="airline_ew_on_secondary_container">#FF330B20</color>
+    <color name="airline_ew_tertiary">#FFA7728D</color>
+    <color name="airline_ew_on_tertiary">#FF000000</color>
+    <color name="airline_ew_tertiary_container">#FFEFE6EB</color>
+    <color name="airline_ew_on_tertiary_container">#FF26181F</color>
+
+    <!-- Lufthansa City (VL) -->
+    <color name="airline_vl_brand_primary">#FF05164D</color>
+    <color name="airline_vl_brand_secondary">#FFFFFFFF</color>
+    <color name="airline_vl_brand_accent">#FF6E8BB7</color>
+    <!-- Dashboard-Kacheln: Primär als Grundfarbe, Sekundär als Schrift -->
+    <color name="airline_vl_tile_bg">#FF05164D</color>
+    <color name="airline_vl_tile_text">#FFFFFFFF</color>
+    <color name="airline_vl_tile_text_dim">#B3FFFFFF</color>
+    <color name="airline_vl_tile_chart">#FF737373</color>
+    <color name="airline_vl_primary">#FF6E8BB7</color>
+    <color name="airline_vl_on_primary">#FF000000</color>
+    <color name="airline_vl_primary_container">#FFE4E9F1</color>
+    <color name="airline_vl_on_primary_container">#FF141C29</color>
+    <color name="airline_vl_secondary">#FF05164D</color>
+    <color name="airline_vl_on_secondary">#FFFFFFFF</color>
+    <color name="airline_vl_secondary_container">#FFD9E1FD</color>
+    <color name="airline_vl_on_secondary_container">#FF041039</color>
+    <color name="airline_vl_tertiary">#FF697AB0</color>
+    <color name="airline_vl_on_tertiary">#FF000000</color>
+    <color name="airline_vl_tertiary_container">#FFE4E7F1</color>
+    <color name="airline_vl_on_tertiary_container">#FF151A28</color>
+
+    <!-- Discover (4Y) -->
+    <color name="airline_4y_brand_primary">#FF1E73AF</color>
+    <color name="airline_4y_brand_secondary">#FFFFFFFF</color>
+    <color name="airline_4y_brand_accent">#FFFFCD00</color>
+    <!-- Dashboard-Kacheln: Primär als Grundfarbe, Sekundär als Schrift -->
+    <color name="airline_4y_tile_bg">#FF1E73AF</color>
+    <color name="airline_4y_tile_text">#FFFFFFFF</color>
+    <color name="airline_4y_tile_text_dim">#B3FFFFFF</color>
+    <color name="airline_4y_tile_chart">#FF737373</color>
+    <color name="airline_4y_primary">#FFFFCD00</color>
+    <color name="airline_4y_on_primary">#FF000000</color>
+    <color name="airline_4y_primary_container">#FFFFF7D6</color>
+    <color name="airline_4y_on_primary_container">#FF3D3100</color>
+    <color name="airline_4y_secondary">#FF1E73AF</color>
+    <color name="airline_4y_on_secondary">#FFFFFFFF</color>
+    <color name="airline_4y_secondary_container">#FFDCEDF9</color>
+    <color name="airline_4y_on_secondary_container">#FF092234</color>
+    <color name="airline_4y_tertiary">#FF7091A9</color>
+    <color name="airline_4y_on_tertiary">#FF000000</color>
+    <color name="airline_4y_tertiary_container">#FFE6EBF0</color>
+    <color name="airline_4y_on_tertiary_container">#FF172026</color>
+
+    <!-- Air Dolomiti (EN) -->
+    <color name="airline_en_brand_primary">#FF0093A8</color>
+    <color name="airline_en_brand_secondary">#FFFFFFFF</color>
+    <color name="airline_en_brand_accent">#FF002E54</color>
+    <!-- Dashboard-Kacheln: Primär als Grundfarbe, Sekundär als Schrift -->
+    <color name="airline_en_tile_bg">#FF0093A8</color>
+    <color name="airline_en_tile_text">#FF1A1A1A</color>
+    <color name="airline_en_tile_text_dim">#B31A1A1A</color>
+    <color name="airline_en_tile_chart">#FF737373</color>
+    <color name="airline_en_primary">#FF002E54</color>
+    <color name="airline_en_on_primary">#FFFFFFFF</color>
+    <color name="airline_en_primary_container">#FFD6EDFF</color>
+    <color name="airline_en_on_primary_container">#FF00223D</color>
+    <color name="airline_en_secondary">#FF0093A8</color>
+    <color name="airline_en_on_secondary">#FF000000</color>
+    <color name="airline_en_secondary_container">#FFD6FAFF</color>
+    <color name="airline_en_on_secondary_container">#FF00363D</color>
+    <color name="airline_en_tertiary">#FF64AAB4</color>
+    <color name="airline_en_on_tertiary">#FF000000</color>
+    <color name="airline_en_tertiary_container">#FFE3F0F2</color>
+    <color name="airline_en_on_tertiary_container">#FF142729</color>
+
+    <!-- ITA Airways (AZ) -->
+    <color name="airline_az_brand_primary">#FF01683C</color>
+    <color name="airline_az_brand_secondary">#FFFFFFFF</color>
+    <color name="airline_az_brand_accent">#FFBF1D0C</color>
+    <!-- Dashboard-Kacheln: Primär als Grundfarbe, Sekundär als Schrift -->
+    <color name="airline_az_tile_bg">#FF01683C</color>
+    <color name="airline_az_tile_text">#FFFFFFFF</color>
+    <color name="airline_az_tile_text_dim">#B3FFFFFF</color>
+    <color name="airline_az_tile_chart">#FF737373</color>
+    <color name="airline_az_primary">#FFBF1D0C</color>
+    <color name="airline_az_on_primary">#FFFFFFFF</color>
+    <color name="airline_az_primary_container">#FFFDDCD9</color>
+    <color name="airline_az_on_primary_container">#FF3A0904</color>
+    <color name="airline_az_secondary">#FF01683C</color>
+    <color name="airline_az_on_secondary">#FFFFFFFF</color>
+    <color name="airline_az_secondary_container">#FFD7FFEE</color>
+    <color name="airline_az_on_secondary_container">#FF013D23</color>
+    <color name="airline_az_tertiary">#FF65B492</color>
+    <color name="airline_az_on_tertiary">#FF000000</color>
+    <color name="airline_az_tertiary_container">#FFE4F2EC</color>
+    <color name="airline_az_on_tertiary_container">#FF142920</color>
+
+    <!-- Brussels Airlines (SN) -->
+    <color name="airline_sn_brand_primary">#FF051446</color>
+    <color name="airline_sn_brand_secondary">#FFD6E2F5</color>
+    <color name="airline_sn_brand_accent">#FFE5002B</color>
+    <!-- Dashboard-Kacheln: Primär als Grundfarbe, Sekundär als Schrift -->
+    <color name="airline_sn_tile_bg">#FF051446</color>
+    <color name="airline_sn_tile_text">#FFD6E2F5</color>
+    <color name="airline_sn_tile_text_dim">#B3D6E2F5</color>
+    <color name="airline_sn_tile_chart">#FF6B717A</color>
+    <color name="airline_sn_primary">#FFE5002B</color>
+    <color name="airline_sn_on_primary">#FFFFFFFF</color>
+    <color name="airline_sn_primary_container">#FFFFD6DE</color>
+    <color name="airline_sn_on_primary_container">#FF3D000B</color>
+    <color name="airline_sn_secondary">#FF051446</color>
+    <color name="airline_sn_on_secondary">#FFFFFFFF</color>
+    <color name="airline_sn_secondary_container">#FFD9E1FC</color>
+    <color name="airline_sn_on_secondary_container">#FF041039</color>
+    <color name="airline_sn_tertiary">#FF697AAF</color>
+    <color name="airline_sn_on_tertiary">#FF000000</color>
+    <color name="airline_sn_tertiary_container">#FFE4E7F1</color>
+    <color name="airline_sn_on_tertiary_container">#FF151A28</color>
+
+    <!-- TAP Air Portugal (TP) -->
+    <color name="airline_tp_brand_primary">#FFBFD730</color>
+    <color name="airline_tp_brand_secondary">#FFFFFFFF</color>
+    <color name="airline_tp_brand_accent">#FFEE1C24</color>
+    <!-- Dashboard-Kacheln: Primär als Grundfarbe, Sekundär als Schrift -->
+    <color name="airline_tp_tile_bg">#FFBFD730</color>
+    <color name="airline_tp_tile_text">#FF535353</color>
+    <color name="airline_tp_tile_text_dim">#B3535353</color>
+    <color name="airline_tp_tile_chart">#FF737373</color>
+    <color name="airline_tp_primary">#FFEE1C24</color>
+    <color name="airline_tp_on_primary">#FF000000</color>
+    <color name="airline_tp_primary_container">#FFFCD9DA</color>
+    <color name="airline_tp_on_primary_container">#FF390406</color>
+    <color name="airline_tp_secondary">#FF97AB21</color>
+    <color name="airline_tp_on_secondary">#FF000000</color>
+    <color name="airline_tp_secondary_container">#FFF4F8DD</color>
+    <color name="airline_tp_on_secondary_container">#FF2D330A</color>
+    <color name="airline_tp_tertiary">#FFA0A771</color>
+    <color name="airline_tp_on_tertiary">#FF000000</color>
+    <color name="airline_tp_tertiary_container">#FFEEEFE6</color>
+    <color name="airline_tp_on_tertiary_container">#FF242617</color>
+
+    <style name="Theme.Logbook.AirlineLH" parent="Theme.Logbook">
+        <item name="colorPrimary">@color/airline_lh_primary</item>
+        <item name="colorOnPrimary">@color/airline_lh_on_primary</item>
+        <item name="colorPrimaryContainer">@color/airline_lh_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/airline_lh_on_primary_container</item>
+        <item name="colorSecondary">@color/airline_lh_secondary</item>
+        <item name="colorOnSecondary">@color/airline_lh_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/airline_lh_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/airline_lh_on_secondary_container</item>
+        <item name="colorTertiary">@color/airline_lh_tertiary</item>
+        <item name="colorOnTertiary">@color/airline_lh_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/airline_lh_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/airline_lh_on_tertiary_container</item>
+        <item name="tileChartColor">@color/airline_lh_tile_chart</item>
+        <item name="tileContentColor">@color/airline_lh_tile_text</item>
+        <item name="tileContentSecondaryColor">@color/airline_lh_tile_text_dim</item>
+    </style>
+
+    <style name="Theme.Logbook.AirlineLX" parent="Theme.Logbook">
+        <item name="colorPrimary">@color/airline_lx_primary</item>
+        <item name="colorOnPrimary">@color/airline_lx_on_primary</item>
+        <item name="colorPrimaryContainer">@color/airline_lx_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/airline_lx_on_primary_container</item>
+        <item name="colorSecondary">@color/airline_lx_secondary</item>
+        <item name="colorOnSecondary">@color/airline_lx_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/airline_lx_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/airline_lx_on_secondary_container</item>
+        <item name="colorTertiary">@color/airline_lx_tertiary</item>
+        <item name="colorOnTertiary">@color/airline_lx_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/airline_lx_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/airline_lx_on_tertiary_container</item>
+        <item name="tileChartColor">@color/airline_lx_tile_chart</item>
+        <item name="tileContentColor">@color/airline_lx_tile_text</item>
+        <item name="tileContentSecondaryColor">@color/airline_lx_tile_text_dim</item>
+    </style>
+
+    <style name="Theme.Logbook.AirlineWK" parent="Theme.Logbook">
+        <item name="colorPrimary">@color/airline_wk_primary</item>
+        <item name="colorOnPrimary">@color/airline_wk_on_primary</item>
+        <item name="colorPrimaryContainer">@color/airline_wk_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/airline_wk_on_primary_container</item>
+        <item name="colorSecondary">@color/airline_wk_secondary</item>
+        <item name="colorOnSecondary">@color/airline_wk_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/airline_wk_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/airline_wk_on_secondary_container</item>
+        <item name="colorTertiary">@color/airline_wk_tertiary</item>
+        <item name="colorOnTertiary">@color/airline_wk_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/airline_wk_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/airline_wk_on_tertiary_container</item>
+        <item name="tileChartColor">@color/airline_wk_tile_chart</item>
+        <item name="tileContentColor">@color/airline_wk_tile_text</item>
+        <item name="tileContentSecondaryColor">@color/airline_wk_tile_text_dim</item>
+    </style>
+
+    <style name="Theme.Logbook.AirlineOS" parent="Theme.Logbook">
+        <item name="colorPrimary">@color/airline_os_primary</item>
+        <item name="colorOnPrimary">@color/airline_os_on_primary</item>
+        <item name="colorPrimaryContainer">@color/airline_os_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/airline_os_on_primary_container</item>
+        <item name="colorSecondary">@color/airline_os_secondary</item>
+        <item name="colorOnSecondary">@color/airline_os_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/airline_os_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/airline_os_on_secondary_container</item>
+        <item name="colorTertiary">@color/airline_os_tertiary</item>
+        <item name="colorOnTertiary">@color/airline_os_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/airline_os_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/airline_os_on_tertiary_container</item>
+        <item name="tileChartColor">@color/airline_os_tile_chart</item>
+        <item name="tileContentColor">@color/airline_os_tile_text</item>
+        <item name="tileContentSecondaryColor">@color/airline_os_tile_text_dim</item>
+    </style>
+
+    <style name="Theme.Logbook.AirlineEW" parent="Theme.Logbook">
+        <item name="colorPrimary">@color/airline_ew_primary</item>
+        <item name="colorOnPrimary">@color/airline_ew_on_primary</item>
+        <item name="colorPrimaryContainer">@color/airline_ew_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/airline_ew_on_primary_container</item>
+        <item name="colorSecondary">@color/airline_ew_secondary</item>
+        <item name="colorOnSecondary">@color/airline_ew_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/airline_ew_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/airline_ew_on_secondary_container</item>
+        <item name="colorTertiary">@color/airline_ew_tertiary</item>
+        <item name="colorOnTertiary">@color/airline_ew_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/airline_ew_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/airline_ew_on_tertiary_container</item>
+        <item name="tileChartColor">@color/airline_ew_tile_chart</item>
+        <item name="tileContentColor">@color/airline_ew_tile_text</item>
+        <item name="tileContentSecondaryColor">@color/airline_ew_tile_text_dim</item>
+    </style>
+
+    <style name="Theme.Logbook.AirlineVL" parent="Theme.Logbook">
+        <item name="colorPrimary">@color/airline_vl_primary</item>
+        <item name="colorOnPrimary">@color/airline_vl_on_primary</item>
+        <item name="colorPrimaryContainer">@color/airline_vl_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/airline_vl_on_primary_container</item>
+        <item name="colorSecondary">@color/airline_vl_secondary</item>
+        <item name="colorOnSecondary">@color/airline_vl_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/airline_vl_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/airline_vl_on_secondary_container</item>
+        <item name="colorTertiary">@color/airline_vl_tertiary</item>
+        <item name="colorOnTertiary">@color/airline_vl_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/airline_vl_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/airline_vl_on_tertiary_container</item>
+        <item name="tileChartColor">@color/airline_vl_tile_chart</item>
+        <item name="tileContentColor">@color/airline_vl_tile_text</item>
+        <item name="tileContentSecondaryColor">@color/airline_vl_tile_text_dim</item>
+    </style>
+
+    <style name="Theme.Logbook.Airline4Y" parent="Theme.Logbook">
+        <item name="colorPrimary">@color/airline_4y_primary</item>
+        <item name="colorOnPrimary">@color/airline_4y_on_primary</item>
+        <item name="colorPrimaryContainer">@color/airline_4y_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/airline_4y_on_primary_container</item>
+        <item name="colorSecondary">@color/airline_4y_secondary</item>
+        <item name="colorOnSecondary">@color/airline_4y_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/airline_4y_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/airline_4y_on_secondary_container</item>
+        <item name="colorTertiary">@color/airline_4y_tertiary</item>
+        <item name="colorOnTertiary">@color/airline_4y_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/airline_4y_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/airline_4y_on_tertiary_container</item>
+        <item name="tileChartColor">@color/airline_4y_tile_chart</item>
+        <item name="tileContentColor">@color/airline_4y_tile_text</item>
+        <item name="tileContentSecondaryColor">@color/airline_4y_tile_text_dim</item>
+    </style>
+
+    <style name="Theme.Logbook.AirlineEN" parent="Theme.Logbook">
+        <item name="colorPrimary">@color/airline_en_primary</item>
+        <item name="colorOnPrimary">@color/airline_en_on_primary</item>
+        <item name="colorPrimaryContainer">@color/airline_en_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/airline_en_on_primary_container</item>
+        <item name="colorSecondary">@color/airline_en_secondary</item>
+        <item name="colorOnSecondary">@color/airline_en_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/airline_en_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/airline_en_on_secondary_container</item>
+        <item name="colorTertiary">@color/airline_en_tertiary</item>
+        <item name="colorOnTertiary">@color/airline_en_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/airline_en_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/airline_en_on_tertiary_container</item>
+        <item name="tileChartColor">@color/airline_en_tile_chart</item>
+        <item name="tileContentColor">@color/airline_en_tile_text</item>
+        <item name="tileContentSecondaryColor">@color/airline_en_tile_text_dim</item>
+    </style>
+
+    <style name="Theme.Logbook.AirlineAZ" parent="Theme.Logbook">
+        <item name="colorPrimary">@color/airline_az_primary</item>
+        <item name="colorOnPrimary">@color/airline_az_on_primary</item>
+        <item name="colorPrimaryContainer">@color/airline_az_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/airline_az_on_primary_container</item>
+        <item name="colorSecondary">@color/airline_az_secondary</item>
+        <item name="colorOnSecondary">@color/airline_az_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/airline_az_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/airline_az_on_secondary_container</item>
+        <item name="colorTertiary">@color/airline_az_tertiary</item>
+        <item name="colorOnTertiary">@color/airline_az_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/airline_az_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/airline_az_on_tertiary_container</item>
+        <item name="tileChartColor">@color/airline_az_tile_chart</item>
+        <item name="tileContentColor">@color/airline_az_tile_text</item>
+        <item name="tileContentSecondaryColor">@color/airline_az_tile_text_dim</item>
+    </style>
+
+    <style name="Theme.Logbook.AirlineSN" parent="Theme.Logbook">
+        <item name="colorPrimary">@color/airline_sn_primary</item>
+        <item name="colorOnPrimary">@color/airline_sn_on_primary</item>
+        <item name="colorPrimaryContainer">@color/airline_sn_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/airline_sn_on_primary_container</item>
+        <item name="colorSecondary">@color/airline_sn_secondary</item>
+        <item name="colorOnSecondary">@color/airline_sn_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/airline_sn_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/airline_sn_on_secondary_container</item>
+        <item name="colorTertiary">@color/airline_sn_tertiary</item>
+        <item name="colorOnTertiary">@color/airline_sn_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/airline_sn_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/airline_sn_on_tertiary_container</item>
+        <item name="tileChartColor">@color/airline_sn_tile_chart</item>
+        <item name="tileContentColor">@color/airline_sn_tile_text</item>
+        <item name="tileContentSecondaryColor">@color/airline_sn_tile_text_dim</item>
+    </style>
+
+    <style name="Theme.Logbook.AirlineTP" parent="Theme.Logbook">
+        <item name="colorPrimary">@color/airline_tp_primary</item>
+        <item name="colorOnPrimary">@color/airline_tp_on_primary</item>
+        <item name="colorPrimaryContainer">@color/airline_tp_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/airline_tp_on_primary_container</item>
+        <item name="colorSecondary">@color/airline_tp_secondary</item>
+        <item name="colorOnSecondary">@color/airline_tp_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/airline_tp_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/airline_tp_on_secondary_container</item>
+        <item name="colorTertiary">@color/airline_tp_tertiary</item>
+        <item name="colorOnTertiary">@color/airline_tp_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/airline_tp_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/airline_tp_on_tertiary_container</item>
+        <item name="tileChartColor">@color/airline_tp_tile_chart</item>
+        <item name="tileContentColor">@color/airline_tp_tile_text</item>
+        <item name="tileContentSecondaryColor">@color/airline_tp_tile_text_dim</item>
+    </style>
+
+</resources>

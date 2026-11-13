@@ -238,21 +238,10 @@
             android:orientation="vertical"
             android:visibility="gone">
 
-            <!-- Thema: Darstellung -->
-            <LinearLayout style="@style/SettingsBlock">
-
-                <TextView
-                    style="@style/SettingsBlockLabel"
-                    android:text="@string/settings_appearance" />
-
-                <com.highfly.logbook.SegmentedOptionView
-                    android:id="@+id/theme_mode_selector"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content" />
-            </LinearLayout>
-
-            <!-- Die Akzentfarbe als Farbkreise in den Zellen des Reglers. -->
+            <!-- Die Akzentfarbe als Farbkreise in den Zellen des Reglers.
+                 Ist ein Airline-Schema aktiv, wird der ganze Block blass. -->
             <LinearLayout
+                android:id="@+id/accent_block"
                 style="@style/SettingsBlock"
                 android:layout_marginTop="12dp">
 
@@ -262,6 +251,24 @@
 
                 <com.highfly.logbook.SegmentedOptionView
                     android:id="@+id/accent_selector"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+
+            <!-- Airline-Farbschemas darunter, als IATA-Code je Zelle beschriftet;
+                 Kacheln, Schrift und Akzente folgen den Markenfarben der Airline.
+                 Ist eine klassische Akzentfarbe aktiv, wird dieser Block blass. -->
+            <LinearLayout
+                android:id="@+id/airline_block"
+                style="@style/SettingsBlock"
+                android:layout_marginTop="12dp">
+
+                <TextView
+                    style="@style/SettingsBlockLabel"
+                    android:text="@string/settings_airline_schemes" />
+
+                <com.highfly.logbook.SegmentedOptionView
+                    android:id="@+id/airline_selector"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content" />
             </LinearLayout>

@@ -95,7 +95,9 @@ class SegmentedOptionView @JvmOverloads constructor(
         highlight.visibility = GONE
     }
 
-    /** Baut die Zellen auf und wählt [selected] aus (ohne Animation). */
+    /** Baut die Zellen auf und wählt [selected] aus (ohne Animation).
+     *  [selected] = -1 lässt alle Zellen unmarkiert (z. B. wenn der gespeicherte
+     *  Wert zu keiner der Zellen dieser Leiste gehört). */
     fun setOptions(options: List<Option>, selected: Int = 0) {
         this.options = options
         cellsRow.removeAllViews()
@@ -106,6 +108,9 @@ class SegmentedOptionView @JvmOverloads constructor(
             highlight.visibility = GONE
             return
         }
+        // Bei vielen Zellen (z. B. den Airline-Farbschemas) schrumpft der
+        // Farbkreis, damit er in die schmale Zelle passt.
+        val swatchSize = dp(if (options.size > FULL_SWATCH_MAX_OPTIONS) SWATCH_SMALL_DP else SWATCH_DP)
         options.forEachIndexed { index, option ->
             val label = option.label?.let { text ->
                 TextView(context).apply {
@@ -132,7 +137,7 @@ class SegmentedOptionView @JvmOverloads constructor(
                         LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
                     )
                 } else {
-                    addView(swatch(option), LinearLayout.LayoutParams(dp(SWATCH_DP), dp(SWATCH_DP)))
+                    addView(swatch(option), LinearLayout.LayoutParams(swatchSize, swatchSize))
                 }
                 setOnClickListener {
                     if (index != selectedIndex) {
@@ -146,7 +151,11 @@ class SegmentedOptionView @JvmOverloads constructor(
             cellsRow.addView(cell, LinearLayout.LayoutParams(0, LayoutParams.MATCH_PARENT, 1f))
         }
         selectedIndex = -1
-        select(selected.coerceIn(options.indices), animate = false)
+        if (selected >= 0) {
+            select(selected.coerceIn(options.indices), animate = false)
+        } else {
+            highlight.visibility = GONE
+        }
     }
 
     /** Wählt eine Zelle aus; [animate] gleitet die Markierung hin (Nutzereingabe). */
@@ -168,11 +177,13 @@ class SegmentedOptionView @JvmOverloads constructor(
         }
     }
 
-    /** Farbkreis für eine Zelle ohne Beschriftung (z. B. Akzentfarbe). */
+    /** Farbkreis für eine Zelle ohne Beschriftung (z. B. Akzentfarbe). Der
+     *  feine Rand trennt helle Farbkreise vom Hintergrund der Leiste. */
     private fun swatch(option: Option): View = View(context).apply {
         background = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
             setColor(option.swatchColor ?: 0)
+            setStroke(dp(1), themeColor(com.google.android.material.R.attr.colorOutlineVariant))
         }
     }
 
@@ -244,12 +255,18 @@ class SegmentedOptionView @JvmOverloads constructor(
 
     private fun dp(value: Int): Int = (value * density).toInt()
 
-    private companion object {
+    companion object {
         /** Höhe der Leiste wie die Reiseklasse unter "Neuer Flug". */
         const val CELL_HEIGHT_DP = 52
 
         /** Durchmesser des Farbkreises in einer Zelle ohne Beschriftung. */
         const val SWATCH_DP = 32
+
+        /** Kleinerer Farbkreis ab dieser Anzahl Zellen (z. B. Airline-Schemas). */
+        const val SWATCH_SMALL_DP = 20
+
+        /** Bis zu dieser Anzahl Zellen gibt es den grossen Farbkreis. */
+        const val FULL_SWATCH_MAX_OPTIONS = 8
 
         /** Rundung von Leiste und Markierung. */
         const val CORNER_RADIUS_DP = 16
@@ -260,5 +277,10 @@ class SegmentedOptionView @JvmOverloads constructor(
 
         /** Dauer des Gleitens der Markierung. */
         const val SLIDE_MS = 250L
+
+        /** Deckkraft einer inaktiven Leiste (z. B. Akzentfarben-Regler bei
+         *  aktivem Airline-Farbschema); sie bleibt aber bedienbar, damit man
+         *  jederzeit wieder eine Akzentfarbe wählen kann. */
+        const val INACTIVE_ALPHA = 0.4f
     }
 }

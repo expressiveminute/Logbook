@@ -89,66 +89,7 @@
             </com.google.android.material.textfield.TextInputLayout>
         </LinearLayout>
 
-        <!-- Schritt 2: Erscheinungsbild (Dunkel/Hell/System). -->
-        <LinearLayout
-            android:id="@+id/welcome_step_theme"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:visibility="gone">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:text="@string/welcome_section_appearance"
-                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
-                android:textStyle="bold" />
-
-            <LinearLayout style="@style/SettingsRow">
-
-                <TextView
-                    style="@style/SettingsRowLabel"
-                    android:text="@string/settings_appearance" />
-
-                <LinearLayout style="@style/SettingsRowValue">
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/welcome_theme_dark_tile"
-                        style="@style/SettingsTile"
-                        android:layout_marginEnd="3dp">
-
-                        <TextView
-                            android:id="@+id/welcome_theme_dark_label"
-                            style="@style/SettingsTileLabel"
-                            android:text="@string/settings_dark_mode" />
-                    </com.google.android.material.card.MaterialCardView>
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/welcome_theme_light_tile"
-                        style="@style/SettingsTile"
-                        android:layout_marginEnd="3dp">
-
-                        <TextView
-                            android:id="@+id/welcome_theme_light_label"
-                            style="@style/SettingsTileLabel"
-                            android:text="@string/settings_light_mode" />
-                    </com.google.android.material.card.MaterialCardView>
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/welcome_theme_system_tile"
-                        style="@style/SettingsTile">
-
-                        <TextView
-                            android:id="@+id/welcome_theme_system_label"
-                            style="@style/SettingsTileLabel"
-                            android:text="@string/settings_system_mode" />
-                    </com.google.android.material.card.MaterialCardView>
-                </LinearLayout>
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- Schritt 3: Akzentfarbe. -->
+        <!-- Schritt 2: Akzentfarbe. -->
         <LinearLayout
             android:id="@+id/welcome_step_accent"
             android:layout_width="match_parent"
@@ -184,7 +125,7 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- Schritt 4: Rolle (Besatzung oder Fluggast). -->
+        <!-- Schritt 3: Rolle (Besatzung oder Fluggast). -->
         <LinearLayout
             android:id="@+id/welcome_step_role"
             android:layout_width="match_parent"
@@ -232,7 +173,7 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- Schritt 5 (nur Besatzung): Bordfunktion. -->
+        <!-- Schritt 4 (nur Besatzung): Bordfunktion. -->
         <LinearLayout
             android:id="@+id/welcome_step_function"
             android:layout_width="match_parent"
@@ -283,7 +224,7 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- Schritt 6 (nur Besatzung): bevorzugte Arbeitsposition. -->
+        <!-- Schritt 5 (nur Besatzung): bevorzugte Arbeitsposition. -->
         <LinearLayout
             android:id="@+id/welcome_step_class"
             android:layout_width="match_parent"

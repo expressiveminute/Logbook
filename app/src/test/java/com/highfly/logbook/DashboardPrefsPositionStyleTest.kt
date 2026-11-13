@@ -48,6 +48,23 @@ class DashboardPrefsPositionStyleTest {
     }
 
     @Test
+    fun positionStyle_airlineSchemeFärbtAllePositionenInPrimärMitSekundärSchrift() {
+        for (scheme in AirlineSchemes.ALL) {
+            // Alle Reihen (auch die unter der Weltkugel) und alle Spalten.
+            for (row in 0 until 8) {
+                for (column in 0 until DashboardPrefs.COLORED_COLUMNS) {
+                    val style = style(row, column, scheme.key)
+                    assertNotNull("Position ${row + 1}/${column + 1} ohne Farbe (${scheme.key})", style)
+                    assertEquals(scheme.tileBackgroundRes, style!!.backgroundColorRes)
+                    assertEquals(scheme.tileContentRes, style.contentColorRes)
+                    assertEquals(scheme.tileContentRes, style.strokeColorRes)
+                    assertEquals(0, style.strokeWidthDp)
+                }
+            }
+        }
+    }
+
+    @Test
     fun positionStyle_usesAccentSpecificColors() {
         assertEquals(
             R.color.dashboard_brown_pos1,

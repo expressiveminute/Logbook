@@ -161,6 +161,11 @@ abstract class LogbookFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         restoreScrollStates(view)
+        // Im Airline-Schema wären Kacheln mit colorSecondaryContainer ein
+        // unruhiges Blau - dort durch die Marken-Primärfarbe ersetzen. Kacheln,
+        // die das Fragment danach selbst einfärbt (z. B. Layover, Reiseart),
+        // überschreiben das wieder.
+        DashboardTileColors.replaceSecondaryCards(view)
     }
 
     override fun onPause() {

@@ -26,6 +26,9 @@ class FlightsYearFragment : LogbookFragment() {
     /** Laufende Füll-Animation des Reiseart-Balkens. */
     private var travelBarAnimator: ValueAnimator? = null
 
+    /** Kontrast-Textfarbe auf der Reiseart-Kachel (Primärfarbe im Hintergrund). */
+    private var travelCardFg = android.graphics.Color.WHITE
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -43,6 +46,15 @@ class FlightsYearFragment : LogbookFragment() {
         binding.btnYearBack.setOnClickListener {
             findNavController().navigateUp()
         }
+
+        // Die oberste Kachel (Reiseart) trägt als Hintergrund die Akzentfarbe
+        // des Schemas (bei LH Gold); Titel und Balkenbeschriftungen bekommen die
+        // Kontrastfarbe (die Segmente im Balken behalten ihre eigene Farbe).
+        DashboardTileColors.applyPrimaryCardBackground(
+            binding.cardTravelType, useAccent = true
+        )
+        travelCardFg = DashboardTileColors.primaryCardTextColor(binding.cardTravelType)
+        binding.tvTravelTypeTitle.setTextColor(travelCardFg)
 
         // Beim Öffnen der Seite (Tipp auf die Kachel "Flüge") füllt sich der
         // Reiseart-Balken animiert von links nach rechts. Das Befüllen selbst
@@ -264,9 +276,8 @@ class FlightsYearFragment : LogbookFragment() {
                 // damit langer Text nicht horizontal abgeschnitten wird).
                 val nameView = android.widget.TextView(requireContext()).apply {
                     text = slice.label
-                    setTextColor(com.google.android.material.color.MaterialColors.getColor(
-                        this, com.google.android.material.R.attr.colorOnSurface
-                    ))
+                    // Kontrastfarbe zur Kachel (Primärfarbe), siehe onViewCreated.
+                    setTextColor(travelCardFg)
                     textSize = 12f
                     setTypeface(null, android.graphics.Typeface.BOLD)
                     setSingleLine(true)
@@ -277,9 +288,9 @@ class FlightsYearFragment : LogbookFragment() {
                     text = resources.getQuantityString(
                         R.plurals.travel_type_count, slice.value, slice.value
                     )
-                    setTextColor(com.google.android.material.color.MaterialColors.getColor(
-                        this, com.google.android.material.R.attr.colorOnSurfaceVariant
-                    ))
+                    setTextColor(
+                        androidx.core.graphics.ColorUtils.setAlphaComponent(travelCardFg, 0xB3)
+                    )
                     textSize = 11f
                     setSingleLine(true)
                     ellipsize = android.text.TextUtils.TruncateAt.END

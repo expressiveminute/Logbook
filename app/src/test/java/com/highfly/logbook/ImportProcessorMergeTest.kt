@@ -45,6 +45,19 @@ class ImportProcessorMergeTest {
     }
 
     @Test
+    fun `fehlende Distanz wird ergaenzt ohne vorhandene Flugzeit zu ueberschreiben`() {
+        // CSV-Spalte Flugzeit vorhanden, Spalte Distanz nicht: nur die
+        // Distanz wird aus den Koordinaten ergaenzt, die Flugzeit aus der
+        // Datei bleibt stehen.
+        val given = entry.copy(flightMinutes = 480, distanceKm = null)
+        val merged = ImportProcessor.merged(given, 6195, 505, "DE", "US")
+        assertEquals(6195, merged.distanceKm)
+        assertEquals(480, merged.flightMinutes)
+        assertEquals("DE", merged.fromCountry)
+        assertEquals("US", merged.toCountry)
+    }
+
+    @Test
     fun `leere Laender gelten als fehlend`() {
         val given = entry.copy(fromCountry = "", toCountry = " ")
         val merged = ImportProcessor.merged(given, null, null, "DE", "US")

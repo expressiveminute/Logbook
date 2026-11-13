@@ -43,6 +43,21 @@
         </LinearLayout>
     </ScrollView>
 
+    <!-- erscheint per Long-Press (2 s) auf dem Plus-Knopf links daneben -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_scan_boarding_pass"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="12dp"
+        android:text="@string/fab_scan_boarding_pass"
+        android:visibility="gone"
+        android:textColor="?attr/colorOnSecondaryContainer"
+        app:backgroundTint="?attr/colorSecondaryContainer"
+        app:icon="@drawable/ic_qr_scan"
+        app:iconTint="?attr/colorOnSecondaryContainer"
+        app:layout_constraintBottom_toBottomOf="@id/fab_add"
+        app:layout_constraintEnd_toStartOf="@id/fab_add" />
+
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_add"
         android:layout_width="wrap_content"

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Farbe für Zeichnungen innerhalb von Kacheln und Kachel-Detailseiten
+         (Balken, Kompass, Berge, Globuslinien). In den Basis-Themen die
+         Akzentfarbe (colorPrimary); die Airline-Schemas (Theme.Logbook.AirlineXX,
+         generiert von tools/build_airline_schemes.py) setzen hier die
+         Sekundärfarbe der Airline, kontrastkorrigiert gegen die Oberfläche. -->
+    <attr name="tileChartColor" format="color" />
+    <!-- Schrift innerhalb von Kacheln (Werte, Überschriften, Trennlinien).
+         In den Basis-Themen die Oberflächenfarben; Airline-Schemas setzen
+         hier die Sekundärfarbe (Kachelschrift) bzw. eine abgedunkelte Variante. -->
+    <attr name="tileContentColor" format="color" />
+    <attr name="tileContentSecondaryColor" format="color" />
+</resources>

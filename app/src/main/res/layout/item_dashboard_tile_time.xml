@@ -27,7 +27,7 @@
             android:ellipsize="end"
             android:maxLines="1"
             android:text="@string/tile_time"
-            android:textColor="?attr/colorPrimary"
+            android:textColor="?attr/tileContentColor"
             android:textSize="13sp"
             android:textStyle="bold" />
 
@@ -49,7 +49,7 @@
                 android:ellipsize="end"
                 android:gravity="center"
                 android:maxLines="1"
-                android:textColor="?attr/colorOnSurface"
+                android:textColor="?attr/tileContentColor"
                 android:textSize="26sp"
                 android:textStyle="bold" />
 
@@ -60,7 +60,7 @@
                 android:layout_marginStart="8dp"
                 android:layout_marginEnd="8dp"
                 android:text="·"
-                android:textColor="?attr/colorOnSurface"
+                android:textColor="?attr/tileContentColor"
                 android:textSize="26sp"
                 android:textStyle="bold" />
 
@@ -72,7 +72,7 @@
                 android:ellipsize="end"
                 android:gravity="center"
                 android:maxLines="1"
-                android:textColor="?attr/colorOnSurface"
+                android:textColor="?attr/tileContentColor"
                 android:textSize="26sp"
                 android:textStyle="bold" />
         </LinearLayout>
@@ -82,7 +82,7 @@
             android:layout_width="match_parent"
             android:layout_height="1.5dp"
             android:layout_marginTop="4dp"
-            android:background="?attr/colorPrimary" />
+            android:background="?attr/tileContentColor" />
 
         <!-- Drei gleich breite Spalten wie bei der Distanz-Kachel: Beschriftung,
              Strecke und Wert. Ohne Breitenconstraint wüchsen sie auf schmalen
@@ -102,7 +102,7 @@
                 android:gravity="start"
                 android:maxLines="1"
                 android:text="@string/time_longest_label"
-                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textColor="?attr/tileContentSecondaryColor"
                 android:textSize="11sp" />
 
             <TextView
@@ -115,7 +115,7 @@
                 android:ellipsize="end"
                 android:gravity="center"
                 android:maxLines="1"
-                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textColor="?attr/tileContentSecondaryColor"
                 android:textSize="11sp" />
 
             <TextView
@@ -126,7 +126,7 @@
                 android:ellipsize="end"
                 android:gravity="end"
                 android:maxLines="1"
-                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textColor="?attr/tileContentSecondaryColor"
                 android:textSize="11sp" />
         </LinearLayout>
 
@@ -146,7 +146,7 @@
                 android:gravity="start"
                 android:maxLines="1"
                 android:text="@string/time_avg_label"
-                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textColor="?attr/tileContentSecondaryColor"
                 android:textSize="11sp" />
 
             <TextView
@@ -159,7 +159,7 @@
                 android:ellipsize="end"
                 android:gravity="center"
                 android:maxLines="1"
-                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textColor="?attr/tileContentSecondaryColor"
                 android:textSize="11sp" />
 
             <TextView
@@ -170,7 +170,7 @@
                 android:ellipsize="end"
                 android:gravity="end"
                 android:maxLines="1"
-                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textColor="?attr/tileContentSecondaryColor"
                 android:textSize="11sp" />
         </LinearLayout>
 
@@ -190,7 +190,7 @@
                 android:gravity="start"
                 android:maxLines="1"
                 android:text="@string/time_shortest_label"
-                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textColor="?attr/tileContentSecondaryColor"
                 android:textSize="11sp" />
 
             <TextView
@@ -203,7 +203,7 @@
                 android:ellipsize="end"
                 android:gravity="center"
                 android:maxLines="1"
-                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textColor="?attr/tileContentSecondaryColor"
                 android:textSize="11sp" />
 
             <TextView
@@ -214,7 +214,7 @@
                 android:ellipsize="end"
                 android:gravity="end"
                 android:maxLines="1"
-                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textColor="?attr/tileContentSecondaryColor"
                 android:textSize="11sp" />
         </LinearLayout>
 

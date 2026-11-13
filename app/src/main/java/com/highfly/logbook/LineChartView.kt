@@ -88,7 +88,8 @@ class LineChartView @JvmOverloads constructor(
     private var stretched = false
 
     init {
-        lineColor = MaterialColors.getColor(this, com.google.android.material.R.attr.colorPrimary)
+        // Immer die aktive Akzentfarbe des Schemas (bei Airlines die Marken-Akzentfarbe).
+        lineColor = AirlineSchemes.primaryColor(context)
         labelColor = MaterialColors.getColor(
             this, com.google.android.material.R.attr.colorOnSurfaceVariant
         )

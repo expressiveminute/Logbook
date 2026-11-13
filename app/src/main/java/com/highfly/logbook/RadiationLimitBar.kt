@@ -40,9 +40,13 @@ class RadiationLimitBar @JvmOverloads constructor(
             invalidate()
         }
 
-    private val primaryColor = MaterialColors.getColor(
-        this, com.google.android.material.R.attr.colorPrimary
-    )
+    /** String-Resource für die Prozentzahl im/neben dem Balken. */
+    var percentLabelRes: Int = R.string.radiation_limit_percent
+
+    /** false blendet die Prozentzahl aus (z. B. bei Passagiere pro Jahr). */
+    var showLabel: Boolean = true
+
+    private val primaryColor = AirlineSchemes.primaryColor(context)
     private val limitColor = ContextCompat.getColor(context, R.color.radiation_limit)
     private val onSurfaceVariant = MaterialColors.getColor(
         this, com.google.android.material.R.attr.colorOnSurfaceVariant
@@ -87,7 +91,8 @@ class RadiationLimitBar @JvmOverloads constructor(
             val fillRadius = minOf(radius, fillWidth / 2f)
             canvas.drawRoundRect(fillRect, fillRadius, fillRadius, fillPaint)
         }
-        val label = context.getString(R.string.radiation_limit_percent, percent)
+        if (!showLabel) return
+        val label = context.getString(percentLabelRes, percent)
         val metrics = textPaint.fontMetrics
         val baseline = h / 2f - (metrics.ascent + metrics.descent) / 2f
         if (labelInsideBar(percent)) {

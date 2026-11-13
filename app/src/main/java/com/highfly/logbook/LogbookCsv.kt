@@ -33,16 +33,18 @@ object LogbookCsv {
     }
 
     /**
-     * Spalten der CSV-Datei in fester Reihenfolge. Neue Spalten kommen
-     * hinten an: [fromCsv] liest sie ueber [List.getOrNull], sodael aeltere
-     * Dateien ohne die Spalte weiterhin gelesen werden und nur dort null
-     * bekommen.
+     * Spalten der CSV-Datei in fester Reihenfolge: Datum, Reiseart, FROM, TO,
+     * Layover, Flugzeugtyp, Registrierung, Airline, Flugnummer, Funktion,
+     * Kommentar - dahinter der Rest. [fromCsv] liest die Spalten ueber die
+     * Kopfzeile (Name -> Position), sodael aeltere Dateien mit anderer
+     * Spaltenreihenfolge weiterhin korrekt gelesen werden; ohne Kopfzeile
+     * gilt die Position dieser Reihenfolge.
      */
     private val HEADER = listOf(
-        "date", "flightType", "classType", "fromAirport", "toAirport",
-        "airline", "flightNumber", "aircraftType", "registration",
-        "distanceKm", "flightMinutes", "layover", "comment", "function",
-        "travelBuddy", "layoverHours"
+        "date", "flightType", "fromAirport", "toAirport", "layover",
+        "aircraftType", "registration", "airline", "flightNumber",
+        "function", "comment",
+        "classType", "distanceKm", "flightMinutes", "travelBuddy", "layoverHours"
     )
 
     fun toCsv(entries: List<LogbookEntry>): String = buildString {
@@ -52,18 +54,18 @@ object LogbookCsv {
                 listOf(
                     formatDate(entry.date),
                     entry.flightType.orEmpty(),
-                    entry.classType.orEmpty(),
                     entry.fromAirport,
                     entry.toAirport,
-                    entry.airline.orEmpty(),
-                    entry.flightNumber.orEmpty(),
+                    if (entry.layover) "1" else "0",
                     entry.aircraftType.orEmpty(),
                     entry.registration.orEmpty(),
+                    entry.airline.orEmpty(),
+                    entry.flightNumber.orEmpty(),
+                    entry.function.orEmpty(),
+                    entry.comment.orEmpty(),
+                    entry.classType.orEmpty(),
                     entry.distanceKm?.toString().orEmpty(),
                     entry.flightMinutes?.toString().orEmpty(),
-                    if (entry.layover) "1" else "0",
-                    entry.comment.orEmpty(),
-                    entry.function.orEmpty(),
                     entry.travelBuddy.orEmpty(),
                     entry.layoverHours?.toString().orEmpty()
                 ).joinToString(",") { escape(it) }
@@ -73,32 +75,45 @@ object LogbookCsv {
 
     fun fromCsv(content: String): List<LogbookEntry> {
         val text = content.removePrefix("\uFEFF")
+        val rows = parse(text)
+        if (rows.isEmpty()) return emptyList()
+        // Kopfzeile erkennen: Spalten ueber den Namen zuordnen ( alte und
+        // neue Reihenfolge ), sonst Position aus [HEADER].
+        val first = rows[0]
+        val headerIndex: Map<String, Int>? =
+            if (first.isNotEmpty() && first[0].equals("date", ignoreCase = true)) {
+                first.mapIndexed { i, name -> name.lowercase() to i }.toMap()
+            } else {
+                null
+            }
+        val dataRows = if (headerIndex != null) rows.drop(1) else rows
         val entries = mutableListOf<LogbookEntry>()
-        parse(text).forEachIndexed { index, fields ->
-            if (fields.size < 5) return@forEachIndexed
-            if (index == 0 && fields[0].equals("date", ignoreCase = true)) return@forEachIndexed
-            val date = parseDate(fields[0]) ?: return@forEachIndexed
-            val fromAirport = fields.getOrNull(3)?.nullIfBlank()
-                ?: return@forEachIndexed
-            val toAirport = fields.getOrNull(4)?.nullIfBlank()
-                ?: return@forEachIndexed
+        for (fields in dataRows) {
+            if (fields.size < 5) continue
+            fun col(name: String): String? {
+                val index = headerIndex?.get(name.lowercase()) ?: HEADER.indexOf(name)
+                return fields.getOrNull(index)?.nullIfBlank()
+            }
+            val date = parseDate(col("date").orEmpty()) ?: continue
+            val fromAirport = col("fromAirport") ?: continue
+            val toAirport = col("toAirport") ?: continue
             entries += LogbookEntry(
                 date = date,
-                flightType = fields.getOrNull(1)?.nullIfBlank(),
-                classType = fields.getOrNull(2)?.nullIfBlank(),
+                flightType = col("flightType"),
                 fromAirport = fromAirport,
                 toAirport = toAirport,
-                airline = fields.getOrNull(5)?.nullIfBlank(),
-                flightNumber = fields.getOrNull(6)?.nullIfBlank(),
-                aircraftType = fields.getOrNull(7)?.nullIfBlank(),
-                registration = fields.getOrNull(8)?.nullIfBlank(),
-                distanceKm = fields.getOrNull(9)?.toIntOrNull(),
-                flightMinutes = fields.getOrNull(10)?.toIntOrNull(),
-                layover = fields.getOrNull(11) == "1",
-                comment = fields.getOrNull(12)?.nullIfBlank(),
-                function = fields.getOrNull(13)?.nullIfBlank(),
-                travelBuddy = fields.getOrNull(14)?.nullIfBlank(),
-                layoverHours = fields.getOrNull(15)?.toIntOrNull()
+                layover = col("layover") == "1",
+                aircraftType = col("aircraftType"),
+                registration = col("registration"),
+                airline = col("airline"),
+                flightNumber = col("flightNumber"),
+                function = col("function"),
+                comment = col("comment"),
+                classType = col("classType"),
+                distanceKm = col("distanceKm")?.toIntOrNull(),
+                flightMinutes = col("flightMinutes")?.toIntOrNull(),
+                travelBuddy = col("travelBuddy"),
+                layoverHours = col("layoverHours")?.toIntOrNull()
             )
         }
         return entries

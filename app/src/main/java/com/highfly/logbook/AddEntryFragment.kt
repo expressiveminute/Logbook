@@ -186,6 +186,13 @@ class AddEntryFragment : LogbookFragment() {
         if (editingEntry != null) {
             binding.tvEntryTitle.text = getString(R.string.edit_entry_title)
             prefill(editingEntry)
+        } else {
+            // Import per Bordkarten-QR-Code: Rohtext dekodieren und das
+            // Formular damit vorbefüllen - speichern bleibt ein normaler
+            // „Neuer Flug"-Vorgang.
+            arguments?.getString("prefillQr")?.let { qr ->
+                QrPayload.decode(qr)?.let { prefill(it) }
+            }
         }
         refreshVisibility()
 

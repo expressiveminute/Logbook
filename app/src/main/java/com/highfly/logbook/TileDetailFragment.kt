@@ -104,6 +104,11 @@ class TileDetailFragment : LogbookFragment(), BackPressAware {
         // Platz unter der schwebenden Navigationsleiste.
         binding.scrollView.addBottomNavPadding()
 
+        // Die beiden Layover-Kacheln oben tragen als Hintergrund die aktive
+        // Primärfarbe, die Texte die Kontrastfarbe.
+        DashboardTileColors.applyPrimaryCardBackground(binding.cardLayoverNewest, recolorTexts = true)
+        DashboardTileColors.applyPrimaryCardBackground(binding.cardLayoverOldest, recolorTexts = true)
+
         tileId = requireArguments().getString("tileId") ?: "flights"
         sliceLabel = requireArguments().getString("sliceLabel").orEmpty()
         // Bei einer Neuerstellung der Ansicht bleibt die Fragment-Instanz
