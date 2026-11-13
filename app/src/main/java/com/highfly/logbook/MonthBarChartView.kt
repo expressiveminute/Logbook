@@ -72,7 +72,7 @@ class MonthBarChartView @JvmOverloads constructor(
 
     init {
         // Immer die aktive Akzentfarbe des Schemas (bei Airlines die Marken-Akzentfarbe).
-        barColor = AirlineSchemes.primaryColor(context)
+        barColor = AirlineSchemes.chartColor(context)
         labelColor = MaterialColors.getColor(
             this, com.google.android.material.R.attr.colorOnSurfaceVariant
         )
@@ -105,6 +105,15 @@ class MonthBarChartView @JvmOverloads constructor(
         items.clear()
         items.addAll(data)
         requestLayout()
+        invalidate()
+    }
+
+    /**
+     * Setzt die Balkenfarbe abweichend von der Primärfarbe des aktiven
+     * Schemas (z. B. Schema-Vorgabe auf der Flüge-Seite).
+     */
+    fun setBarColor(color: Int) {
+        barColor = color
         invalidate()
     }
 

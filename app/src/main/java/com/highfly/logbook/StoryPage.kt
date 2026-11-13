@@ -27,10 +27,14 @@ sealed interface StoryPage {
     @get:StringRes
     val titleRes: Int
 
+    /** false blendet das Icon oben aus (z. B. Insights-Seiten). */
+    val showIcon: Boolean get() = true
+
     /** Eine große Zahl (mit optionaler zweiter Zahl) als Flip-Uhr. */
     data class HeroNumber(
         override val iconRes: Int,
         override val titleRes: Int,
+        override val showIcon: Boolean = true,
         /** Beschriftung über der großen Zahl. */
         @StringRes val labelRes: Int,
         /** Zielwert des Count-up. */
@@ -50,6 +54,7 @@ sealed interface StoryPage {
     data class HeroText(
         override val iconRes: Int,
         override val titleRes: Int,
+        override val showIcon: Boolean = true,
         val text: String,
         val subText: String?,
         /** Optionale Route für eine animierte Karte darunter. */
@@ -71,6 +76,7 @@ sealed interface StoryPage {
     data class Ranking(
         override val iconRes: Int,
         override val titleRes: Int,
+        override val showIcon: Boolean = true,
         val groups: List<Group>
     ) : StoryPage {
 
@@ -129,12 +135,27 @@ sealed interface StoryPage {
     }
 
     /**
+     * Übersichtsseite der Insights-Story: oben nur Icon und Erklärungstext,
+     * darunter ein Kartenausschnitt mit den Top-Layoverzielen (als Strecken
+     * ab der Homebase), darunter die Rangliste der Ziele.
+     */
+    data class MapRanking(
+        override val iconRes: Int,
+        override val titleRes: Int,
+        override val showIcon: Boolean = true,
+        /** Strecken für die Karte (z. B. Homebase -> Ziel), mit Codes. */
+        val routes: List<HeroText.RouteData>,
+        val groups: List<Ranking.Group>
+    ) : StoryPage
+
+    /**
      * Die Top-Reisebuddies als Podest (in der Play-Story): bis zu sechs
      * Buddies, Rang 1-3 als große Kreise, Rang 4-6 in einer Reihe.
      */
     data class BuddyPodium(
         override val iconRes: Int,
         override val titleRes: Int,
+        override val showIcon: Boolean = true,
         val buddies: List<Entry>
     ) : StoryPage {
 

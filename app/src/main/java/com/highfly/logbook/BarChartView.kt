@@ -103,7 +103,7 @@ class BarChartView @JvmOverloads constructor(
 
     init {
         // Immer die aktive Akzentfarbe des Schemas (bei Airlines die Marken-Akzentfarbe).
-        barColor = AirlineSchemes.primaryColor(context)
+        barColor = AirlineSchemes.chartColor(context)
         labelColor = MaterialColors.getColor(
             this, com.google.android.material.R.attr.colorOnSurface
         )
@@ -159,6 +159,20 @@ class BarChartView @JvmOverloads constructor(
         items.clear()
         items.addAll(data)
         requestLayout()
+        invalidate()
+    }
+
+    /**
+     * Setzt die Balkenfarbe abweichend von der Primärfarbe des aktiven
+     * Schemas (z. B. Schema-Vorgabe auf der Flüge-Seite); die translucenten
+     * gestapelten Balken folgen mit.
+     */
+    fun setBarColor(color: Int) {
+        barColor = color
+        stackedBarColor = Color.argb(
+            STACKED_BAR_ALPHA,
+            Color.red(color), Color.green(color), Color.blue(color)
+        )
         invalidate()
     }
 

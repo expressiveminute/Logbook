@@ -580,14 +580,18 @@ object DashboardTileColors {
     }
 
     /**
-     * Färbt eine Zusammenfassungs-Kachel (z. B. die beiden Layover-Kacheln oder
-     * „Reiseart“ auf der Flüge-Seite) in der aktiven Primärfarbe des Schemas ein
+     * Färbt eine Zusammenfassungs-Kachel (z. B. „Reiseart“ auf der Flüge-Seite)
+     * in der aktiven Primärfarbe des Schemas ein
      * ([AirlineSchemes.primaryColor]: bei Airlines die Marken-Primärfarbe, z. B.
      * das LH-Blau). Mit [useAccent] stattdessen die Akzentfarbe
      * ([AirlineSchemes.accentColor], z. B. das LH-Gold). Der Strich entfällt auf
      * der Vollfläche. Mit [recolorTexts] werden auch alle TextViews in der Kachel
      * auf die Kontrastfarbe gesetzt (nur für Kacheln ohne eingefärbte Segmente
      * mit eigener Textfarbe, z. B. nicht für den Reiseart-Balken).
+     *
+     * Diese Kacheln sind die bewussten Ausnahmen von der effektiven Akzentfarbe
+     * ([AirlineSchemes.effectiveAccentColor]: VL-Akzent beim LH-Schema) - hier
+     * bleibt die eigene Schemafarbe stehen.
      */
     fun applyPrimaryCardBackground(
         card: MaterialCardView,

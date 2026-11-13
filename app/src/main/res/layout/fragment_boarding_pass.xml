@@ -39,7 +39,8 @@
                      das Datum direkt darunter (bündig zur Flugnummer, gleiche
                      Schriftgröße fett). Rechts bündig: die Reiseart-Kachel auf
                      mittiger Höhe der Flugnummer, die Funktion auf mittiger
-                     Höhe des Datums. -->
+                     Höhe des Datums - beide in derselben Schriftgröße (30 sp)
+                     wie Flugnummer und Datum. -->
                 <androidx.constraintlayout.widget.ConstraintLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content">
@@ -78,12 +79,13 @@
                     <TextView
                         android:id="@+id/tv_type_chip"
                         android:layout_width="wrap_content"
-                        android:layout_height="32dp"
+                        android:layout_height="wrap_content"
                         android:gravity="center"
                         android:minWidth="40dp"
+                        android:minHeight="40dp"
                         android:paddingHorizontal="10dp"
                         android:textColor="@android:color/white"
-                        android:textSize="16sp"
+                        android:textSize="30sp"
                         android:textStyle="bold"
                         android:visibility="gone"
                         app:layout_constraintBottom_toBottomOf="@id/tv_flight_no"
@@ -108,12 +110,13 @@
                     <TextView
                         android:id="@+id/tv_extra_chip"
                         android:layout_width="wrap_content"
-                        android:layout_height="32dp"
+                        android:layout_height="wrap_content"
                         android:gravity="center"
                         android:minWidth="40dp"
+                        android:minHeight="40dp"
                         android:paddingHorizontal="10dp"
                         android:textColor="@android:color/white"
-                        android:textSize="16sp"
+                        android:textSize="30sp"
                         android:textStyle="bold"
                         android:visibility="gone"
                         app:layout_constraintBottom_toBottomOf="@id/tv_date"
@@ -127,7 +130,8 @@
                 <!-- QR-Code zum Teilen des Flugs: quadratisches weißes Feld
                      links, rechte Kante des weißen Rands in der Bildschirmmitte
                      (quadratisch, Größe setzt der Fragment-Code); rechts daneben
-                     oben die Reiseklasse, darunter die Strecke groß und fett.
+                     oben die Reiseklasse mit dem Sitzplatz in einer eigenen
+                     Kachel dahinter, darunter die Strecke groß und fett.
                      Der Code enthält alle Daten der Bordkarte außer den
                      Reisebuddies. Abstand zur Karte darunter ist genauso groß
                      wie der zum Datum. -->
@@ -161,20 +165,44 @@
                         android:layout_weight="1"
                         android:orientation="vertical">
 
-                        <TextView
-                            android:id="@+id/tv_class_chip"
+                        <!-- Reiseklasse und dahinter der Sitzplatz, je eine
+                             eigene Kachel im gleichen Stil. -->
+                        <LinearLayout
                             android:layout_width="wrap_content"
-                            android:layout_height="40dp"
-                            android:gravity="center"
-                            android:minWidth="40dp"
-                            android:paddingHorizontal="10dp"
-                            android:textColor="@android:color/white"
-                            android:textSize="20sp"
-                            android:textStyle="bold"
-                            android:visibility="gone"
-                            tools:background="#FF888888"
-                            tools:text="Y 12A"
-                            tools:visibility="visible" />
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:id="@+id/tv_class_chip"
+                                android:layout_width="wrap_content"
+                                android:layout_height="40dp"
+                                android:gravity="center"
+                                android:minWidth="40dp"
+                                android:paddingHorizontal="10dp"
+                                android:textColor="@android:color/white"
+                                android:textSize="20sp"
+                                android:textStyle="bold"
+                                android:visibility="gone"
+                                tools:background="#FF888888"
+                                tools:text="Y"
+                                tools:visibility="visible" />
+
+                            <TextView
+                                android:id="@+id/tv_seat_chip"
+                                android:layout_width="wrap_content"
+                                android:layout_height="40dp"
+                                android:layout_marginStart="8dp"
+                                android:gravity="center"
+                                android:minWidth="40dp"
+                                android:paddingHorizontal="10dp"
+                                android:textColor="@android:color/white"
+                                android:textSize="20sp"
+                                android:textStyle="bold"
+                                android:visibility="gone"
+                                tools:background="#FF888888"
+                                tools:text="12A"
+                                tools:visibility="visible" />
+                        </LinearLayout>
 
                         <TextView
                             android:id="@+id/tv_route"

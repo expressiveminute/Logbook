@@ -137,7 +137,9 @@ object StoryStats {
         val topLayoverCountries: List<LayoverCountry>,
         val topLayoverBuddies: List<LayoverBuddy>,
         val favoriteDestinations: List<DestinationAffinity>,
-        val dislikedDestinations: List<DestinationAffinity>
+        val dislikedDestinations: List<DestinationAffinity>,
+        /** Datum des ersten On-Duty-Flugs - Referenz für "× pro Jahr". */
+        val firstOnDutyDate: LocalDate? = null
     )
 
     private const val TOP_LIMIT = 3
@@ -146,6 +148,9 @@ object StoryStats {
     private const val TOP_BUDDY_LIMIT = 6
 
     private const val TOP_COUNTRY_LIMIT = 5
+
+    /** Die Übersichtsseite der Insights-Story zeigt die Top-6-Layoverziele. */
+    private const val TOP_DEST_LIMIT = 6
 
     /**
      * Die Play-Story: die Highlights des Logbuchs. [entries] sind die
@@ -234,7 +239,7 @@ object StoryStats {
             topLayoverByCount = byDestination
                 .sortedWith(compareByDescending<LayoverDestination> { it.count }
                     .thenBy { it.code })
-                .take(TOP_COUNTRY_LIMIT),
+                .take(TOP_DEST_LIMIT),
             topLayoverByHours = byDestination
                 .sortedWith(compareByDescending<LayoverDestination> { it.hours }
                     .thenByDescending { it.count }
@@ -244,7 +249,7 @@ object StoryStats {
                 .take(TOP_COUNTRY_LIMIT),
             topLayoverBuddies = TravelBuddyStats.build(layovers)
                 .map { LayoverBuddy(it.name, it.flights) }
-                .take(TOP_LIMIT),
+                .take(TOP_BUDDY_LIMIT),
             favoriteDestinations = affinities
                 .filter { it.flights >= 2 }
                 .sortedWith(
@@ -260,7 +265,10 @@ object StoryStats {
                         .thenBy { it.lastDate }
                         .thenBy { it.code }
                 )
-                .take(TOP_COUNTRY_LIMIT)
+                .take(TOP_COUNTRY_LIMIT),
+            firstOnDutyDate = entries
+                .filter { ChartData.normalizeFlightType(it.flightType) == ChartData.ON_DUTY_CANONICAL }
+                .minOfOrNull { it.date }
         )
     }
 

@@ -134,12 +134,18 @@ class StoryPageView @JvmOverloads constructor(
 
     /** Baut die Seite auf; [maxContentWidthPx] begrenzt die Hero-Zahl in der Breite. */
     fun bind(page: StoryPage, maxContentWidthPx: Int) {
-        iconView.setImageResource(page.iconRes)
+        if (page.showIcon) {
+            iconView.visibility = View.VISIBLE
+            iconView.setImageResource(page.iconRes)
+        } else {
+            iconView.visibility = View.GONE
+        }
         titleView.setText(page.titleRes)
         when (page) {
             is StoryPage.HeroNumber -> buildHeroNumber(page, maxContentWidthPx)
             is StoryPage.HeroText -> buildHeroText(page)
-            is StoryPage.Ranking -> buildRanking(page)
+            is StoryPage.Ranking -> buildGroups(page.groups)
+            is StoryPage.MapRanking -> buildMapRanking(page)
             is StoryPage.BuddyPodium -> buildBuddyPodium(page)
         }
         // Startzustand der Choreografie: alles unsichtbar/versetzt.
@@ -161,11 +167,13 @@ class StoryPageView @JvmOverloads constructor(
             applyFinalState()
             return
         }
-        iconView.animate()
-            .alpha(1f).scaleX(1f).scaleY(1f)
-            .setDuration(ICON_MS)
-            .setInterpolator(OvershootInterpolator())
-            .start()
+        if (iconView.visibility == View.VISIBLE) {
+            iconView.animate()
+                .alpha(1f).scaleX(1f).scaleY(1f)
+                .setDuration(ICON_MS)
+                .setInterpolator(OvershootInterpolator())
+                .start()
+        }
         titleView.animate()
             .alpha(1f).translationY(0f)
             .setStartDelay(TITLE_DELAY_MS)
@@ -207,9 +215,11 @@ class StoryPageView @JvmOverloads constructor(
 
     /** Endzustand ohne Animation (Systemanimationen abgeschaltet). */
     private fun applyFinalState() {
-        iconView.alpha = 1f
-        iconView.scaleX = 1f
-        iconView.scaleY = 1f
+        if (iconView.visibility == View.VISIBLE) {
+            iconView.alpha = 1f
+            iconView.scaleX = 1f
+            iconView.scaleY = 1f
+        }
         titleView.alpha = 1f
         titleView.translationY = 0f
         for (i in 0 until contentLayout.childCount) {
@@ -371,9 +381,38 @@ class StoryPageView @JvmOverloads constructor(
         }
     }
 
+    /**
+     * Baut die Übersichtsseite der Insights-Story: Kartenausschnitt mit den
+     * Layover-Strecken, darunter die Rangliste.
+     */
+    private fun buildMapRanking(page: StoryPage.MapRanking) {
+        if (page.routes.isNotEmpty()) {
+            val mapView = RouteMiniMapView(context).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    dp(180)
+                ).apply {
+                    topMargin = dp(20)
+                    // Mehr Abstand zwischen Karte und erster Ziel-Zeile.
+                    bottomMargin = dp(20)
+                }
+                setRoutes(page.routes.map { route ->
+                    Triple(
+                        AirportData.GeoLocation(route.fromLat, route.fromLon),
+                        AirportData.GeoLocation(route.toLat, route.toLon),
+                        route.fromCode to route.toCode
+                    )
+                })
+            }
+            contentLayout.addView(mapView)
+            routeMap = mapView
+        }
+        buildGroups(page.groups)
+    }
+
     /** Baut die Rangliste mit ihren Gruppen und Zeilen. */
-    private fun buildRanking(page: StoryPage.Ranking) {
-        page.groups.forEachIndexed { groupIndex, group ->
+    private fun buildGroups(groups: List<StoryPage.Ranking.Group>) {
+        groups.forEachIndexed { groupIndex, group ->
             if (group.labelRes != null) {
                 contentLayout.addView(
                     labelView(group.labelRes).apply {
@@ -703,20 +742,18 @@ class StoryPageView @JvmOverloads constructor(
             setPadding(padH, padV, padH, padV)
         }
 
-        // Rang als kleine Scheibe.
+        // Rang als Badge: Medaille (Gold/Silber/Bronze) für die Plätze 1-3,
+        // sonst die Platznummer.
         rowLayout.addView(
-            TextView(context).apply {
+            RankBadgeView(context).apply {
                 layoutParams = LinearLayout.LayoutParams(dp(28), dp(28)).apply {
                     marginEnd = dp(10)
                 }
-                gravity = Gravity.CENTER
-                background = GradientDrawable().apply {
-                    shape = GradientDrawable.OVAL
-                    setColor(ContextCompat.getColor(context, R.color.story_progress_track))
-                }
-                setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_LabelMedium)
-                setTextColor(ContextCompat.getColor(context, R.color.story_text))
-                text = String.format(com.highfly.logbook.Settings.language(context), "%d", rank)
+                setRank(rank, showMedals = true)
+                contentDescription = context.getString(
+                    R.string.story_row_rank_desc,
+                    String.format(com.highfly.logbook.Settings.language(context), "%d", rank)
+                )
             }
         )
 

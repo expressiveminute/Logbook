@@ -146,6 +146,10 @@ class FlightsYearFragment : LogbookFragment() {
             openMonths(years[index].key)
         }
 
+        // Die Balken der Diagramme unter der Reiseart-Kachel färben sich selbst
+        // in [AirlineSchemes.chartColor]: beim LH-Schema die Akzentfarbe von
+        // VL, sonst die Primärfarbe.
+
         bindYearLineChart(
             countsByYear.toSortedMap().map { LineChartView.Item(it.key.toString(), it.value) }
         )

@@ -167,6 +167,41 @@ class AirlineSchemesTest {
     }
 
     @Test
+    fun balkenUndGrafiken_nurBeiLhDieVlAkzentfarbe() {
+        // Nur beim aktiven LH-Schema wird für Balken/Grafiken die Akzentfarbe
+        // von VL vorgeschaltet.
+        assertEquals(AirlineSchemes.VL_KEY, AirlineSchemes.chartColorOverrideKey(AirlineSchemes.LH_KEY))
+        // Alle anderen Airline-Schemas (auch VL selbst) bleiben bei null.
+        AirlineSchemes.ALL.map { it.key }
+            .filter { it != AirlineSchemes.LH_KEY }
+            .forEach { assertNull("Override bei $it", AirlineSchemes.chartColorOverrideKey(it)) }
+        // Klassische Akzentfarben und null ebenfalls ohne Override.
+        Settings.ACCENT_OPTIONS.forEach {
+            assertNull("Override bei $it", AirlineSchemes.chartColorOverrideKey(it))
+        }
+        assertNull(AirlineSchemes.chartColorOverrideKey(null))
+        // Der Override-Schlüssel muss ein bekanntes Schema sein.
+        assertNotNull(AirlineSchemes.byKey(AirlineSchemes.chartColorOverrideKey(AirlineSchemes.LH_KEY)!!))
+    }
+
+    @Test
+    fun effektiveAkzentfarbe_nurBeiLhDieVlAkzentfarbe() {
+        // Nur beim aktiven LH-Schema schaltet die effektive Akzentfarbe auf VL um.
+        assertEquals(AirlineSchemes.VL_KEY, AirlineSchemes.effectiveAccentKey(AirlineSchemes.LH_KEY))
+        // Alle anderen Airline-Schemas (auch VL selbst) bleiben bei sich.
+        AirlineSchemes.ALL.map { it.key }
+            .filter { it != AirlineSchemes.LH_KEY }
+            .forEach { assertEquals(it, AirlineSchemes.effectiveAccentKey(it)) }
+        // Klassische Akzentfarben und null bleiben unverändert.
+        Settings.ACCENT_OPTIONS.forEach {
+            assertEquals(it, AirlineSchemes.effectiveAccentKey(it))
+        }
+        assertNull(AirlineSchemes.effectiveAccentKey(null))
+        // Der effektive Schlüssel muss ein bekanntes Schema sein.
+        assertNotNull(AirlineSchemes.byKey(AirlineSchemes.effectiveAccentKey(AirlineSchemes.LH_KEY)!!))
+    }
+
+    @Test
     fun themeResNamenPassenZuDenGeneriertenStyles() {
         for (scheme in AirlineSchemes.ALL) {
             val expected = "Theme.Logbook.Airline${scheme.key.removePrefix("airline_").uppercase()}"

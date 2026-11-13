@@ -268,8 +268,11 @@ class DistanceDetailFragment : LogbookFragment() {
         val scroll = binding.scrollView
         view.doOnLayout {
             if (_binding == null) return@doOnLayout
-            val viewport = scroll.height
-            if (viewport == 0) return@doOnLayout
+            // Sichtbarer Bereich ohne das Padding der schwebenden
+            // Navigationsleiste unten (clipToPadding=false: der Inhalt
+            // scrollt zwar darunter, sichtbar ist er dort aber nicht).
+            val viewport = scroll.height - scroll.paddingTop - scroll.paddingBottom
+            if (viewport <= 0) return@doOnLayout
             // Schon komplett sichtbar: nicht unnötig nachführen.
             if (view.bottom <= scroll.scrollY + viewport) return@doOnLayout
             val sectionHeight = view.bottom - view.top

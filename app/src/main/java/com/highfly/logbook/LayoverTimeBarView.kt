@@ -59,6 +59,22 @@ class LayoverTimeBarView @JvmOverloads constructor(
 
     private val trackRect = RectF()
 
+    /**
+     * true: Füllung in der Akzentfarbe des aktiven Schemas - nur auf der
+     * Times-Seite gesetzt, überall sonst bleibt die Primärfarbe.
+     */
+    var accentFill: Boolean = false
+        set(value) {
+            if (field == value) return
+            field = value
+            progressPaint.color = if (value) {
+                AirlineSchemes.accentColor(context)
+            } else {
+                AirlineSchemes.primaryColor(context)
+            }
+            invalidate()
+        }
+
     /** Zielstand der Leiste, 0 bis 1. */
     private var ziel = 0f
 
@@ -76,7 +92,7 @@ class LayoverTimeBarView @JvmOverloads constructor(
         trackPaint.color = MaterialColors.getColor(
             this, com.google.android.material.R.attr.colorSurfaceVariant
         )
-        progressPaint.color = AirlineSchemes.accentColor(context)
+        progressPaint.color = AirlineSchemes.primaryColor(context)
         tickPaint.color = MaterialColors.getColor(
             this, com.google.android.material.R.attr.colorOutline
         )

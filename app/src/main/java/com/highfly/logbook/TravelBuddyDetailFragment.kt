@@ -292,6 +292,13 @@ class TravelBuddyDetailFragment : LogbookFragment() {
         valueSizeSp: Float = 24f
     ): ItemStatTileBinding {
         val tile = ItemStatTileBinding.inflate(layoutInflater, row, false)
+        // Kachel in der Akzentfarbe des aktiven Schemas (bei LH das Gold) und
+        // ohne Rand; Beschriftung und Zahl in der Kontrastfarbe.
+        val card = tile.root as com.google.android.material.card.MaterialCardView
+        DashboardTileColors.applyPrimaryCardBackground(card, recolorTexts = true, useAccent = true)
+        tile.ivStatTileHint.imageTintList = android.content.res.ColorStateList.valueOf(
+            DashboardTileColors.primaryCardTextColor(card)
+        )
         tile.tvStatTileLabel.setText(labelRes)
         tile.tvStatTileValue.text = value
         tile.tvStatTileValue.setTextSize(TypedValue.COMPLEX_UNIT_SP, valueSizeSp)

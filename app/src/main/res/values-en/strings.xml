@@ -477,6 +477,7 @@
     <string name="boarding_pass_title">Boarding pass</string>
     <string name="boarding_pass_logo_desc">Airline logo</string>
     <string name="boarding_pass_class_desc">Travel class: %1$s</string>
+    <string name="boarding_pass_seat_desc">Seat: %1$s</string>
     <string name="boarding_pass_map_desc">Flight route from %1$s to %2$s</string>
     <string name="boarding_pass_qr_desc">QR code with the flight data of this boarding pass</string>
     <string name="fab_scan_boarding_pass">Scan boarding pass</string>
@@ -973,13 +974,15 @@
     <string name="story_play_co2_footnote">≈ %1$s trees bind that in a year</string>
     <string name="story_unit_hours">h</string>
     <string name="story_unit_days">d</string>
-    <string name="story_unit_months">mo</string>
+    <string name="story_unit_months">m</string>
     <string name="story_unit_tonnes">t</string>
     <plurals name="story_row_months">
         <item quantity="one">%1$d month</item>
         <item quantity="other">%1$d months</item>
     </plurals>
-    <string name="story_row_avg_months">Every %1$s months</string>
+    <string name="story_insights_overview_title">Your top layover destinations at a glance</string>
+    <string name="story_row_avg_year">%1$s× per year</string>
+    <string name="story_row_rank_desc">Rank %1$s</string>
     <string name="story_insights_layover_count_title">Most frequent layovers</string>
     <string name="story_insights_layover_hours_title">Most time on layover</string>
     <string name="story_insights_layover_countries_title">Your layover countries</string>

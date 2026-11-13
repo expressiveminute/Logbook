@@ -153,10 +153,9 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- Platzhalter fuer die spaetere Layover-Uebersicht: quadratisch
-             mit abgerundeten Ecken und "drei Sterne"-Icon. Nur bei der
-             Layover-Kachel sichtbar; der Klick oeffnet spaeter eine
-             eigene Uebersichtsseite. -->
+        <!-- Layover-Uebersicht (Insights-Story): "drei Sterne"-Icon ohne
+             Kachelflaeche/-rand, direkt in der Akzentfarbe (Code setzt die
+             Tint). Nur bei der Layover-Kachel sichtbar. -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/btn_layover_overview"
             android:layout_width="40dp"
@@ -167,18 +166,19 @@
             android:focusable="true"
             android:foreground="?attr/selectableItemBackground"
             android:visibility="gone"
-            app:cardBackgroundColor="?attr/colorSecondaryContainer"
+            app:cardBackgroundColor="@android:color/transparent"
             app:cardCornerRadius="12dp"
             app:cardElevation="0dp"
+            app:strokeWidth="0dp"
             tools:visibility="visible">
 
             <ImageView
+                android:id="@+id/iv_layover_overview"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:importantForAccessibility="no"
                 android:padding="9dp"
-                android:src="@drawable/ic_auto_awesome"
-                app:tint="?attr/colorOnSecondaryContainer" />
+                android:src="@drawable/ic_auto_awesome" />
         </com.google.android.material.card.MaterialCardView>
 
         <!-- Sortierung der Kachel "Flugrouten" oben rechts im Header, nach

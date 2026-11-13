@@ -2117,14 +2117,16 @@ class RubbelkarteView @JvmOverloads constructor(
     }
 
     /**
-     * Winkelausdehnung (Diagonale der Bounding-Box) eines Gebiets in Radiant,
-     * begrenzt auf 180° - Länder wie Russland reichen über die Datumslinie und
-     * hätten sonst eine viel zu große "Diagonale".
+     * Halbe Winkelausdehnung (halbe Diagonale der Bounding-Box) eines Gebiets
+     * in Radiant, begrenzt auf 90° - Länder wie Russland reichen über die
+     * Datumslinie und hätten als volle Diagonale ~180° (sin(180°)=0), dann würde
+     * das Land schon cullt, sobald seine Box-Mitte auf der Rückseite liegt,
+     * obwohl Randgebiete noch am Horizont sichtbar sind.
      */
     private fun diagRad(minLon: Double, minLat: Double, maxLon: Double, maxLat: Double): Double {
         val midLatRad = Math.toRadians((minLat + maxLat) / 2.0)
-        var d = max((maxLon - minLon) * cos(midLatRad), maxLat - minLat)
-        if (d > 180.0) d = 180.0
+        var d = max((maxLon - minLon) * cos(midLatRad), maxLat - minLat) / 2.0
+        if (d > 90.0) d = 90.0
         return Math.toRadians(d)
     }
 

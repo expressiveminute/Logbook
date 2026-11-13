@@ -63,7 +63,63 @@ object AirlineSchemes {
 
     val KEYS: List<String> = ALL.map { it.key }
 
+    /** Schlüssel des Lufthansa-Schemas. */
+    const val LH_KEY = "airline_lh"
+
+    /** Schlüssel des VL-Schemas. */
+    const val VL_KEY = "airline_vl"
+
     fun byKey(key: String): Scheme? = ALL.firstOrNull { it.key == key }
+
+    /**
+     * Schema, dessen Akzentfarbe die Balken und Grafiken in den Kachelseiten
+     * (Flüge, Layover, Hangar, Airlines, Airports, Flugrouten, Länder,
+     * Funktion, Reisebuddies) tragen sollen: nur beim LH-Schema die
+     * Akzentfarbe von VL, sonst null (dann bleiben sie in der normalen
+     * Primärfarbe).
+     */
+    fun chartColorOverrideKey(activeKey: String?): String? =
+        if (activeKey == LH_KEY) VL_KEY else null
+
+    /**
+     * Farbe für Balken und Grafiken in den Kachelseiten: beim LH-Schema die
+     * Akzentfarbe von VL ([chartColorOverrideKey]), sonst die Primärfarbe des
+     * aktiven Schemas. Die vier Zusammenfassungs-Kacheln (Reiseart, Layover,
+     * Höhenstrahlung, Passagiere) sind davon ausgenommen.
+     */
+    fun chartColor(context: Context): Int {
+        val overrideKey = chartColorOverrideKey(Settings.getAccentColor(context))
+        return overrideKey?.let { accentColorOf(context, it) } ?: primaryColor(context)
+    }
+
+    /**
+     * Akzentfarbe eines bestimmten Schemas ([key]), unabhängig vom aktiven
+     * Schema - z. B. die VL-Akzentfarbe, während LH aktiv ist. Unbekannter
+     * Schlüssel: null.
+     */
+    fun accentColorOf(context: Context, key: String): Int? =
+        byKey(key)?.let { ContextCompat.getColor(context, it.accentRes) }
+
+    /**
+     * Effektiver Akzent-Schlüssel: beim LH-Schema wird die Akzentfarbe von
+     * VL verwendet, sonst der aktive Schlüssel selbst. Gilt überall außer den
+     * vier Zusammenfassungs-Kacheln (Reiseart auf der Flüge-Seite, die beiden
+     * Layover-Kacheln, Höhenstrahlung, Passagiere), die bewusst die eigene
+     * Schemafarbe behalten ([DashboardTileColors.applyPrimaryCardBackground]).
+     */
+    fun effectiveAccentKey(activeKey: String?): String? =
+        if (activeKey == LH_KEY) VL_KEY else activeKey
+
+    /**
+     * Effektive Akzentfarbe für alle Akzent-Verwendungen außer den vier
+     * Zusammenfassungs-Kacheln: beim LH-Schema die VL-Akzentfarbe, sonst die
+     * Akzentfarbe des aktiven Schemas (bzw. das Theme-Primär bei klassischen
+     * Akzentfarben).
+     */
+    fun effectiveAccentColor(context: Context): Int {
+        val key = effectiveAccentKey(Settings.getAccentColor(context))
+        return key?.let { accentColorOf(context, it) } ?: themePrimary(context)
+    }
 
     /**
      * Aktive Primärfarbe des Schemas: bei Airline-Schemas die Marken-Primärfarbe

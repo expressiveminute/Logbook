@@ -43,8 +43,20 @@ class StoryActivity : AppCompatActivity() {
 
     private var story: StoryPages.Story? = null
 
+    /** Welche Story läuft: [MODE_PLAY] oder [MODE_INSIGHTS]. */
+    private var mode = MODE_PLAY
+
     /** Index der angezeigten Seite. */
     private var currentPage = 0
+
+    /** true, während ein langer Tipp den Timer angehalten hat. */
+    private var longPressPaused = false
+
+    /** Hält den Seiten-Timer an, wenn lange auf eine Seite getippt wird. */
+    private val longPressRunnable = Runnable {
+        longPressPaused = true
+        pauseTimer()
+    }
 
     /** Zeitpunkt (uptimeMillis), zu dem die aktuelle Seite erschien. */
     private var pageShownAt = 0L
@@ -121,6 +133,28 @@ class StoryActivity : AppCompatActivity() {
             hideHint()
             nextPage()
         }
+        // Langer Tipp auf eine Seite hält den Auto-Weiterlauf an, bis man
+        // loslässt (Klick aufs Weiter-/Zurück-Gehen läuft normal weiter).
+        listOf(binding.storyTapLeft, binding.storyTapRight).forEach { zone ->
+            zone.setOnTouchListener { _, event ->
+                when (event.actionMasked) {
+                    android.view.MotionEvent.ACTION_DOWN ->
+                        handler.postDelayed(
+                            longPressRunnable,
+                            android.view.ViewConfiguration.getLongPressTimeout().toLong()
+                        )
+                    android.view.MotionEvent.ACTION_UP,
+                    android.view.MotionEvent.ACTION_CANCEL -> {
+                        handler.removeCallbacks(longPressRunnable)
+                        if (longPressPaused) {
+                            longPressPaused = false
+                            resumeTimer()
+                        }
+                    }
+                }
+                false
+            }
+        }
 
         val startIndex = savedInstanceState?.getInt(KEY_PAGE, 0) ?: 0
         loadStory(startIndex)
@@ -155,7 +189,7 @@ class StoryActivity : AppCompatActivity() {
      * Story selbst entsteht auf dem Hauptfaden - sie liest nur Strings.
      */
     private fun loadStory(startIndex: Int) {
-        val mode = intent.getStringExtra(EXTRA_MODE) ?: MODE_PLAY
+        mode = intent.getStringExtra(EXTRA_MODE) ?: MODE_PLAY
         binding.storyLoading.visibility = View.VISIBLE
         Thread {
             val app = applicationContext
@@ -179,7 +213,7 @@ class StoryActivity : AppCompatActivity() {
             )
             val insights = StoryStats.insightsStats(entries, homebase, lookups = lookups)
             val built = if (mode == MODE_INSIGHTS) {
-                StoryPages.insights(app, insights)
+                StoryPages.insights(app, insights, homebase = homebase)
             } else {
                 StoryPages.play(app, play, role)
             }
@@ -191,6 +225,10 @@ class StoryActivity : AppCompatActivity() {
     private fun showStory(story: StoryPages.Story, startIndex: Int) {
         this.story = story
         binding.storyLoading.visibility = View.GONE
+        // In den Insights oben weder Titel ("Einblicke") noch den Zähler x/y.
+        val chromeVisible = mode != MODE_INSIGHTS
+        binding.tvStoryTitle.visibility = if (chromeVisible) View.VISIBLE else View.GONE
+        binding.tvStoryCounter.visibility = if (chromeVisible) View.VISIBLE else View.GONE
         binding.tvStoryTitle.setText(story.titleRes)
         buildProgressSegments(story.pages.size)
         val first = startIndex.coerceIn(0, story.pages.size - 1)

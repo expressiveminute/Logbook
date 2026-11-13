@@ -13,10 +13,11 @@ import com.google.android.material.color.MaterialColors
 
 /**
  * Balken der Höhenstrahlung-Kachel: Anteil der Jahresdosis am Grenzwert von
- * 20 mSv ([RadiationCalculator.ANNUAL_LIMIT_USV]). Die Prozentzahl steht ab
+ * 20 mSv ([RadiationCalculator.ANNUAL_LIMIT_USV]). Die Füllung trägt die
+ * Akzentfarbe, über dem Grenzwert ([overLimit]) rot. Die Prozentzahl steht ab
  * [LABEL_INSIDE_MIN_PERCENT] im ausgefüllten Balken, darunter rechts daneben
  * auf der Spur - so ist sie bei kleinem Anteil nicht im schmalen Stück
- * versteckt. Über dem Grenzwert ([overLimit]) ist die Füllung rot.
+ * versteckt.
  *
  * Die Prozentzahl wird als contentDescription gesetzt, damit sie auch ohne
  * Blick auf den Balken angesagt wird.
@@ -46,7 +47,7 @@ class RadiationLimitBar @JvmOverloads constructor(
     /** false blendet die Prozentzahl aus (z. B. bei Passagiere pro Jahr). */
     var showLabel: Boolean = true
 
-    private val primaryColor = AirlineSchemes.primaryColor(context)
+    private val accentColor = AirlineSchemes.effectiveAccentColor(context)
     private val limitColor = ContextCompat.getColor(context, R.color.radiation_limit)
     private val onSurfaceVariant = MaterialColors.getColor(
         this, com.google.android.material.R.attr.colorOnSurfaceVariant
@@ -85,7 +86,7 @@ class RadiationLimitBar @JvmOverloads constructor(
         // Füllung, gedeckelt bei 100 % - ein höherer Prozentwert steht nur
         // in der Zahl.
         val fillWidth = w * percent.coerceIn(0, 100) / 100f
-        fillPaint.color = if (overLimit) limitColor else primaryColor
+        fillPaint.color = if (overLimit) limitColor else accentColor
         if (fillWidth > 0f) {
             fillRect.set(0f, 0f, fillWidth, h)
             val fillRadius = minOf(radius, fillWidth / 2f)

@@ -33,7 +33,7 @@ object FilterHighlight {
         if (start < 0) return text
         // Akzentfarbe des aktiven Schemas (bei LH das satte Gold, nicht das
         // blasse Theme-Primär, das bräunlich wirkt).
-        val accent = AirlineSchemes.accentColor(view.context)
+        val accent = AirlineSchemes.effectiveAccentColor(view.context)
         // SpannableString uebernimmt die Spans einer etwaigen Vorstufe, das
         // Verkketten mehrerer Werte geht also nicht verloren.
         return SpannableString(text).apply {

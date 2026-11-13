@@ -1,6 +1,8 @@
 package com.highfly.logbook
 
 import android.content.Context
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 import java.util.Locale
 
 /**
@@ -245,17 +247,38 @@ object StoryPages {
     /** Die Insights-Story: die Layover-Auswertung samt Lieblingszielen. */
     fun insights(
         context: Context,
-        stats: StoryStats.InsightsStats
+        stats: StoryStats.InsightsStats,
+        homebase: String? = null,
+        today: LocalDate = LocalDate.now()
     ): Story {
         val locale = Settings.language(context)
         val pages = mutableListOf<StoryPage>()
 
-        // 1. Die häufigsten Layover-Ziele - ohne Dauer, dafür die Flagge des
-        //    Landes direkt hinter dem Dreilettercode.
+        // 1. Übersichtsseite: oben nur Icon und Erklärungstext, darunter ein
+        //    Kartenausschnitt mit den Top-Layoverzielen (Strecken ab der
+        //    Homebase), darunter die Rangliste der Ziele mit Länderflagge.
         if (stats.topLayoverByCount.isNotEmpty()) {
-            pages += StoryPage.Ranking(
+            val home = homebase?.trim()?.uppercase()?.takeIf { it.isNotEmpty() }
+            val homeLoc = home?.let { AirportData.location(context, it) }
+            val routes = if (homeLoc != null) {
+                stats.topLayoverByCount.mapNotNull { dest ->
+                    val to = AirportData.location(context, dest.code) ?: return@mapNotNull null
+                    StoryPage.HeroText.RouteData(
+                        fromLat = homeLoc.lat,
+                        fromLon = homeLoc.lon,
+                        toLat = to.lat,
+                        toLon = to.lon,
+                        fromCode = home ?: dest.code,
+                        toCode = dest.code
+                    )
+                }
+            } else {
+                emptyList()
+            }
+            pages += StoryPage.MapRanking(
                 iconRes = R.drawable.ic_umbrella,
-                titleRes = R.string.story_insights_layover_count_title,
+                titleRes = R.string.story_insights_overview_title,
+                routes = routes,
                 groups = listOf(
                     StoryPage.Ranking.Group(
                         labelRes = null,
@@ -274,25 +297,19 @@ object StoryPages {
             )
         }
 
-        // 2. Die Layover-Ziele mit der meisten Zeit: doppelt hohe Zeilen,
-        //    oben rechts die Stunden, darunter unten rechts die Tage.
+        // 2. Die Layover-Ziele mit der meisten Zeit - ohne Icon oben. Pro
+        //    Zeile immer nur zwei Wertzeilen: h + d, bzw. bei Monaten h
+        //    weglassen und nur d + m zeigen.
         if (stats.topLayoverByHours.isNotEmpty()) {
             pages += StoryPage.Ranking(
                 iconRes = R.drawable.ic_time,
                 titleRes = R.string.story_insights_layover_hours_title,
+                showIcon = false,
                 groups = listOf(
                     StoryPage.Ranking.Group(
                         labelRes = null,
                         rows = stats.topLayoverByHours.map { dest ->
-                            StoryPage.Ranking.Row(
-                                label = dest.code,
-                                value = String.format(locale, "%,d", dest.hours),
-                                suffix = context.getString(R.string.story_unit_hours),
-                                valueTarget = dest.hours.toDouble(),
-                                valueFormat = groupedInt(locale),
-                                tall = true,
-                                stackedValues = layoverTimeValues(context, locale, dest.hours)
-                            )
+                            layoverTimeRow(context, locale, label = dest.code, hours = dest.hours)
                         }
                     )
                 )
@@ -300,25 +317,20 @@ object StoryPages {
         }
 
         // 3. Die Top-fünf Länder mit der gesamten Layoverzeit: wie Seite 2
-        //    mit Stunden oben rechts und Tagen darunter unten rechts, dazu der
-        //    Ländername fett oben und die Flagge darunter (statt davor).
+        //    zwei Wertzeilen (d + m statt h + d + m), dazu der Ländername fett
+        //    oben und die Flagge darunter (statt davor).
         if (stats.topLayoverCountries.isNotEmpty()) {
             pages += StoryPage.Ranking(
                 iconRes = R.drawable.ic_countries,
                 titleRes = R.string.story_insights_layover_countries_title,
+                showIcon = false,
                 groups = listOf(
                     StoryPage.Ranking.Group(
                         labelRes = null,
                         rows = stats.topLayoverCountries.map { country ->
-                            StoryPage.Ranking.Row(
-                                label = country.name,
-                                value = String.format(locale, "%,d", country.hours),
-                                suffix = context.getString(R.string.story_unit_hours),
-                                subFlag = country.flag,
-                                valueTarget = country.hours.toDouble(),
-                                valueFormat = groupedInt(locale),
-                                tall = true,
-                                stackedValues = layoverTimeValues(context, locale, country.hours)
+                            layoverTimeRow(
+                                context, locale,
+                                label = country.name, subFlag = country.flag, hours = country.hours
                             )
                         }
                     )
@@ -326,32 +338,40 @@ object StoryPages {
             )
         }
 
-        // 4. Der häufigste Reisebuddy im Layover.
+        // 4. Die häufigsten Layover-Buddies als Podest wie in der Play-Story
+        //    (Foto, sonst Avatar), ohne Icon oben.
         if (stats.topLayoverBuddies.isNotEmpty()) {
-            pages += StoryPage.Ranking(
+            pages += StoryPage.BuddyPodium(
                 iconRes = R.drawable.ic_reisebuddy,
                 titleRes = R.string.story_insights_layover_buddies_title,
-                groups = listOf(
-                    StoryPage.Ranking.Group(
-                        labelRes = null,
-                        rows = stats.topLayoverBuddies.map { buddy ->
-                            StoryPage.Ranking.Row(
-                                label = buddy.name,
-                                value = String.format(locale, "%,d", buddy.count),
-                                suffix = "×",
-                                valueTarget = buddy.count.toDouble(),
-                                valueFormat = groupedInt(locale)
-                            )
-                        }
+                showIcon = false,
+                buddies = stats.topLayoverBuddies.map { buddy ->
+                    // Läuft auf dem Hintergrund-Thread der StoryActivity:
+                    // Foto (hat Vorrang), sonst der Avatar.
+                    val photo = BuddyPhotos.load(context, buddy.name)
+                    StoryPage.BuddyPodium.Entry(
+                        name = buddy.name,
+                        value = String.format(locale, "%,d", buddy.count),
+                        suffix = "×",
+                        valueTarget = buddy.count.toDouble(),
+                        valueFormat = groupedInt(locale),
+                        photo = photo,
+                        avatar = if (photo == null) {
+                            BuddyAvatars.avatarDrawable(context, buddy.name)
+                        } else null
                     )
-                )
+                }
             )
         }
 
         // 5. Die Top-fünf Lieblingsziele (häufig und regelmäßig besucht) -
-        //    nur Ziele, die als Layover markiert sind. Der Untertitel nennt
-        //    den durchschnittlichen Abstand zwischen zwei Besuchen.
+        //    nur Ziele, die als Layover markiert sind. Der Untertitel nennt,
+        //    wie oft man seit dem ersten On-Duty-Flug durchschnittlich pro
+        //    Jahr dort war.
         if (stats.favoriteDestinations.isNotEmpty()) {
+            val years = stats.firstOnDutyDate?.let {
+                ChronoUnit.DAYS.between(it, today).toDouble() / 365.25
+            }
             pages += StoryPage.Ranking(
                 iconRes = R.drawable.ic_heart,
                 titleRes = R.string.story_insights_favorites_title,
@@ -359,19 +379,19 @@ object StoryPages {
                     StoryPage.Ranking.Group(
                         labelRes = null,
                         rows = stats.favoriteDestinations.map { dest ->
+                            val perYear = if (years != null && years > 0.0) {
+                                dest.flights / years
+                            } else null
                             StoryPage.Ranking.Row(
                                 label = dest.code,
                                 value = String.format(locale, "%,d", dest.flights),
                                 suffix = "×",
-                                subLabel = if (dest.flights > 0) {
+                                subLabel = perYear?.let { rate ->
                                     context.getString(
-                                        R.string.story_row_avg_months,
-                                        LayoverTimeScale.trimmedDecimal(
-                                            dest.months.toDouble() / dest.flights,
-                                            locale
-                                        )
+                                        R.string.story_row_avg_year,
+                                        LayoverTimeScale.trimmedDecimal(rate, locale)
                                     )
-                                } else null,
+                                },
                                 valueTarget = dest.flights.toDouble(),
                                 valueFormat = groupedInt(locale)
                             )
@@ -485,30 +505,50 @@ object StoryPages {
         { value -> LayoverTimeScale.trimmedDecimal(value, locale) }
 
     /**
-     * Die Zeit eines Layover-Werts als gestapelte Flip-Zahlen unter den
-     * Stunden: die Tage, darunter die Monate - die Monate aber nur, wenn es
-     * mehr als ein halber Monat ist (ab 361 h).
+     * Eine doppelt hohe Zeile für eine Layover-Zeit in Stunden: immer nur
+     * zwei Wertzeilen - normalerweise h (oben) und d darunter; werden Monate
+     * angezeigt (mehr als ein halber Monat), fällt die h-Zeile weg und es
+     * bleiben d + m. Die Monate tragen wie h und d nur den kurzen Suffix "m".
      */
-    private fun layoverTimeValues(
+    private fun layoverTimeRow(
         context: Context,
         locale: Locale,
+        label: String,
+        subFlag: String? = null,
         hours: Int
-    ): List<StoryPage.Ranking.Row.StackedValue> {
-        val days = StoryPage.Ranking.Row.StackedValue(
-            text = LayoverTimeScale.daysText(hours, locale),
-            suffix = context.getString(R.string.story_unit_days),
-            target = hours / LayoverTimeScale.DAY_HOURS.toDouble(),
-            format = trimmedFormat(locale)
+    ): StoryPage.Ranking.Row {
+        val hoursValue = StoryPage.Ranking.Row(
+            label = label,
+            value = String.format(locale, "%,d", hours),
+            suffix = context.getString(R.string.story_unit_hours),
+            subFlag = subFlag,
+            valueTarget = hours.toDouble(),
+            valueFormat = groupedInt(locale),
+            tall = true,
+            stackedValues = listOf(
+                StoryPage.Ranking.Row.StackedValue(
+                    text = LayoverTimeScale.daysText(hours, locale),
+                    suffix = context.getString(R.string.story_unit_days),
+                    target = hours / LayoverTimeScale.DAY_HOURS.toDouble(),
+                    format = trimmedFormat(locale)
+                )
+            )
         )
         val months = hours / LayoverTimeScale.MONTH_HOURS.toDouble()
-        if (months <= 0.5) return listOf(days)
-        return listOf(
-            days,
-            StoryPage.Ranking.Row.StackedValue(
-                text = LayoverTimeScale.trimmedDecimal(months, locale),
-                suffix = context.getString(R.string.story_unit_months),
-                target = months,
-                format = trimmedFormat(locale)
+        if (months <= 0.5) return hoursValue
+        // Monate da: h-Zeile weglassen, nur d + m (zwei Zeilen).
+        return hoursValue.copy(
+            value = LayoverTimeScale.daysText(hours, locale),
+            suffix = context.getString(R.string.story_unit_days),
+            valueTarget = hours / LayoverTimeScale.DAY_HOURS.toDouble(),
+            valueFormat = trimmedFormat(locale),
+            stackedValues = listOf(
+                StoryPage.Ranking.Row.StackedValue(
+                    text = LayoverTimeScale.trimmedDecimal(months, locale),
+                    suffix = context.getString(R.string.story_unit_months),
+                    target = months,
+                    format = trimmedFormat(locale)
+                )
             )
         )
     }

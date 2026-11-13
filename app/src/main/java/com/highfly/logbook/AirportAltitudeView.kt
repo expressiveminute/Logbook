@@ -69,7 +69,7 @@ class AirportAltitudeView @JvmOverloads constructor(
 
     init {
         // Immer die aktive Akzentfarbe des Schemas (bei Airlines die Marken-Akzentfarbe).
-        val primary = AirlineSchemes.primaryColor(context)
+        val primary = AirlineSchemes.chartColor(context)
         mountainPaint.color = primary
         mountainPaint.alpha = 0x4D
         // Winterschnee bleibt hell, auch im dunklen Modus.

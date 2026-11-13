@@ -63,7 +63,7 @@ class FirstFragment : LogbookFragment() {
         binding.dashboardScroll.addBottomNavPadding()
 
         binding.fabAdd.setOnClickListener {
-            // Nach einem Long-Press (2 s) war der Klick nur das Loslassen -
+            // Nach einem Long-Press (1 s) war der Klick nur das Loslassen -
             // dann darf nicht die "Neuer Flug"-Seite aufgehen.
             if (suppressFabClick) {
                 suppressFabClick = false
@@ -73,8 +73,8 @@ class FirstFragment : LogbookFragment() {
             findNavController().navigate(R.id.action_dashboard_to_add_entry)
         }
 
-        // Long-Press (2 s) auf dem Plus-Knopf blendet links daneben den
-        // "Bordkarte scannen"-Button ein.
+        // Long-Press (1 s) auf dem Plus-Knopf blendet mittig zu ihm links
+        // daneben den "Bordkarte scannen"-Button ein.
         binding.fabAdd.setOnTouchListener { _, event ->
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
@@ -456,8 +456,9 @@ class FirstFragment : LogbookFragment() {
                     globePreview.visibility = View.VISIBLE
                     globePreview.interactive = false
                     globePreview.autoRotate = true
-                    // Nur die Flugstrecken in der Akzentfarbe, die
-                    // Flughafen-Punkte/-Badges in der Primärfarbe.
+                    // Flugstrecken in der Akzentfarbe des Schemas, die
+                    // Flughafen-Punkte/-Badges in der Primärfarbe - wie auf
+                    // der grossen Kugelseite.
                     globePreview.setColors(AirlineSchemes.accentColor(tileContainer.context))
                     globePreview.setPointColor(AirlineSchemes.primaryColor(tileContainer.context))
                     globePreview.setContent(globeContent)
@@ -1062,7 +1063,7 @@ class FirstFragment : LogbookFragment() {
 
     private companion object {
         /** Dauer des Long-Press auf dem Plus-Knopf bis „Bordkarte scannen“ erscheint. */
-        const val FAB_LONG_PRESS_MS = 2000L
+        const val FAB_LONG_PRESS_MS = 1000L
 
         /** Fester Aussenrand des Dashboards; das Raster bleibt unverändert. */
         const val GRID_PADDING_DP = 16

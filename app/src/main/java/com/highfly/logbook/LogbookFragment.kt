@@ -349,6 +349,12 @@ abstract class LogbookFragment : Fragment() {
         val generation = restoreGeneration
         val deadline = SystemClock.uptimeMillis() + RESTORE_DEADLINE_MS
         var lastHeight = -1
+        // Auch das Padding mitlaufen lassen: Das Bottom-Padding der
+        // Navigationsleiste wird gepostet erst nach dem ersten Layout gesetzt
+        // (siehe addBottomNavPadding). Würde die Wiederherstellung vorher
+        // abschließen, wäre maxScroll noch ohne Padding gerechnet und die
+        // Position käme zu kurz (unterste Kachel rutscht hinter die Leiste).
+        var lastPaddingBottom = -1
         val retry = object : Runnable {
             override fun run() {
                 if (generation != restoreGeneration) return
@@ -362,7 +368,11 @@ abstract class LogbookFragment : Fragment() {
                     return
                 }
                 val contentHeight = scroll.getChildAt(0).height
-                val maxScroll = (contentHeight - scroll.height).coerceAtLeast(0)
+                // Sichtbarer Bereich ohne Padding: durch das Bottom-Padding
+                // der schwebenden Navigationsleiste (clipToPadding=false)
+                // scrollt der Inhalt weiter, als height allein vermuten lässt.
+                val viewport = scroll.height - scroll.paddingTop - scroll.paddingBottom
+                val maxScroll = (contentHeight - viewport).coerceAtLeast(0)
                 if (maxScroll <= 0) {
                     // Der Inhalt passt (noch) ganz in die Ansicht. Eine Seite
                     // wie das Dashboard baut ihr Raster erst asynchron auf
@@ -375,12 +385,14 @@ abstract class LogbookFragment : Fragment() {
                     }
                     return
                 }
-                val settled = !scroll.isLayoutRequested && contentHeight == lastHeight
+                val settled = !scroll.isLayoutRequested && contentHeight == lastHeight &&
+                    scroll.paddingBottom == lastPaddingBottom
                 if (settled || SystemClock.uptimeMillis() >= deadline) {
                     pendingScrollRestores.remove(scroll.id)
                     scroll.scrollTo(0, state.y.coerceAtMost(maxScroll))
                 } else {
                     lastHeight = contentHeight
+                    lastPaddingBottom = scroll.paddingBottom
                     scroll.post(this)
                 }
             }
@@ -393,6 +405,7 @@ abstract class LogbookFragment : Fragment() {
         val generation = restoreGeneration
         val deadline = SystemClock.uptimeMillis() + RESTORE_DEADLINE_MS
         var lastWidth = -1
+        var lastPaddingRight = -1
         val retry = object : Runnable {
             override fun run() {
                 if (generation != restoreGeneration) return
@@ -406,7 +419,9 @@ abstract class LogbookFragment : Fragment() {
                     return
                 }
                 val contentWidth = scroll.getChildAt(0).width
-                val maxScroll = (contentWidth - scroll.width).coerceAtLeast(0)
+                // Wie vertikal: Padding der Navigationsleiste abziehen.
+                val viewport = scroll.width - scroll.paddingLeft - scroll.paddingRight
+                val maxScroll = (contentWidth - viewport).coerceAtLeast(0)
                 if (maxScroll <= 0) {
                     // Wie bei der vertikalen Variante: Der Inhalt kann erst
                     // noch asynchron wachsen, weiter warten statt verwerfen.
@@ -417,12 +432,14 @@ abstract class LogbookFragment : Fragment() {
                     }
                     return
                 }
-                val settled = !scroll.isLayoutRequested && contentWidth == lastWidth
+                val settled = !scroll.isLayoutRequested && contentWidth == lastWidth &&
+                    scroll.paddingRight == lastPaddingRight
                 if (settled || SystemClock.uptimeMillis() >= deadline) {
                     pendingScrollRestores.remove(scroll.id)
                     scroll.scrollTo(state.x.coerceAtMost(maxScroll), 0)
                 } else {
                     lastWidth = contentWidth
+                    lastPaddingRight = scroll.paddingRight
                     scroll.post(this)
                 }
             }

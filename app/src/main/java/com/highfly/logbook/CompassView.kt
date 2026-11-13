@@ -76,7 +76,7 @@ class CompassView @JvmOverloads constructor(
 
     init {
         // Immer die aktive Akzentfarbe des Schemas (bei Airlines die Marken-Akzentfarbe).
-        val primary = AirlineSchemes.primaryColor(context)
+        val primary = AirlineSchemes.chartColor(context)
         needleLightPaint.color = primary
         needleLightPaint.alpha = 0x30
         needleDarkPaint.color = primary

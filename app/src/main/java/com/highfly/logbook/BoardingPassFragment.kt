@@ -21,9 +21,11 @@ import com.highfly.logbook.databinding.FragmentBoardingPassBinding
  * `fragment_boarding_pass.xml`: Logo + Flugnummer oben, rechts die
  * Reiseart-Kachel auf mittiger Höhe der Flugnummer (rechts bündig); darunter
  * das Datum (bündig zur Flugnummer, gleiche Schriftgröße fett) mit der
- * Funktionskachel auf seiner mittigen Höhe; dann links ein quadratischer
- * QR-Code, dessen rechter weißer Rand in der Bildschirmmitte sitzt, rechts daneben
- * oben die Reiseklasse in der Klassenfarbe (mit Sitzplatz in weiß), darunter
+ * Funktionskachel auf seiner mittigen Höhe - Reiseart- und Funktionskachel
+ * in derselben Schriftgröße wie Flugnummer und Datum; dann links ein
+ * quadratischer QR-Code, dessen rechter weißer Rand in der Bildschirmmitte
+ * sitzt, rechts daneben oben die Reiseklasse in der Klassenfarbe mit dem
+ * Sitzplatz in einer eigenen Kachel dahinter, darunter
  * die Strecke in einer Reihe groß und fett, dann die Reisebuddies; danach
  * die animierte Streckenkarte, darunter alles in fetter Schrift: Layover,
  * Distanz/Flugzeit, Flugzeug/Registrierung, und der Kommentar in
@@ -195,17 +197,16 @@ class BoardingPassFragment : LogbookFragment() {
             binding.tvFlightNo.visibility = View.GONE
         }
 
-        // Reiseklasse als Kachel in der Klassenfarbe; wenn ein Sitzplatz
-        // eingetragen ist, steht er dahinter in weißer Schrift.
+        // Reiseklasse als eigene Kachel in der Klassenfarbe.
         val letter = BoardingPassLogic.classLetter(entry.classType)
         val classIndex = BoardingPassLogic.classColorIndex(entry.classType)
-        if (letter != null && classIndex != null) {
-            val classColors = ClassColorSchemes.colorsFor(Settings.getClassScheme(context))
-            val seat = entry.seat?.trim()?.takeIf { it.isNotEmpty() }
-            binding.tvClassChip.text = if (seat != null) "$letter $seat" else letter
-            binding.tvClassChip.setBackgroundColor(
-                ContextCompat.getColor(context, classColors[classIndex.coerceIn(classColors.indices)])
-            )
+        val classColors = ClassColorSchemes.colorsFor(Settings.getClassScheme(context))
+        val classColor = classIndex?.let {
+            ContextCompat.getColor(context, classColors[it.coerceIn(classColors.indices)])
+        }
+        if (letter != null && classColor != null) {
+            binding.tvClassChip.text = letter
+            binding.tvClassChip.setBackgroundColor(classColor)
             binding.tvClassChip.contentDescription = getString(
                 R.string.boarding_pass_class_desc, entry.classType.orEmpty()
             )
@@ -217,7 +218,7 @@ class BoardingPassFragment : LogbookFragment() {
         // Datum, bündig zur Flugnummer (linke Kante wie tv_flight_no).
         binding.tvDate.text = EntryListAdapter.dateFormatter.format(entry.date)
 
-        // Reiseart-Kachel oben rechts, Funktion bzw. Sitzplatz darunter.
+        // Reiseart-Kachel oben rechts, Funktions-Kachel darunter.
         val typeColorRes = BoardingPassLogic.typeColorRes(entry.flightType)
         val typeColor = typeColorRes?.let { ContextCompat.getColor(context, it) }
         if (typeColor != null && !entry.flightType.isNullOrBlank()) {
@@ -227,13 +228,43 @@ class BoardingPassFragment : LogbookFragment() {
         } else {
             binding.tvTypeChip.visibility = View.GONE
         }
-        val extraText = BoardingPassLogic.extraChipText(entry.flightType, entry.function, entry.seat)
+        val extraText = BoardingPassLogic.extraChipText(entry.flightType, entry.function)
         if (extraText != null && typeColor != null) {
             binding.tvExtraChip.text = extraText
             binding.tvExtraChip.setBackgroundColor(typeColor)
             binding.tvExtraChip.visibility = View.VISIBLE
         } else {
             binding.tvExtraChip.visibility = View.GONE
+        }
+
+        // Sitzplatz als eigene Kachel hinter der Reiseklasse - in der
+        // Klassenfarbe, ohne Reiseklasse in der Farbe der Reiseart, sonst
+        // in der Sekundärfarbe.
+        val seat = entry.seat?.trim()?.takeIf { it.isNotEmpty() }
+        if (seat != null) {
+            binding.tvSeatChip.text = seat
+            binding.tvSeatChip.contentDescription = getString(R.string.boarding_pass_seat_desc, seat)
+            val seatBg = classColor ?: typeColor
+            if (seatBg != null) {
+                binding.tvSeatChip.setBackgroundColor(seatBg)
+                binding.tvSeatChip.setTextColor(Color.WHITE)
+            } else {
+                binding.tvSeatChip.setBackgroundColor(
+                    MaterialColors.getColor(
+                        binding.passCard,
+                        com.google.android.material.R.attr.colorSecondaryContainer
+                    )
+                )
+                binding.tvSeatChip.setTextColor(
+                    MaterialColors.getColor(
+                        binding.passCard,
+                        com.google.android.material.R.attr.colorOnSecondaryContainer
+                    )
+                )
+            }
+            binding.tvSeatChip.visibility = View.VISIBLE
+        } else {
+            binding.tvSeatChip.visibility = View.GONE
         }
 
         // Strecke rechts neben dem QR-Code, groß und fett.

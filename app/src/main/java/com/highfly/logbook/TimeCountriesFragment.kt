@@ -282,7 +282,9 @@ class TimeCountriesFragment : LogbookFragment(), BackPressAware {
         // Balken im Header wie auf der Layover-Detailseite: Zeit im Ausland
         // als Dauer (Tage/Wochen/Monate, ohne Quartale) über einer sich
         // füllenden Leiste. Grundlage sind die Stunden (Layover-Stunden
-        // eingeschlossen), nicht nur die vollen Tage.
+        // eingeschlossen), nicht nur die vollen Tage. Nur auf dieser Seite
+        // füllt sich die Leiste in der Akzentfarbe des Schemas.
+        binding.timeAbroadBar.accentFill = true
         val ctx = requireContext()
         val abroadHours = result.sumOf { it.totalHours }.toInt()
         binding.tvAbroadValue.text = TimeCountryFormat.breakdownText(ctx, abroadHours, quarters = false)

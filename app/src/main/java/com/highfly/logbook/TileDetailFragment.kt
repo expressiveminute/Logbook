@@ -104,10 +104,11 @@ class TileDetailFragment : LogbookFragment(), BackPressAware {
         // Platz unter der schwebenden Navigationsleiste.
         binding.scrollView.addBottomNavPadding()
 
-        // Die beiden Layover-Kacheln oben tragen als Hintergrund die aktive
-        // Primärfarbe, die Texte die Kontrastfarbe.
-        DashboardTileColors.applyPrimaryCardBackground(binding.cardLayoverNewest, recolorTexts = true)
-        DashboardTileColors.applyPrimaryCardBackground(binding.cardLayoverOldest, recolorTexts = true)
+        // Die beiden Layover-Kacheln oben (Neuestes/Ältestes Layover) tragen
+        // als Hintergrund die Akzentfarbe des aktiven Schemas (bei LH das
+        // Gold), die Texte die Kontrastfarbe.
+        DashboardTileColors.applyPrimaryCardBackground(binding.cardLayoverNewest, recolorTexts = true, useAccent = true)
+        DashboardTileColors.applyPrimaryCardBackground(binding.cardLayoverOldest, recolorTexts = true, useAccent = true)
 
         tileId = requireArguments().getString("tileId") ?: "flights"
         sliceLabel = requireArguments().getString("sliceLabel").orEmpty()
@@ -225,6 +226,13 @@ class TileDetailFragment : LogbookFragment(), BackPressAware {
      */
     private fun setupLayoverOverviewButton() {
         binding.btnLayoverOverview.visibility = View.VISIBLE
+        // Ohne Kachelrand (transparent, kein Strich): nur das Icon in der
+        // Akzentfarbe des aktiven Schemas (bei LH das Gold).
+        binding.btnLayoverOverview.strokeWidth = 0
+        binding.btnLayoverOverview.setCardBackgroundColor(Color.TRANSPARENT)
+        binding.ivLayoverOverview.imageTintList = android.content.res.ColorStateList.valueOf(
+            AirlineSchemes.accentColor(requireContext())
+        )
         binding.btnLayoverOverview.setOnClickListener {
             StoryActivity.start(requireContext(), StoryActivity.MODE_INSIGHTS)
         }

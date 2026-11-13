@@ -83,19 +83,18 @@ class BoardingPassLogicTest {
     }
 
     @Test
-    fun zusatzkachel_funktionOderSitzplatz() {
+    fun zusatzkachel_nurFunktion() {
         // Dienstlich: Funktions-Kurzform.
-        assertEquals("P1", BoardingPassLogic.extraChipText("On Duty", "Purser I", "12A"))
-        assertEquals("FB", BoardingPassLogic.extraChipText("Ferry", "Flugbegleiter", null))
-        assertNull(BoardingPassLogic.extraChipText("On Duty", null, "12A"))
-        // Privat: Sitzplatz statt Funktion.
-        assertEquals("12A", BoardingPassLogic.extraChipText("Privat", "Purser I", "12A"))
-        assertEquals("1A", BoardingPassLogic.extraChipText("privat", null, " 1A "))
-        assertNull(BoardingPassLogic.extraChipText("Privat", null, null))
-        assertNull(BoardingPassLogic.extraChipText("Privat", null, "  "))
+        assertEquals("P1", BoardingPassLogic.extraChipText("On Duty", "Purser I"))
+        assertEquals("FB", BoardingPassLogic.extraChipText("Ferry", "Flugbegleiter"))
+        assertNull(BoardingPassLogic.extraChipText("On Duty", null))
+        // Privat: keine Zusatzkachel - der Sitzplatz steht in einer eigenen
+        // Kachel hinter der Reiseklasse, nicht hier.
+        assertNull(BoardingPassLogic.extraChipText("Privat", "Purser I"))
+        assertNull(BoardingPassLogic.extraChipText("privat", null))
         // Sonstige/unbekannte Reiseart: keine Zusatzkachel.
-        assertNull(BoardingPassLogic.extraChipText("Ground Transfer", "Purser I", "12A"))
-        assertNull(BoardingPassLogic.extraChipText(null, "Purser I", "12A"))
+        assertNull(BoardingPassLogic.extraChipText("Ground Transfer", "Purser I"))
+        assertNull(BoardingPassLogic.extraChipText(null, "Purser I"))
     }
 
     @Test

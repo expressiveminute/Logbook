@@ -55,7 +55,7 @@ object BoardingPassLogic {
     /**
      * Ob die Reiseart eine Bordfunktion erlaubt, die als eigene Kachel daneben
      * steht: On Duty, Deadhead, Dienstreise und Ferry ja, Privat nicht (dort
-     * steht stattdessen der Sitzplatz in der Kachel).
+     * steht der Sitzplatz in einer eigenen Kachel hinter der Reiseklasse).
      */
     fun showsFunctionChip(flightType: String?): Boolean =
         when (ChartData.normalizeFlightType(flightType)) {
@@ -71,14 +71,12 @@ object BoardingPassLogic {
 
     /**
      * Text der Zusatzkachel neben der Reiseart: bei dienstlichen Reisearten
-     * die Funktions-Kurzform, bei Privat der Sitzplatz. Null, wenn keiner
-     * angezeigt werden soll (dann rückt die Reiseart-Kachel nach rechts).
+     * die Funktions-Kurzform. Null, wenn keiner angezeigt werden soll (dann
+     * rückt die Reiseart-Kachel nach rechts). Der Sitzplatz steht nicht hier,
+     * sondern in einer eigenen Kachel hinter der Reiseklasse.
      */
-    fun extraChipText(flightType: String?, function: String?, seat: String?): String? = when {
-        showsFunctionChip(flightType) -> functionShortForm(function)
-        isPrivate(flightType) -> seat?.trim()?.takeIf { it.isNotEmpty() }
-        else -> null
-    }
+    fun extraChipText(flightType: String?, function: String?): String? =
+        if (showsFunctionChip(flightType)) functionShortForm(function) else null
 
     /**
      * Kurzform der Bordfunktion fuer die Kachel: Purser I -> "P1",

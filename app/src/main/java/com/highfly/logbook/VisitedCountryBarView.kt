@@ -11,8 +11,9 @@ import android.view.View
  * Diskreter Balken im Hintergrund einer Listenzeile (Länder, Airlines,
  * Reisebuddies): Er füllt die Zeile von links und zeigt so den Anteil am
  * Maximum der Liste. Die Füllung bleibt leise - niedrige Deckkraft in der
- * aktiven Primärfarbe des Schemas ([AirlineSchemes.primaryColor]) -, damit
- * Flagge, Name und Zahl darüber ungestört lesbar bleiben.
+ * Chart-Farbe ([AirlineSchemes.chartColor]: Primärfarbe des Schemas, beim
+ * LH-Schema die VL-Akzentfarbe) -, damit Flagge, Name und Zahl darüber
+ * ungestört lesbar bleiben.
  *
  * Die Fraktion wird über [setFraction] gesetzt, 0 bis 1 (Anteil am Maximum).
  */
@@ -23,7 +24,7 @@ class VisitedCountryBarView @JvmOverloads constructor(
 
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
-        color = AirlineSchemes.primaryColor(context)
+        color = AirlineSchemes.chartColor(context)
         alpha = FILL_ALPHA
     }
     private val bounds = RectF()
