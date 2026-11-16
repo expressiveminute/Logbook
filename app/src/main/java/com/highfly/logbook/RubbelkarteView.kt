@@ -110,12 +110,20 @@ class RubbelkarteView @JvmOverloads constructor(
         private const val NAME_HALO_ALPHA = 210
 
         /**
-         * Deckkraft der bereits erledigten Länder. Sie werden mit der
-         * Akzentfarbe gezeichnet, damit sie sich von den offenen Ländern
-         * abheben; mit dieser Deckkraft treten sie zurück und die offenen
-         * Länder fallen mehr auf. Die Konturlinien bleiben ungedimmt.
+         * Deckkraft der bereits besuchten Länder: volle Farbe, damit
+         * sie sich klar von den offenen Ländern abheben. Die Konturlinien
+         * bleiben ungedimmt.
          */
-        private const val VISITED_ALPHA = 140
+        private const val VISITED_ALPHA = 255
+
+        /**
+         * **Experiment Rubbelkarte** (leicht zurückdrehbar): true = besuchte
+         * Länder in der Primärfarbe, die Zoom-Hervorhebung (Grenzen) und alle
+         * Länder-/Städtenamen in der Akzentfarbe; die normalen Ländergrenzen
+         * bleiben im Outline-Ton. Zum Zurückdrehen auf false setzen - alle
+         * Stellen, die darauf verzweigen, stehen in init und [setzeLabelFarben].
+         */
+        private const val EXPERIMENT_FARBEN = true
 
         /**
          * Deckkraft der nicht angeflogenen Bundesstaaten/-länder in einem Land,
@@ -160,10 +168,7 @@ class RubbelkarteView @JvmOverloads constructor(
         private const val PUNKT_ANTEIL = 0.0032f
         private const val PUNKT_MIN_DP = 1.0f
 
-        /** Weisser Ring um den Punkt, als Vielfaches von [PUNKT_ANTEIL]. */
-        private const val PUNKT_RING = 2f
-
-        /** Schwarzer Punkt selbst, als Vielfaches von [PUNKT_ANTEIL]. */
+        /** Punkt selbst (Airport-Marken), als Vielfaches von [PUNKT_ANTEIL]. */
         private const val PUNKT_INNEN = 1.3f
 
         /** Abstand des Namens vom Rand der Karte. */
@@ -286,6 +291,12 @@ class RubbelkarteView @JvmOverloads constructor(
          * wie hier Platz vorgesehen sind.
          */
         private const val STADT_PRO_LAND = 3
+
+        /**
+         * Weitere grosse Städte, die das per Zoom fokussierte Land zusätzlich
+         * zur Hauptstadt bekommt (2 bis 6), siehe [fuelleStaedte].
+         */
+        private const val STADT_PRO_LAND_FOKUS = 6
 
         /**
          * Ab diesem Rang gilt eine Stadt als gross genug für eine Beschriftung,
@@ -495,6 +506,13 @@ class RubbelkarteView @JvmOverloads constructor(
         val label: FloatArray?,
 
         /**
+         * Projizierter Beschriftungsanker des Landes (labelLat/labelLon), sonst
+         * die Mitte der Hülle. Fallback, wenn [label] null ist, der Name aber
+         * trotzdem stehen soll - etwa beim Zoomen auf das Land.
+         */
+        val anker: FloatArray,
+
+        /**
          * Beschriftete Städte dieses Landes, siehe [fuelleStaedte].
          *
          * Steht als `var` und nicht als Konstruktorargument: Die Städte zu einem
@@ -561,11 +579,11 @@ class RubbelkarteView @JvmOverloads constructor(
      */
     private val stateMutedPaint = Paint(Paint.ANTI_ALIAS_FLAG)
 
-    /** Dünne Linien der Staatengrenzen, deutlich feiner als die Ländergrenzen. */
+    /** Dünne Linien der Staatengrenzen, halb so breit wie die Ländergrenzen. */
     private val stateBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeJoin = Paint.Join.ROUND
-        strokeWidth = 0.5f * density
+        strokeWidth = 0.2f * density
     }
 
     /** Kräftige Linie um das hervorgehobene Land/den Staat, siehe [setHighlight]. */
@@ -584,17 +602,19 @@ class RubbelkarteView @JvmOverloads constructor(
         strokeWidth = 5f * density
     }
 
+    /** Ländergrenzen: feine Linie, damit sie die Füllung nicht zuschmiert. */
     private val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeJoin = Paint.Join.ROUND
-        strokeWidth = 0.7f * density
+        strokeWidth = 0.4f * density
     }
     private val rimPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeWidth = 1.2f * density
     }
-    private val airportHaloPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
-    private val airportPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.BLACK }
+    // Airport-Punkte: einfacher Punkt in der Akzentfarbe, ohne Ring - die
+    // Farbe wird in init gesetzt (colorPrimary des aktiven Schemas).
+    private val airportPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val namePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         isFakeBoldText = true
         textSize = TypedValue.applyDimension(
@@ -668,8 +688,24 @@ class RubbelkarteView @JvmOverloads constructor(
         textSize = capitalPaint.textSize
     }
 
-    /** Farbe des Halos hinter den Beschriftungen, siehe [nameHaloPaint]. */
-    private var labelHaloColor = Color.TRANSPARENT
+    /**
+     * Schriftfarbe der Länder-/Städtenamen auf **unbesuchten** Ländern: die
+     * Akzentfarbe - lesbar auf der grauen Grundfläche.
+     */
+    private var accentTextColor = Color.TRANSPARENT
+
+    /**
+     * Schriftfarbe der Namen auf **besuchten** Ländern: die Primärfarbe des
+     * aktiven Schemas (z. B. dunkelblau auf der gelben Akzentfüllung beim
+     * LH-Schema).
+     */
+    private var primaryTextColor = Color.TRANSPARENT
+
+    /** Halo zur Akzent-Schriftfarbe, siehe [haloFor]. */
+    private var accentHaloColor = Color.TRANSPARENT
+
+    /** Halo zur Primär-Schriftfarbe, siehe [haloFor]. */
+    private var primaryHaloColor = Color.TRANSPARENT
 
     private fun sp(wert: Float): Float = TypedValue.applyDimension(
         TypedValue.COMPLEX_UNIT_SP, wert, resources.displayMetrics
@@ -880,49 +916,103 @@ class RubbelkarteView @JvmOverloads constructor(
     )
 
     init {
-        val primary = MaterialColors.getColor(
+        val accent = MaterialColors.getColor(
             this, com.google.android.material.R.attr.colorPrimary
         )
-        visitedPaint.color = primary
+        val primary = AirlineSchemes.primaryColor(context)
+        // Experiment (EXPERIMENT_FARBEN): besuchte Länder in der Primärfarbe,
+        // die Zoom-Hervorhebung in der Akzentfarbe; sonst Akzentfüllung und
+        // Hervorhebung in der Primärfarbe. Die normalen Ländergrenzen bleiben
+        // in beiden Fällen im Outline-Ton.
+        visitedPaint.color = if (EXPERIMENT_FARBEN) primary else accent
         visitedPaint.alpha = VISITED_ALPHA
-        stateMutedPaint.color = ColorUtils.setAlphaComponent(primary, STATE_MUTED_ALPHA)
+        // Airport-Punkte in der Akzentfarbe (colorPrimary des aktiven Schemas).
+        airportPaint.color = accent
+        stateMutedPaint.color = ColorUtils.setAlphaComponent(
+            if (EXPERIMENT_FARBEN) primary else accent, STATE_MUTED_ALPHA
+        )
         val outline = MaterialColors.getColor(
             this, com.google.android.material.R.attr.colorOutlineVariant
         )
         borderPaint.color = outline
         rimPaint.color = outline
         stateBorderPaint.color = ColorUtils.setAlphaComponent(outline, STATE_BORDER_ALPHA)
-        highlightPaint.color = ColorUtils.setAlphaComponent(primary, 230)
-        highlightGlowPaint.color = ColorUtils.setAlphaComponent(primary, 70)
-        val nameColor = MaterialColors.getColor(
+        // Die Hervorhebung (Glow + kräftige Linie, z. B. nach dem Zoomen per
+        // Auge auf ein Land): im Experiment in der Akzentfarbe - sie hebt sich
+        // damit von den in Primärfarbe gefüllten besuchten Ländern ab; sonst
+        // in der Primärfarbe des aktiven Schemas (bei Airline-Schemas die
+        // Marken-Primärfarbe, z. B. das LH-Blau).
+        val highlightColor = if (EXPERIMENT_FARBEN) accent else primary
+        highlightPaint.color = ColorUtils.setAlphaComponent(highlightColor, 230)
+        highlightGlowPaint.color = ColorUtils.setAlphaComponent(highlightColor, 70)
+        // Namen auf unbesuchten Ländern in der Akzentfarbe (lesbar auf der
+        // grauen Grundfläche), auf besuchten Ländern in der Primärfarbe des
+        // aktiven Schemas (z. B. dunkelblau auf der gelben Füllung beim
+        // LH-Schema); im Experiment (EXPERIMENT_FARBEN) alle Namen in der
+        // Akzentfarbe. Bei den klassischen Akzentfarben ist die Primärfarbe die
+        // Akzentfarbe selbst - auf der Akzentfüllung eines besuchten Landes wäre
+        // sie nicht lesbar, dort greift die On-Primary-Farbe.
+        val onPrimary = MaterialColors.getColor(
             this, com.google.android.material.R.attr.colorOnPrimary
         )
-        namePaint.color = nameColor
-        // Der Halo muss die Gegenfarbe zur Schrift sein, sonst tut er nichts und
-        // verbreitert die Buchstaben nur. Er trennt den Namen auch dort vom
-        // Hintergrund, wo er über Wasser oder über den Kartenrand ragt. Über
-        // die Schrift entscheidet die Helligkeit, nicht die Tag-/Nachteinstellung:
-        // Braun, Türkis und Magenta haben helle Zielfarben mit dunkler Schrift,
-        // das Standardthema ist es umgekehrt.
-        labelHaloColor = ColorUtils.setAlphaComponent(
-            if (ColorUtils.calculateLuminance(nameColor) > 0.5f) {
-                Color.rgb(12, 16, 24)
-            } else {
-                Color.rgb(244, 247, 252)
-            },
-            NAME_HALO_ALPHA
-        )
-        nameHaloPaint.color = labelHaloColor
-        labelPaint.color = nameColor
-        labelHaloPaint.color = labelHaloColor
-        stadtPaint.color = nameColor
-        stadtFettPaint.color = nameColor
-        stadtHaloPaint.color = labelHaloColor
-        stadtPunktPaint.color = nameColor
-        stadtPunktHaloPaint.color = labelHaloColor
-        capitalPaint.color = nameColor
-        capitalHaloPaint.color = labelHaloColor
+        accentTextColor = accent
+        primaryTextColor = if (primary == accent) onPrimary else primary
+        accentHaloColor = haloFor(accentTextColor)
+        primaryHaloColor = haloFor(primaryTextColor)
+        // Die Punkt-Marker behalten die On-Primary-Farbe: Sie sitzen neben dem
+        // Namen und sollen auf beiden Untergründen stehen.
+        stadtPunktPaint.color = onPrimary
+        stadtPunktHaloPaint.color = haloFor(onPrimary)
+        // Die Textpaints bekommen ihre Farbe erst beim Zeichnen je Land
+        // ([setzeLabelFarben]); hier nur ein Startwert.
+        setzeLabelFarben(besucht = false)
         touchSlop = ViewConfiguration.get(context).scaledTouchSlop.toFloat()
+    }
+
+    /**
+     * Halo-Farbe zur Schriftfarbe [textColor]: die Gegenfarbe, sonst tut der
+     * Halo nichts und verbreitert die Buchstaben nur. Er trennt den Namen auch
+     * dort vom Hintergrund, wo er über Wasser oder über den Kartenrand ragt.
+     * Über die Schrift entscheidet die Helligkeit, nicht die Tag-/Nachteinstellung:
+     * Braun, Türkis und Magenta haben helle Zielfarben mit dunkler Schrift,
+     * das Standardthema ist es umgekehrt.
+     */
+    private fun haloFor(textColor: Int): Int = ColorUtils.setAlphaComponent(
+        if (ColorUtils.calculateLuminance(textColor) > 0.5f) {
+            Color.rgb(12, 16, 24)
+        } else {
+            Color.rgb(244, 247, 252)
+        },
+        NAME_HALO_ALPHA
+    )
+
+    /**
+     * Setzt die Schrift- und Halo-Farben aller Namen-Paints für ein Land:
+     * [besucht] in der Primärfarbe, sonst in der Akzentfarbe. Wird vor jedem
+     * Zeichnen eines Namens aufgerufen, weil die Farbe vom Land unter dem
+     * Namen abhängt. Im Experiment ([EXPERIMENT_FARBEN]) stehen alle Namen in
+     * der Akzentfarbe, unabhängig vom Land.
+     */
+    private fun setzeLabelFarben(besucht: Boolean) {
+        val text = when {
+            EXPERIMENT_FARBEN -> accentTextColor
+            besucht -> primaryTextColor
+            else -> accentTextColor
+        }
+        val halo = when {
+            EXPERIMENT_FARBEN -> accentHaloColor
+            besucht -> primaryHaloColor
+            else -> accentHaloColor
+        }
+        namePaint.color = text
+        nameHaloPaint.color = halo
+        labelPaint.color = text
+        labelHaloPaint.color = halo
+        stadtPaint.color = text
+        stadtFettPaint.color = text
+        stadtHaloPaint.color = halo
+        capitalPaint.color = text
+        capitalHaloPaint.color = halo
     }
 
     /**
@@ -950,7 +1040,9 @@ class RubbelkarteView @JvmOverloads constructor(
     /**
      * Hebt Länder (ISO-2) oder Staaten (ISO-3166-2) auf der Kugel hervor,
      * z. B. alle Länder eines Kontinents nach einem Kachel-Tipp oder ein Land
-     * nach einem Tipp auf das Auge in der Länderliste. Eine leere Menge
+     * nach einem Tipp auf das Auge in der Länderliste. Die Grenze leuchtet in
+     * der Primärfarbe des aktiven Schemas ([AirlineSchemes.primaryColor]),
+     * im Experiment ([EXPERIMENT_FARBEN]) in der Akzentfarbe. Eine leere Menge
      * schaltet die Hervorhebung aus.
      */
     fun setHighlight(codes: Set<String>) {
@@ -1195,33 +1287,11 @@ class RubbelkarteView @JvmOverloads constructor(
         }
         drawHighlight(canvas, list)
         drawBeschriftung(canvas)
-        drawCapitalMarker(canvas, state)
         drawAirports(canvas)
         drawName(canvas)
         canvas.restore()
         // Der Rand gehört zum Bild, nicht zum Wasser, deshalb ohne Beschneiden.
         canvas.drawCircle(state.cx, state.cy, state.radius, rimPaint)
-    }
-
-    /**
-     * Zeichnet die Hauptstadt des per Auge angezoomten Landes/Staats
-     * ([capitalMarker]): Punkt mit unterstrichenem Namen, unabhängig von der
-     * Zoomstufe - beim Hereinzoomen über [ZOOM_STAEDTE] hinaus stehen die
-     * Städtenamen ohnehin, darunter auch diese Hauptstadt.
-     */
-    private fun drawCapitalMarker(canvas: Canvas, state: GlobeState) {
-        val marker = capitalMarker ?: return
-        val pos = project(marker.first, marker.second) ?: return
-        val dx = pos[0] - state.cx
-        val dy = pos[1] - state.cy
-        if (dx * dx + dy * dy > state.radius * state.radius) return
-        val punkt = max(PUNKT_MIN_DP * density, min(width, height) * PUNKT_ANTEIL) * 1.2f
-        canvas.drawCircle(pos[0], pos[1], punkt * PUNKT_RING, stadtPunktHaloPaint)
-        canvas.drawCircle(pos[0], pos[1], punkt * PUNKT_INNEN, stadtPunktPaint)
-        val x = pos[0] + punkt * PUNKT_RING + STADT_ABSTAND_DP * density
-        val baseline = pos[1] - (capitalPaint.ascent() + capitalPaint.descent()) / 2f
-        canvas.drawText(marker.third, x, baseline, capitalHaloPaint)
-        canvas.drawText(marker.third, x, baseline, capitalPaint)
     }
 
     /**
@@ -1472,9 +1542,7 @@ class RubbelkarteView @JvmOverloads constructor(
         val dot = max(PUNKT_MIN_DP * density, min(width, height) * PUNKT_ANTEIL)
         for (point in points) {
             val pos = project(point.lat, point.lon) ?: continue
-            // Schwarzer Punkt mit weißem Ring: der Ring trennt ihn vom Wasser,
-            // das im dunklen Design selbst fast schwarz ist.
-            canvas.drawCircle(pos[0], pos[1], dot * PUNKT_RING, airportHaloPaint)
+            // Einfacher Punkt in der Akzentfarbe, ohne Ring.
             canvas.drawCircle(pos[0], pos[1], dot * PUNKT_INNEN, airportPaint)
         }
     }
@@ -1493,22 +1561,69 @@ class RubbelkarteView @JvmOverloads constructor(
      * der Grundlinie zeichnet, das Rechteck aber mittig um den Text liegt.
      */
     private fun drawBeschriftung(canvas: Canvas) {
-        if (zoom < ZOOM_LABELS) return
         val belegt = ArrayList<FloatArray>(16)
+        val fokus = if (zoom >= ZOOM_LABELS) focusedCountry() else null
+        // Name des fokussierten Landes zuerst: Beim Zoomen auf ein Land steht er
+        // immer, auch wenn er nicht ganz ins Land passt ([labelUmAnker]), und
+        // belegt sein Rechteck, damit nichts darüber zeichnet.
+        if (fokus != null) {
+            setzeLabelFarben(fokus.visited)
+            val rect = fokus.label ?: labelUmAnker(fokus)
+            if (rect != null) {
+                val grundlinie = (rect[1] + rect[3]) / 2f - grundlinienVersatz(labelPaint)
+                canvas.drawText(fokus.name, rect[0], grundlinie, labelHaloPaint)
+                canvas.drawText(fokus.name, rect[0], grundlinie, labelPaint)
+                belegt.add(rect)
+            }
+        }
+        // Die unterstrichene Hauptstadt-Marke ([capitalMarker]) läuft durch
+        // dieselbe Kollision wie die Städtenamen: Sie steht unabhängig von der
+        // Zoomstufe und weicht belegten Rechtecken aus.
+        val marker = capitalMarker
+        if (marker != null) {
+            val pos = project(marker.first, marker.second)
+            if (pos != null) {
+                setzeLabelFarben(landAt(pos[0], pos[1])?.visited == true)
+                platziereStadt(
+                    canvas, belegt,
+                    Stadt(marker.third, pos[0], pos[1], hauptstadt = true),
+                    capitalPaint, capitalHaloPaint
+                )
+            }
+        }
+        if (zoom < ZOOM_LABELS) return
         for (shape in shapes) {
+            if (shape === fokus) continue
             val label = shape.label ?: continue
+            // Namenfarbe je Land: Primärfarbe auf besuchten, Akzentfarbe auf
+            // unbesuchten Ländern.
+            setzeLabelFarben(shape.visited)
             val grundlinie = (label[1] + label[3]) / 2f - grundlinienVersatz(labelPaint)
             canvas.drawText(shape.name, label[0], grundlinie, labelHaloPaint)
             canvas.drawText(shape.name, label[0], grundlinie, labelPaint)
             belegt.add(label)
         }
-        if (zoom < ZOOM_STAEDTE) return
+        if (zoom < ZOOM_STAEDTE) {
+            // Fokussiertes Land: Hauptstadt und bis zu [STADT_PRO_LAND_FOKUS]
+            // weitere grosse Städte auch unterhalb von ZOOM_STAEDTE anzeigen.
+            if (fokus != null) {
+                setzeLabelFarben(fokus.visited)
+                for (stadt in fokus.staedte) {
+                    if (istMarkerStadt(stadt)) continue
+                    val textPaint = if (stadt.hauptstadt) stadtFettPaint else stadtPaint
+                    platziereStadt(canvas, belegt, stadt, textPaint, stadtHaloPaint)
+                }
+            }
+            return
+        }
         for (shape in shapes) {
+            setzeLabelFarben(shape.visited)
             for (stadt in shape.staedte) {
+                if (istMarkerStadt(stadt)) continue
                 // Die Hauptstadt wird fett gesetzt: Sie ist der Anker, an dem
                 // man ein Land auf der Kugel wiedererkennt.
                 val textPaint = if (stadt.hauptstadt) stadtFettPaint else stadtPaint
-                if (platziereStadt(canvas, belegt, stadt, textPaint)) continue
+                if (platziereStadt(canvas, belegt, stadt, textPaint, stadtHaloPaint)) continue
             }
         }
         // Hauptstädte der aktiven Bundesstaaten/-länder (USA/Deutschland mit
@@ -1517,11 +1632,53 @@ class RubbelkarteView @JvmOverloads constructor(
         for (shape in stateShapes) {
             if (capBudget <= 0) break
             if (shape.fill == FILL_NONE) continue
+            // Im aktiven Land (besucht, evtl. nur schwach gefüllt) steht der
+            // Name in der Primärfarbe.
+            setzeLabelFarben(true)
             for (stadt in shape.staedte) {
                 if (capBudget <= 0) break
-                if (platziereStadt(canvas, belegt, stadt, stadtFettPaint)) capBudget--
+                if (istMarkerStadt(stadt)) continue
+                if (platziereStadt(canvas, belegt, stadt, stadtFettPaint, stadtHaloPaint)) capBudget--
             }
         }
+    }
+
+    /**
+     * Das per Zoom fokussierte Land: genau ein hervorgehobener Länder-Code in
+     * [highlightCodes] (z. B. nach dem Auge in der Länderliste oder einem
+     * Länder-Kachel-Tipp). Bei Kontinent-Hervorhebung (viele Codes) oder einem
+     * Staat (ISO-3166-2) null.
+     */
+    private fun focusedCountry(): Shape? {
+        val codes = highlightCodes
+        if (codes.size != 1) return null
+        return shapes.firstOrNull { it.iso2.equals(codes.first(), ignoreCase = true) }
+    }
+
+    /**
+     * Rechteck für den Namen des fokussierten Landes um seinen [Shape.anker],
+     * in den Bildrand hineingeschoben. Fallback, wenn [Shape.label] null ist
+     * (der Name passt nicht ganz ins Land): Beim Zoomen auf ein Land soll der
+     * Name trotzdem immer stehen.
+     */
+    private fun labelUmAnker(shape: Shape): FloatArray? {
+        val metrics = labelPaint.fontMetrics
+        val breite = cachedTextWidth(labelPaint, labelPaint.isFakeBoldText, shape.name)
+        val hoehe = metrics.descent - metrics.ascent
+        if (breite <= 0f || hoehe <= 0f) return null
+        val rand = NAME_RAND_DP * density
+        val links = (shape.anker[0] - breite / 2f)
+            .coerceIn(rand, max(rand, width - breite - rand))
+        val oben = (shape.anker[1] - hoehe / 2f)
+            .coerceIn(rand, max(rand, height - hoehe - rand))
+        return floatArrayOf(links, oben, links + breite, oben + hoehe)
+    }
+
+    /** Liegt [stadt] auf der Hauptstadt-Marke ([capitalMarker])? */
+    private fun istMarkerStadt(stadt: Stadt): Boolean {
+        val marker = capitalMarker ?: return false
+        val pos = project(marker.first, marker.second) ?: return false
+        return abs(stadt.x - pos[0]) < 2f && abs(stadt.y - pos[1]) < 2f
     }
 
     /**
@@ -1551,7 +1708,8 @@ class RubbelkarteView @JvmOverloads constructor(
         canvas: Canvas,
         belegt: MutableList<FloatArray>,
         stadt: Stadt,
-        textPaint: Paint
+        textPaint: Paint,
+        haloPaint: Paint
     ): Boolean {
         val metrics = stadtPaint.fontMetrics
         val textHoehe = metrics.descent - metrics.ascent
@@ -1569,7 +1727,7 @@ class RubbelkarteView @JvmOverloads constructor(
             if (belegt.any { ueberlappt(it, rect) }) continue
             belegt.add(rect)
             val grundlinie = y - grundlinienVersatz(stadtPaint)
-            canvas.drawText(stadt.name, stadt.x + abstand, grundlinie, stadtHaloPaint)
+            canvas.drawText(stadt.name, stadt.x + abstand, grundlinie, haloPaint)
             canvas.drawText(stadt.name, stadt.x + abstand, grundlinie, textPaint)
             // Der Punkt bekommt denselben Halo wie der Text, sonst stünde
             // ein winziger Punkt ohne Anschluss an seinem Namen.
@@ -1597,6 +1755,7 @@ class RubbelkarteView @JvmOverloads constructor(
      */
     private fun drawName(canvas: Canvas) {
         val shape = tapped ?: return
+        setzeLabelFarben(shape.visited)
         val rand = NAME_RAND_DP * density
         val metrics = namePaint.fontMetrics
         val textHeight = metrics.descent - metrics.ascent
@@ -1666,6 +1825,7 @@ class RubbelkarteView @JvmOverloads constructor(
         val generation = ++buildGeneration
         val visitedSnapshot = visitedIso2
         val stateSnapshot = stateContent
+        val highlightSnapshot = highlightCodes
         // Während einer Geste ohne Beschriftung aufbauen, siehe [gestureActive].
         // Der Wert wird hier auf dem Hauptthread gelesen und dem Aufbau mitgegeben,
         // der Thread liest selbst nichts aus der View.
@@ -1683,7 +1843,7 @@ class RubbelkarteView @JvmOverloads constructor(
             val builtShapes = try {
                 buildGlobe(
                     data.countries, visitedSnapshot, data.states, stateSnapshot,
-                    state, generation, zoom, mitNamen, appContext
+                    highlightSnapshot, state, generation, zoom, mitNamen, appContext
                 )
             } catch (e: RuntimeException) {
                 Log.e(TAG, "Kugel konnte nicht neu aufgebaut werden", e)
@@ -1761,6 +1921,7 @@ class RubbelkarteView @JvmOverloads constructor(
         visited: Set<String>,
         states: List<StateShapes.State>,
         stateContent: StateContent,
+        highlight: Set<String>,
         state: GlobeState,
         generation: Int,
         zoom: Float,
@@ -1799,6 +1960,17 @@ class RubbelkarteView @JvmOverloads constructor(
             } else {
                 null
             }
+            // Anker für den Fall, dass der Name nicht ins Land passt, aber
+            // trotzdem stehen soll (Zoomen auf das Land).
+            val anker = if (projectGlobe(
+                    country.labelLat, country.labelLon, globe, cx, cy, radius,
+                    buildPoint, buildProjection
+                )
+            ) {
+                floatArrayOf(buildProjection[0], buildProjection[1])
+            } else {
+                floatArrayOf(bounds.centerX(), bounds.centerY())
+            }
             result.add(
                 Shape(
                     iso2 = country.iso2,
@@ -1806,13 +1978,20 @@ class RubbelkarteView @JvmOverloads constructor(
                     path = path,
                     bounds = bounds,
                     visited = visited.contains(country.iso2),
-                    label = label
+                    label = label,
+                    anker = anker
                 )
             )
         }
         val geordnet = drawOrder(result)
-        if (mitNamen && zoom >= ZOOM_STAEDTE) {
-            fuelleStaedte(geordnet, globe, cx, cy, radius, german, appContext)
+        // Das fokussierte Land (ein einzelner hervorgehobener Länder-Code) bekommt
+        // seine Städte auch unterhalb von ZOOM_STAEDTE, damit beim Zoomen auf ein
+        // Land immer Hauptstadt und weitere grosse Städte stehen.
+        val fokusIso = highlight.singleOrNull()?.takeIf { code ->
+            result.any { it.iso2.equals(code, ignoreCase = true) }
+        }
+        if (mitNamen && (zoom >= ZOOM_STAEDTE || fokusIso != null)) {
+            fuelleStaedte(geordnet, globe, cx, cy, radius, german, appContext, fokusIso)
         }
         // Bundesstaaten/-länder (USA, Deutschland): Umrisse und Füllung. Die
         // dünnen Grenzen zeichnen sich immer, die Füllung nur in Ländern, in
@@ -2032,6 +2211,9 @@ class RubbelkarteView @JvmOverloads constructor(
      * besuchten zuerst. Das ist Absicht: Wer die Karneerfüllung von Ländern
      * ansieht, will deren Hauptstädte lesen, nicht die von Nachbarn, die
      * zufällig im selben Ausschnitt liegen.
+     *
+     * Das per Zoom fokussierte Land ([fokusIso2]) wird zuerst bedient und
+     * bekommt bis zu [STADT_PRO_LAND_FOKUS] weitere Städte.
      */
     private fun fuelleStaedte(
         shapes: List<Shape>,
@@ -2040,7 +2222,8 @@ class RubbelkarteView @JvmOverloads constructor(
         cy: Float,
         radius: Float,
         german: Boolean,
-        appContext: Context
+        appContext: Context,
+        fokusIso2: String?
     ) {
         val kandidaten = stadtKandidaten(appContext)
         if (kandidaten.isEmpty()) return
@@ -2049,7 +2232,15 @@ class RubbelkarteView @JvmOverloads constructor(
         // Ein Ort an einer Küste liegt in den Regionen zweier Nachbarländer.
         // Wer ihn zuerst bekommen hat, behält ihn.
         val vergeben = HashSet<Int>(kandidaten.size)
-        for (shape in shapes) {
+        // Das fokussierte Land kommt zuerst und bekommt bis zu
+        // [STADT_PRO_LAND_FOKUS] weitere Städte, auch wenn das globale Budget
+        // knapp ist.
+        val fokus = fokusIso2?.let { iso ->
+            shapes.firstOrNull { it.iso2.equals(iso, ignoreCase = true) }
+        }
+        val reihenfolge =
+            if (fokus != null) listOf(fokus) + shapes.filter { it !== fokus } else shapes
+        for (shape in reihenfolge) {
             if (budget <= 0) break
             if (shape.bounds.width() < kleinsteLaenge ||
                 shape.bounds.height() < kleinsteLaenge
@@ -2057,10 +2248,11 @@ class RubbelkarteView @JvmOverloads constructor(
                 continue
             }
             if (!regionFor(shape.path, shape.bounds)) continue
+            val limit = if (shape === fokus) STADT_PRO_LAND_FOKUS else STADT_PRO_LAND
             var hauptstadt: Stadt? = null
             var hauptstadtIndex = -1
-            val weitere = ArrayList<Stadt>(STADT_PRO_LAND)
-            val weitereIndizes = ArrayList<Int>(STADT_PRO_LAND)
+            val weitere = ArrayList<Stadt>(limit)
+            val weitereIndizes = ArrayList<Int>(limit)
             for (i in kandidaten.indices) {
                 if (vergeben.contains(i)) continue
                 val city = kandidaten[i]
@@ -2085,21 +2277,21 @@ class RubbelkarteView @JvmOverloads constructor(
                 if (city.isCapital && hauptstadt == null) {
                     hauptstadt = stadt
                     hauptstadtIndex = i
-                } else if (weitere.size < STADT_PRO_LAND) {
+                } else if (weitere.size < limit) {
                     weitere.add(stadt)
                     weitereIndizes.add(i)
                 } else {
                     continue
                 }
-                if (hauptstadt != null && weitere.size >= STADT_PRO_LAND) break
+                if (hauptstadt != null && weitere.size >= limit) break
             }
             // Die Hauptstadt zuerst, und insgesamt so viele, wie das Land noch
             // übrig hat: Bei knappem Budget fallen die weiteren Städte weg, die
             // Hauptstadt bleibt. Erst danach gilt eine Stadt als vergeben -
             // sonst würde eine nicht gezeichnete Stadt den Platz ihres Landes
             // blockieren und am Ende gar nicht mehr beschriftet.
-            val gewaehlt = ArrayList<Stadt>(STADT_PRO_LAND + 1)
-            val genommen = ArrayList<Int>(STADT_PRO_LAND + 1)
+            val gewaehlt = ArrayList<Stadt>(limit + 1)
+            val genommen = ArrayList<Int>(limit + 1)
             if (hauptstadt != null) {
                 gewaehlt.add(hauptstadt)
                 genommen.add(hauptstadtIndex)

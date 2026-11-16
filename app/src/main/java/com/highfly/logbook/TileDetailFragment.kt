@@ -105,10 +105,10 @@ class TileDetailFragment : LogbookFragment(), BackPressAware {
         binding.scrollView.addBottomNavPadding()
 
         // Die beiden Layover-Kacheln oben (Neuestes/Ältestes Layover) tragen
-        // als Hintergrund die Akzentfarbe des aktiven Schemas (bei LH das
-        // Gold), die Texte die Kontrastfarbe.
-        DashboardTileColors.applyPrimaryCardBackground(binding.cardLayoverNewest, recolorTexts = true, useAccent = true)
-        DashboardTileColors.applyPrimaryCardBackground(binding.cardLayoverOldest, recolorTexts = true, useAccent = true)
+        // als Hintergrund die Primärfarbe des aktiven Schemas (bei LH das
+        // Blau), die Texte die Kontrastfarbe.
+        DashboardTileColors.applyPrimaryCardBackground(binding.cardLayoverNewest, recolorTexts = true, useAccent = false)
+        DashboardTileColors.applyPrimaryCardBackground(binding.cardLayoverOldest, recolorTexts = true, useAccent = false)
 
         tileId = requireArguments().getString("tileId") ?: "flights"
         sliceLabel = requireArguments().getString("sliceLabel").orEmpty()

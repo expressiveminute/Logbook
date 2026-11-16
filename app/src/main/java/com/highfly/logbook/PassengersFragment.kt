@@ -39,9 +39,9 @@ class PassengersFragment : LogbookFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        // Die obere Info-Kachel trägt die Akzentfarbe des Schemas.
+        // Die obere Info-Kachel trägt die Primärfarbe des Schemas.
         DashboardTileColors.applyPrimaryCardBackground(
-            binding.cardPassengersSubtitle, recolorTexts = true, useAccent = true
+            binding.cardPassengersSubtitle, recolorTexts = true, useAccent = false
         )
         // Platz unter der schwebenden Navigationsleiste.
         binding.scrollPassengers.addBottomNavPadding()

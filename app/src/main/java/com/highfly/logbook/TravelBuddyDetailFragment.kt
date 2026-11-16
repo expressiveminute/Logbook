@@ -292,10 +292,10 @@ class TravelBuddyDetailFragment : LogbookFragment() {
         valueSizeSp: Float = 24f
     ): ItemStatTileBinding {
         val tile = ItemStatTileBinding.inflate(layoutInflater, row, false)
-        // Kachel in der Akzentfarbe des aktiven Schemas (bei LH das Gold) und
+        // Kachel in der Primärfarbe des aktiven Schemas (bei LH das Blau) und
         // ohne Rand; Beschriftung und Zahl in der Kontrastfarbe.
         val card = tile.root as com.google.android.material.card.MaterialCardView
-        DashboardTileColors.applyPrimaryCardBackground(card, recolorTexts = true, useAccent = true)
+        DashboardTileColors.applyPrimaryCardBackground(card, recolorTexts = true, useAccent = false)
         tile.ivStatTileHint.imageTintList = android.content.res.ColorStateList.valueOf(
             DashboardTileColors.primaryCardTextColor(card)
         )
@@ -848,9 +848,10 @@ class TravelBuddyDetailFragment : LogbookFragment() {
                 )
             }
             row.tvDate.text = DateTimeFormatter.ofPattern("dd.MM.yyyy").format(entry.date)
-            row.timelineDot.text = entry.flightMinutes?.let { minutes ->
-                if (minutes < 60) "$minutes min" else "${minutes / 60}h"
-            }.orEmpty()
+            // Der Punkt trägt die Farbe der Reiseart des Flugs, innen steht
+            // keine Flugdauer - die wäre hier eine andere Größe als beim
+            // Layover-Zeitstrahl.
+            row.bindTimelineDotFlightType(requireContext(), entry.flightType)
             row.tvRoute.text = getString(
                 R.string.import_review_summary_route,
                 entry.fromAirport.uppercase(),

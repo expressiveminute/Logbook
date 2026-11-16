@@ -155,6 +155,9 @@ class GlobeFragment : LogbookFragment() {
 
         val accent = MaterialColors.getColor(view, com.google.android.material.R.attr.colorPrimary)
         binding.globeView.setColors(accent)
+        // Dreilettercode-Badges (Abflug- und Zielorte) wie in der Dashboard-
+        // Kachel in der Primärfarbe des aktiven Schemas füllen.
+        binding.globeView.setPointColor(AirlineSchemes.primaryColor(view.context))
         binding.globeView.interactive = true
         binding.globeView.onAirportTap = { onAirportTap(it) }
         binding.globeView.onLayoverFinished = { showLayoverTrailsButton() }

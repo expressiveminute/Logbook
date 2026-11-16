@@ -41,9 +41,9 @@ class RadiationFragment : LogbookFragment() {
         binding.btnRadiationInfo.setOnClickListener {
             findNavController().navigate(R.id.action_radiation_to_info)
         }
-        // Die obere Info-Kachel trägt die Akzentfarbe des Schemas.
+        // Die obere Info-Kachel trägt die Primärfarbe des Schemas.
         DashboardTileColors.applyPrimaryCardBackground(
-            binding.cardRadiationSubtitle, recolorTexts = true, useAccent = true
+            binding.cardRadiationSubtitle, recolorTexts = true, useAccent = false
         )
         val context = requireContext()
         // Aktiver Flugart-Filter: Der Wert leuchtet in der Akzentfarbe.

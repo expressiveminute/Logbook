@@ -21,9 +21,9 @@ import java.time.format.DateTimeFormatter
  * Erfolge, der jüngste oben.
  *
  * Ein Tipp auf die Kachel öffnet die Übersicht aller Erfolge nach Kategorie,
- * ein Tipp auf eine Zeile des Zeitstrahls den Eintrag zum Bearbeiten. Der
- * Zeitstrahl wird bei jeder Rückkehr neu gezeichnet, damit er nach einer
- * Änderung an einem Eintrag sofort stimmt.
+ * ein Tipp auf eine Zeile des Zeitstrahls die Bordkarte des auslösenden
+ * Flugs. Der Zeitstrahl wird bei jeder Rückkehr neu gezeichnet, damit er
+ * nach einer Änderung an einem Eintrag sofort stimmt.
  */
 class AchievementsFragment : LogbookFragment() {
 
@@ -166,7 +166,7 @@ class AchievementsFragment : LogbookFragment() {
                 .joinToString(" ")
             row.tvAchievementMeta.text =
                 if (number.isEmpty()) date else date + META_SEPARATOR + number
-            row.root.setOnClickListener { openEditEntry(item.entry) }
+            row.root.setOnClickListener { openBoardingPass(item.entry) }
             if (index == reached.lastIndex) {
                 (row.root.layoutParams as? ViewGroup.MarginLayoutParams)?.bottomMargin = 0
             }
@@ -175,12 +175,12 @@ class AchievementsFragment : LogbookFragment() {
     }
 
     /**
-     * Eintrag des Zeitstrahls bearbeiten: dieselbe Seite "Flug bearbeiten" wie
-     * aus der Eintragliste, mit der Kennung des Eintrags als Argument.
+     * Zeile des Zeitstrahls: Bordkarte des auslösenden Flugs öffnen, mit der
+     * Kennung des Eintrags als Argument.
      */
-    private fun openEditEntry(entry: LogbookEntry) {
+    private fun openBoardingPass(entry: LogbookEntry) {
         findNavController().navigate(
-            R.id.action_achievements_to_add_entry,
+            R.id.action_achievements_to_boarding_pass,
             bundleOf("entryId" to (entry.id ?: -1L))
         )
     }

@@ -21,7 +21,8 @@ import kotlin.math.sin
  * Ring in der Kontinent-Kachel: der volle Kreis steht für alle Länder des
  * Kontinents, der farbige Bogen für die davon besuchten. In der Mitte steht
  * der Anteil in Prozent, darunter - in der Kachel selbst - die absolute Zahl
- * wie 10 von 40.
+ * wie 10 von 40. Bogen, Sterne und Prozentzahl stehen in der Akzentfarbe
+ * (colorPrimary), nur die Spur bleibt colorOutline.
  *
  * Die Kachel gibt dem Ring festen Anteil an der Höhe, deshalb misst er sich
  * quadratisch. Ein nichtquadratisches Feld wäre aber kein Fehler: gezeichnet
@@ -105,14 +106,14 @@ class ContinentProgressView @JvmOverloads constructor(
         trackPaint.color = MaterialColors.getColor(
             this, com.google.android.material.R.attr.colorOutline
         )
-        // Nicht colorPrimary: der ist im hellen Thema ein heller Tan und auf
-        // der hellen Kachel nicht zu sehen. Der Ton aus dem Container-Paar
-        // ist in beiden Themes kräftig genug.
+        // Füllbogen, Sterne und Prozentzahl in der Akzentfarbe - bei einem
+        // Airline-Schema ist colorPrimary die Schema-Akzentfarbe, passend zu
+        // Karte und Balken. Nur die Spur bleibt colorOutline.
         progressPaint.color = MaterialColors.getColor(
-            this, com.google.android.material.R.attr.colorOnPrimaryContainer
+            this, com.google.android.material.R.attr.colorPrimary
         )
         percentPaint.color = MaterialColors.getColor(
-            this, com.google.android.material.R.attr.colorOnSurface
+            this, com.google.android.material.R.attr.colorPrimary
         )
         percentPaint.textSize = normaleSchriftgroesse
     }

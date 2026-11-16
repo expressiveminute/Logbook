@@ -39,8 +39,8 @@
                      das Datum direkt darunter (bündig zur Flugnummer, gleiche
                      Schriftgröße fett). Rechts bündig: die Reiseart-Kachel auf
                      mittiger Höhe der Flugnummer, die Funktion auf mittiger
-                     Höhe des Datums - beide in derselben Schriftgröße (30 sp)
-                     wie Flugnummer und Datum. -->
+                     Höhe des Datums - beide klein (16 sp, 32 dp hoch), deutlich
+                     kleiner als Flugnummer und Datum. -->
                 <androidx.constraintlayout.widget.ConstraintLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content">
@@ -79,13 +79,12 @@
                     <TextView
                         android:id="@+id/tv_type_chip"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
+                        android:layout_height="32dp"
                         android:gravity="center"
-                        android:minWidth="40dp"
-                        android:minHeight="40dp"
-                        android:paddingHorizontal="10dp"
+                        android:minWidth="32dp"
+                        android:paddingHorizontal="8dp"
                         android:textColor="@android:color/white"
-                        android:textSize="30sp"
+                        android:textSize="16sp"
                         android:textStyle="bold"
                         android:visibility="gone"
                         app:layout_constraintBottom_toBottomOf="@id/tv_flight_no"
@@ -110,13 +109,12 @@
                     <TextView
                         android:id="@+id/tv_extra_chip"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
+                        android:layout_height="32dp"
                         android:gravity="center"
-                        android:minWidth="40dp"
-                        android:minHeight="40dp"
-                        android:paddingHorizontal="10dp"
+                        android:minWidth="32dp"
+                        android:paddingHorizontal="8dp"
                         android:textColor="@android:color/white"
-                        android:textSize="30sp"
+                        android:textSize="16sp"
                         android:textStyle="bold"
                         android:visibility="gone"
                         app:layout_constraintBottom_toBottomOf="@id/tv_date"
@@ -215,16 +213,15 @@
                             android:textStyle="bold"
                             tools:text="MUC - ZRH" />
 
-                        <TextView
-                            android:id="@+id/tv_buddies"
+                        <!-- Reisebuddies untereinander, je Name eine Zeile
+                             (die Zeilen entstehen im Fragment-Code). -->
+                        <LinearLayout
+                            android:id="@+id/ll_buddies"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
-                            android:ellipsize="end"
-                            android:maxLines="2"
-                            android:textSize="16sp"
+                            android:orientation="vertical"
                             android:visibility="gone"
-                            tools:text="Anna, Ben"
                             tools:visibility="visible" />
                     </LinearLayout>
                 </LinearLayout>
@@ -329,4 +326,23 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
     </ScrollView>
+
+    <!-- Stift oben rechts, auf dem oberen Rand der Karte (nach dem ScrollView
+         deklariert, damit er über der Karte liegt): wird beim Öffnen
+         eingeblendet und nach 2 s wieder ausgeblendet (Alpha 0, bleibt aber
+         klickbar); ein Tipp öffnet die Bordkarte zum Bearbeiten. Den oberen
+         Margin (Mitte auf dem Kartenrand) setzt der Fragment-Code. -->
+    <ImageButton
+        android:id="@+id/btn_edit_pass"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginEnd="8dp"
+        android:background="@drawable/bg_boarding_pass_logo"
+        android:contentDescription="@string/boarding_pass_edit_desc"
+        android:foreground="?attr/selectableItemBackgroundBorderless"
+        android:padding="12dp"
+        android:src="@drawable/ic_edit"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:tint="@android:color/black" />
 </androidx.constraintlayout.widget.ConstraintLayout>

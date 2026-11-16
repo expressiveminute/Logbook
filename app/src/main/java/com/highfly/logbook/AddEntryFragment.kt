@@ -25,6 +25,7 @@ import android.view.WindowManager
 import android.view.animation.DecelerateInterpolator
 import android.view.animation.OvershootInterpolator
 import android.view.inputmethod.InputMethodManager
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.DatePicker
 import android.widget.ImageView
@@ -62,6 +63,13 @@ class AddEntryFragment : LogbookFragment() {
     private var selectedClassIndex: Int? = null
     private var selectedDeadheadIndex: Int? = null
     private var prefilling = false
+
+    /**
+     * Signatur des Formularzustands direkt nach dem Vorbefüllen (siehe
+     * [formSignature]). Der Zurück-Knopf fragt nur dann nach dem Verwerfen,
+     * wenn sich seitdem wirklich etwas geändert hat ([hasUnsavedChanges]).
+     */
+    private var initialFormSignature: String? = null
 
     private var editingEntryId: Long = -1L
     private var returnActive = false
@@ -157,7 +165,9 @@ class AddEntryFragment : LogbookFragment() {
         )
 
         binding.btnBack.setOnClickListener {
-            confirmDiscard()
+            // Erst prüfen, ob sich seit dem Vorbefüllen überhaupt etwas
+            // geändert hat - ohne Änderung geht es ohne Nachfrage zurück.
+            if (hasUnsavedChanges()) confirmDiscard() else findNavController().navigateUp()
         }
 
         setupFlightTypeTiles()
@@ -195,6 +205,10 @@ class AddEntryFragment : LogbookFragment() {
             }
         }
         refreshVisibility()
+
+        // Formularzustand nach dem Vorbefüllen merken: Nur Abweichungen davon
+        // gelten als ungespeicherte Änderungen.
+        initialFormSignature = formSignature()
 
         // Der Soft-Input-Modus wirkt nur beim ersten Anzeigen des Fensters:
         // Die Tastatur der vorherigen Seite bliebe sonst stehen und landete
@@ -2069,6 +2083,46 @@ private fun clearSuggestedRoute() {
             Toast.LENGTH_SHORT
         ).show()
         findNavController().navigateUp()
+    }
+
+    /**
+     * Gab es seit dem Vorbefüllen ungespeicherte Änderungen? Vergleicht die
+     * aktuelle Formular-Signatur mit der beim Öffnen gespeicherten
+     * ([initialFormSignature]). Ohne gespeicherte Signatur (z. B. frisches
+     * Formular) wird nichts als Änderung gewertet.
+     */
+    private fun hasUnsavedChanges(): Boolean {
+        val initial = initialFormSignature ?: return false
+        return formSignature() != initial
+    }
+
+    /**
+     * Signatur des gesamten Formularzustands: Auswahl-Zustände der Kacheln
+     * plus Texte aller Eingabefelder, Kästchen und sonstigen Texte (damit
+     * auch die Reisebuddy-Chips erfasst sind) im gesamten View-Baum.
+     */
+    private fun formSignature(): String {
+        val sb = StringBuilder()
+        sb.append(selectedFlightTypeIndex).append(';')
+            .append(selectedClassIndex).append(';')
+            .append(selectedDeadheadIndex).append(';')
+            .append(returnActive).append(';')
+        collectViewState(binding.root, sb)
+        return sb.toString()
+    }
+
+    private fun collectViewState(view: View, sb: StringBuilder) {
+        when (view) {
+            is EditText -> sb.append("E:").append(view.text?.toString().orEmpty())
+            is CheckBox -> sb.append("C:").append(view.isChecked)
+            is TextView -> sb.append("T:").append(view.text?.toString().orEmpty())
+        }
+        sb.append('|')
+        if (view is ViewGroup) {
+            for (i in 0 until view.childCount) {
+                collectViewState(view.getChildAt(i), sb)
+            }
+        }
     }
 
     private fun confirmDiscard() {

@@ -202,7 +202,9 @@ class CountryTimeDetailFragment : LogbookFragment() {
         // Land als Dauer (Tage/Wochen/Monate, ohne Quartale wie auf der
         // Times-Seite, dafür Jahre ab mehr als einem Jahr) über einer sich
         // füllenden Leiste. Grundlage sind die Stunden (Layover-Stunden
-        // eingeschlossen), nicht nur die vollen Tage.
+        // eingeschlossen), nicht nur die vollen Tage. Wie auf der Times-Seite
+        // füllt sich die Leiste in der Akzentfarbe des Schemas.
+        binding.ctdTimeBar.accentFill = true
         val landHours = time?.totalHours?.toInt() ?: 0
         binding.tvCtdBarValue.text =
             TimeCountryFormat.breakdownText(ctx, landHours, quarters = false)

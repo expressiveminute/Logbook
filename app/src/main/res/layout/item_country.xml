@@ -49,6 +49,7 @@
         android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
         tools:text="Deutschland" />
 
+    <!-- Flugzeugsymbol bei angeflogenem Land, in der Akzentfarbe. -->
     <ImageView
         android:id="@+id/iv_country_flight"
         android:layout_width="20dp"
@@ -60,11 +61,13 @@
         app:tint="?attr/colorPrimary"
         tools:visibility="visible" />
 
+    <!-- Kästchen zum händischen Abhaken, ebenfalls in der Akzentfarbe. -->
     <com.google.android.material.checkbox.MaterialCheckBox
         android:id="@+id/cb_country"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="4dp"
         android:minWidth="48dp"
-        android:minHeight="48dp" />
+        android:minHeight="48dp"
+        app:buttonTint="?attr/colorPrimary" />
 </LinearLayout>

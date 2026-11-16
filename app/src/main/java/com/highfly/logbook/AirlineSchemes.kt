@@ -103,9 +103,10 @@ object AirlineSchemes {
     /**
      * Effektiver Akzent-Schlüssel: beim LH-Schema wird die Akzentfarbe von
      * VL verwendet, sonst der aktive Schlüssel selbst. Gilt überall außer den
-     * vier Zusammenfassungs-Kacheln (Reiseart auf der Flüge-Seite, die beiden
+     * Zusammenfassungs-Kacheln (Reiseart auf der Flüge-Seite, die beiden
      * Layover-Kacheln, Höhenstrahlung, Passagiere), die bewusst die eigene
-     * Schemafarbe behalten ([DashboardTileColors.applyPrimaryCardBackground]).
+     * Schemafarbe behalten ([DashboardTileColors.applyPrimaryCardBackground];
+     * Höhenstrahlung und Passagiere dort in der Primärfarbe, useAccent = false).
      */
     fun effectiveAccentKey(activeKey: String?): String? =
         if (activeKey == LH_KEY) VL_KEY else activeKey

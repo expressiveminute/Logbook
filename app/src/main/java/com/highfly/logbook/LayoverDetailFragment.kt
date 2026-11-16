@@ -241,8 +241,14 @@ class LayoverDetailFragment : LogbookFragment() {
             // Im Punkt steht die Layoverlänge aus "Neuer Flug", also genau die
             // Zeit, die auch die Leiste weiter oben zusammenzählt. Die Flugzeit
             // des Eintrags gehört nicht hierher - sie wäre eine andere Größe.
+            // Der Punkt selbst trägt die Farbe der Reiseart des Eintrags.
             row.timelineDot.text =
                 entry.layoverHours?.let { hours -> "$hours h" }.orEmpty()
+            // Die Dauer im Punkt steht immer in Weiss, auch auf hellem Grund
+            // (z. B. Deadhead).
+            row.bindTimelineDotFlightType(
+                requireContext(), entry.flightType, textColor = android.graphics.Color.WHITE
+            )
             row.tvRoute.text = getString(
                 R.string.import_review_summary_route,
                 entry.fromAirport.uppercase(),

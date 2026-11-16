@@ -68,7 +68,9 @@
         </LinearLayout>
 
         <!-- Gesamtstand der besuchten Länder: Beschriftung links, Prozent rechts,
-             darüber der Balken, der sich von links nach rechts füllt. Er steht über
+             darüber der Balken, der sich von links nach rechts füllt. Balken und
+             Prozent in der Akzentfarbe (colorPrimary), passend zu den Kacheln
+             unten. Er steht über
              der Kugel, damit der Fortschritt auch beim Drehen der Kugel im Blick
              bleibt, und wird zusammen mit der Kachelzeile ausgeblendet, wenn die
              Länderumrisse fehlen. -->
@@ -114,6 +116,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
+                app:indicatorColor="?attr/colorPrimary"
                 app:trackCornerRadius="3dp"
                 app:trackThickness="6dp" />
         </LinearLayout>

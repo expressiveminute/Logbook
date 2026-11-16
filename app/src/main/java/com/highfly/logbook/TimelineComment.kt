@@ -1,7 +1,10 @@
 package com.highfly.logbook
 
+import android.content.Context
+import android.content.res.ColorStateList
 import android.view.View
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.content.ContextCompat
 import com.highfly.logbook.databinding.ItemLayoverTimelineBinding
 
 /**
@@ -41,6 +44,26 @@ fun ItemLayoverTimelineBinding.bindTimelineComment(comment: String?, showBuddy: 
     }
     tvBuddy.layoutParams = buddyParams
     tvComment.layoutParams = commentParams
+}
+
+/**
+ * Färbt den Punkt einer Zeitstrahl-Zeile (item_layover_timeline) in der Farbe
+ * der Reiseart des Eintrags ([BoardingPassLogic.typeColorRes]: On Duty z. B.
+ * dunkelblau, Deadhead hellblau, Privat braun). Die Textfarbe im Punkt wechselt
+ * auf den passenden Kontrast ([BoardingPassLogic.onColor]), außer [textColor]
+ * ist gesetzt (Layover-Detailseite: dort steht die Dauer immer in Weiss).
+ * Ohne erkannte Reiseart bleibt der Punkt in der Akzentfarbe (Standard-
+ * Hintergrund des Drawables).
+ */
+fun ItemLayoverTimelineBinding.bindTimelineDotFlightType(
+    context: Context,
+    flightType: String?,
+    textColor: Int? = null
+) {
+    val colorRes = BoardingPassLogic.typeColorRes(flightType) ?: return
+    val color = ContextCompat.getColor(context, colorRes)
+    timelineDot.backgroundTintList = ColorStateList.valueOf(color)
+    timelineDot.setTextColor(textColor ?: BoardingPassLogic.onColor(color))
 }
 
 private fun ItemLayoverTimelineBinding.dp(value: Float): Int =

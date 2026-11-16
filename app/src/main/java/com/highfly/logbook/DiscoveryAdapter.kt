@@ -178,7 +178,7 @@ class DiscoveryAdapter(
                     dateBack.visibility = View.GONE
                 }
                 else -> {
-                    arrow.setImageResource(R.drawable.ic_arrow_route)
+                    arrow.setImageResource(R.drawable.ic_arrow_slim)
                     arrow.visibility = View.VISIBLE
                     sep.visibility = View.VISIBLE
                     back.visibility = View.VISIBLE

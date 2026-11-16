@@ -61,7 +61,9 @@
     </LinearLayout>
 
     <!-- Balken noch im Header: Anteil der Zeit in diesem Land an der gesamten
-         Zeit im Ausland, wie der Fortschrittsbalken auf der Rubbelkarte. -->
+         Zeit im Ausland, wie der Fortschrittsbalken auf der Rubbelkarte. Ohne
+         Beschriftung darüber, nur die Dauer mittig, darunter die Leiste
+         (LayoverTimeBarView) in der Akzentfarbe (accentFill). -->
     <LinearLayout
         android:id="@+id/ctd_bar_row"
         android:layout_width="0dp"
@@ -73,18 +75,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/header">
 
-        <TextView
-            android:id="@+id/tv_ctd_bar_label"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:text="@string/country_time_bar_label"
-            android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
-            android:textColor="?attr/colorOnSurface" />
-
-        <!-- Dauer mittig darüber, darunter die Leiste wie auf der
-             Layover-Detailseite (LayoverTimeBarView). -->
         <TextView
             android:id="@+id/tv_ctd_bar_value"
             android:layout_width="match_parent"

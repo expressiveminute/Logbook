@@ -225,10 +225,8 @@
     <string name="time_countries_open_periods">Open periods</string>
     <string name="time_countries_search_hint">Search country</string>
     <string name="time_countries_search_open">Search countries</string>
-    <string name="time_countries_abroad_label">Time abroad</string>
     <string name="time_countries_sort_visits">Visits</string>
     <string name="time_countries_subtitle_percent">%1$s · %2$d%%</string>
-    <string name="country_time_bar_label">Time in this country</string>
     <string name="country_time_facts_title">Facts</string>
     <string name="fact_language">Official language</string>
     <string name="fact_capital">Capital</string>
@@ -480,6 +478,7 @@
     <string name="boarding_pass_seat_desc">Seat: %1$s</string>
     <string name="boarding_pass_map_desc">Flight route from %1$s to %2$s</string>
     <string name="boarding_pass_qr_desc">QR code with the flight data of this boarding pass</string>
+    <string name="boarding_pass_edit_desc">Edit boarding pass</string>
     <string name="fab_scan_boarding_pass">Scan boarding pass</string>
     <string name="boarding_pass_scan_title">Scan boarding pass</string>
     <string name="boarding_pass_scan_hint">Point the camera at the QR code on the boarding pass</string>

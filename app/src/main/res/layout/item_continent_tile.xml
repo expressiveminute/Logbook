@@ -47,6 +47,8 @@
             android:paddingHorizontal="8dp"
             android:paddingVertical="@dimen/continent_tile_padding">
 
+        <!-- Name und Länderzahl in der Akzentfarbe, passend zu Ring, Sternen
+             und dem Balken oben auf der Seite. -->
         <TextView
             android:id="@+id/tv_continent_name"
             android:layout_width="match_parent"
@@ -54,7 +56,7 @@
             android:ellipsize="end"
             android:gravity="center_horizontal"
             android:maxLines="1"
-            android:textColor="?attr/colorOnSurface"
+            android:textColor="?attr/colorPrimary"
             android:textSize="@dimen/continent_tile_name"
             android:textStyle="bold"
             tools:text="Nordamerika" />
@@ -74,7 +76,7 @@
             android:ellipsize="end"
             android:gravity="center_horizontal"
             android:maxLines="1"
-            android:textColor="?attr/colorOnPrimaryContainer"
+            android:textColor="?attr/colorPrimary"
             android:textSize="@dimen/continent_tile_count"
             android:textStyle="bold"
             tools:text="10/40" />

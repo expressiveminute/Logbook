@@ -111,7 +111,9 @@
         </LinearLayout>
 
         <!-- Balken wie auf der Rubbelkarte: Anteil der Zeit im Ausland am
-             Zeitraum seit dem ersten Logbucheintrag. -->
+             Zeitraum seit dem ersten Logbucheintrag. Ohne Beschriftung darüber,
+             nur die Dauer mittig, darunter die Leiste (LayoverTimeBarView) in
+             der Akzentfarbe (accentFill). -->
         <LinearLayout
             android:id="@+id/time_countries_abroad_row"
             android:layout_width="match_parent"
@@ -119,18 +121,6 @@
             android:layout_marginTop="10dp"
             android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/tv_abroad_label"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:text="@string/time_countries_abroad_label"
-                android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
-                android:textColor="?attr/colorOnSurface" />
-
-            <!-- Dauer mittig darüber, darunter die Leiste wie auf der
-                 Layover-Detailseite (LayoverTimeBarView). -->
             <TextView
                 android:id="@+id/tv_abroad_value"
                 android:layout_width="match_parent"

@@ -533,12 +533,14 @@ class GlobeView @JvmOverloads constructor(
                 )
             )
         }
-        // Zeichenreihenfolge wie auf der Weltkarte: gräuliche zuerst, dann die
-        // betonten, der ausgewählte ganz zuletzt - und innerhalb jeder Gruppe
-        // schwach vernetzte zuerst, stark vernetzte (Hubs) zuletzt, damit deren
+        // Zeichenreihenfolge wie auf der Weltkarte: die gräulich
+        // zurücktretenden zuerst, dann die betonten (die mit dem ausgewählten
+        // verbundenen), der ausgewählte ganz zuletzt - die angezeigten Codes
+        // liegen also über allen anderen. Innerhalb jeder Gruppe schwach
+        // vernetzte zuerst, stark vernetzte (Hubs) zuletzt, damit deren
         // Badges bei Überlappung oben liegen.
         airportMarkers.sortWith(
-            compareBy({ if (it.muted) 0 else 1 }, { if (it.selected) 1 else 0 }, { it.importance })
+            compareBy({ if (it.muted) 0 else if (it.selected) 2 else 1 }, { it.importance })
         )
         // Beschriftungsstufen je Zoom (siehe [labelTier]): Ländernamen und
         // Hauptstädte ab Stufe 1, größte Städte ab Stufe 2, mehr Städte ab
@@ -811,8 +813,27 @@ class GlobeView @JvmOverloads constructor(
         canvas.drawPath(b.landPath, landFillPaint)
         canvas.drawPath(b.landPath, borderPaint)
 
-        // Routen - während der Layover-Animation ausgeblendet, die animierten
-        // Spuren zeichnen stattdessen.
+        // Punkte nur in der Kachel-Vorschau zeichnen (dort gibt es keine
+        // Badges); in der Vollansicht markiert allein der Dreilettercode-Badge
+        // den Flughafen, ohne Punkt darunter.
+        if (!interactive) {
+            canvas.drawPath(b.dotHaloPath, dotHaloPaint)
+            canvas.drawPath(b.dotPath, airportDotPaint)
+        }
+        // In der Vollansicht zuerst die Beschriftungen (sie weichen den
+        // Badges in der Kollisionsauflösung aus), dann die Routen, dann die
+        // Badges obendrauf.
+        val badgeRects = if (interactive) measureBadgeRects(b) else emptyList()
+        if (interactive) {
+            drawLabels(canvas, b, badgeRects)
+        }
+
+        // Routen zeichnen - über Land, Punkten und Beschriftungen, aber unter
+        // den Badges, damit sie klar hervortreten (bei Auswahl eines Codes
+        // die mit ihm verbundenen) und der Code wie die Quelle der Linie
+        // darüberliegt. Während der Layover-Animation sind sie ausgeblendet,
+        // die animierten Spuren zeichnen stattdessen (ebenfalls unter den
+        // Badges).
         val suppressRoutes = layoverPlan != null && !layoverStatic
         if (!suppressRoutes && !b.routePath.isEmpty) {
             routePaint.strokeWidth = 1.1f * density
@@ -820,10 +841,8 @@ class GlobeView @JvmOverloads constructor(
         }
         drawLayover(canvas, b)
 
-        canvas.drawPath(b.dotHaloPath, dotHaloPaint)
-        canvas.drawPath(b.dotPath, airportDotPaint)
         if (interactive) {
-            drawMarkers(canvas, b)
+            drawBadges(canvas, b, badgeRects)
         }
 
         canvas.restore()
@@ -849,19 +868,103 @@ class GlobeView @JvmOverloads constructor(
     private var shadowShaderRadius = -1f
 
     /**
-     * Dreilettercodes als Badges wie auf der Weltkarte: gefüllte Pill in der
-     * Akzentfarbe mit weißem Ring und Text in Kontrastfarbe, zentriert auf dem
-     * Punkt. Danach die Städtebeschriftungen mit Kollisionsauflösung.
+     * Misst die Rechtecke aller Dreilettercode-Badges (die Breite hängt vom
+     * Fettdruck der Gruppe ab). Die Rechtecke werden in der Kollisionskarte
+     * reserviert, damit die Beschriftungen ihnen ausweichen.
      */
-    private fun drawMarkers(canvas: Canvas, b: Built) {
+    private fun measureBadgeRects(b: Built): List<FloatArray> {
         val padX = 3f * density
         val padY = 1.5f * density
         val fm = badgeTextPaint.fontMetrics
         val textH = fm.descent - fm.ascent
-        // Gruppen in Zeichenreihenfolge (siehe build): gräulich, normal/betont,
-        // ausgewählt. Pro Gruppe werden die Paints einmalig gesetzt.
-        var group = -1
+        val badgeRects = ArrayList<FloatArray>(b.airportMarkers.size)
+        var measureGroup = -1
         for (m in b.airportMarkers) {
+            val g = if (m.muted) 0 else if (m.selected) 2 else 1
+            if (g != measureGroup) {
+                measureGroup = g
+                badgeTextPaint.isFakeBoldText = g != 0
+            }
+            val textWidth = badgeTextPaint.measureText(m.label)
+            val badgeW = textWidth + 2 * padX
+            val badgeH = textH + 2 * padY
+            val left = m.x - badgeW / 2
+            val top = m.y - badgeH / 2
+            badgeRects.add(floatArrayOf(left, top, left + badgeW, top + badgeH))
+        }
+        return badgeRects
+    }
+
+    /**
+     * Länder- und Städtenamen mit Kollisionsauflösung (Badge-Flächen sind
+     * reserviert). Wird vor den Routen gezeichnet - die Namen liegen also
+     * unter den Routen und Badges.
+     */
+    private fun drawLabels(canvas: Canvas, b: Built, badgeRects: List<FloatArray>) {
+        if (b.zoom < ZOOM_COUNTRY_LABELS) return
+        collision.beginFrame()
+        for (r in badgeRects) collision.reserve(r[0], r[1], r[2], r[3])
+        // Zuerst die Ländernamen (grösser), dann die Städte - die
+        // Kollisionsauflösung verteilt beide.
+        for (m in b.countryMarkers) {
+            val w = countryLabelPaint.measureText(m.label)
+            val cfm = countryLabelPaint.fontMetrics
+            val textH = cfm.descent - cfm.ascent
+            val placed = collision.place(
+                m.x - w / 2f,
+                m.y - cfm.ascent + textH / 2f,
+                w, textH,
+                2f * density, textH * 0.9f, 2,
+                null,
+                width.toFloat(), height.toFloat()
+            )
+            if (placed != null) {
+                canvas.drawText(m.label, placed[0], placed[1], countryLabelHaloPaint)
+                canvas.drawText(m.label, placed[0], placed[1], countryLabelPaint)
+            }
+        }
+        val dotR = 1.6f * density
+        for (m in b.cityMarkers) {
+            val w = cityLabelPaint.measureText(m.label)
+            val cfm = cityLabelPaint.fontMetrics
+            val textH = cfm.descent - cfm.ascent
+            val placed = collision.place(
+                m.x + dotR + 2.5f * density,
+                m.y - cfm.ascent + textH / 2f,
+                w, textH,
+                2f * density, textH * 0.9f, 2,
+                m.x - dotR - 2.5f * density - w,
+                width.toFloat(), height.toFloat()
+            )
+            if (placed != null) {
+                canvas.drawCircle(m.x, m.y, dotR, cityDotPaint)
+                // Hauptstädte unterstreichen wie auf der Weltkarte.
+                cityLabelPaint.isUnderlineText = m.capital
+                cityLabelHaloPaint.isUnderlineText = m.capital
+                canvas.drawText(m.label, placed[0], placed[1], cityLabelHaloPaint)
+                canvas.drawText(m.label, placed[0], placed[1], cityLabelPaint)
+                cityLabelPaint.isUnderlineText = false
+                cityLabelHaloPaint.isUnderlineText = false
+            }
+        }
+    }
+
+    /**
+     * Dreilettercodes als Badges wie auf der Weltkarte: gefüllte Pill in der
+     * Punktfarbe ([setPointColor], z. B. Primärfarbe; sonst neutral) mit
+     * weißem Ring und Text in Kontrastfarbe, zentriert auf dem Punkt.
+     * Die Badges werden zuletzt obendrauf gezeichnet - über allen
+     * Beschriftungen und Routen, damit der Code (ausgewählt oder nicht) wie
+     * die Quelle der Route darüberliegt. Gruppen in Zeichenreihenfolge
+     * (siehe build): gräulich, normal/betont, ausgewählt. Pro Gruppe werden
+     * die Paints einmalig gesetzt; die gräulichen Badges werden dabei stark
+     * gedimmt (niedrige Deckkraft), damit die angezeigten Codes klar
+     * hervortreten.
+     */
+    private fun drawBadges(canvas: Canvas, b: Built, badgeRects: List<FloatArray>) {
+        val fm = badgeTextPaint.fontMetrics
+        var group = -1
+        for ((index, m) in b.airportMarkers.withIndex()) {
             val g = if (m.muted) 0 else if (m.selected) 2 else 1
             if (g != group) {
                 group = g
@@ -875,16 +978,18 @@ class GlobeView @JvmOverloads constructor(
                     bold = true
                 }
                 badgeFillPaint.color = fill
-                badgeFillPaint.alpha = 255
+                badgeFillPaint.alpha = if (g == 0) MUTED_BADGE_FILL_ALPHA else 255
                 badgeTextPaint.color = readableOn(fill)
+                badgeTextPaint.alpha = if (g == 0) MUTED_BADGE_TEXT_ALPHA else 255
                 badgeTextPaint.isFakeBoldText = bold
-                badgeRingPaint.alpha = if (g == 0) 200 else 255
+                badgeRingPaint.alpha = if (g == 0) MUTED_BADGE_RING_ALPHA else 255
             }
+            val r = badgeRects[index]
+            val left = r[0]
+            val top = r[1]
+            val badgeW = r[2] - r[0]
+            val badgeH = r[3] - r[1]
             val textWidth = badgeTextPaint.measureText(m.label)
-            val badgeW = textWidth + 2 * padX
-            val badgeH = textH + 2 * padY
-            val left = m.x - badgeW / 2
-            val top = m.y - badgeH / 2
             if (m.selected) {
                 val extra = 3f * density
                 badgeHighlightPaint.color = badgeNeutralColor
@@ -909,52 +1014,6 @@ class GlobeView @JvmOverloads constructor(
                 m.y - (fm.descent + fm.ascent) / 2,
                 badgeTextPaint
             )
-        }
-        if (b.zoom >= ZOOM_COUNTRY_LABELS) {
-            collision.beginFrame()
-            // Zuerst die Ländernamen (grösser), dann die Städte - die
-            // Kollisionsauflösung verteilt beide.
-            for (m in b.countryMarkers) {
-                val w = countryLabelPaint.measureText(m.label)
-                val cfm = countryLabelPaint.fontMetrics
-                val textH = cfm.descent - cfm.ascent
-                val placed = collision.place(
-                    m.x - w / 2f,
-                    m.y - cfm.ascent + textH / 2f,
-                    w, textH,
-                    2f * density, textH * 0.9f, 2,
-                    null,
-                    width.toFloat(), height.toFloat()
-                )
-                if (placed != null) {
-                    canvas.drawText(m.label, placed[0], placed[1], countryLabelHaloPaint)
-                    canvas.drawText(m.label, placed[0], placed[1], countryLabelPaint)
-                }
-            }
-            val dotR = 1.6f * density
-            for (m in b.cityMarkers) {
-                val w = cityLabelPaint.measureText(m.label)
-                val cfm = cityLabelPaint.fontMetrics
-                val textH = cfm.descent - cfm.ascent
-                val placed = collision.place(
-                    m.x + dotR + 2.5f * density,
-                    m.y - cfm.ascent + textH / 2f,
-                    w, textH,
-                    2f * density, textH * 0.9f, 2,
-                    m.x - dotR - 2.5f * density - w,
-                    width.toFloat(), height.toFloat()
-                )
-                if (placed != null) {
-                    canvas.drawCircle(m.x, m.y, dotR, cityDotPaint)
-                    // Hauptstädte unterstreichen wie auf der Weltkarte.
-                    cityLabelPaint.isUnderlineText = m.capital
-                    cityLabelHaloPaint.isUnderlineText = m.capital
-                    canvas.drawText(m.label, placed[0], placed[1], cityLabelHaloPaint)
-                    canvas.drawText(m.label, placed[0], placed[1], cityLabelPaint)
-                    cityLabelPaint.isUnderlineText = false
-                    cityLabelHaloPaint.isUnderlineText = false
-                }
-            }
         }
     }
 
@@ -1319,6 +1378,15 @@ class GlobeView @JvmOverloads constructor(
         /** Höchstzahl der Städtebeschriftungen (Stufe 1+2 bzw. Stufe 3). */
         const val CITY_LABEL_MAX = 60
         const val CITY_LABEL_MAX_MORE = 150
+
+        /**
+         * Deckkraft der gräulich zurücktretenden Badges, wenn ein Flughafen
+         * ausgewählt ist: Füllung und Ring stark gedimmt, Text etwas
+         * lesbarer, damit die verbundenen Codes klar hervortreten.
+         */
+        const val MUTED_BADGE_FILL_ALPHA = 90
+        const val MUTED_BADGE_TEXT_ALPHA = 150
+        const val MUTED_BADGE_RING_ALPHA = 90
 
         /** Beschriftungsstufe zur Zoomstufe [zoom] (0 = keine, reine Kugel). */
         fun labelTier(zoom: Float): Int = when {

@@ -73,7 +73,7 @@ folgt das Logo weiterhin `@mipmap/app_logo` (`values/app_logo.xml`).
 
 Auf der Rubbelkarte zeichnen sich in den **USA und Deutschland** die Grenzen der
 Bundesstaaten/-länder als dünne Linien (`STATE_BORDER_ALPHA`, Strich halb so breit wie
-Ländergrenzen). Gab es laut Logbuch einen Flug in das Land (`StateStats.summarize` über
+Ländergrenzen; `borderPaint` 0,4 dp, `stateBorderPaint` 0,2 dp – bewusst sehr fein). Gab es laut Logbuch einen Flug in das Land (`StateStats.summarize` über
 `AirportData.region`, IATA → ISO-3166-2), wird das Land selbst nur schwach gefüllt.
 Die **Berliner Flughäfen** (`StateStats.BERLIN_AIRPORTS`: BER, TXL, SXF, THF sowie die
 geschlossenen XTXL/XSXF/XTHF) zählen zusätzlich immer zum Bundesland **Berlin (DE-BE)**,
@@ -82,8 +82,41 @@ Region tragen.
 (`STATE_MUTED_ALPHA` = 50) und die **angeflogenen** Staaten darüber in derselben Farbe wie
 ein besuchtes Land (`VISITED_ALPHA`); die übrigen Staaten bleiben in der schwachen
 Grundfarbe – deutlich weniger stark als angeflogene, aber nicht wie ein unbesuchtes Land.
+**Besuchte Länder** werden in **voller Akzentfarbe** gefüllt (`visitedPaint` = `colorPrimary`,
+`VISITED_ALPHA` = 255), damit sie sich klar von den offenen Ländern abheben.
+**Länder- und Städtenamen** sind je nach Land eingefärbt (`RubbelkarteView.setzeLabelFarben`):
+auf unbesuchten Ländern in der **Akzentfarbe** (lesbar auf der grauen Grundfläche), auf
+besuchten Ländern in der **Primärfarbe** des aktiven Schemas (`AirlineSchemes.primaryColor`,
+z. B. dunkelblau auf gelb beim LH-Schema; bei den klassischen Akzentfarben ist Primär =
+Akzent, dort greift auf besuchten Ländern `colorOnPrimary`). Der Halo ist jeweils die
+Gegenfarbe zur Schrift (`haloFor`). Gilt für Ländernamen, Städtenamen, Hauptstädte der
+Staaten und die unterstrichene Hauptstadt-Marke; die Stadtpunkte bleiben in `colorOnPrimary`.
+
+**Experiment (umschaltbar):** `EXPERIMENT_FARBEN` in `RubbelkarteView` (companion) dreht die
+Farben der Kugel um: true = besuchte Länder (inkl. schwacher Staatenfüllung) in der
+**Primärfarbe** (unbesuchte bleiben im bekannten Grau), die **Zoom-Hervorhebung**
+(`setHighlight`, z. B. per Auge auf ein Land/Kontinent) und **alle Namen** in der
+**Akzentfarbe**; die normalen Ländergrenzen (`borderPaint`) bleiben im Outline-Ton.
+Zum Zurückdrehen die Flag auf `false` – init und `setzeLabelFarben` verzweigen nur an dieser
+einen Stelle.
+**Airport-Punkte** (`drawAirports`, nur angeflogene Flughäfen aus `visitedAirports`) sind
+einfache Punkte in der **Akzentfarbe** (`airportPaint.color = colorPrimary` in init, Radius
+`PUNKT_INNEN` × `PUNKT_ANTEIL`) – kein Ring/Halo mehr (früher schwarzer Punkt mit weissem
+Ring, `PUNKT_RING`/`airportHaloPaint` entfernt).
 Beim Hereinzoomen (`ZOOM_STAEDTE`) erscheinen die Hauptstädte der aktiven Staaten
 (`STATE_CAP_MAX` gleichzeitig).
+**Fokussiertes Land** (einzelner Code in `setHighlight`, z. B. per Auge auf ein Land):
+Dessen Name wird immer gezeichnet (notfalls über den projizierten Beschriftungsanker
+`Shape.anker`, in den Bildrand geclampt), dazu die **unterstrichene Hauptstadt**
+(`setCapitalMarker`, als kollidierende Stadt durch `platziereStadt` mit eigenem
+Halo gezeichnet – die frühere separate Funktion `drawCapitalMarker` gibt es nicht mehr,
+der Marker läuft durch `drawBeschriftung`) und bis zu **6 weitere große Städte**
+(`STADT_PRO_LAND_FOKUS`, sonst `STADT_PRO_LAND` = 3) – auch unterhalb von `ZOOM_STAEDTE`.
+**Kollisionsfreiheit:** `drawBeschriftung` reserviert zuerst alle bereits belegten
+Rechtecke (`belegt`), zeichnet Fokus-Ländernamen und -Städte (inkl. Hauptstadt-Marker)
+davor, damit keine Länder- oder Städtenamen überlappen; die Marker-Hauptstadt wird
+an den übrigen Stellen per `istMarkerStadt` ausgespart, damit sie nicht doppelt
+(fett + unterstrichen) erscheint.
 
 Daten: `tools/build_states.py` erzeugt aus Natural Earth Admin 1 (Public Domain, `admin` =
 USA/Deutschland/Australien; Großbritannien kommt aus der Admin-0-Subunits-Ebene
@@ -138,6 +171,14 @@ und skaliert es auf Kachelgröße ×
 `TileFlagView.FILL_FACTOR` (1.35), damit das Emoji über den Rand hinausragt und die ganze
 Fläche füllt.
 
+**Akzentfarbe in Kachelzeile und Balken:** Füllbogen, Sterne und die Prozentzahl im Ring
+(`ContinentProgressView`: `progressPaint`/`percentPaint` = `colorPrimary`, nur die Spur
+bleibt `colorOutline`), die Kachel-Beschriftungen `tv_continent_name`/`tv_continent_count`
+in `item_continent_tile.xml` (`?attr/colorPrimary`) und der obere Balken
+`progress_rubbelkarte_world` in `fragment_rubbelkarte.xml` (`app:indicatorColor="?attr/colorPrimary"`)
+stehen alle in der Akzentfarbe – bei einem Airline-Schema ist `colorPrimary` die
+Schema-Akzentfarbe.
+
 Ein Tipp auf eine Kachel zoomt die Kugel programmgesteuert auf die Region und hebt deren
 Grenzen hervor (`RubbelkarteView.setHighlight` nimmt eine Menge: Kontinent/EU = alle Länder
 der Region, Länder-Kachel = das Land selbst) und öffnet unten im `page_host`
@@ -178,11 +219,18 @@ Deutschland nicht unter Hamburg); `openTile` öffnet die Seite daher **vor** dem
 steht **rechts von der Flagge, links vom Namen** (`iv_country_zoom`/`iv_state_zoom`,
 `ic_visibility`; nur eingebettet sichtbar, auf der vollen Seite hinter dem Stift nicht) und
 zoomt über `MapZoomHost` auf das Land bzw. den Staat (`MapFocus.forCountry`/`forState`),
-hebt dessen Grenze hervor (`RubbelkarteView.setHighlight`: Glow + kräftige Linie) und zeigt
+hebt dessen Grenze hervor (`RubbelkarteView.setHighlight`: Glow + kräftige Linie in der
+**Primärfarbe** des aktiven Schemas – `AirlineSchemes.primaryColor`, bei Airline-Schemas die
+Marken-Primärfarbe, nicht die Akzentfarbe; `highlightPaint` Alpha 230, `highlightGlowPaint`
+Alpha 70) und zeigt
 dessen **Hauptstadt unterstrichen** auf der Kugel an (`RubbelkarteView.setCapitalMarker`,
 unabhängig von der Zoomstufe; beim Land aus `MapCities` per `MapFocus.pointInRings` im
 Landumriss gesucht, beim Staat aus `state_shapes.bin` `capLat`/`capLon`/`capDe`/`capEn`;
-beim Kachel-Tipp auf eine Region wird der Marker geleert). Abhaken
+beim Kachel-Tipp auf eine Region wird der Marker geleert). Rechts in jeder Zeile stehen das
+**Flugzeugsymbol** bei angeflogenem Land/Staat (`iv_country_flight`/`iv_state_flight`,
+`ic_flight`, `app:tint="?attr/colorPrimary"`) und das **Kästchen** zum händischen Abhaken
+(`cb_country`/`cb_state`, `app:buttonTint="?attr/colorPrimary"`) – beide in der
+**Akzentfarbe**. Abhaken
 auf der eingebetteten Seite schreibt in dieselben Settings wie die volle Seite und lädt über
 `MapZoomHost.onCountriesChanged` Karte und Kacheln neu – bei Ländern in
 `Settings.getManualCountries`/`getHiddenCountries`, bei Staaten (DE/US, Kästchen rechts in
@@ -326,6 +374,19 @@ der Beschriftung, wenn der Balken kürzer ist als sie, damit sie sich nicht deck
 Rangzeichen (Medaillen bzw. in der Suche die Platznummer aus der ungefilterten Liste) stehen
 links daneben; die einklappbare Null-Gruppe darunter (`barChartZero`) nutzt denselben Modus ohne
 Rangzeichen und dieselbe Rechtsbündigung, damit beide Diagramme auf einer Linie enden.
+Die **beiden oberen Kacheln** (Neuestes/Ältestes Layover, `cardLayoverNewest`/`cardLayoverOldest`)
+tragen die **Primärfarbe** des aktiven Schemas als Hintergrund
+(`DashboardTileColors.applyPrimaryCardBackground(..., useAccent = false)`, Texte in der
+Kontrastfarbe).
+
+**Layover-Detailseite pro Dreilettercode** (`LayoverDetailFragment`, `fragment_layover_detail.xml`,
+geöffnet per Tipp auf einen Balken): Kopf mit Code/Name/Stadt-Land, Kartenausschnitt, Layover-Zeit
+über einer Leiste und darunter der Zeitstrahl aller Layover an diesem Flughafen (`item_layover_timeline`).
+Der **Punkt jeder Zeile trägt die Farbe der Reiseart** des Eintrags
+(`bindTimelineDotFlightType` in `TimelineComment.kt`: `BoardingPassLogic.typeColorRes` +
+`backgroundTintList`); innen steht weiterhin die Layoverlänge in ganzen Stunden, **immer in
+Weiß** (`textColor = Color.WHITE`, auch auf hellem Grund wie Deadhead). Ohne erkannte Reiseart
+bleibt der Punkt in der Akzentfarbe.
 
 ## Flugzeugtypen – Stammdaten und Fotos
 
@@ -408,11 +469,15 @@ Einheitsvektoren via `CountryShapes.Country.unitRings`). Der Pfadaufbau läuft a
 Hintergrund-Thread, der Zeichen-Thread malt nur den zuletzt fertigen Zustand – Drehen per
 Finger mit Fling-Nachlauf, Pinch- und Doppeltipp-Zoom, programmatisch `zoomTo`/`resetToWorld`.
 Land + Grenzen immer, Flughafen-**Badges mit Dreilettercodes wie auf der Weltkarte**
-(undurchsichtige Pill in Akzentfarbe, weißer Ring, Kontrasttext, **kein Punkt** darunter;
+(undurchsichtige Pill in der **Primärfarbe** des aktiven Schemas — in der Dashboard-Kachel und
+auf der Kugel-Seite beide über `setPointColor(AirlineSchemes.primaryColor(...))` gesetzt —,
+weißer Ring, Kontrasttext, in der Vollansicht **kein Punkt** darunter — nur in der
+Kachel-Vorschau werden die Punkte gezeichnet, dort gibt es keine Badges;
 stark vernetzte zuletzt oben via `connections`, damit Hubs bei Überlappung oben liegen).
-Tippt man einen Code an, treten die nicht mit ihm verbundenen gräulich zurück (`Content.reached`
-über `MapSelection.connected`), die verbundenen werden fett betont, der ausgewählte bekommt
-einen Akzent-Außenrahmen. **Beschriftungsstufen je Zoom** (`GlobeView.labelTier`, Zoom-Knopf =
+Tippt man einen Code an, treten die nicht mit ihm verbundenen gräulich zurück und werden stark
+gedimmt (`Content.reached` über `MapSelection.connected`, Deckkraft `MUTED_BADGE_*_ALPHA`), die
+verbundenen werden fett betont und liegen in der Zeichenreihenfolge über allen anderen
+(gräulich → betont → ausgewählt), der ausgewählte bekommt einen Akzent-Außenrahmen. **Beschriftungsstufen je Zoom** (`GlobeView.labelTier`, Zoom-Knopf =
 Faktor 1,6): ab ca. 3× Plus (Maßstab erstmals 500 km, `ZOOM_COUNTRY_LABELS`) Ländernamen
 (`CountryShapes.Country.nameDe/nameEn` am Label-Anker, große Länder zuerst) und Hauptstädte
 (**unterstrichen** wie auf der Weltkarte); ab ca. 5× Plus (`ZOOM_CITIES`, Maßstab ~1.250 km)
@@ -420,7 +485,10 @@ zusätzlich die größten Städte (Rang 0); ab ca. 7× Plus (Maßstab ~160 km,
 `ZOOM_MORE_CITIES`) **alle Großstädte des Assets (Rang bis 3)** – nur die
 tatsächlich auf dem Bildschirm liegenden zählen gegen `CITY_LABEL_MAX_MORE`. Kollision
 über `LabelCollision` (die Badge-Flächen sind reserviert, max. 3 Ausweichzeilen), getestet
-in `GlobeViewTest`.
+in `GlobeViewTest`. Zeichenreihenfolge in `onDraw`: erst Länder-/Städtenamen (Badge-Flächen in
+der Kollision reserviert), dann die Routen (und die Layover-Spuren während der Animation), zuletzt
+die Badges obendrauf — die Dreilettercodes liegen also über allem, auch über den Routen (wie die
+Quelle der Linie, ohne Punkt darunter).
 `GlobeView.metersPerPixel(centerLatRad, radiusPx)` liefert den Maßstab (getestet in
 `GlobeViewTest`). Bisher genutzt von der Kachel und der Seite; die Rubbelkarte
 (`RubbelkarteView`) bleibt vorerst unverändert und kann später auf `GlobeView` migrieren.
@@ -828,7 +896,9 @@ sondern auf dem Titelblock; die rechte Karte behält ihre Lage über `layout_mar
 (8dp ehemaliges Zeilen-Padding plus 8dp Rand) und `layout_marginBottom="8dp"`.
 
 Auf der Detailseite steht der Untertitel der Kachel nicht mehr im Kopf, sondern als Karte über
-der Jahresliste (im Format der Achievements-Kachel, Text `radiation_detail_subtitle`). Auf der
+der Jahresliste (im Format der Achievements-Kachel, Text `radiation_detail_subtitle`; die obere
+Info-Kachel `cardRadiationSubtitle` trägt die **Primärfarbe** des Schemas,
+`applyPrimaryCardBackground(..., useAccent = false)`). Auf der
 Infoseite steht der Abschnitt *Grenzen der Schätzung* ganz oben, *Quellen und Richtwerte* ganz
 unten; darunter ein Link zum Bundesamt für Strahlenschutz (`tv_radiation_bfs_link` in
 `fragment_radiation_info.xml`, URL `radiation_info_bfs_url`), der über `RadiationInfoFragment`
@@ -848,7 +918,9 @@ lässt sie nur bei der Rolle *Crew* zu (`role.isCrew`) - im Dashboard und im Bea
 gleichermaßen. Sie zeigt die geschätzte Gesamtzahl der Passagiere über **alle Jahre** (auf volle
 Zehner gerundet); rechts daneben steht der Durchschnitt pro Flug. Ein Tipp öffnet
 `PassengersFragment` mit der Passagierzahl je Kalenderjahr (neuestes Jahr oben, Balken zum
-stärksten Jahr); das Adjust-Symbol oben rechts im Kopf (`ic_adjust`) öffnet einen Dialog, der
+stärksten Jahr; die obere Info-Kachel `cardPassengersSubtitle` auf der Detailseite trägt die
+**Primärfarbe** des Schemas, `applyPrimaryCardBackground(..., useAccent = false)`); das
+Adjust-Symbol oben rechts im Kopf (`ic_adjust`) öffnet einen Dialog, der
 die Auslastung zwischen 50 und 100 % in 5er-Schritten einstellt (Standard 80 %, pro Nutzer
 gespeichert in `Settings.getPassengerLoadFactor`).
 
@@ -968,7 +1040,8 @@ gruppiert sie außerdem Hin- und Rückflüge zu Paaren (siehe dort).
 In der Discovery-Liste (`item_discovery_route.xml`) steht vor dem Datum ein Richtungspfeil,
 sobald die Strecke auch zurückgeflogen wurde (`RouteDiscovery.returnDate`): Hin- und Rückflug
 **am selben Tag** zeigen ein Symbol mit zwei Pfeilen in Gegenrichtung (`ic_arrows_roundtrip`)
-vor dem einen Datum; an **verschiedenen Tagen** steht der Hin-Pfeil (`ic_arrow_route`) vor dem
+vor dem einen Datum; an **verschiedenen Tagen** steht der schlanke Hin-Pfeil (`ic_arrow_slim`)
+vor dem
 Hinflug-Datum, dann ein Punkt (`tv_discovery_date_sep`), dann der gespiegelte Rück-Pfeil
 (`iv_discovery_arrow_back`) vor dem Rückflug-Datum (`tv_discovery_date_back`) –
 „12.03.2026 · ↩ 19.03.2026“. Ohne Rückflug bleiben Pfeile, Punkt und zweites Datum frei.
@@ -1014,9 +1087,12 @@ andernorts verwendet und bleibt.
 
 ## Seite „Einträge" – Bordkarte
 
-Tippt man auf die Kachel eines Flugeintrags (kurzer Tap, kein Wisch-Reveal), öffnet sich
+Tippt man auf die Kachel eines Flugeintrags (kurzer Tap, kein Wisch-Reveal) — ebenso eine Zeile
+des Achievements-Zeitstrahls und eine erreichte Kachel der Achievements-Übersicht — öffnet sich
 `nav_boarding_pass` (`BoardingPassFragment`, `fragment_boarding_pass.xml`, Action
-`action_entries_to_boarding_pass` mit `entryId`; Eintrag wird über `LogbookRepository.getEntry`
+`action_entries_to_boarding_pass` bzw. `action_achievements_to_boarding_pass` /
+`action_achievements_grid_to_boarding_pass` mit `entryId`; Eintrag wird über
+`LogbookRepository.getEntry`
 geladen). Die Seite ist als Bordkarte gestaltet: Hintergrund ist die **Primärfarbe** des aktiven
 Airline-Schemas, **außer bei LH — dort die Akzentfarbe (Gold)**; ohne Airline-Schema
 `colorPrimaryContainer`. Textfarbe ist Schwarz/Weiß je nach Kontrast (`BoardingPassLogic.onColor`).
@@ -1024,17 +1100,23 @@ Aufbau von oben: Airline-Logo in weißem Kreis (`bg_boarding_pass_logo.xml`) + F
 Logogröße (Airline auf IATA aufgelöst via `AirlineCatalog.resolve`, „DLH“ → „LH 2058“), rechts
 die Reiseklasse als Ein-Buchstaben-Kachel (Y/E/C/F/J, Hintergrund = `ClassColorSchemes`, weiße
 Schrift, randlos). Darunter Datum (links bündig zum Logo) und rechts die Reiseart-Kachel
-(Hintergrund = `type_*_bg` zur kanonischen Reiseart, weiß, randlos); **davor** („dahinter“) eine
-gleiche Kachel mit der Funktions-Kurzform (P1/P2/FB, `BoardingPassLogic.functionShortForm`) bei
+(Hintergrund = `type_*_bg` zur kanonischen Reiseart, weiß, randlos; 16 sp, 32 dp hoch — deutlich
+kleiner als Flugnummer und Datum); **davor** („dahinter“) eine ebenso kleine Kachel mit der
+Funktions-Kurzform (P1/P2/FB, `BoardingPassLogic.functionShortForm`) bei
 On Duty/Deadhead/Dienstreise/Ferry bzw. dem Sitzplatz bei Privat — fehlt beides, rückt die
-Reiseart-Kachel nach rechts. Dann die `RouteMiniMapView` mit `playRouteAnimation()` und
+Reiseart-Kachel nach rechts. Die Reisebuddies stehen neben dem QR-Code untereinander, je Name
+eine eigene Zeile (`TravelBuddyStats.parse`). Dann die `RouteMiniMapView` mit `playRouteAnimation()` und
 `revealDestinationOnArrival = true`: der Ziel-Dreilettercode erscheint erst ab 90 % der
 Aufbauanimation (`DESTINATION_REVEAL_PROGRESS`). Layover-Zeile nur mit eingetragener Dauer:
 `LayoverClockView` (Zeiger drehen sich einmal, respektiert `ANIMATOR_DURATION_SCALE`) + Plural-Satz
 `boarding_pass_layover_hours` („In XXX für yy Stunden im Layover verbracht“, XXX = `toAirport`).
 Dann Distanz (`DashboardStats.kmText`) links / Flugzeit „x h y min" rechts, Flugzeugmuster links /
 Registrierung rechts, Kommentar in Handschrift (`@font/patrick_hand`, Patrick Hand, SIL OFL 1.1 —
-in `sources_message` genannt). Fehlende Angaben bleiben weg. Reine Logik in `BoardingPassLogic`
+in `sources_message` genannt). Fehlende Angaben bleiben weg. Oben rechts auf dem oberen Rand der
+Karte (Mitte auf der Kante, über der Karte liegend) sitzt ein Stift (`btn_edit_pass`, `ic_edit`,
+weißer Kreis): wird beim Öffnen eingeblendet und nach
+2 s wieder ausgeblendet (nur Alpha 0 — bleibt also klickbar); ein Tipp öffnet den Eintrag zum
+Bearbeiten (`action_boarding_pass_to_add_entry` mit `entryId`). Reine Logik in `BoardingPassLogic`
 (getestet in `BoardingPassLogicTest`).
 
 ## Seite „Einträge" – Tagesordnung
@@ -1098,8 +1180,8 @@ hervorgehobene Kachel über die ganze Breite im Format der beiden Layover-Kachel
 Erfolge, der jüngste oben. Ein Tipp auf die Kachel öffnet `AchievementsGridFragment` mit allen
 Erfolgen nach Kategorie, fünf Kacheln je Zeile (Icon oben, Titel darunter, erreicht farbig,
 offen ausgegraut); eine Zeile des Zeitstrahls **und** eine erreichte Kachel in der Übersicht
-öffnen den auslösenden Eintrag zum Bearbeiten (`action_achievements_to_add_entry` bzw.
-`action_achievements_grid_to_add_entry` mit `entryId`). Ob der auslösende Flug **dienstlich**
+öffnen die Bordkarte des auslösenden Flugs (`action_achievements_to_boarding_pass` bzw.
+`action_achievements_grid_to_boarding_pass` mit `entryId`). Ob der auslösende Flug **dienstlich**
 (On Duty/Deadhead/Dienstreise) oder **privat** war, ist farblich markiert: im Zeitstrahl
 tintet der Punkt des Erfolgs, in der Übersicht das Icon selbst (Primär = dienstlich,
 Tertiär = privat, `Reached.isBusiness`) – die Kacheln selbst tragen keine Umrandung mehr.
@@ -1416,14 +1498,16 @@ mit `INVISIBLE` frei, damit Flaggen und Namen untereinander stehen. Im Kopf der 
 Balken wie auf der Layover-Detailseite (`LayoverTimeBarView` +
 `TimeCountryFormat.breakdownText`/`stepLabel` mit `quarters = false`): die Zeit im Ausland als
 Dauer (Tage/Wochen/Monate, ohne Quartale, dafür Jahre ab mehr als einem Jahr) über einer sich
-füllenden Leiste.
+füllenden Leiste. **Ohne Beschriftung darüber** (kein „Zeit im Ausland“-Text, nur die Dauer) und
+mit **Füllung in der Akzentfarbe** (`accentFill = true`, sonst überall Primärfarbe).
 
 Ein Tipp auf ein Land öffnet die Detailseite `nav_country_time_detail`
 (`CountryTimeDetailFragment`, `fragment_country_time_detail.xml`): Oben der Kopf wie auf der Seite
 „Flüge“ (Zurück-Pfeil, Land mit Flagge, rechts die Gesamttage), darunter als Teil des fixen Headers
 ein Balken wie auf der Layover-Detailseite (`LayoverTimeBarView`, ebenfalls `quarters = false`:
 Tage/Wochen/Monate, dafür Jahre ab mehr als einem Jahr): die Zeit in diesem Land als Dauer
-über einer sich füllenden Leiste. Alles darunter scrollt
+über einer sich füllenden Leiste – **ohne Beschriftung darüber** (kein „Zeit in diesem Land“-Text)
+und ebenfalls mit **Füllung in der Akzentfarbe** (`accentFill = true`). Alles darunter scrollt
 (`ctd_scroll`): zuerst die Karte des Landes **genau wie die Länderseite des Dashboards**
 (Höhe = 1/3 Bildschirm, `CountryRouteMapView.setData` mit den Inland- und Auslands-Verbindungslinien
 als Großkreisbögen wie in `CountryDetailFragment`, Flughafenpunkte und Fokus-Box über
@@ -1575,3 +1659,7 @@ Auf der Reisebuddy-Detailseite zeigen die Kacheln „Erster/Letzter gemeinsamer 
 Datum die Flugnummer **mit Airline** (z. B. „12.03.2026 · LH 800“). Die Kachel „Zeit zusammen“
 trägt unten rechts das Standard-Icon `touch_app` (Material Icons, Apache-2.0; `ic_tap` in `item_stat_tile.xml`, `iv_stat_tile_hint`), das
 signalisiert, dass ein Tipp die Einheit wechselt.
+Die **fünf Kacheln unter der Karte** (Extrem-Kacheln + „Zeit zusammen“ + Distanz) tragen die
+**Primärfarbe** des aktiven Schemas (`addTile` → `applyPrimaryCardBackground(..., useAccent = false)`).
+Im Zeitstrahl unten steht der **Punkt jeder Zeile in der Farbe der Reiseart** des Flugs
+(`bindTimelineDotFlightType`), innen steht **keine Flugdauer** – der Kreis bleibt leer.

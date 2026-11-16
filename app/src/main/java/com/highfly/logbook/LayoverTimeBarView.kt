@@ -60,8 +60,9 @@ class LayoverTimeBarView @JvmOverloads constructor(
     private val trackRect = RectF()
 
     /**
-     * true: Füllung in der Akzentfarbe des aktiven Schemas - nur auf der
-     * Times-Seite gesetzt, überall sonst bleibt die Primärfarbe.
+     * true: Füllung in der Akzentfarbe des aktiven Schemas - auf der Times-Seite
+     * und der Länderzeit-Detailseite gesetzt, überall sonst bleibt die
+     * Primärfarbe.
      */
     var accentFill: Boolean = false
         set(value) {

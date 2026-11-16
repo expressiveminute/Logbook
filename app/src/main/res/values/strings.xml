@@ -229,11 +229,9 @@
     <string name="time_countries_open_periods">Offene Zeiträume</string>
     <string name="time_countries_search_hint">Land suchen</string>
     <string name="time_countries_search_open">Länder durchsuchen</string>
-    <string name="time_countries_abroad_label">Zeit im Ausland</string>
     <!-- Sortierung der Länderliste auf der Times-Seite. -->
     <string name="time_countries_sort_visits">Aufenthalte</string>
     <string name="time_countries_subtitle_percent">%1$s · %2$d %%</string>
-    <string name="country_time_bar_label">Zeit in diesem Land</string>
     <string name="country_time_facts_title">Fakten</string>
     <string name="fact_language">Amtssprache</string>
     <string name="fact_capital">Hauptstadt</string>
@@ -493,6 +491,7 @@
     <string name="boarding_pass_seat_desc">Sitzplatz: %1$s</string>
     <string name="boarding_pass_map_desc">Flugstrecke von %1$s nach %2$s</string>
     <string name="boarding_pass_qr_desc">QR-Code mit den Flugdaten dieser Bordkarte</string>
+    <string name="boarding_pass_edit_desc">Bordkarte bearbeiten</string>
     <string name="fab_scan_boarding_pass">Bordkarte scannen</string>
     <string name="boarding_pass_scan_title">Bordkarte scannen</string>
     <string name="boarding_pass_scan_hint">QR-Code auf der Bordkarte vor die Kamera halten</string>

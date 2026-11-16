@@ -161,7 +161,7 @@ class AchievementsGridFragment : LogbookFragment() {
                 tile.foreground = androidx.core.content.ContextCompat.getDrawable(
                     context, ripple.resourceId
                 )
-                tile.setOnClickListener { openEditEntry(reached.entry) }
+                tile.setOnClickListener { openBoardingPass(reached.entry) }
                 tile.contentDescription = title + " · " + context.getString(
                     if (business) R.string.ach_badge_duty else R.string.ach_badge_private
                 )
@@ -195,10 +195,10 @@ class AchievementsGridFragment : LogbookFragment() {
         return row
     }
 
-    /** Erreichter Erfolg antippen: auslösenden Eintrag zum Bearbeiten öffnen. */
-    private fun openEditEntry(entry: LogbookEntry) {
+    /** Erreichter Erfolg antippen: Bordkarte des auslösenden Flugs öffnen. */
+    private fun openBoardingPass(entry: LogbookEntry) {
         findNavController().navigate(
-            R.id.action_achievements_grid_to_add_entry,
+            R.id.action_achievements_grid_to_boarding_pass,
             androidx.core.os.bundleOf("entryId" to (entry.id ?: -1L))
         )
     }

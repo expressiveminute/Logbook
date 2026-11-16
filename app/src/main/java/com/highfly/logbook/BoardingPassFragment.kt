@@ -6,7 +6,9 @@ import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import androidx.core.content.ContextCompat
+import androidx.core.os.bundleOf
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.doOnNextLayout
@@ -21,12 +23,14 @@ import com.highfly.logbook.databinding.FragmentBoardingPassBinding
  * `fragment_boarding_pass.xml`: Logo + Flugnummer oben, rechts die
  * Reiseart-Kachel auf mittiger Höhe der Flugnummer (rechts bündig); darunter
  * das Datum (bündig zur Flugnummer, gleiche Schriftgröße fett) mit der
- * Funktionskachel auf seiner mittigen Höhe - Reiseart- und Funktionskachel
- * in derselben Schriftgröße wie Flugnummer und Datum; dann links ein
- * quadratischer QR-Code, dessen rechter weißer Rand in der Bildschirmmitte
+ * Funktionskachel auf seiner mittigen Höhe - beide Kacheln klein (16 sp,
+ * 32 dp hoch), deutlich kleiner als Flugnummer und Datum;
+ * dann links ein quadratischer QR-Code, dessen rechter weißer Rand in der
+ * Bildschirmmitte
  * sitzt, rechts daneben oben die Reiseklasse in der Klassenfarbe mit dem
  * Sitzplatz in einer eigenen Kachel dahinter, darunter
- * die Strecke in einer Reihe groß und fett, dann die Reisebuddies; danach
+ * die Strecke in einer Reihe groß und fett, dann die Reisebuddies
+ * untereinander (je Name eine Zeile); danach
  * die animierte Streckenkarte, darunter alles in fetter Schrift: Layover,
  * Distanz/Flugzeit, Flugzeug/Registrierung, und der Kommentar in
  * Handschrift. Nicht vorhandene Angaben bleiben weg.
@@ -41,11 +45,19 @@ import com.highfly.logbook.databinding.FragmentBoardingPassBinding
  * Karte außer den Reisebuddies (Datenschutz), inklusive Kommentar.
  * Scannt ein anderer Nutzer den Code in der App, landet der Flug
  * vorbefüllt auf der Seite „Neuer Flug“.
+ *
+ * Oben rechts über dem Rahmen der Karte liegt ein Stift ([btn_edit_pass]):
+ * Er wird beim Öffnen eingeblendet und nach [EDIT_HINT_MS] wieder ausgeblendet
+ * (Alpha 0 - bleibt aber klickbar). Ein Tipp darauf öffnet den Eintrag zum
+ * Bearbeiten („Neuer Flug" mit entryId).
  */
 class BoardingPassFragment : LogbookFragment() {
 
     private var _binding: FragmentBoardingPassBinding? = null
     private val binding get() = _binding!!
+
+    /** Runnable, das den Stift nach der Anzeigezeit wieder ausblendet. */
+    private var editHintRunnable: Runnable? = null
 
     private companion object {
         /** Auflösungsquadrat des QR-Bitmaps (das Layout skaliert es herunter). */
@@ -54,6 +66,12 @@ class BoardingPassFragment : LogbookFragment() {
         /** Schriftgrößen-Grenzen der Strecke neben dem QR-Code, in sp. */
         const val ROUTE_MAX_SP = 28f
         const val ROUTE_MIN_SP = 14f
+
+        /** So lange bleibt der Stift nach dem Öffnen eingeblendet. */
+        const val EDIT_HINT_MS = 2000L
+
+        /** Dauer des Ein-/Ausblendens des Stifts. */
+        const val EDIT_FADE_MS = 400L
     }
 
     override fun onCreateView(
@@ -69,7 +87,10 @@ class BoardingPassFragment : LogbookFragment() {
         binding.boardingPassScroll.addBottomNavPadding()
 
         // Kein Header: oben Platz für die Statusleiste einräumen (gepostet wie
-        // addBottomNavPadding, damit der Layout-Request ankommt).
+        // addBottomNavPadding, damit der Layout-Request ankommt). Der Stift
+        // oben rechts wird mit seiner Mitte auf den oberen Rand der Karte
+        // gesetzt (Kartenrand = Statusleiste + 8 dp Karten-Margin), damit er
+        // über dem Rand liegt und nicht hinter der Karte verschwindet.
         binding.boardingPassScroll.doOnNextLayout {
             binding.boardingPassScroll.post {
                 val top = ViewCompat.getRootWindowInsets(binding.root)
@@ -78,6 +99,11 @@ class BoardingPassFragment : LogbookFragment() {
                     binding.boardingPassScroll.paddingLeft, top,
                     binding.boardingPassScroll.paddingRight, binding.boardingPassScroll.paddingBottom
                 )
+                val cardTop = top + (8 * resources.displayMetrics.density).toInt()
+                (binding.btnEditPass.layoutParams as? ViewGroup.MarginLayoutParams)?.let {
+                    it.topMargin = cardTop - binding.btnEditPass.layoutParams.height / 2
+                    binding.btnEditPass.layoutParams = it
+                }
             }
         }
 
@@ -100,6 +126,7 @@ class BoardingPassFragment : LogbookFragment() {
             return
         }
         bind(entry)
+        setupEditButton(entryId)
 
         // Streckenbeschriftung nach dem ersten Layout dynamisch so groß wie
         // möglich in die Spalte neben dem QR-Code einpassen (je nach
@@ -132,11 +159,52 @@ class BoardingPassFragment : LogbookFragment() {
     }
 
     override fun onDestroyView() {
+        editHintRunnable?.let { binding.btnEditPass.removeCallbacks(it) }
+        binding.btnEditPass.animate().cancel()
         binding.routeMap.cancelRouteAnimation()
         binding.layoverClock.stop()
         super.onDestroyView()
         _binding = null
     }
+
+    /**
+     * Stift oben rechts über dem Rahmen: wird beim Öffnen eingeblendet und
+     * nach [EDIT_HINT_MS] wieder ausgeblendet. Ausgeblendet heißt nur Alpha 0
+     * (sichtbar bleibt der Knopf, damit er weiter klickbar ist) - ein Tipp
+     * öffnet den Eintrag zum Bearbeiten.
+     */
+    private fun setupEditButton(entryId: Long) {
+        val edit = binding.btnEditPass
+        edit.setOnClickListener {
+            findNavController().navigate(
+                R.id.action_boarding_pass_to_add_entry,
+                bundleOf("entryId" to entryId)
+            )
+        }
+        val animate = animationsEnabled()
+        edit.alpha = 0f
+        if (animate) {
+            edit.animate().alpha(1f).setDuration(EDIT_FADE_MS).start()
+        } else {
+            edit.alpha = 1f
+        }
+        editHintRunnable = Runnable {
+            if (animate) {
+                edit.animate().alpha(0f).setDuration(EDIT_FADE_MS).start()
+            } else {
+                edit.alpha = 0f
+            }
+        }
+        edit.postDelayed(editHintRunnable, EDIT_HINT_MS)
+    }
+
+    /** Ob Systemanimationen laufen dürfen (Einstellung „Animationsdauer“). */
+    private fun animationsEnabled(): Boolean =
+        android.provider.Settings.Global.getFloat(
+            requireContext().contentResolver,
+            android.provider.Settings.Global.ANIMATOR_DURATION_SCALE,
+            1f
+        ) != 0f
 
     private fun bind(entry: LogbookEntry) {
         val context = requireContext()
@@ -169,7 +237,7 @@ class BoardingPassFragment : LogbookFragment() {
         binding.passCard.setCardBackgroundColor(backgroundColor)
         val secondaryText = Color.argb(0xB3, Color.red(textColor), Color.green(textColor), Color.blue(textColor))
         listOf(
-            binding.tvFlightNo, binding.tvDate, binding.tvRoute, binding.tvBuddies,
+            binding.tvFlightNo, binding.tvDate, binding.tvRoute,
             binding.tvLayoverText, binding.tvDistance, binding.tvFlightTime,
             binding.tvAircraft, binding.tvRegistration, binding.tvComment
         ).forEach { it.setTextColor(textColor) }
@@ -277,14 +345,25 @@ class BoardingPassFragment : LogbookFragment() {
             binding.tvRoute.visibility = View.GONE
         }
 
-        // Reisebuddies darunter, nur wenn eingetragen (Freitext, durch
-        // Komma getrennt).
-        val buddies = entry.travelBuddy?.trim()?.takeIf { it.isNotEmpty() }
-        if (buddies != null) {
-            binding.tvBuddies.text = buddies
-            binding.tvBuddies.visibility = View.VISIBLE
+        // Reisebuddies darunter, untereinander - je Name eine eigene Zeile
+        // (Freitext, Komma/Semikolon/Zeilenumbruch trennen, siehe
+        // TravelBuddyStats.parse).
+        val buddies = TravelBuddyStats.parse(entry.travelBuddy)
+        if (buddies.isNotEmpty()) {
+            binding.llBuddies.removeAllViews()
+            buddies.forEach { name ->
+                binding.llBuddies.addView(TextView(context).apply {
+                    text = name
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+                    setTextColor(textColor)
+                })
+            }
+            binding.llBuddies.contentDescription = getString(
+                R.string.entry_travel_buddy_desc, buddies.joinToString(", ")
+            )
+            binding.llBuddies.visibility = View.VISIBLE
         } else {
-            binding.tvBuddies.visibility = View.GONE
+            binding.llBuddies.visibility = View.GONE
         }
 
         // QR-Code zum Teilen des Flugs: alle Daten der Bordkarte außer den

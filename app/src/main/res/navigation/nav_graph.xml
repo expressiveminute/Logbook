@@ -76,7 +76,8 @@
             app:destination="@id/nav_boarding_pass" />
     </fragment>
 
-    <!-- Bordkarte zu einem Eintrag (Tippen auf die Eintragskachel). -->
+    <!-- Bordkarte zu einem Eintrag (Tippen auf die Eintragskachel). Der Stift
+         oben rechts öffnet denselben Eintrag zum Bearbeiten. -->
     <fragment
         android:id="@+id/nav_boarding_pass"
         android:name="com.highfly.logbook.BoardingPassFragment"
@@ -86,6 +87,10 @@
             android:name="entryId"
             app:argType="long"
             android:defaultValue="-1L" />
+
+        <action
+            android:id="@+id/action_boarding_pass_to_add_entry"
+            app:destination="@id/nav_add_entry" />
     </fragment>
 
     <!-- QR-Scanner für Bordkarten (Long-Press auf dem Dashboard-Plus): scannt
@@ -502,7 +507,7 @@
 
     <!-- Seite "Achievements": Fortschritt und Zeitstrahl der erreichten Erfolge.
          Die hervorgehobene Kachel öffnet die Übersicht aller Erfolge, eine
-         Zeile des Zeitstrahls den Eintrag zum Bearbeiten. -->
+         Zeile des Zeitstrahls die Bordkarte des auslösenden Flugs. -->
     <fragment
         android:id="@+id/nav_achievements"
         android:name="com.highfly.logbook.AchievementsFragment"
@@ -512,19 +517,19 @@
             android:id="@+id/action_achievements_to_grid"
             app:destination="@id/nav_achievements_grid" />
         <action
-            android:id="@+id/action_achievements_to_add_entry"
-            app:destination="@id/nav_add_entry" />
+            android:id="@+id/action_achievements_to_boarding_pass"
+            app:destination="@id/nav_boarding_pass" />
     </fragment>
 
     <!-- Übersicht aller Erfolge, nach Kategorie. Erreichte Erfolge sind
-         antippbar und öffnen den auslösenden Eintrag zum Bearbeiten. -->
+         antippbar und öffnen die Bordkarte des auslösenden Flugs. -->
     <fragment
         android:id="@+id/nav_achievements_grid"
         android:name="com.highfly.logbook.AchievementsGridFragment"
         tools:layout="@layout/fragment_achievements_grid">
         <action
-            android:id="@+id/action_achievements_grid_to_add_entry"
-            app:destination="@id/nav_add_entry" />
+            android:id="@+id/action_achievements_grid_to_boarding_pass"
+            app:destination="@id/nav_boarding_pass" />
     </fragment>
 
     <!-- Detailseite der Kachel "Sitzplatz": Flugzeug-Schema von oben mit
