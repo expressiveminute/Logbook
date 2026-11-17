@@ -122,6 +122,10 @@ class RubbelkarteView @JvmOverloads constructor(
          * Länder-/Städtenamen in der Akzentfarbe; die normalen Ländergrenzen
          * bleiben im Outline-Ton. Zum Zurückdrehen auf false setzen - alle
          * Stellen, die darauf verzweigen, stehen in init und [setzeLabelFarben].
+         * **Ausnahme LH-Schema:** beim aktiven LH-Schema ([AirlineSchemes.LH_KEY])
+         * greift das Experiment nicht ([lhSchemaAktiv]) - dort werden besuchte
+         * Länder in der Akzentfarbe gefüllt, die Airport-Punkte und die
+         * Zoom-Hervorhebung in der Primärfarbe gezeichnet.
          */
         private const val EXPERIMENT_FARBEN = true
 
@@ -575,7 +579,8 @@ class RubbelkarteView @JvmOverloads constructor(
 
     /**
      * Füllung der nicht angeflogenen Staaten in einem besuchten Land:
-     * Akzentfarbe mit [STATE_MUTED_ALPHA], siehe dort.
+     * dieselbe Farbe wie die besuchten Länder ([visitedPaint]) mit
+     * [STATE_MUTED_ALPHA], siehe dort.
      */
     private val stateMutedPaint = Paint(Paint.ANTI_ALIAS_FLAG)
 
@@ -612,8 +617,9 @@ class RubbelkarteView @JvmOverloads constructor(
         style = Paint.Style.STROKE
         strokeWidth = 1.2f * density
     }
-    // Airport-Punkte: einfacher Punkt in der Akzentfarbe, ohne Ring - die
-    // Farbe wird in init gesetzt (colorPrimary des aktiven Schemas).
+    // Airport-Punkte: einfacher Punkt ohne Ring - die Farbe wird in init
+    // gesetzt (beim LH-Schema die Primärfarbe, sonst die Akzentfarbe,
+    // colorPrimary des aktiven Schemas).
     private val airportPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val namePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         isFakeBoldText = true
@@ -915,21 +921,36 @@ class RubbelkarteView @JvmOverloads constructor(
         }
     )
 
+    /**
+     * true, wenn das LH-Schema aktiv ist ([AirlineSchemes.LH_KEY]). Nur dann
+     * gelten die LH-Sonderfarben: besuchte Länder in der Akzentfarbe, Airports
+     * und Zoom-Hervorhebung in der Primärfarbe. Wird in init gesetzt (bei einem
+     * Schema-Wechsel wird die Activity neu aufgebaut, die View also neu erzeugt).
+     */
+    private var lhSchemaAktiv = false
+
+    /** Experiment effektiv: [EXPERIMENT_FARBEN], aber nicht beim LH-Schema. */
+    private val experimentAktiv get() = EXPERIMENT_FARBEN && !lhSchemaAktiv
+
     init {
         val accent = MaterialColors.getColor(
             this, com.google.android.material.R.attr.colorPrimary
         )
         val primary = AirlineSchemes.primaryColor(context)
-        // Experiment (EXPERIMENT_FARBEN): besuchte Länder in der Primärfarbe,
+        // Nur beim LH-Schema: besuchte Länder in der Akzentfarbe (Gold),
+        // Airports und Zoom-Hervorhebung in der Primärfarbe (dunkles Blau).
+        lhSchemaAktiv = Settings.getAccentColor(context) == AirlineSchemes.LH_KEY
+        // Experiment (experimentAktiv): besuchte Länder in der Primärfarbe,
         // die Zoom-Hervorhebung in der Akzentfarbe; sonst Akzentfüllung und
         // Hervorhebung in der Primärfarbe. Die normalen Ländergrenzen bleiben
         // in beiden Fällen im Outline-Ton.
-        visitedPaint.color = if (EXPERIMENT_FARBEN) primary else accent
+        visitedPaint.color = if (experimentAktiv) primary else accent
         visitedPaint.alpha = VISITED_ALPHA
-        // Airport-Punkte in der Akzentfarbe (colorPrimary des aktiven Schemas).
-        airportPaint.color = accent
+        // Airport-Punkte: beim LH-Schema in der Primärfarbe, sonst in der
+        // Akzentfarbe (colorPrimary des aktiven Schemas).
+        airportPaint.color = if (lhSchemaAktiv) primary else accent
         stateMutedPaint.color = ColorUtils.setAlphaComponent(
-            if (EXPERIMENT_FARBEN) primary else accent, STATE_MUTED_ALPHA
+            if (experimentAktiv) primary else accent, STATE_MUTED_ALPHA
         )
         val outline = MaterialColors.getColor(
             this, com.google.android.material.R.attr.colorOutlineVariant
@@ -940,15 +961,15 @@ class RubbelkarteView @JvmOverloads constructor(
         // Die Hervorhebung (Glow + kräftige Linie, z. B. nach dem Zoomen per
         // Auge auf ein Land): im Experiment in der Akzentfarbe - sie hebt sich
         // damit von den in Primärfarbe gefüllten besuchten Ländern ab; sonst
-        // in der Primärfarbe des aktiven Schemas (bei Airline-Schemas die
-        // Marken-Primärfarbe, z. B. das LH-Blau).
-        val highlightColor = if (EXPERIMENT_FARBEN) accent else primary
+        // (auch beim LH-Schema) in der Primärfarbe des aktiven Schemas (bei
+        // Airline-Schemas die Marken-Primärfarbe, z. B. das LH-Blau).
+        val highlightColor = if (experimentAktiv) accent else primary
         highlightPaint.color = ColorUtils.setAlphaComponent(highlightColor, 230)
         highlightGlowPaint.color = ColorUtils.setAlphaComponent(highlightColor, 70)
         // Namen auf unbesuchten Ländern in der Akzentfarbe (lesbar auf der
         // grauen Grundfläche), auf besuchten Ländern in der Primärfarbe des
         // aktiven Schemas (z. B. dunkelblau auf der gelben Füllung beim
-        // LH-Schema); im Experiment (EXPERIMENT_FARBEN) alle Namen in der
+        // LH-Schema); im Experiment (experimentAktiv) alle Namen in der
         // Akzentfarbe. Bei den klassischen Akzentfarben ist die Primärfarbe die
         // Akzentfarbe selbst - auf der Akzentfüllung eines besuchten Landes wäre
         // sie nicht lesbar, dort greift die On-Primary-Farbe.
@@ -990,17 +1011,17 @@ class RubbelkarteView @JvmOverloads constructor(
      * Setzt die Schrift- und Halo-Farben aller Namen-Paints für ein Land:
      * [besucht] in der Primärfarbe, sonst in der Akzentfarbe. Wird vor jedem
      * Zeichnen eines Namens aufgerufen, weil die Farbe vom Land unter dem
-     * Namen abhängt. Im Experiment ([EXPERIMENT_FARBEN]) stehen alle Namen in
-     * der Akzentfarbe, unabhängig vom Land.
+     * Namen abhängt. Im Experiment ([experimentAktiv], nicht beim LH-Schema)
+     * stehen alle Namen in der Akzentfarbe, unabhängig vom Land.
      */
     private fun setzeLabelFarben(besucht: Boolean) {
         val text = when {
-            EXPERIMENT_FARBEN -> accentTextColor
+            experimentAktiv -> accentTextColor
             besucht -> primaryTextColor
             else -> accentTextColor
         }
         val halo = when {
-            EXPERIMENT_FARBEN -> accentHaloColor
+            experimentAktiv -> accentHaloColor
             besucht -> primaryHaloColor
             else -> accentHaloColor
         }
@@ -1041,9 +1062,9 @@ class RubbelkarteView @JvmOverloads constructor(
      * Hebt Länder (ISO-2) oder Staaten (ISO-3166-2) auf der Kugel hervor,
      * z. B. alle Länder eines Kontinents nach einem Kachel-Tipp oder ein Land
      * nach einem Tipp auf das Auge in der Länderliste. Die Grenze leuchtet in
-     * der Primärfarbe des aktiven Schemas ([AirlineSchemes.primaryColor]),
-     * im Experiment ([EXPERIMENT_FARBEN]) in der Akzentfarbe. Eine leere Menge
-     * schaltet die Hervorhebung aus.
+     * der Primärfarbe des aktiven Schemas ([AirlineSchemes.primaryColor]) -
+     * auch beim LH-Schema; nur im Experiment ([experimentAktiv]) in der
+     * Akzentfarbe. Eine leere Menge schaltet die Hervorhebung aus.
      */
     fun setHighlight(codes: Set<String>) {
         highlightCodes = codes.map { it.trim().uppercase() }.toSet()

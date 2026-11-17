@@ -98,11 +98,17 @@ Farben der Kugel um: true = besuchte Länder (inkl. schwacher Staatenfüllung) i
 (`setHighlight`, z. B. per Auge auf ein Land/Kontinent) und **alle Namen** in der
 **Akzentfarbe**; die normalen Ländergrenzen (`borderPaint`) bleiben im Outline-Ton.
 Zum Zurückdrehen die Flag auf `false` – init und `setzeLabelFarben` verzweigen nur an dieser
-einen Stelle.
+einen Stelle (`experimentAktiv` = `EXPERIMENT_FARBEN && !lhSchemaAktiv`).
+**Ausnahme LH-Schema:** Ist das Schema `airline_lh` aktiv (`lhSchemaAktiv` in init über
+`Settings.getAccentColor`), greift das Experiment nicht: Besuchte Länder (inkl. schwacher
+Staatenfüllung) werden in der **Akzentfarbe** (LH-Gold, `colorPrimary`) gefüllt, die
+**Zoom-Hervorhebung** in der **Primärfarbe** (LH-Blau, `AirlineSchemes.primaryColor`) und
+die Namen wie im Nicht-Experiment (auf besuchten Ländern Primärfarbe, sonst Akzentfarbe).
 **Airport-Punkte** (`drawAirports`, nur angeflogene Flughäfen aus `visitedAirports`) sind
 einfache Punkte in der **Akzentfarbe** (`airportPaint.color = colorPrimary` in init, Radius
-`PUNKT_INNEN` × `PUNKT_ANTEIL`) – kein Ring/Halo mehr (früher schwarzer Punkt mit weissem
-Ring, `PUNKT_RING`/`airportHaloPaint` entfernt).
+`PUNKT_INNEN` × `PUNKT_ANTEIL`) – **beim LH-Schema in der Primärfarbe**
+(`airportPaint.color = AirlineSchemes.primaryColor`) – kein Ring/Halo mehr (früher schwarzer
+Punkt mit weissem Ring, `PUNKT_RING`/`airportHaloPaint` entfernt).
 Beim Hereinzoomen (`ZOOM_STAEDTE`) erscheinen die Hauptstädte der aktiven Staaten
 (`STATE_CAP_MAX` gleichzeitig).
 **Fokussiertes Land** (einzelner Code in `setHighlight`, z. B. per Auge auf ein Land):

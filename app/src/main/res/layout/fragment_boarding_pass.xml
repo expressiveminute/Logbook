@@ -327,6 +327,25 @@
         </com.google.android.material.card.MaterialCardView>
     </ScrollView>
 
+    <!-- Pfeil zurück oben links, auf dem oberen Rand der Karte (gespiegelt zum
+         Stift rechts, nach dem ScrollView deklariert, damit er über der Karte
+         liegt): wird beim Öffnen eingeblendet und nach 2 s wieder ausgeblendet
+         (Alpha 0, bleibt aber klickbar); ein Tipp navigiert zurück. Den oberen
+         Margin (Mitte auf dem Kartenrand) setzt der Fragment-Code. -->
+    <ImageButton
+        android:id="@+id/btn_back_pass"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginStart="8dp"
+        android:background="@drawable/bg_boarding_pass_logo"
+        android:contentDescription="@string/boarding_pass_back_desc"
+        android:foreground="?attr/selectableItemBackgroundBorderless"
+        android:padding="12dp"
+        android:src="@drawable/ic_arrow_back"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:tint="@android:color/black" />
+
     <!-- Stift oben rechts, auf dem oberen Rand der Karte (nach dem ScrollView
          deklariert, damit er über der Karte liegt): wird beim Öffnen
          eingeblendet und nach 2 s wieder ausgeblendet (Alpha 0, bleibt aber

@@ -479,6 +479,7 @@
     <string name="boarding_pass_map_desc">Flight route from %1$s to %2$s</string>
     <string name="boarding_pass_qr_desc">QR code with the flight data of this boarding pass</string>
     <string name="boarding_pass_edit_desc">Edit boarding pass</string>
+    <string name="boarding_pass_back_desc">Back</string>
     <string name="fab_scan_boarding_pass">Scan boarding pass</string>
     <string name="boarding_pass_scan_title">Scan boarding pass</string>
     <string name="boarding_pass_scan_hint">Point the camera at the QR code on the boarding pass</string>
@@ -776,7 +777,7 @@
     <string name="import_review_summary_unknown">Unknown</string>
 
     <string name="settings_version_label">Version %1$s</string>
-    <string name="settings_version" translatable="false">0.0.37</string>
+    <string name="settings_version" translatable="false">0.0.51</string>
     <string name="settings_made_with_prefix">Made with</string>
     <string name="settings_made_with_suffix">by expressiveminute</string>
 

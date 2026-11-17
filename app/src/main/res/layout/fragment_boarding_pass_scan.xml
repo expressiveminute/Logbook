@@ -7,10 +7,14 @@
     android:background="?android:attr/colorBackground"
     tools:context=".BoardingPassScanFragment">
 
+    <!-- Kopfleiste in der Akzentfarbe (wie Plus-Knopf und Scannen-Knopf auf
+         dem Dashboard: colorPrimaryContainer - im Dark Mode das satte Gold),
+         Schrift und Zurück-Pfeil in der Kontrastfarbe. -->
     <LinearLayout
         android:id="@+id/header"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="?attr/colorPrimaryContainer"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingHorizontal="16dp"
@@ -26,7 +30,7 @@
             app:contentDescription="@string/btn_back"
             app:icon="@drawable/ic_arrow_back"
             app:iconSize="24dp"
-            app:iconTint="?attr/colorOnSurface" />
+            app:iconTint="?attr/colorOnPrimaryContainer" />
 
         <TextView
             android:id="@+id/tv_title"
@@ -35,7 +39,8 @@
             android:layout_marginStart="8dp"
             android:layout_weight="1"
             android:text="@string/boarding_pass_scan_title"
-            android:textAppearance="@style/TextAppearance.Material3.TitleLarge" />
+            android:textAppearance="@style/TextAppearance.Material3.TitleLarge"
+            android:textColor="?attr/colorOnPrimaryContainer" />
     </LinearLayout>
 
     <!-- Kameraausschnitt: ZXing-BarcodeView, nur QR-Codes. -->

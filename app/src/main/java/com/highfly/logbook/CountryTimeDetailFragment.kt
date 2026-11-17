@@ -10,6 +10,7 @@ import android.view.ViewGroup
 import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.core.view.doOnNextLayout
 import androidx.navigation.fragment.findNavController
@@ -344,6 +345,13 @@ class CountryTimeDetailFragment : LogbookFragment() {
     private fun buildStayRow(period: StayPeriod, last: Boolean): View {
         val ctx = requireContext()
         val row = ItemStayBinding.inflate(layoutInflater, binding.llCtdStays, false)
+        // Einreise-/Ausreise-Buttons in der Akzentfarbe (statt Tonal-Default),
+        // Schrift immer weiß.
+        val accent = AirlineSchemes.accentColor(ctx)
+        listOf(row.btnStayIn, row.btnStayOut).forEach { btn ->
+            btn.backgroundTintList = ColorStateList.valueOf(accent)
+            btn.setTextColor(Color.WHITE)
+        }
         val enter = period.enterEntry
         val exit = period.exitEntry
         if (enter != null) {
@@ -467,6 +475,14 @@ class CountryTimeDetailFragment : LogbookFragment() {
             row.tvStayRouteOut.visibility = View.GONE
             row.tvStayMetaOut.visibility = View.GONE
         }
+        // Steht in einer Spalte der Button statt des Datums, wird die Spalte
+        // vertikal mittig zentriert (Bias 0.5), damit der Button auf Höhe des
+        // Flugs in der anderen Spalte steht; sonst oben ausgerichtet (Bias 0),
+        // damit die Daten beider Spalten auf gleicher Höhe stehen.
+        (row.colStayIn.layoutParams as? ConstraintLayout.LayoutParams)?.verticalBias =
+            if (row.btnStayIn.visibility == View.VISIBLE) 0.5f else 0f
+        (row.colStayOut.layoutParams as? ConstraintLayout.LayoutParams)?.verticalBias =
+            if (row.btnStayOut.visibility == View.VISIBLE) 0.5f else 0f
         if (last) {
             (row.root.layoutParams as? ViewGroup.MarginLayoutParams)?.bottomMargin = 0
         }

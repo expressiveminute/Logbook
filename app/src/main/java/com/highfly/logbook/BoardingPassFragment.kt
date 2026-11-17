@@ -6,6 +6,7 @@ import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageButton
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.os.bundleOf
@@ -46,17 +47,19 @@ import com.highfly.logbook.databinding.FragmentBoardingPassBinding
  * Scannt ein anderer Nutzer den Code in der App, landet der Flug
  * vorbefüllt auf der Seite „Neuer Flug“.
  *
- * Oben rechts über dem Rahmen der Karte liegt ein Stift ([btn_edit_pass]):
- * Er wird beim Öffnen eingeblendet und nach [EDIT_HINT_MS] wieder ausgeblendet
- * (Alpha 0 - bleibt aber klickbar). Ein Tipp darauf öffnet den Eintrag zum
- * Bearbeiten („Neuer Flug" mit entryId).
+ * Oben über dem Rahmen der Karte liegen zwei Knöpfe: links ein Pfeil zurück
+ * ([btn_back_pass]), rechts ein Stift ([btn_edit_pass]). Beide werden beim
+ * Öffnen eingeblendet und nach [HINT_MS] wieder ausgeblendet (Alpha 0 - bleiben
+ * aber klickbar). Ein Tipp auf den Pfeil navigiert zurück, ein Tipp auf den
+ * Stift öffnet den Eintrag zum Bearbeiten („Neuer Flug" mit entryId).
  */
 class BoardingPassFragment : LogbookFragment() {
 
     private var _binding: FragmentBoardingPassBinding? = null
     private val binding get() = _binding!!
 
-    /** Runnable, das den Stift nach der Anzeigezeit wieder ausblendet. */
+    /** Runnables, die die Hinweis-Knöpfe (Zurück, Stift) wieder ausblenden. */
+    private var backHintRunnable: Runnable? = null
     private var editHintRunnable: Runnable? = null
 
     private companion object {
@@ -67,11 +70,11 @@ class BoardingPassFragment : LogbookFragment() {
         const val ROUTE_MAX_SP = 28f
         const val ROUTE_MIN_SP = 14f
 
-        /** So lange bleibt der Stift nach dem Öffnen eingeblendet. */
-        const val EDIT_HINT_MS = 2000L
+        /** So lange bleiben die Hinweis-Knöpfe nach dem Öffnen eingeblendet. */
+        const val HINT_MS = 2000L
 
-        /** Dauer des Ein-/Ausblendens des Stifts. */
-        const val EDIT_FADE_MS = 400L
+        /** Dauer des Ein-/Ausblendens der Hinweis-Knöpfe. */
+        const val HINT_FADE_MS = 400L
     }
 
     override fun onCreateView(
@@ -87,10 +90,11 @@ class BoardingPassFragment : LogbookFragment() {
         binding.boardingPassScroll.addBottomNavPadding()
 
         // Kein Header: oben Platz für die Statusleiste einräumen (gepostet wie
-        // addBottomNavPadding, damit der Layout-Request ankommt). Der Stift
-        // oben rechts wird mit seiner Mitte auf den oberen Rand der Karte
-        // gesetzt (Kartenrand = Statusleiste + 8 dp Karten-Margin), damit er
-        // über dem Rand liegt und nicht hinter der Karte verschwindet.
+        // addBottomNavPadding, damit der Layout-Request ankommt). Die Knöpfe
+        // oben (Zurück links, Stift rechts) werden mit ihrer Mitte auf den
+        // oberen Rand der Karte gesetzt (Kartenrand = Statusleiste + 8 dp
+        // Karten-Margin), damit sie über dem Rand liegen und nicht hinter der
+        // Karte verschwinden.
         binding.boardingPassScroll.doOnNextLayout {
             binding.boardingPassScroll.post {
                 val top = ViewCompat.getRootWindowInsets(binding.root)
@@ -100,9 +104,11 @@ class BoardingPassFragment : LogbookFragment() {
                     binding.boardingPassScroll.paddingRight, binding.boardingPassScroll.paddingBottom
                 )
                 val cardTop = top + (8 * resources.displayMetrics.density).toInt()
-                (binding.btnEditPass.layoutParams as? ViewGroup.MarginLayoutParams)?.let {
-                    it.topMargin = cardTop - binding.btnEditPass.layoutParams.height / 2
-                    binding.btnEditPass.layoutParams = it
+                listOf(binding.btnBackPass, binding.btnEditPass).forEach { btn ->
+                    (btn.layoutParams as? ViewGroup.MarginLayoutParams)?.let {
+                        it.topMargin = cardTop - btn.layoutParams.height / 2
+                        btn.layoutParams = it
+                    }
                 }
             }
         }
@@ -126,7 +132,15 @@ class BoardingPassFragment : LogbookFragment() {
             return
         }
         bind(entry)
-        setupEditButton(entryId)
+        backHintRunnable = setupHintButton(binding.btnBackPass) {
+            findNavController().navigateUp()
+        }
+        editHintRunnable = setupHintButton(binding.btnEditPass) {
+            findNavController().navigate(
+                R.id.action_boarding_pass_to_add_entry,
+                bundleOf("entryId" to entryId)
+            )
+        }
 
         // Streckenbeschriftung nach dem ersten Layout dynamisch so groß wie
         // möglich in die Spalte neben dem QR-Code einpassen (je nach
@@ -159,7 +173,9 @@ class BoardingPassFragment : LogbookFragment() {
     }
 
     override fun onDestroyView() {
+        backHintRunnable?.let { binding.btnBackPass.removeCallbacks(it) }
         editHintRunnable?.let { binding.btnEditPass.removeCallbacks(it) }
+        binding.btnBackPass.animate().cancel()
         binding.btnEditPass.animate().cancel()
         binding.routeMap.cancelRouteAnimation()
         binding.layoverClock.stop()
@@ -168,34 +184,29 @@ class BoardingPassFragment : LogbookFragment() {
     }
 
     /**
-     * Stift oben rechts über dem Rahmen: wird beim Öffnen eingeblendet und
-     * nach [EDIT_HINT_MS] wieder ausgeblendet. Ausgeblendet heißt nur Alpha 0
-     * (sichtbar bleibt der Knopf, damit er weiter klickbar ist) - ein Tipp
-     * öffnet den Eintrag zum Bearbeiten.
+     * Hinweis-Knopf über dem oberen Rand der Karte (Zurück links, Stift
+     * rechts): wird beim Öffnen eingeblendet und nach [HINT_MS] wieder
+     * ausgeblendet. Ausgeblendet heißt nur Alpha 0 - der Knopf bleibt
+     * klickbar. Gibt das Runnable zurück, das das Ausblenden plant.
      */
-    private fun setupEditButton(entryId: Long) {
-        val edit = binding.btnEditPass
-        edit.setOnClickListener {
-            findNavController().navigate(
-                R.id.action_boarding_pass_to_add_entry,
-                bundleOf("entryId" to entryId)
-            )
-        }
+    private fun setupHintButton(button: ImageButton, onClick: () -> Unit): Runnable {
+        button.setOnClickListener { onClick() }
         val animate = animationsEnabled()
-        edit.alpha = 0f
+        button.alpha = 0f
         if (animate) {
-            edit.animate().alpha(1f).setDuration(EDIT_FADE_MS).start()
+            button.animate().alpha(1f).setDuration(HINT_FADE_MS).start()
         } else {
-            edit.alpha = 1f
+            button.alpha = 1f
         }
-        editHintRunnable = Runnable {
+        val hintRunnable = Runnable {
             if (animate) {
-                edit.animate().alpha(0f).setDuration(EDIT_FADE_MS).start()
+                button.animate().alpha(0f).setDuration(HINT_FADE_MS).start()
             } else {
-                edit.alpha = 0f
+                button.alpha = 0f
             }
         }
-        edit.postDelayed(editHintRunnable, EDIT_HINT_MS)
+        button.postDelayed(hintRunnable, HINT_MS)
+        return hintRunnable
     }
 
     /** Ob Systemanimationen laufen dürfen (Einstellung „Animationsdauer“). */

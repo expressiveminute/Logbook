@@ -492,6 +492,7 @@
     <string name="boarding_pass_map_desc">Flugstrecke von %1$s nach %2$s</string>
     <string name="boarding_pass_qr_desc">QR-Code mit den Flugdaten dieser Bordkarte</string>
     <string name="boarding_pass_edit_desc">Bordkarte bearbeiten</string>
+    <string name="boarding_pass_back_desc">Zurück</string>
     <string name="fab_scan_boarding_pass">Bordkarte scannen</string>
     <string name="boarding_pass_scan_title">Bordkarte scannen</string>
     <string name="boarding_pass_scan_hint">QR-Code auf der Bordkarte vor die Kamera halten</string>
@@ -794,7 +795,7 @@
     <string name="import_review_summary_unknown">Unbekannt</string>
 
     <string name="settings_version_label">Version %1$s</string>
-    <string name="settings_version" translatable="false">0.0.37</string>
+    <string name="settings_version" translatable="false">0.0.51</string>
     <string name="settings_made_with_prefix">Made with</string>
     <string name="settings_made_with_suffix">by expressiveminute</string>
 
