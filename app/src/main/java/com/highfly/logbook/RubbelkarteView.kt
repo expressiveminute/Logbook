@@ -417,7 +417,7 @@ class RubbelkarteView @JvmOverloads constructor(
         private const val TWO_PI = 2.0 * PI
 
         // Obergrenze Dezimierungs-Cache (Punkte): ca. 400k Punkte ~ 10 MB.
-        private const val DECIMATE_CACHE_MAX_POINTS = 400_000
+        private const val DECIMATE_CACHE_MAX_POINTS = 800_000
         private const val HALF_PI = PI / 2.0
 
         /** Geladene Umrisse: Länder und Staaten gemeinsam, app-weit geteilt. */
@@ -2392,7 +2392,7 @@ class RubbelkarteView @JvmOverloads constructor(
     private var decimateCachePoints = 0
 
     private fun epsBucket(eps: Double): Int =
-        (Math.log(eps.coerceAtLeast(1e-9)) / Math.log(1.19)).roundToInt()
+        (Math.log(eps.coerceAtLeast(1e-9)) / Math.log(1.5)).roundToInt()
 
     private fun decimateCached(
         ring: DoubleArray,

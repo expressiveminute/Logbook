@@ -60,11 +60,12 @@ VERSION = 2
 # und ergibt rund 77 m Aufloesung.
 UNITS_PER_DEGREE = 1440
 
-# Ramer-Douglas-Peucker-Toleranz in Grad. 0.004 Grad (~450 m) ist auf der
-# Weltkugel selbst im staerksten Zoom (~50 m/Pixel) kaum sichtbar, haelt die
-# Kuesten aber deutlich genauer als die frueheren 0.04 Grad (~4,4 km).
+# Ramer-Douglas-Peucker-Toleranz in Grad. 0.008 Grad (~890 m) halbiert die
+# Punktzahl gegenueber 0.004 Grad (~450 m) und ist auf der Weltkugel bis auf
+# den staerksten Zoom (~50 m/Pixel) nicht sichtbar; Kleinstaaten und kleine
+# Inseln behalten ueber EPS_SMALL bzw. den Ring-Fallback ihre volle Aufloesung.
 # Antarktis bleibt eine strukturlose Masse und darf grober sein.
-EPS_DEFAULT = 0.004
+EPS_DEFAULT = 0.008
 EPS_ANTARCTICA = 0.05
 
 # Toleranz fuer Laender unter dieser Ausdehnung (Grad). Laenger ist 0.004 Grad
@@ -396,7 +397,7 @@ def to_units(degrees):
     return value
 
 
-def compute_shared_keys(raw_entries):
+def compute_shared_keys(raw_entries, eps=0.0):
     """Vertices, die in mindestens zwei Laendern vorkommen (gemeinsame Grenze).
 
     Natural Earth speichert gemeinsame Grenzen bit-identisch in beiden
@@ -407,6 +408,16 @@ def compute_shared_keys(raw_entries):
     CountryShapes.kt). raw_entries: Tupel (kennung, ..., raw_rings); die
     Kennung ist beim Laender-Asset der ISO2, beim Staaten-Asset der Code -
     sie muss pro Flächeneinheit eindeutig sein, sonst kollabiert die Zählung.
+
+    Mit eps > 0 werden die gemeinsamen Grenzstrecken zusaetzlich konsistent
+    dezimiert: Jede Strecke (maximale Folge von Vertices mit genau zwei
+    Nutzern, begrenzt von Dreifachpunkten oder Kueste) wird einmal per DP
+    vereinfacht - kanonisch in Richtung des lexikographisch kleineren
+    Endpunkts, damit beide Laender dieselbe Strecke in derselben Richtung
+    sehen und DP (asymmetrisch) dieselben Punkte behaelt. Endpunkte,
+    Dreifachpunkte (>=3 Nutzer) und einzelne Beruehrpunkte bleiben immer
+    erhalten. So bleibt die Grenze in beiden Laendern bit-identisch, wird
+    aber nicht feiner als noetig gespeichert.
     """
     users = {}
     for entry in raw_entries:
@@ -418,7 +429,56 @@ def compute_shared_keys(raw_entries):
                 local.add((to_units(lon), to_units(lat)))
         for key in local:
             users.setdefault(key, set()).add(entity_id)
-    return {key for key, user_set in users.items() if len(user_set) >= 2}
+    shared = {key for key, user_set in users.items() if len(user_set) >= 2}
+    if eps <= 0:
+        return shared
+    pair = {key for key, user_set in users.items() if len(user_set) == 2}
+    tri = shared - pair
+    # Grenzstrecken sammeln. Der Ring wird so rotiert, dass er an einem
+    # Nicht-Grenzpunkt beginnt (sonst wuerfe die Ringnaht eine Strecke entzwei,
+    # und die Naht liegt in jedem Land an einer anderen Stelle); ein Ring, der
+    # nur aus Grenzpunkten besteht (Enklave), startet am lexikographisch
+    # kleinsten Punkt - so sehen beide Laender denselben kanonischen Ring.
+    runs = set()
+    for entry in raw_entries:
+        for ring in entry[-1]:
+            keys = [(to_units(lon), to_units(lat)) for lon, lat in ring]
+            n = len(keys)
+            if n < 2:
+                continue
+            start = 0
+            if all(k in pair for k in keys):
+                start = keys.index(min(keys))
+            else:
+                for i, k in enumerate(keys):
+                    if k not in pair:
+                        start = i
+                        break
+            rot = keys[start:] + keys[:start]
+            i = 0
+            while i < n:
+                if rot[i] in pair:
+                    j = i
+                    while j < n and rot[j] in pair:
+                        j += 1
+                    run = rot[i:j]
+                    if len(run) >= 2:
+                        if run[0] > run[-1]:
+                            run = run[::-1]
+                        runs.add(tuple(run))
+                    i = j
+                else:
+                    i += 1
+    kept = set(tri)
+    run_vertices = set()
+    for run in runs:
+        run_vertices.update(run)
+        pts = [(x / UNITS_PER_DEGREE, y / UNITS_PER_DEGREE) for x, y in run]
+        for p in simplify(pts, eps):
+            kept.add((to_units(p[0]), to_units(p[1])))
+    # einzelne Beruehrpunkte (Grenzpunkte ohne Grenz-Nachbarn) bleiben erhalten
+    kept.update(pair - run_vertices)
+    return kept
 
 
 def main():
@@ -462,7 +522,7 @@ def main():
             continue
         raw_entries.append((iso2, props, raw_rings))
 
-    shared_keys = compute_shared_keys(raw_entries)
+    shared_keys = compute_shared_keys(raw_entries, EPS_DEFAULT)
     print("%d gemeinsame Grenz-Vertices in >=2 Laendern" % len(shared_keys))
 
     entries = []

@@ -1,5 +1,7 @@
 package com.highfly.logbook
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Canvas
@@ -22,6 +24,7 @@ import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
 
@@ -240,6 +243,7 @@ class GlobeView @JvmOverloads constructor(
     private var velocityY = 0f
     private var lastMoveMs = 0L
     private var flingActive = false
+    private var gestureActive = false
     private var focusAnim: ValueAnimator? = null
 
     private val zoomDetector = ScaleGestureDetector(context, object : ScaleGestureDetector.OnScaleGestureListener {
@@ -363,6 +367,12 @@ class GlobeView @JvmOverloads constructor(
                 zoom = fromZoom + (target - fromZoom) * f
                 scheduleRebuild()
             }
+            addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) {
+                    // Nach der Animation letzter Aufbau mit voller Qualität.
+                    scheduleRebuild()
+                }
+            })
         }
         focusAnim = anim
         anim.start()
@@ -496,20 +506,38 @@ class GlobeView @JvmOverloads constructor(
         val cx = w / 2f
         val cy = h / 2f
 
-        // In der Kachel-Vorschau (nicht interaktiv) werden die Ringe dezimiert:
-        // Bei kleiner Kugel reichen wenige Punkte pro Ring, und der Neuaufbau
-        // pro Frame bleibt dadurch leicht genug für flüssiges Drehen.
+        // Interaktiv werden die Ringe wie in der Rubbelkarte behandelt: Länder
+        // ganz auf der Rückseite fallen vor der Projektion weg (ganzHinten), die
+        // übrigen Ringe laufen per Douglas-Peucker durch die bildschirmbezogene
+        // Dezimierung (2 px, während einer Bewegung 4 px), gecacht pro Ring und
+        // Toleranzstufe (decimateCached). In der Kachel-Vorschau (nicht
+        // interaktiv) reicht dagegen die pauschale Dezimierung auf wenige Punkte
+        // pro Ring - der Neuaufbau pro Frame bleibt dadurch leicht genug für
+        // flüssiges Drehen.
+        val epsRad = if (interactive) {
+            ((if (bewegungAktiv()) 4.0 else 2.0) * density) / radius
+        } else {
+            0.0
+        }
+        val bucket = if (interactive) epsBucket(epsRad) else 0
         val landPath = Path()
         for (country in c.countries) {
-            for (ring in country.unitRings) {
-                val units = if (interactive) ring else decimate(ring, PREVIEW_RING_POINTS)
+            if (interactive &&
+                ganzHinten(globe, country.minLon, country.minLat, country.maxLon, country.maxLat)
+            ) continue
+            for ((ringIndex, ring) in country.unitRings.withIndex()) {
+                val units = if (interactive) {
+                    decimateCached(ring, epsRad, bucket, country.sharedMasks.getOrNull(ringIndex))
+                } else {
+                    decimatePreview(ring, PREVIEW_RING_POINTS)
+                }
                 val path = ringPath(units, globe, cx, cy, radius, closed = true) ?: continue
                 landPath.addPath(path)
             }
         }
         val routePath = Path()
         for (arc in c.routes) {
-            val units = if (interactive) arc.units else decimate(arc.units, PREVIEW_ROUTE_POINTS)
+            val units = if (interactive) arc.units else decimatePreview(arc.units, PREVIEW_ROUTE_POINTS)
             val path = ringPath(units, globe, cx, cy, radius, closed = false) ?: continue
             routePath.addPath(path)
         }
@@ -753,6 +781,88 @@ class GlobeView @JvmOverloads constructor(
             i += step
         }
         return if (j == out.size) out else out.copyOf(j)
+    }
+
+    /**
+     * Cache für die pauschale Vorschau-Dezimierung (s. [decimate]): Die Kachel
+     * dreht sich im Takt, jeder Frame baut die Kugel neu auf - ohne Cache würde
+     * jeder Ring pro Frame neu dezimiert und allokiert. Schlüssel ist die
+     * Ring-Array-Identität; die Größe ist durch die Ringzahl begrenzt
+     * (~4.251 Ringe x höchstens PREVIEW_RING_POINTS Punkte). Nur der einzelne
+     * Aufbau-Thread liest/schreibt den Cache.
+     */
+    private val previewDecimateCache = java.util.IdentityHashMap<DoubleArray, DoubleArray>()
+
+    private fun decimatePreview(units: DoubleArray, maxPoints: Int): DoubleArray =
+        previewDecimateCache.getOrPut(units) { decimate(units, maxPoints) }
+
+    /**
+     * Läuft gerade eine Bewegung (Finger, Fling, programmatischer Zoom)?
+     * Dann wird interaktiv mit der doppelten Dezimierungs-Toleranz aufgebaut
+     * (siehe build) - nach Ende der Bewegung folgt ein letzter Aufbau mit
+     * voller Qualität.
+     */
+    private fun bewegungAktiv(): Boolean =
+        gestureActive || flingActive || autoRotateActive || (focusAnim?.isRunning == true)
+
+    /**
+     * Dezimiert einen Ring interaktiv per Douglas-Peucker mit bildschirmbezogener
+     * Toleranz (epsRad = spacingPx / radius -> Fehler höchstens ~spacingPx Pixel),
+     * gecacht pro Ring und quantisierter Toleranzstufe: Beim Drehen ändert sich
+     * weder Ring noch Toleranz - ohne Cache würde jeder Frame alle sichtbaren
+     * Länder komplett neu dezimieren und die Kugel ruckelte. Gemeinsame
+     * Grenzpunkte (sharedMasks) hält die Dezimierung fest, damit Grenzen in
+     * beiden Nachbarländern identisch bleiben (keine Lücken zwischen den
+     * Länderflächen). Nur der einzelne Aufbau-Thread liest/schreibt den Cache.
+     */
+    private val decimateCache = java.util.IdentityHashMap<DoubleArray, HashMap<Int, DoubleArray>>()
+    private var decimateCachePoints = 0
+
+    private fun epsBucket(eps: Double): Int =
+        (Math.log(eps.coerceAtLeast(1e-9)) / Math.log(1.5)).roundToInt()
+
+    private fun decimateCached(
+        ring: DoubleArray,
+        eps: Double,
+        bucket: Int,
+        forceKeep: BooleanArray? = null
+    ): DoubleArray {
+        decimateCache[ring]?.get(bucket)?.let { return it }
+        val d = GeoMath.decimateUnitsSafe(ring, eps, forceKeep)
+        if (decimateCachePoints > DECIMATE_CACHE_MAX_POINTS) {
+            decimateCache.clear()
+            decimateCachePoints = 0
+        }
+        decimateCache.getOrPut(ring) { HashMap() }[bucket] = d
+        decimateCachePoints += d.size / 3
+        return d
+    }
+
+    private fun diagRad(minLon: Double, minLat: Double, maxLon: Double, maxLat: Double): Double {
+        val midLatRad = Math.toRadians((minLat + maxLat) / 2.0)
+        var d = max((maxLon - minLon) * cos(midLatRad), maxLat - minLat) / 2.0
+        if (d > 90.0) d = 90.0
+        return Math.toRadians(d)
+    }
+
+    /**
+     * Liegt das Gebiet ganz auf der Rückseite der Kugel? Der Winkel zwischen
+     * Blickrichtung und jedem Punkt des Gebiets ist dann größer als 90°.
+     */
+    private fun ganzHinten(
+        globe: GeoMath.Globe,
+        minLon: Double, minLat: Double, maxLon: Double, maxLat: Double
+    ): Boolean {
+        var midLon = (minLon + maxLon) / 2.0
+        if (maxLon - minLon > 180.0) midLon += 180.0
+        midLon = ((midLon + 180.0) % 360.0 + 360.0) % 360.0 - 180.0
+        val midLat = (minLat + maxLat) / 2.0
+        val mlat = Math.toRadians(midLat)
+        val mlon = Math.toRadians(midLon)
+        val dot = cos(globe.centerLat) * cos(globe.centerLon) * cos(mlat) * cos(mlon) +
+            cos(globe.centerLat) * sin(globe.centerLon) * cos(mlat) * sin(mlon) +
+            sin(globe.centerLat) * sin(mlat)
+        return dot < -sin(diagRad(minLon, minLat, maxLon, maxLat)) - 0.02
     }
 
     private class Crossing(
@@ -1129,6 +1239,9 @@ class GlobeView @JvmOverloads constructor(
                 velocityX = 0f
                 velocityY = 0f
                 lastMoveMs = SystemClock.uptimeMillis()
+                // Während der Geste mit doppelter Dezimierungs-Toleranz aufbauen.
+                gestureActive = true
+                scheduleRebuild()
                 return true
             }
             MotionEvent.ACTION_POINTER_DOWN -> return true
@@ -1166,12 +1279,16 @@ class GlobeView @JvmOverloads constructor(
                 return true
             }
             MotionEvent.ACTION_UP -> {
+                gestureActive = false
                 if (!scaled && draggedPx > touchSlopPx()) startFling()
                 if (!scaled && draggedPx <= touchSlopPx()) performClick()
+                scheduleRebuild()
                 return true
             }
             MotionEvent.ACTION_CANCEL -> {
+                gestureActive = false
                 stopFling()
+                scheduleRebuild()
                 return true
             }
         }
@@ -1199,6 +1316,7 @@ class GlobeView @JvmOverloads constructor(
             val dy = velocityY * dt / 16f
             if (abs(dx) < 0.02f && abs(dy) < 0.02f) {
                 flingActive = false
+                scheduleRebuild() // nach dem Fling letzter Aufbau mit voller Qualität
                 return
             }
             rotate(dx, dy)
@@ -1371,6 +1489,9 @@ class GlobeView @JvmOverloads constructor(
 
         /** Punkte pro Landring in der Kachel-Vorschau (dezimiert, siehe [decimate]). */
         const val PREVIEW_RING_POINTS = 40
+
+        /** Obergrenze der gecachten dezimierten Punkte (siehe [decimateCached]). */
+        private const val DECIMATE_CACHE_MAX_POINTS = 800_000
 
         /** Punkte pro Route in der Kachel-Vorschau. */
         const val PREVIEW_ROUTE_POINTS = 24

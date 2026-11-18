@@ -92,7 +92,7 @@ UNITS_PER_DEGREE = 1440  # 1440 * 180 = 259200 passt in int32, wie bei country_s
 LAT_MIN = -85.0
 
 # Ramer-Douglas-Peucker-Toleranzen in Grad, wie in build_country_shapes.py.
-EPS_DEFAULT = 0.004  # ~450 m: fein genug fuer saubere Grenzlinien auf der Kugel
+EPS_DEFAULT = 0.008  # ~890 m: halbiert die Punktzahl, Kuesten bleiben sauber genug
 EPS_SMALL = 0.001
 SMALL_DEG = 6.0
 
@@ -480,7 +480,7 @@ def main():
             by_code[item[0]] = item
     raw_entries = [by_code[c] for c in sorted(by_code)]
 
-    shared_keys = compute_shared_keys(raw_entries)
+    shared_keys = compute_shared_keys(raw_entries, EPS_DEFAULT)
     print("%d gemeinsame Grenz-Vertices in >=2 Bundesstaaten" % len(shared_keys))
 
     # Deutsche Namen für AU/GB von Wikidata (P300 = ISO-3166-2-Code).

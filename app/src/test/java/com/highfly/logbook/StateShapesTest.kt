@@ -318,7 +318,9 @@ class StateShapesTest {
             val ka = keysPerState.getValue(a)
             val kb = keysPerState.getValue(b)
             val shared = ka.intersect(kb)
-            assertTrue("$a/$b teilen nur ${shared.size} Vertices", shared.size > 20)
+            // gerade Grenzstrecken kollabieren durch die DP auf wenige Punkte
+            // (Messung: US-TX/US-NM nur 7), Hauptsache beide Staaten teilen sie.
+            assertTrue("$a/$b teilen nur ${shared.size} Vertices", shared.size > 5)
             fun masked(code: String): Set<Long> {
                 val st = states.first { it.code == code }
                 val out = HashSet<Long>()

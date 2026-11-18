@@ -295,8 +295,9 @@ class CountryShapesTest {
             for (k in local) users[k] = (users[k] ?: 0) + 1
         }
         val sharedTotal = users.count { it.value >= 2 }
-        // Der Builder muss die gemeinsamen Grenzen erhalten (Messung: > 60k).
-        assertTrue("nur $sharedTotal gemeinsame Grenzpunkte", sharedTotal > 60_000)
+        // Der Builder muss die gemeinsamen Grenzen erhalten (Messung: ~28k,
+        // seit die Grenzstrecken konsistent mit-dezimiert werden).
+        assertTrue("nur $sharedTotal gemeinsame Grenzpunkte", sharedTotal > 20_000)
 
         // Masken parallel zu den Ringen, und jeder markierte Punkt kommt in
         // mindestens einem ANDEREN Land vor.
@@ -316,14 +317,14 @@ class CountryShapesTest {
                 }
             }
         }
-        assertTrue("nur $maskedTotal maskierte Punkte", maskedTotal > 60_000)
+        assertTrue("nur $maskedTotal maskierte Punkte", maskedTotal > 40_000)
 
         // Stichprobe Deutschland/Polen: gemeinsame Grenz-Vertices liegen in BEIDEN
         // Ländern - sonst klafft zwischen den Länderflächen eine Lücke.
         val de = keysPerCountry.getValue("DE")
         val pl = keysPerCountry.getValue("PL")
         val dePl = de.intersect(pl)
-        assertTrue("DE und PL teilen nur ${dePl.size} Vertices", dePl.size > 100)
+        assertTrue("DE und PL teilen nur ${dePl.size} Vertices", dePl.size > 40)
         // ... und genau diese sind in beiden Ländern als gemeinsame Grenze markiert.
         fun maskedKeys(iso2: String): Set<Long> {
             val c = countries.first { it.iso2 == iso2 }

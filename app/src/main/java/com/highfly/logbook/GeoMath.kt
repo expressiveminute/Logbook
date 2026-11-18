@@ -216,6 +216,9 @@ object GeoMath {
             if (forceKeep != null && forceKeep.size == count) {
                 for (i in 0 until count) if (forceKeep[i]) keep[i] = true
             }
+            // Nichts entfernt: Der Ring bleibt, wie er ist - eine Selbstschnitt-
+            // Prüfung lohnt nicht (das Original ist sauber, siehe Builder).
+            if (keep.count { it } == count) return units
             if (!selfIntersectsKeep(lons, lats, keep)) return subsetUnits(units, keep)
             eps /= 2.0
         }
@@ -371,16 +374,30 @@ object GeoMath {
      */
     private fun selfIntersectsKeep(lons: DoubleArray, lats: DoubleArray, keep: BooleanArray): Boolean {
         val n0 = lons.size
+        // Indizes der behaltenen Punkte im Originalring.
+        val idx = IntArray(n0)
         var n = 0
-        for (i in 0 until n0) if (keep[i]) n++
+        for (i in 0 until n0) if (keep[i]) idx[n++] = i
         if (n < 4) return false
         val cl = DoubleArray(n)
         val ca = DoubleArray(n)
-        var m = 0
-        for (i in 0 until n0) if (keep[i]) {
-            cl[m] = lons[i]
-            ca[m] = lats[i]
-            m++
+        for (m in 0 until n) {
+            cl[m] = lons[idx[m]]
+            ca[m] = lats[idx[m]]
+        }
+        // Sehne oder Originalkante: Verbindet Segment m zwei im Original
+        // benachbarte Punkte, ist es eine Originalkante. Nur Sehnen (Kanten über
+        // entfernte Punkte) können eine NEUE Kreuzung erzeugen - der
+        // Originalring ist sauber (der Builder prüft das nach der Quantisierung).
+        // Deshalb werden nur Sehnen abgefragt, alle Kanten landen als
+        // Kreuzungspartner im Grid. Wurde nichts entfernt (n == n0), wird wie
+        // bisher jedes Segment geprüft (z. B. selfIntersects auf einem rohen Ring).
+        val nurSehnen = n < n0
+        val sehne = BooleanArray(n)
+        if (nurSehnen) {
+            for (m in 0 until n) {
+                sehne[m] = (idx[(m + 1) % n] - idx[m] + n0) % n0 != 1
+            }
         }
         val cell = 0.035 // ~2°
         val grid = HashMap<Long, IntArrayList>()
@@ -405,6 +422,7 @@ object GeoMath {
             }
         }
         for (i in 0 until n) {
+            if (nurSehnen && !sehne[i]) continue
             val j = (i + 1) % n
             val x0 = min(cl[i], cl[j])
             val x1 = max(cl[i], cl[j])
